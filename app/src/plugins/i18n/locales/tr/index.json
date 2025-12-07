@@ -578,7 +578,7 @@
       }
    },
    "product": {
-      "select_product": "Cihaz Seçin",
+      "select_product": "Ürün Seçin",
       "category": {
          "select_category": "Kategori Seçin"
       }
