@@ -6,6 +6,7 @@ const {
    presets,
    sidebarModeOptions,
    isDarkTheme,
+   breakpoints,
    setSidebarMode,
    setPreset,
    updateColors,
@@ -159,7 +160,7 @@ const { isSignedIn } = storeToRefs(useAuthStore());
             fluid
             v-slot="slotProps"
             :label="$t('app_config.sidebar.select_sidebar_mode')"
-            v-if="isSignedIn"
+            v-if="isSignedIn && breakpoints.sm"
          >
             <Select
                v-bind="slotProps"
