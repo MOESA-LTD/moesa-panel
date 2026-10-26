@@ -2,6 +2,8 @@
   "compilerOptions": {
     "lib": ["deno.ns", "dom"]
   },
-  "importMap": "./import_map.json",
-  "include": ["**/*.ts"]
+  "tasks": {
+    "check": "deno check **/index.ts",
+    "test": "deno test --allow-env"
+  }
 }

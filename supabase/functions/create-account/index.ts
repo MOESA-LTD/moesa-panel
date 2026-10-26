@@ -1,55 +1,57 @@
-import { corsHeaders } from '../_shared/cors.ts';
+import { z } from '../_shared/deps.ts';
+import { json, serve } from '../_shared/http.ts';
 import { supabaseAdmin } from '../_shared/supabaseClient.ts';
 
-const service = supabaseAdmin();
+// Public endpoint: only these fields are accepted, so callers cannot inject app_metadata, roles etc.
+const createAccountSchema = z.object({
+   account: z.object({
+      email: z.string().trim().email(),
+      password: z.string().min(8)
+   }),
+   company: z.object({
+      display_name: z.string().trim().min(3),
+      email: z.string().trim().email(),
+      phone: z.string().trim().nullish()
+   })
+});
 
-Deno.serve(async (req) => {
+serve(async (req) => {
+   const { account, company } = createAccountSchema.parse(await req.json());
+   const service = supabaseAdmin();
+
+   const { data: tenant } = await service
+      .from('tenant')
+      .insert(company)
+      .select('id, display_name')
+      .single()
+      .throwOnError();
+
+   let userId: string | undefined;
+
    try {
-      // This is needed if you're planning to invoke your function from a browser.
-      if (req.method === 'OPTIONS') {
-         return new Response('ok', { headers: corsHeaders });
-      }
-
-      const { account, company } = await req.json();
-
-      const {
-         data: [tenant]
-      } = await service.from('tenant').insert(company).select().throwOnError();
-
-      const { data: userData, error: userError } = await service.auth.admin.createUser({
-         ...account,
+      const { data, error } = await service.auth.admin.createUser({
+         email: account.email,
+         password: account.password,
          email_confirm: true
       });
-      if (userError) {
-         await service.from('tenant').delete().eq('id', tenant.id);
-         throw userError;
-      }
-      const { user } = userData;
+      if (error) throw error;
+      userId = data.user.id;
 
       await service
          .from('tenant_owner')
-         .insert({
-            tenant_id: tenant.id,
-            user_id: user.id
-         })
+         .insert({ tenant_id: tenant.id, user_id: userId })
          .throwOnError();
 
       await service
          .from('tenant_user')
-         .insert({
-            tenant_id: tenant.id,
-            user_id: user.id
-         })
+         .insert({ tenant_id: tenant.id, user_id: userId })
          .throwOnError();
 
-      return new Response(JSON.stringify({ user, tenant }), {
-         status: 200,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ user: { id: userId, email: data.user.email }, tenant });
    } catch (error) {
-      return new Response(JSON.stringify(error), {
-         status: 500,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      // Compensate so a failed registration does not leave an orphan user or tenant behind.
+      if (userId) await service.auth.admin.deleteUser(userId);
+      await service.from('tenant').delete().eq('id', tenant.id);
+      throw error;
    }
 });

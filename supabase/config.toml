@@ -246,6 +246,14 @@ policy = "oneshot"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083
 
+# Gateway verifies the JWT signature before the function runs; functions re-verify via Auth too.
+# create-account is called with the anon key, which is also a valid JWT.
+[functions.user]
+verify_jwt = true
+
+[functions.create-account]
+verify_jwt = true
+
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true
