@@ -2,6 +2,8 @@
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
+import { useRemoveUser } from '@/api/user';
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import Collection from '@/lib/Collection';
 import { useI18n } from 'vue-i18n';
 import Upsert from './upsert/Index.vue';
@@ -57,6 +59,9 @@ const filters = ref<ResourceTableProps['filters']>({
 });
 
 const stateKey = 'user';
+// The edge function used to be confirmed by the dialog in customFetch, which no longer exists.
+const confirmDelete = useConfirmDelete();
+const { mutateAsync: removeUser } = useRemoveUser();
 
 const rowActions = Collection.create<ResourceTableProps['rowActions']>([
    {
@@ -64,11 +69,9 @@ const rowActions = Collection.create<ResourceTableProps['rowActions']>([
       command:
          ({ data }) =>
          async () => {
-            const { error } = await supabase.functions.invoke(`user/${data.id}`, {
-               method: 'DELETE'
-            });
-            if (error) throw error;
-            emitter.emit('user-update');
+            if (await confirmDelete({ ...data, display_name: data.email })) {
+               await removeUser(data.id);
+            }
          },
       icon: PrimeIcons.TRASH
    },
