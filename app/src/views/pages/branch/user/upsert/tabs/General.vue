@@ -15,7 +15,7 @@ const props = defineProps<{
    data?: Partial<UserWithRoles> | null;
 }>();
 
-const { user: currentUser } = useAuthStore();
+const authStore = useAuthStore();
 
 const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
    id: () => props.id ?? props.data?.id,
@@ -28,7 +28,7 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = 
    toPayload: toUserPayload,
    // Another owner's account can only be changed by that owner.
    lockRow: (user) =>
-      user.id !== currentUser.id && user.role?.some((role) => role.display_name === 'owner')
+      user.id !== authStore.user?.id && user.role?.some((role) => role.display_name === 'owner')
 });
 await ready;
 

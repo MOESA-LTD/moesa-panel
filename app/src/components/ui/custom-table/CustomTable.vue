@@ -1,6 +1,5 @@
 <script setup lang="ts" generic="T = any">
 import { useRouteLoading } from '@/composables/useRouteStatus';
-import Collection from '@/lib/Collection';
 import TableFilterInput from './TableFilterInput.vue';
 import { useTableMeta, type TableStateStorage } from './useTableMeta';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
@@ -113,7 +112,7 @@ const { meta, stateStorage, metaStateKey, onMeta } = useTableMeta({
    onChange: (value) => emit('meta', value as CustomTableMetaEvent<T>)
 });
 
-const actions = Collection.create(props.rowActions);
+const actions = computed(() => props.rowActions ?? []);
 
 // Props that are CustomTable's own; everything else is forwarded to DataTable.
 const OWN_PROPS = ['columns', 'rowActions', 'useMeta', 'filters', 'dateFormat', 'enableExpansion'];
@@ -295,22 +294,21 @@ const tableValue = computed(() => {
       </Column>
       <Column
          v-if="
-            (actions._data?.length && (frozenValue?.length || tableValue?.length)) ||
-            $slots.table_actions
+            (actions?.length && (frozenValue?.length || tableValue?.length)) || $slots.table_actions
          "
          field="_actions"
          :key="'table_action'"
          :style="
-            actions._data?.length &&
-            `width: ${actions._data?.length * 4}rem !important;
-            min-width: ${actions._data?.length * 4}rem !important;
-            max-width: ${actions._data?.length * 4}rem !important`
+            actions?.length &&
+            `width: ${actions?.length * 4}rem !important;
+            min-width: ${actions?.length * 4}rem !important;
+            max-width: ${actions?.length * 4}rem !important`
          "
          class="custom_table__column"
       >
          <template #body="body">
             <slot name="table_actions">
-               <ActionButtons :body :items="actions._data" />
+               <ActionButtons :body :items="actions" />
             </slot>
          </template>
       </Column>

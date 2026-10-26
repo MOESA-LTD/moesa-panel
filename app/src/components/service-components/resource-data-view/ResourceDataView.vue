@@ -3,17 +3,12 @@ import { applyTableMeta } from '@/api/postgrest/tableQuery';
 import { queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { useRouteLoading } from '@/composables/useRouteStatus';
-import Collection from '@/lib/Collection';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 
 defineOptions({
    inheritAttrs: false
 });
 const props = defineProps({
-   mapClass: {
-      type: Function,
-      default: Collection
-   },
    from: {
       type: String,
       required: true
@@ -49,15 +44,8 @@ const options = computed(() => {
 
 const layout = defineModel('layout', { default: 'list' });
 
-const values = ref();
-const modelValue = defineModel({
-   get: (value) => value || values,
-   set: (value) => {
-      values.value = props.mapClass.create?.(value);
-      return values.value;
-   },
-   default: []
-});
+const items = ref([]);
+const modelValue = defineModel({ default: () => [] });
 
 const attrs = useAttrs();
 const tenantId = useTenantId();
@@ -92,8 +80,10 @@ await listQuery.suspense();
 watch(
    () => listQuery.data.value?.rows,
    (rows) => {
+      if (!rows) return;
       // Query data is deeply readonly and shared with the cache; slots and cards get their own copy.
-      if (rows) modelValue.value = _cloneDeep(rows);
+      items.value = _cloneDeep(rows);
+      modelValue.value = items.value;
    },
    { immediate: true }
 );
@@ -109,7 +99,7 @@ const viewProps = computed(() => ({
    loading: loading.value,
    onPage,
    layout: layout.value,
-   value: modelValue.value,
+   value: items.value,
    rowsPerPageOptions: [1, 5, 10],
    paginatorTemplate:
       'FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown',

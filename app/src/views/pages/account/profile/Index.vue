@@ -1,6 +1,10 @@
 <script setup>
+import { localeDateString } from '@/lib/dayjs';
+
 const authStore = useAuthStore();
 const { user } = storeToRefs(authStore);
+
+const formatDate = (value) => (value ? localeDateString({ value, validate: false }) : '');
 </script>
 
 <template>
@@ -42,13 +46,21 @@ const { user } = storeToRefs(authStore);
       </FormBox>
       <FormBox :legend="$t('account.profile.events')" class="flex-1">
          <FormField fluid :label="$t('account.profile.logs.created_at')" v-slot="slotProps">
-            <InputText v-bind="slotProps" readonly :model-value="user?.created_at" />
+            <InputText v-bind="slotProps" readonly :model-value="formatDate(user?.created_at)" />
          </FormField>
          <FormField fluid :label="$t('account.profile.logs.email_confirmed_at')" v-slot="slotProps">
-            <InputText v-bind="slotProps" readonly :model-value="user?.email_confirmed_at" />
+            <InputText
+               v-bind="slotProps"
+               readonly
+               :model-value="formatDate(user?.email_confirmed_at)"
+            />
          </FormField>
          <FormField fluid :label="$t('account.profile.logs.last_sign_in_at')" v-slot="slotProps">
-            <InputText v-bind="slotProps" readonly :model-value="user?.last_sign_in_at" />
+            <InputText
+               v-bind="slotProps"
+               readonly
+               :model-value="formatDate(user?.last_sign_in_at)"
+            />
          </FormField>
       </FormBox>
    </div>

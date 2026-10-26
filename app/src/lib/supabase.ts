@@ -9,6 +9,7 @@ const customFetch = async (
    url: string | URL,
    options: RequestInit & Request
 ): Promise<Response> => {
+   // Read on every request, so it is always the tenant selected now.
    const { currentTenant } = useAuthStore();
 
    if (currentTenant?.display_name) {

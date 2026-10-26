@@ -1,7 +1,6 @@
 <script setup>
-import Collection from '@/lib/Collection';
 const { t, te } = useI18n();
-const operations = Collection.create([
+const operations = computed(() => [
    { value: 'INSERT', label: t('audit_log.add'), severity: 'success' },
    { value: 'UPDATE', label: t('audit_log.update'), severity: 'info' },
    { value: 'DELETE', label: t('audit_log.delete'), severity: 'danger' }
@@ -12,7 +11,7 @@ const operations = Collection.create([
 <template>
    <MultiSelect
       :filter="true"
-      :options="operations._data"
+      :options="operations"
       option-label="label"
       option-value="value"
       :placeholder="$t('audit_log.select_operation')"

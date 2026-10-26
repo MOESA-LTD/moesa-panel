@@ -10,10 +10,9 @@ import ToastService from 'primevue/toastservice';
 
 import '@/assets/style/styles.scss';
 import '@/assets/style/tailwind.css';
-import { defineAbility } from '@casl/ability';
 import { abilitiesPlugin, Can } from '@casl/vue';
 import { appErrorHandler } from '@lib/appErrorHandler';
-import { resolveAction } from '@plugins/casl';
+import { ability } from '@plugins/casl';
 import { queryClient } from '@plugins/tanstack-query';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import DialogService from 'primevue/dialogservice';
@@ -27,13 +26,7 @@ export const app = createApp(App);
 
 app.config.errorHandler = appErrorHandler;
 
-app.use(
-   abilitiesPlugin,
-   defineAbility(() => {}, { resolveAction }),
-   {
-      useGlobalProperties: true
-   }
-).component(Can.name as string, Can);
+app.use(abilitiesPlugin, ability, { useGlobalProperties: true }).component(Can.name as string, Can);
 app.use(createPinia());
 app.use(i18NPlugin);
 app.use(PrimeVue, {

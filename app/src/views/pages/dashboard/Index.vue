@@ -3,7 +3,6 @@ import { fieldRoutes } from '@/constants/form/field';
 import { PRODUCT_CATEGORY_PROPS } from '@/constants/form/product';
 import { RECORD_TYPES } from '@/constants/form/record';
 import { appErrorHandler } from '@/lib/appErrorHandler';
-import Collection from '@/lib/Collection';
 import { ChartOptions } from 'chart.js';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
@@ -126,46 +125,26 @@ const useDashboardNotifications = () => {
       older: i18n.t('dashboard.notifications.older')
    }));
 
-   const data = Collection.create<Views['dashboard_notification_feed']['Row'][]>([] as any);
+   // Replaced as a whole; shallowRef also avoids unwrapping the nested Json types.
+   const data = shallowRef<Views['dashboard_notification_feed']['Row'][]>([]);
    const loading = ref(null);
+   const SINCE = ['today', 'yesterday', 'last_week', 'older'];
    const load = async () => {
       try {
-         await supabase
-            .from('dashboard_notification_feed')
-            .select('*')
-            .limit(5)
-            .order('created_at', {
-               ascending: false
-            })
-            .eq('since', 'today')
-            .then((res) => data.push(...res.data));
-         await supabase
-            .from('dashboard_notification_feed')
-            .select('*')
-            .limit(5)
-            .order('created_at', {
-               ascending: false
-            })
-            .eq('since', 'yesterday')
-            .then((res) => data.push(...res.data));
-         await supabase
-            .from('dashboard_notification_feed')
-            .select('*')
-            .limit(5)
-            .order('created_at', {
-               ascending: false
-            })
-            .eq('since', 'last_week')
-            .then((res) => data.push(...res.data));
-         await supabase
-            .from('dashboard_notification_feed')
-            .select('*')
-            .limit(5)
-            .order('created_at', {
-               ascending: false
-            })
-            .eq('since', 'older')
-            .then((res) => data.push(...res.data));
+         // The latest five of each period, fetched in parallel.
+         const groups = await Promise.all(
+            SINCE.map((since) =>
+               supabase
+                  .from('dashboard_notification_feed')
+                  .select('*')
+                  .eq('since', since)
+                  .order('created_at', { ascending: false })
+                  .limit(5)
+                  .throwOnError()
+                  .then((res) => res.data)
+            )
+         );
+         data.value = groups.flat();
       } catch (error) {
          console.error('Error fetching dashboard notifications:', error);
          appErrorHandler(error);
@@ -607,7 +586,7 @@ onMounted(() => {
                   $can('read', 'record') &&
                   $can('read', 'stock') &&
                   $can('read', 'product') &&
-                  !_isEmpty(dashboardNotifications.data)
+                  !_isEmpty(dashboardNotifications.data.value)
                "
                class="flex-[1_49%]"
             >
@@ -619,7 +598,7 @@ onMounted(() => {
                <template #content>
                   <template
                      v-for="(notifications, since) in _groupBy(
-                        dashboardNotifications.data,
+                        dashboardNotifications.data.value,
                         (n) => n.since
                      )"
                      :key="since"

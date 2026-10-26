@@ -7,7 +7,9 @@ export type TableName = keyof Tables | keyof Views;
  * mutation invalidate all queries of the tables it touched without knowing their parameters.
  */
 export const queryKeys = {
-   table: (tenantId: string | null, table: TableName) => ['tenant', tenantId, table] as const,
+   tenant: (tenantId: string | null) => ['tenant', tenantId] as const,
+   table: (tenantId: string | null, table: TableName) =>
+      [...queryKeys.tenant(tenantId), table] as const,
    list: (tenantId: string | null, table: TableName, params: object = {}) =>
       [...queryKeys.table(tenantId, table), 'list', params] as const,
    detail: (tenantId: string | null, table: TableName, id: string | null | undefined) =>

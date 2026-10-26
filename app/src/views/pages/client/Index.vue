@@ -2,7 +2,6 @@
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import { useDeleteClient } from '@/api/client/queries';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
-import Collection from '@/lib/Collection';
 import parsePhoneNumberFromString from 'libphonenumber-js';
 import ClientUpsert from './upsert/Index.vue';
 
@@ -75,7 +74,7 @@ const stateKey = 'client';
 const confirmDelete = useConfirmDelete();
 const { mutateAsync: deleteClient } = useDeleteClient();
 
-const rowActions = Collection.create([
+const rowActions = [
    {
       label: t('action.delete'),
       command:
@@ -99,7 +98,7 @@ const rowActions = Collection.create([
             }),
       icon: PrimeIcons.PENCIL
    }
-]);
+];
 
 const dialogRef = inject('dialogRef', null);
 
@@ -108,7 +107,7 @@ const tableProps = computed(() => ({
    from: 'client',
    select: '*, address(*)',
    columns: columns.value,
-   rowActions: rowActions._data,
+   rowActions: rowActions,
    ...attrs
 }));
 </script>

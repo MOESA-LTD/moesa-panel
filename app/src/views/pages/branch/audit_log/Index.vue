@@ -1,7 +1,6 @@
 <script setup>
 import { useRevertAuditLog } from '@/api/auditLog';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
-import Collection from '@/lib/Collection';
 import { useI18n } from 'vue-i18n';
 import CorrelatedAuditLogs from './CorrelatedAuditLogs.vue';
 
@@ -65,7 +64,7 @@ const filters = ref(
 
 const { ability } = useAuthStore();
 const { mutateAsync: revertAuditLog } = useRevertAuditLog();
-const rowActions = Collection.create([
+const rowActions = [
    {
       label: ({ data }) =>
          data?.reverted ? t('audit_log.already_reverted') : t('audit_log.attempt_to_revert'),
@@ -82,7 +81,7 @@ const rowActions = Collection.create([
          ability.cannot('modify', data?.table_name),
       icon: PrimeIcons.REFRESH
    }
-]);
+];
 
 const operations = computed(() => [
    { value: 'INSERT', label: t('audit_log.added'), severity: 'success' },
@@ -107,7 +106,7 @@ const tableProps = computed(() => ({
    from: 'audit_log_group',
    select: '*, user_id:user!user_id(*), reverted_by:user!reverted_by(*)',
    columns: columns.value,
-   rowActions: rowActions._data,
+   rowActions: rowActions,
    ...attrs
 }));
 </script>

@@ -1,6 +1,5 @@
 <script setup lang="ts" generic="T = Tables['audit_log']['Update']">
 import { fieldRoutes } from '@/constants/form/field';
-import Collection from '@/lib/Collection';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
 import { detailedDiff, diff } from 'deep-object-diff';
 
@@ -156,7 +155,8 @@ function formatValue(value: any, indentSize = 0): any {
    return te('fields.' + value) ? t('fields.' + value) : value;
 }
 
-const log = Collection.create(getChanges(props.data));
+// Replaced as a whole; shallowRef also avoids unwrapping the nested Json types.
+const log = shallowRef(getChanges(props.data));
 
 if (props.id) {
    await supabase
@@ -165,7 +165,7 @@ if (props.id) {
       .or(`id.eq.${props.id},correlation_id.eq.${props.id}`)
       .maybeSingle()
       .then((res) => {
-         log._setDefaults(getChanges(res.data))._reset();
+         log.value = getChanges(res.data);
       });
 }
 </script>
@@ -196,7 +196,7 @@ if (props.id) {
          </div>
       </template>
       <template #icons>
-         <Tag v-bind="getLogTagProps(log?._data)" />
+         <Tag v-bind="getLogTagProps(log)" />
       </template>
       <div class="audit_card__changes-container" v-if="_size(log.changes) > 0">
          <div v-for="(entry, i) in log?.changes" :key="log?.id + i" class="audit_card__change-item">

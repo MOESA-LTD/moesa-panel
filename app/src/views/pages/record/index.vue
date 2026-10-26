@@ -4,7 +4,6 @@ import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
 import { RECORD_STATUSES, RECORD_TYPES } from '@/constants/form/record';
-import Collection from '@/lib/Collection';
 import Upsert from '@/views/pages/record/upsert/index.vue';
 import { useI18n } from 'vue-i18n';
 
@@ -111,7 +110,7 @@ const filters = ref<ResourceTableProps['filters']>({
 const stateKey = props.record_type ? 'record-' + props.record_type : 'record';
 
 const deleteAction = useDeleteAction('record');
-const rowActions = Collection.create<ResourceTableProps['rowActions']>([
+const rowActions: ResourceTableProps['rowActions'] = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -125,7 +124,7 @@ const rowActions = Collection.create<ResourceTableProps['rowActions']>([
             }),
       icon: PrimeIcons.PENCIL
    }
-]);
+];
 
 const dialogRef = inject('dialogRef', false);
 </script>
@@ -137,7 +136,7 @@ const dialogRef = inject('dialogRef', false);
       :useMeta="!(record_type || record_status)"
       :select="'*,stock:stock_view!inner(id,display_name,unit_type), client!inner(id,display_name,email)'"
       :columns="columns"
-      :rowActions="rowActions._data"
+      :rowActions="rowActions"
       v-model:filters="filters"
       v-bind="$attrs"
    >

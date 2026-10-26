@@ -7,7 +7,6 @@ import CustomTable, {
 } from '@/components/ui/custom-table/CustomTable.vue';
 import { queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
-import Collection from '@/lib/Collection';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { DataTableStateEvent } from 'primevue';
 
@@ -79,18 +78,16 @@ const listQuery = useQuery({
    placeholderData: keepPreviousData
 });
 
-const values = Collection.create<T[]>([] as T[]);
-const modelValue = defineModel<T[]>({
-   get: () => values,
-   set: (value: any) => values._set(value),
-   default: () => []
-});
+const rows = ref([]) as Ref<T[]>;
+const modelValue = defineModel<T[]>({ default: () => [] });
 
 watch(
    () => listQuery.data.value?.rows,
-   (rows) => {
+   (data) => {
+      if (!data) return;
       // Query data is deeply readonly and shared with the cache; slots and cards get their own copy.
-      if (rows) modelValue.value = _cloneDeep(rows);
+      rows.value = _cloneDeep(data);
+      modelValue.value = rows.value;
    }
 );
 
@@ -110,7 +107,7 @@ const tableProps = computed(() => ({ ..._omit(props, ['stateKey']), ...attrs }))
       :totalRecords
       :stateKey="props.stateKey || props.from"
       :loading="loading"
-      :value="values._data"
+      :value="rows"
       @meta="onMeta"
    >
       <template v-for="slot in _keys(slots)" #[slot]="slotProps" :key="slot">

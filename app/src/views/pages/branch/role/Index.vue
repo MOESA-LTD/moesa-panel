@@ -1,7 +1,6 @@
 <script setup>
 import { useDeleteAction } from '@/composables/useDeleteAction';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
-import Collection from '@/lib/Collection';
 import Upsert from './Upsert.vue';
 
 defineOptions({
@@ -41,7 +40,7 @@ const filters = ref(
 
 const stateKey = 'role';
 const deleteAction = useDeleteAction('role');
-const rowActions = Collection.create([
+const rowActions = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -55,7 +54,7 @@ const rowActions = Collection.create([
             }),
       icon: PrimeIcons.PENCIL
    }
-]);
+];
 
 const dialogRef = inject('dialogRef', null);
 
@@ -64,7 +63,7 @@ const tableProps = computed(() => ({
    from: 'role',
    select: '*, permission(id, kind, group_name, resource_name)',
    columns: columns.value,
-   rowActions: rowActions._data,
+   rowActions: rowActions,
    ...attrs
 }));
 </script>

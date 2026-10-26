@@ -4,7 +4,6 @@ import {
    equalsFilter
 } from '@/components/service-components/resource-table/createFilters';
 import { useDeleteAction } from '@/composables/useDeleteAction';
-import Collection from '@/lib/Collection';
 import Upsert from '../Upsert.vue';
 
 defineOptions({
@@ -63,7 +62,7 @@ const filters = ref(
 
 const stateKey = 'device';
 const deleteAction = useDeleteAction('stock');
-const rowActions = Collection.create([
+const rowActions = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -82,7 +81,7 @@ const rowActions = Collection.create([
             }),
       icon: PrimeIcons.PENCIL
    }
-]);
+];
 
 const dialogRef = inject('dialogRef', null);
 
@@ -92,7 +91,7 @@ const tableProps = computed(() => ({
    select:
       'id, display_name, serial_number, unit_cost, vendor, stocked_at, product:product!inner(category:product_category!inner(*))',
    columns: columns.value,
-   rowActions: rowActions._data
+   rowActions: rowActions
 }));
 </script>
 <template>

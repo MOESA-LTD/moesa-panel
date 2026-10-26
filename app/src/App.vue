@@ -1,5 +1,8 @@
 <script setup>
+import { useAuthUi } from '@/composables/useAuthUi';
+
 useLayout();
+useAuthUi();
 </script>
 
 <template>

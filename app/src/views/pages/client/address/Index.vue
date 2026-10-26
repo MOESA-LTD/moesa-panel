@@ -2,7 +2,6 @@
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import { useDeleteAction } from '@/composables/useDeleteAction';
 import { DIALOG_POSITIONS } from '@/constants/router';
-import Collection from '@/lib/Collection';
 import Upsert from '@/views/pages/address/Upsert.vue';
 
 defineOptions({
@@ -71,7 +70,7 @@ const deleteAction = useDeleteAction('client_address', (row) => ({
    address_id: row.address_id,
    client_id: row.client_id
 }));
-const rowActions = Collection.create([deleteAction]);
+const rowActions = [deleteAction];
 
 const dialogRef = inject('dialogRef', null);
 
@@ -80,7 +79,7 @@ const tableProps = computed(() => ({
    from: 'client_address_view',
    select: '*',
    columns: columns.value,
-   rowActions: rowActions._data,
+   rowActions: rowActions,
    ...attrs
 }));
 </script>

@@ -49,7 +49,7 @@ const accountMenuItems = computed(() => {
                fluid=""
                size="small"
                :label="$t('auth.branch')"
-               :model-value="currentTenant._data"
+               :model-value="currentTenant"
                @change="(e) => changeCurrentTenant(e.value)"
                optionLabel="display_name"
                :options="branches"

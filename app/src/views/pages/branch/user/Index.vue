@@ -4,7 +4,6 @@ import ResourceTable, {
 } from '@/components/service-components/resource-table/ResourceTable.vue';
 import { useRemoveUser } from '@/api/user';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
-import Collection from '@/lib/Collection';
 import { useI18n } from 'vue-i18n';
 import Upsert from './upsert/Index.vue';
 
@@ -63,7 +62,7 @@ const stateKey = 'user';
 const confirmDelete = useConfirmDelete();
 const { mutateAsync: removeUser } = useRemoveUser();
 
-const rowActions = Collection.create<ResourceTableProps['rowActions']>([
+const rowActions: ResourceTableProps['rowActions'] = [
    {
       label: t('action.delete'),
       command:
@@ -87,7 +86,7 @@ const rowActions = Collection.create<ResourceTableProps['rowActions']>([
             }),
       icon: PrimeIcons.PENCIL
    }
-]);
+];
 
 const dialogRef = inject('dialogRef', false);
 </script>
@@ -98,7 +97,7 @@ const dialogRef = inject('dialogRef', false);
       :from="'user'"
       :select="'*, role(*,permission(*))'"
       :columns="columns"
-      :rowActions="rowActions._data"
+      :rowActions="rowActions"
       v-model:filters="filters"
    >
       <template #header>
