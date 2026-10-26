@@ -8,8 +8,7 @@ import {
    INNER_DEVICE_MODELS,
    INNER_DEVICE_SPEAKER_POWERS
 } from '@/constants/form/record';
-import { Form } from '@/lib/Form';
-import { RecordUpsertFormData } from './index.vue';
+import { useRecordForm } from './recordFormContext';
 
 export type RecordAssembleFormProps = {
    readonly?: boolean;
@@ -17,14 +16,30 @@ export type RecordAssembleFormProps = {
 
 defineProps<RecordAssembleFormProps>();
 
-const form = inject('recordForm', Form.create<RecordUpsertFormData>());
+const { values, errors } = useRecordForm();
+
+type DeviceList = 'rear_ear_devices' | 'inner_ear_devices';
+// A device is added empty and filled in field by field, so its entries are loosely typed here.
+type Device = Record<string, any>;
+
+const attributes = () => values.value.attributes as Record<DeviceList, Device[] | undefined>;
+
+const devices = (list: DeviceList) => attributes()[list] ?? [];
+
+const addDevice = (list: DeviceList) => {
+   attributes()[list] = [...devices(list), {}];
+};
+
+const removeDevice = (list: DeviceList, index: number) => {
+   attributes()[list] = devices(list).filter((_, i) => i !== index);
+};
 </script>
 <template>
    <div class="w-full flex flex-col gap-[inherit]">
       <FormBox
          printable
          :legend="$t('fields.rear_ear_devices')"
-         :error="form?._errors?.first(`attributes.rear_ear_devices`)"
+         :error="errors[`attributes.rear_ear_devices`]"
       >
          <template #actions>
             <Button
@@ -33,18 +48,13 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                :icon="PrimeIcons.PLUS"
                variant="outlined"
                severity="success"
-               @click="
-                  form._set(
-                     'attributes.rear_ear_devices',
-                     _concat(form.attributes.rear_ear_devices || [], [{}])
-                  )
-               "
+               @click="addDevice('rear_ear_devices')"
             />
          </template>
          <FormBox
             printable
             :title="$t('fields.attributes')"
-            v-for="(mold, i) in form?.attributes.rear_ear_devices"
+            v-for="(mold, i) in devices('rear_ear_devices')"
             :key="'rear_ear_device' + i"
             :legend="$t('fields.rear_ear_device')"
             class="min-w-fit max-w-max"
@@ -56,14 +66,14 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                   :icon="PrimeIcons.MINUS"
                   severity="danger"
                   variant="outlined"
-                  @click="form.attributes.rear_ear_devices.splice?.(i, 1)"
+                  @click="removeDevice('rear_ear_devices', i)"
                />
             </template>
             <span class="flex flex-wrap items-start gap-[inherit]">
                <FormField
                   fluid
                   :label="$t('fields.type')"
-                  :error="form?._errors?.first(`attributes.rear_ear_devices.${i}.type`)"
+                  :error="errors[`attributes.rear_ear_devices.${i}.type`]"
                   :readonly
                   v-slot="slotProps"
                >
@@ -81,7 +91,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                <FormField
                   fluid
                   :label="$t('fields.model')"
-                  :error="form?._errors?.first(`attributes.rear_ear_devices.${i}.model`)"
+                  :error="errors[`attributes.rear_ear_devices.${i}.model`]"
                   :readonly
                   v-slot="slotProps"
                >
@@ -99,7 +109,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                <FormField
                   fluid
                   :label="$t('fields.speaker_power')"
-                  :error="form?._errors?.first(`attributes.rear_ear_devices.${i}.speaker_power`)"
+                  :error="errors[`attributes.rear_ear_devices.${i}.speaker_power`]"
                   :readonly
                   v-slot="slotProps"
                >
@@ -117,7 +127,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                <FormField
                   fluid
                   :label="$t('fields.side')"
-                  :error="form?._errors?.first(`attributes.rear_ear_devices.${i}.side`)"
+                  :error="errors[`attributes.rear_ear_devices.${i}.side`]"
                   :readonly
                   v-slot="slotProps"
                >
@@ -137,7 +147,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                </FormField>
                <FormField
                   fluid
-                  :error="form?._errors?.first(`attributes.rear_ear_devices.${i}.ventilation`)"
+                  :error="errors[`attributes.rear_ear_devices.${i}.ventilation`]"
                   :readonly
                   class="w-full"
                >
@@ -157,7 +167,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                </FormField>
                <FormField
                   fluid
-                  :error="form?._errors?.first(`attributes.rear_ear_devices.${i}.speaker_size`)"
+                  :error="errors[`attributes.rear_ear_devices.${i}.speaker_size`]"
                   :readonly
                   class="w-full"
                >
@@ -181,7 +191,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
       <FormBox
          printable
          :legend="$t('fields.inner_ear_devices')"
-         :error="form?._errors?.first(`attributes.inner_ear_devices`)"
+         :error="errors[`attributes.inner_ear_devices`]"
       >
          <template #actions>
             <Button
@@ -190,17 +200,12 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                :icon="PrimeIcons.PLUS"
                variant="outlined"
                severity="success"
-               @click="
-                  form._set(
-                     'attributes.inner_ear_devices',
-                     _concat(form.attributes.inner_ear_devices || [], [{}])
-                  )
-               "
+               @click="addDevice('inner_ear_devices')"
             />
          </template>
          <FormBox
             printable
-            v-for="(mold, i) in form?.attributes.inner_ear_devices"
+            v-for="(mold, i) in devices('inner_ear_devices')"
             :key="'inner_ear_device' + i"
             :legend="$t('fields.inner_ear_device')"
          >
@@ -211,14 +216,14 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                   :icon="PrimeIcons.MINUS"
                   severity="danger"
                   variant="outlined"
-                  @click="form.attributes.inner_ear_devices.splice?.(i, 1)"
+                  @click="removeDevice('inner_ear_devices', i)"
                />
             </template>
             <span class="flex w-min flex-wrap gap-[inherit]">
                <FormField
                   fluid
                   :label="$t('fields.side')"
-                  :error="form?._errors?.first(`attributes.inner_ear_devices.${i}.side`)"
+                  :error="errors[`attributes.inner_ear_devices.${i}.side`]"
                   :readonly
                   v-slot="slotProps"
                >
@@ -238,7 +243,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                </FormField>
                <FormField
                   fluid
-                  :error="form?._errors?.first(`attributes.inner_ear_devices.${i}.ventilation`)"
+                  :error="errors[`attributes.inner_ear_devices.${i}.ventilation`]"
                   :readonly
                   class="w-full"
                >
@@ -260,7 +265,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
             <FormField
                fluid
                :label="$t('fields.model')"
-               :error="form?._errors?.first(`attributes.inner_ear_devices.${i}.model`)"
+               :error="errors[`attributes.inner_ear_devices.${i}.model`]"
                :readonly
                v-slot="slotProps"
             >
@@ -278,7 +283,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
             <FormField
                fluid
                :label="$t('fields.speaker_power')"
-               :error="form?._errors?.first(`attributes.inner_ear_devices.${i}.speaker_power`)"
+               :error="errors[`attributes.inner_ear_devices.${i}.speaker_power`]"
                :readonly
                v-slot="slotProps"
             >
@@ -294,7 +299,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
             <span class="flex w-min flex-wrap gap-[inherit]">
                <FormField
                   :label="$t('fields.has_bluetooth')"
-                  :error="form?._errors?.first(`attributes.inner_ear_devices.${i}.bluetooth`)"
+                  :error="errors[`attributes.inner_ear_devices.${i}.bluetooth`]"
                   :readonly
                   v-slot="slotProps"
                >
@@ -302,7 +307,7 @@ const form = inject('recordForm', Form.create<RecordUpsertFormData>());
                </FormField>
                <FormField
                   :label="$t('fields.has_button')"
-                  :error="form?._errors?.first(`attributes.inner_ear_devices.${i}.button`)"
+                  :error="errors[`attributes.inner_ear_devices.${i}.button`]"
                   :readonly
                   v-slot="slotProps"
                >

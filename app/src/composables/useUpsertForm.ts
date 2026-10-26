@@ -21,7 +21,8 @@ export type UseUpsertFormOptions<S extends z.ZodType, Row, Payload> = {
    useSaveRow: () => UseMutationReturnType<Row, Error, Payload, unknown>;
    /** Table checked for `modify` / `create` permission. */
    subject: keyof Tables;
-   schema: S;
+   /** May depend on the form state (e.g. limits from a selected row) through a getter. */
+   schema: MaybeRefOrGetter<S>;
    toFormValues: (row?: Partial<Row> | null) => z.input<S>;
    toPayload: (data: z.output<S>) => Payload;
    onSaved?: (row: Row) => void;
