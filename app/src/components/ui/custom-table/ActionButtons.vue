@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MenuItem } from 'primevue/menuitem';
+import type { MenuItem } from 'primevue/menuitem';
 import { computed, defineProps } from 'vue';
 
 const props = defineProps<{

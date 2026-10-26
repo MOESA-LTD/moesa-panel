@@ -16,7 +16,7 @@ import {
    DataTableSortMeta,
    DataTableStateEvent
 } from 'primevue';
-import { MenuItem } from 'primevue/menuitem';
+import type { MenuItem } from 'primevue/menuitem';
 import { isVNode, VNode } from 'vue';
 
 export declare type CustomTableProps<T = any> = DataTableProps<T> & {

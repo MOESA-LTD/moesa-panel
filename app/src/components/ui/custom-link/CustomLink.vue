@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DIALOG_POSITIONS } from '@/constants/router';
-import { MenuItem } from 'primevue/menuitem';
+import type { MenuItem } from 'primevue/menuitem';
 import { useI18n } from 'vue-i18n';
 import { RouteLocationNormalized, RouterLink, RouterLinkProps } from 'vue-router';
 
