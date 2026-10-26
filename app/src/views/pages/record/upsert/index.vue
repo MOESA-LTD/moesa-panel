@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import { currencies } from '@/constants/form/common';
 import { RECORD_STATUSES, RECORD_TYPES } from '@/constants/form/record';
 import { Form } from '@/lib/Form';
@@ -159,10 +160,7 @@ const availableQuantity = computed(() => {
 
 provide('availableQuantity', availableQuantity);
 
-const { ability } = useAuthStore();
-const readonly = computed(
-   () => ability?.cannot('modify', 'record') && ability.cannot('create', 'record')
-);
+const readonly = useFormReadonly('record', () => form.id);
 
 if (props.id) {
    await supabase

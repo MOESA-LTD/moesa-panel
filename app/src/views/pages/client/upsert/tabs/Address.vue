@@ -1,4 +1,5 @@
 <script setup>
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import SelectClient from '@/components/service-components/client/SelectClient.vue';
 import { Form } from '@/lib/Form';
 import AddressTable from '@/views/pages/address/Index.vue';
@@ -49,11 +50,7 @@ const form = Form.create({
    useDialogForm: false
 });
 
-const { ability } = useAuthStore();
-
-const readonly = computed(
-   () => ability.cannot('modify', 'client_address') && ability.cannot('create', 'client_address')
-);
+const readonly = useFormReadonly('client_address', () => form.id);
 
 if (props.id) {
    supabase

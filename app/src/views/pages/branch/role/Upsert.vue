@@ -1,4 +1,5 @@
 <script setup>
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import { Form } from '@/lib/Form';
 import { useToast } from 'primevue';
 
@@ -38,13 +39,9 @@ const form = Form.create({
    useDialogForm: false
 });
 
-const { ability } = useAuthStore();
-const readonly = computed(() => {
-   return (
-      (ability.cannot('modify', 'role') && ability.cannot('create', 'role')) ||
-      (form.id && !form.tenant_id)
-   );
-});
+// Roles without a tenant are global (e.g. owner) and cannot be edited.
+const cannotSubmit = useFormReadonly('role', () => form.id);
+const readonly = computed(() => cannotSubmit.value || (form.id && !form.tenant_id));
 
 if (props.id) {
    await supabase

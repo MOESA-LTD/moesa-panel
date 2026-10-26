@@ -1,4 +1,5 @@
 <script setup>
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import { Form } from '@/lib/Form';
 
 import { useToast } from 'primevue';
@@ -44,10 +45,7 @@ const form = Form.create({
    useDialogForm: false
 });
 
-const { ability } = useAuthStore();
-const readonly = computed(
-   () => ability.cannot('modify', 'address') && ability.cannot('create', 'address')
-);
+const readonly = useFormReadonly('address', () => form.id);
 
 if (props.id) {
    await supabase

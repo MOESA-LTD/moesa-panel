@@ -1,4 +1,5 @@
 <script setup>
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import { Form } from '@/lib/Form';
 
 import { useToast } from 'primevue';
@@ -63,10 +64,7 @@ if (props.id) {
       .then(({ data }) => form._setDefaults(_pick(data, fields))._reset());
 }
 
-const { ability } = useAuthStore();
-const readonly = computed(
-   () => ability.cannot('modify', 'client') && ability.cannot('create', 'client')
-);
+const readonly = useFormReadonly('client', () => form.id);
 
 const save = async () => {
    if (!form._validate()) return;

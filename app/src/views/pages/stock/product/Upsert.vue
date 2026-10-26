@@ -1,4 +1,5 @@
 <script setup>
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import { Form } from '@/lib/Form';
 
 import { useToast } from 'primevue';
@@ -24,7 +25,7 @@ const props = defineProps({
 const { t, te } = useI18n();
 const toast = useToast();
 
-const { ability, current_tenant_id } = useAuthStore();
+const { current_tenant_id } = useAuthStore();
 
 const initialFormData = {
    id: undefined,
@@ -69,11 +70,9 @@ if (props.id) {
       ._reset();
 }
 
-const readonly = computed(
-   () =>
-      (ability.cannot('modify', 'product') && ability.cannot('create', 'product')) ||
-      (form.id && !form.tenant_id)
-);
+// Products without a tenant are shared catalogue entries and cannot be edited.
+const cannotSubmit = useFormReadonly('product', () => form.id);
+const readonly = computed(() => cannotSubmit.value || (form.id && !form.tenant_id));
 
 const save = async () => {
    if (!form._validate()) return;

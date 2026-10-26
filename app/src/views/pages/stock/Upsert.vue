@@ -1,4 +1,5 @@
 <script setup>
+import { useFormReadonly } from '@/composables/useFormReadonly';
 import { Form } from '@/lib/Form';
 import { useToast } from 'primevue';
 /**
@@ -67,10 +68,7 @@ form._setRules(
    })
 );
 
-const { ability } = useAuthStore();
-const readonly = computed(
-   () => ability.cannot('modify', 'stock') && ability.cannot('create', 'stock')
-);
+const readonly = useFormReadonly('stock', () => form.id);
 
 if (props.id) {
    await supabase
@@ -88,7 +86,7 @@ if (props.id || props.data?.id) {
          return;
       }
       if (data?.id === form.id) {
-         form._setDefaults(data)._reset();
+         form._setDefaults(_pick({ ...form._data, ...data }, fields))._reset();
       }
    };
    onMounted(() => emitter.on('stock-update', updateCallback));
@@ -137,11 +135,10 @@ const tax = computed({
 });
 
 const save = async () => {
-   form._set('product', undefined);
-
    if (!form._validate()) return;
 
-   const payload = _pick(form._data, fields);
+   // `product` is a joined relation used by the form, not a stock column.
+   const payload = _omit(_pick(form._data, fields), ['product']);
 
    const { data } = await supabase
       .from('stock')
@@ -151,7 +148,8 @@ const save = async () => {
       .maybeSingle()
       .throwOnError();
 
-   if (form.id) form._setDefaults(data)._reset();
+   // The saved row has no joined `product`; keep the form's so it is not marked as changed.
+   if (form.id) form._setDefaults(_pick({ ...form._data, ...data }, fields))._reset();
 
    emitter.emit('stock-update', data);
 
@@ -352,7 +350,9 @@ const save = async () => {
                      <InputGroup>
                         <InputNumber
                            :model-value="form.quantity"
-                           @value-change="form._set(`quantity`, $event?.toFixed?.(2))"
+                           @value-change="
+                              form._set(`quantity`, _isNil($event) ? null : _round($event, 2))
+                           "
                            showButtons
                            :min="0"
                            :step="form.unit_type === 'pcs' ? 1 : 0.1"
