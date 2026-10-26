@@ -1,24 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",               // Modern JavaScript target
-    "module": "ESNext",               // ESNext module system
-    "moduleResolution": "node",       // Use Node-style module resolution
-    "strict": true,                   // Enable strict mode
-    "baseUrl": ".",                   // Base URL for resolving modules
-    "skipLibCheck": true,             // Skip library checks for faster builds
-    "esModuleInterop": true,          // Allow interoperability with ES modules
-    "resolveJsonModule": true,        // Allow importing JSON files
-    "sourceMap": true,                // Generate source maps
-    "jsx": "preserve",                // Preserve JSX (if using React)
-    "allowJs": true,                  // Allow JavaScript files
-    "useDefineForClassFields": true   // Ensure class fields are defined according to spec
-  },
-  "exclude": [
-    "**/*.config.*",
-    "**/*.cjs",
-  ],
-  "references": [
-    { "path": "./app" },               // Reference the app project
-    { "path": "./supabase" }           // Reference the supabase-functions project
-  ]
+   "files": [],
+   "references": [{ "path": "./app" }]
 }

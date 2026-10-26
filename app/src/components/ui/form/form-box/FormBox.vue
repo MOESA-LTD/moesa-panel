@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T = any">
 import { Form } from '@/lib/Form';
 
-export declare type FormBoxProps = {
+export declare type FormBoxProps<T = any> = {
    legend?: string;
    form?: Form<T>;
    readonly?: boolean;
@@ -12,7 +12,7 @@ export declare type FormBoxProps = {
    resetText?: string;
 };
 
-const props = defineProps<FormBoxProps>();
+const props = defineProps<FormBoxProps<T>>();
 
 const boxElement = ref<HTMLElement | null>(null);
 </script>

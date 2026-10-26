@@ -24,7 +24,7 @@ Validator.register('phone', (value) => {
 
 Validator.register(
    'lte',
-   function (value, requirement) {
+   function (this: any, value, requirement) {
       const val = _get(this.validator?.input, requirement, requirement);
       this.ruleValue = val;
       return this.inputValue <= val;
@@ -34,7 +34,7 @@ Validator.register(
 
 Validator.register(
    'gte',
-   function (value, requirement) {
+   function (this: any, value, requirement) {
       const val = _get(this.validator?.input, requirement, requirement);
       this.ruleValue = val;
       return this.inputValue >= val;
@@ -44,7 +44,7 @@ Validator.register(
 
 Validator.register(
    'lt',
-   function (value, requirement) {
+   function (this: any, value, requirement) {
       const val = _get(this.validator?.input, requirement, requirement);
       this.ruleValue = val;
       return this.inputValue < val;
@@ -54,7 +54,7 @@ Validator.register(
 
 Validator.register(
    'gt',
-   function (value, requirement) {
+   function (this: any, value, requirement) {
       const val = _get(this.validator?.input, requirement, requirement);
       this.ruleValue = val;
       return this.inputValue > val;

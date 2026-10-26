@@ -392,7 +392,7 @@ const customFetch = async (
    const isDataUpdating =
       _includes(['POST', 'PATCH', 'DELETE', 'PUT'], method) && !_startsWith(pathname, '/auth');
    const isDataFetcing = _includes(['GET', 'HEAD'], method) && _startsWith(pathname, '/rest');
-   const queryFilters = _fromPairs(searchParams.entries().toArray());
+   const queryFilters = Object.fromEntries(searchParams);
    const queryKey = [pathname, { ...queryFilters, tenantID: currentTenant?.id }, body];
    const staleTime = isDataFetcing ? 1000 * 30 : 200;
    const gcTime = isDataFetcing ? 1000 * 60 * 60 * 24 : 200;

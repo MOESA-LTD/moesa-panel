@@ -51,7 +51,7 @@ export declare type UseTableMetaOptions<T = any> = Required<
 >;
 
 export declare type CustomTableSlots<T = any> = DataTableSlots<T> & {
-   [key: string]: VNode[];
+   [key: string]: (props: any) => VNode[];
 };
 
 const DATA_TYPES = {

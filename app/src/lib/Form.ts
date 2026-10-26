@@ -103,9 +103,10 @@ export class Form<T = any> extends Collection<T> {
 
       validation.setAttributeNames(this._customAttributeNames);
 
-      validation.form = this;
+      // Custom rules (see plugins/validatorjs) read sibling values through `validator.form`.
+      Object.assign(validation, { form: this });
 
-      const passed = validation.passes();
+      const passed = validation.passes() as boolean;
 
       _assign(this._errors, validation.errors);
 

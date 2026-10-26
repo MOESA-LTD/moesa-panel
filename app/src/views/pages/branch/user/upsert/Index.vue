@@ -97,6 +97,7 @@ const tabValue = computed(() => tab.value || tabs.value[0].value);
    <div class="card p-0">
       <Tabs v-model:value="tabValue">
          <TabList>
+            <!-- @vue-expect-error PrimeVue's TabSlots omits the scope it passes in asChild mode -->
             <Tab
                v-for="tab in tabs"
                v-bind="tab"
@@ -105,6 +106,7 @@ const tabValue = computed(() => tab.value || tabs.value[0].value);
                :disabled="!$can('create', 'user') || !$can('modify', 'user')"
             >
                <CustomLink :to="tab.route">
+                  <!-- @vue-expect-error see above -->
                   <button v-bind="slotProps" v-text="tab.value" />
                </CustomLink>
             </Tab>
