@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
          await supabase.auth.refreshSession();
 
          // Cached rows and permissions belong to the previous tenant.
-         await clearQueryCache();
+         clearQueryCache();
 
          setCurrentTenant(tenant);
       }
@@ -128,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
    const initialized = new Promise((resolve) => {
       supabase.auth.onAuthStateChange(async (event, newSession) => {
          // Without a session nothing cached may survive: the next user could be someone else.
-         if (!newSession) await clearQueryCache();
+         if (!newSession) clearQueryCache();
 
          const result = await handleAuthStateChange(event, newSession);
 

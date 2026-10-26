@@ -5,10 +5,8 @@
 import { CustomTableMetaEvent } from '@/components/ui/custom-table/CustomTable.vue';
 import { app } from '@/main';
 import { isValidDate, localeDateString, parseDayjs } from '@lib/dayjs';
-import { queryClient } from '@plugins/tanstack-query';
 import { FilterOperatorOptions } from '@primevue/core';
 import { createClient, SupabaseClientOptions } from '@supabase/supabase-js';
-import axios, { AxiosHeaders } from 'axios';
 
 // Define types
 type FilterMode = {
@@ -351,12 +349,15 @@ const handleMeta = (url: string | URL, options: RequestInit & Request): string |
    return url;
 };
 
+/**
+ * Adds the current tenant to every request. `meta` (table filters/paging) and the delete
+ * confirmation are transitional: they move to the query layer and UI as modules migrate to src/api.
+ */
 const customFetch = async (
    url: string | URL,
    options: RequestInit & Request
 ): Promise<Response> => {
    const { currentTenant } = useAuthStore();
-   const body = JSON.parse((options?.body as string) || '{}');
 
    url = handleMeta(url, options);
 
@@ -367,105 +368,16 @@ const customFetch = async (
       options?.headers?.set?.('x-tenant-id', currentTenant?.id);
    }
 
-   if (
-      currentTenant?.id &&
-      !_isNil(body) &&
-      !_isEmpty(body) &&
-      !_isArray(body) &&
-      !_includes(url as string, 'rpc/')
-   ) {
-      _merge(body, { tenant_id: currentTenant?.id });
-      options.body = JSON.stringify(body) as BodyInit & ReadableStream<Uint8Array<ArrayBuffer>>;
+   if (currentTenant?.id && _isString(options?.body) && !_includes(url as string, 'rpc/')) {
+      const body = JSON.parse(options.body || '{}');
+
+      if (!_isNil(body) && !_isEmpty(body) && !_isArray(body)) {
+         _merge(body, { tenant_id: currentTenant?.id });
+         options.body = JSON.stringify(body) as BodyInit & ReadableStream<Uint8Array<ArrayBuffer>>;
+      }
    }
 
-   const queryFn = () =>
-      axios({
-         url: url.toString(),
-         method: options?.method,
-         headers: options?.headers as unknown as AxiosHeaders,
-         data: options.body ? JSON.parse(options.body as string) : undefined,
-         signal: options.signal
-      });
-
-   const { pathname, searchParams } = URL.parse(url);
-   const method = _toUpper(options.method);
-   const isDataUpdating =
-      _includes(['POST', 'PATCH', 'DELETE', 'PUT'], method) && !_startsWith(pathname, '/auth');
-   const isDataFetcing = _includes(['GET', 'HEAD'], method) && _startsWith(pathname, '/rest');
-   const queryFilters = Object.fromEntries(searchParams);
-   const queryKey = [pathname, { ...queryFilters, tenantID: currentTenant?.id }, body];
-   const staleTime = isDataFetcing ? 1000 * 30 : 200;
-   const gcTime = isDataFetcing ? 1000 * 60 * 60 * 24 : 200;
-
-   const promise = queryClient
-      .fetchQuery({
-         queryKey,
-         queryFn,
-         gcTime,
-         staleTime: staleTime
-      })
-      .then(async (response) => ({
-         ...response,
-         ok: true,
-         status: response.status,
-         json: async () => response.data,
-         text: async () => JSON.stringify(response.data),
-         headers: new Headers(response.headers as HeadersInit)
-      }))
-      .catch((error) => ({
-         ...error,
-         ok: false,
-         status: error?.response?.status || 500,
-         json: async () => error?.response?.data,
-         text: async () => JSON.stringify(error?.response?.data),
-         headers: new Headers(error?.response?.headers)
-      }))
-      .finally(async () => {
-         if (!isDataUpdating) return;
-         await queryClient.invalidateQueries({
-            predicate: (query) => {
-               const [, sourceFilters, sourceBody] = queryKey;
-               const targetBody = (query?.state?.data as { data?: unknown })?.data;
-
-               _toPairs(sourceFilters).forEach(([key, value]) => {
-                  key = _toLower(key);
-                  if (!_endsWith(key, 'id')) return;
-                  if (_has(sourceBody, key)) return;
-
-                  const filter = _replace(value as string, /.+\./, '');
-                  _set(sourceBody, key, filter);
-               });
-
-               const compareIdsDeep = (
-                  source: unknown,
-                  target: unknown,
-                  sourceKey?: string,
-                  targetKey?: string
-               ): boolean => {
-                  if (_isObject(source)) {
-                     return _some(_toPairs(source), ([sourceKey, sourceItem]) => {
-                        return compareIdsDeep(sourceItem, target, sourceKey, targetKey);
-                     });
-                  }
-
-                  if (_isObject(target)) {
-                     return _some(_toPairs(target), ([targetKey, targetItem]) => {
-                        return compareIdsDeep(source, targetItem, sourceKey, targetKey);
-                     });
-                  }
-
-                  if (!_endsWith(_toLower(sourceKey), 'id')) return false;
-                  if (!_endsWith(_toLower(targetKey), 'id')) return false;
-                  return _isEqual(source, target);
-               };
-
-               const dataStaled = compareIdsDeep(sourceBody, targetBody);
-               return dataStaled;
-            }
-         });
-      });
-
-   return promise;
+   return fetch(url, options);
 };
 
 const supabaseOptions: SupabaseClientOptions<'public'> = {

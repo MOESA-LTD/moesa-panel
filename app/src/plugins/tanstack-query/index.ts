@@ -1,45 +1,37 @@
-import {
-   experimental_createQueryPersister,
-   StoragePersisterOptions
-} from '@tanstack/query-persist-client-core';
+import { appErrorHandler } from '@/lib/appErrorHandler';
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/vue-query';
-import { del, delMany, entries, get, keys as keysInStorage, set } from 'idb-keyval';
 
-export const queryCache = new QueryCache();
+// Database errors are deterministic; only network failures (fetch rejects with TypeError) are retried.
+const shouldRetry = (failureCount: number, error: unknown) =>
+   failureCount < 2 && error instanceof TypeError;
+
+export const queryCache = new QueryCache({
+   // Queries have no caller to rethrow to, so report their errors here. Mutation errors propagate
+   // to the awaiting handler and from there to the app error handler.
+   onError: (error, query) => {
+      if (query.meta?.silent) return;
+      appErrorHandler(error);
+   }
+});
+
 export const mutationCache = new MutationCache();
-
-const persisterOptions = {
-   storage: {
-      getItem: get,
-      setItem: set,
-      removeItem: del,
-      entries
-   },
-   filters: {
-      predicate(query) {
-         return !query.isStale() && query.gcTime > 1000;
-      }
-   },
-   prefix: 'echochart'
-} satisfies StoragePersisterOptions;
-
-export const clientPersister: ReturnType<typeof experimental_createQueryPersister> =
-   experimental_createQueryPersister(persisterOptions);
 
 export const queryClient = new QueryClient({
    queryCache,
    mutationCache,
    defaultOptions: {
       queries: {
-         persister: clientPersister.persisterFn
+         staleTime: 30_000,
+         refetchOnWindowFocus: false,
+         retry: shouldRetry
+      },
+      mutations: {
+         retry: false
       }
    }
 });
 
-/** Drops cached server data from memory and IndexedDB, e.g. on sign-out or tenant change. */
-export async function clearQueryCache() {
+/** Drops all cached server data, e.g. on sign-out or tenant change. */
+export function clearQueryCache() {
    queryClient.clear();
-
-   const keys = await keysInStorage();
-   await delMany(keys.filter((key) => String(key).startsWith(persisterOptions.prefix)));
 }
