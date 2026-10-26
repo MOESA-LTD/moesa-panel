@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const LOCALES_DIR = __dirname;
+const LOCALES_DIR = resolve(__dirname, '../../../src/plugins/i18n/locales');
 const SOURCE_LOCALE = 'en';
 
 const flattenKeys = (value: unknown, prefix = ''): string[] =>

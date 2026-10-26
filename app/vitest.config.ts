@@ -6,7 +6,7 @@ export default mergeConfig(
    defineConfig({
       test: {
          environment: 'happy-dom',
-         include: ['src/**/*.{test,spec}.ts'],
+         include: ['tests/**/*.test.ts'],
          restoreMocks: true
       }
    })

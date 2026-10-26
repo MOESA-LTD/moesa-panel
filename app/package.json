@@ -13,7 +13,7 @@
       "typecheck": "vue-tsc --build",
       "test": "vitest run",
       "test:watch": "vitest",
-      "lint": "eslint src",
+      "lint": "eslint src tests",
       "commit": "cz",
       "i18n-extract": "vue-i18n-extract report",
       "i18n-build": "node src/script/translate-with-ollama.js",

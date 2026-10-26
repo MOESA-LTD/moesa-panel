@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert@1';
-import { buildAbility, type Claims, isAuthorized, resolveTenantId } from './auth.ts';
+import { buildAbility, type Claims, isAuthorized, resolveTenantId } from '../_shared/auth.ts';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const OTHER_TENANT = '22222222-2222-2222-2222-222222222222';

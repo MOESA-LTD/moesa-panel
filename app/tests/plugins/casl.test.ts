@@ -1,6 +1,6 @@
 import { createMongoAbility } from '@casl/ability';
 import { describe, expect, it } from 'vitest';
-import { resolveAction } from './index';
+import { resolveAction } from '@/plugins/casl';
 
 const abilityFor = (...actions: string[]) =>
    createMongoAbility(

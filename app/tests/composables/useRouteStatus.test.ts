@@ -1,7 +1,11 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
-import { provideRouteStatus, useRouteLoading, type RouteStatus } from './useRouteStatus';
+import {
+   provideRouteStatus,
+   useRouteLoading,
+   type RouteStatus
+} from '@/composables/useRouteStatus';
 
 const Consumer = defineComponent({
    setup() {

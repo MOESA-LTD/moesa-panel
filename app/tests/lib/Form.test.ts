@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
-import { Form } from './Form';
+import { Form } from '@/lib/Form';
 
 type Credentials = { email: string | null; user_metadata: { display_name: string | null } };
 
