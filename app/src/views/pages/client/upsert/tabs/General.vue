@@ -41,7 +41,8 @@ const fields = _keys(initialFormData);
 
 /**@type {ClientUpsertFormData & Form<ClientUpsertFormData>} */
 const form = Form.create({
-   data: _defaults(props.data, initialFormData),
+   // _pick copies, so the parent's reactive data is not mutated by _defaults.
+   data: _defaults(_pick(props.data, fields), initialFormData),
    rules: {
       display_name: 'required',
       nationality: 'required',

@@ -38,16 +38,9 @@ const initialFormData = {
 /**@type {[keyof Data]} */
 const fields = _keys(initialFormData);
 
+// Only holds the loaded client for the tabs; validation lives in each tab's own form.
 const form = Form.create({
    data: _defaults(_pick(props.data, fields), initialFormData),
-   rules: {
-      display_name: 'required',
-      national_id: 'required',
-      birth_date: 'required|date',
-      gender: 'required',
-      email: 'email',
-      phone: 'phone'
-   },
    useDialogForm: false
 });
 
