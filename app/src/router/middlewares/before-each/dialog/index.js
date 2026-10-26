@@ -1,3 +1,4 @@
+import RouteDialogHeader from '@/components/layout/RouteDialogHeader.vue';
 import { ProgressSpinner, useDialog } from 'primevue';
 
 export const dialogBeforeEach = async (to, from, next) => {
@@ -25,6 +26,18 @@ export const dialogBeforeEach = async (to, from, next) => {
    const dialogs = useDialog();
 
    let dialog;
+
+   // Components register guards here (useUnsavedChangesGuard); every guard must allow the close.
+   const closeGuards = new Set();
+   let unwatchAuth;
+
+   const requestClose = async () => {
+      for (const guard of closeGuards) {
+         if (!(await guard())) return;
+      }
+      unwatchAuth?.();
+      dialog?.close?.();
+   };
 
    const updateStyles = (e) => {
       const dialogElement = e?.target ?? e;
@@ -64,18 +77,21 @@ export const dialogBeforeEach = async (to, from, next) => {
    };
 
    const dialogOptions = {
-      data: { to, from },
+      data: { to, from, closeGuards },
+      templates: {
+         header: () =>
+            h(RouteDialogHeader, {
+               title: i18n.t(lastMatchedRoute.meta.label),
+               onClose: requestClose
+            })
+      },
       props: {
          maximizable: false,
-         header: computed(() => i18n.t(lastMatchedRoute.meta.label)),
-         pt: {
-            header: {
-               class: 'first-letter:uppercase'
-            }
-         },
+         // Closing goes through RouteDialogHeader so that close guards can veto it.
+         closable: false,
+         closeOnEscape: false,
          position: showDialog,
          keepInViewport: false,
-         closeOnEscape: true,
          class: 'min-w-[clamp(32rem,50%,100vw)] max-w-min',
          onDragend: updateStyles,
          onMousedown: focusToDialog
@@ -101,11 +117,7 @@ export const dialogBeforeEach = async (to, from, next) => {
       );
 
       _set(dialogOptions, 'data.unwatch', unwatch);
-      _set(dialogOptions, 'props.closeButtonProps', {
-         onclick: unwatch,
-         severity: 'secondary',
-         rounded: true
-      });
+      unwatchAuth = unwatch;
 
       dialogOptions.onClose = (options) => {
          dialog = null;
