@@ -107,7 +107,7 @@ const stockTableProps = Collection.create({
    }
 });
 
-const availableQuantity = inject('avaiableQuantity', 0);
+const availableQuantity = inject('availableQuantity', 0);
 
 const calcFinancials = (total: number, discountPercentage: number, taxPercentage: number) => {
    const d = discountPercentage * 0.01;

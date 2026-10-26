@@ -157,7 +157,7 @@ const availableQuantity = computed(() => {
    return form.stock?.unit_type === 'pcs' ? _floor(quantity) : quantity;
 });
 
-provide('avaiableQuantity', availableQuantity);
+provide('availableQuantity', availableQuantity);
 
 const { ability } = useAuthStore();
 const readonly = computed(

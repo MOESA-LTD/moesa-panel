@@ -6,6 +6,7 @@ const props = defineProps({
       default: '*'
    }
 });
+defineEmits(['brand']);
 
 const useProductBrands = () => {
    const productBrands = Collection.create([]);
@@ -34,7 +35,7 @@ onUnmounted(() => emitter.off('product-update', fetchProductBrands));
       option-value="display_name"
       @value-change="
          $emit(
-            'client',
+            'brand',
             productBrands._data.find(
                (brand) => _get(brand, $attrs.optionValue || 'display_name') == $event
             )
