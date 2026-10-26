@@ -89,7 +89,8 @@ const modelValue = defineModel<T[]>({
 watch(
    () => listQuery.data.value?.rows,
    (rows) => {
-      if (rows) modelValue.value = rows;
+      // Query data is deeply readonly and shared with the cache; slots and cards get their own copy.
+      if (rows) modelValue.value = _cloneDeep(rows);
    }
 );
 
