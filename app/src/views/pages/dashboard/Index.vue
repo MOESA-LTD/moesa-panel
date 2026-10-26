@@ -5,6 +5,8 @@ import { RECORD_TYPES } from '@/constants/form/record';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import Collection from '@/lib/Collection';
 import { ChartOptions } from 'chart.js';
+import { Card } from 'primevue';
+import Chart from 'primevue/chart';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
 const { layoutState, isDarkTheme, primaryColors } = useLayout();
@@ -313,10 +315,203 @@ const useCategorySales = () => {
       loading
    };
 };
+const useMonthlyTrends = () => {
+   const data = ref<Views['monthly_trends_view']['Row'][]>([]);
+   const loading = ref(false);
+
+   const load = async () => {
+      try {
+         loading.value = true;
+         const { data: trendsData, error } = await supabase
+            .from('monthly_trends_view')
+            .select('*')
+            .order('month', { ascending: true });
+
+         if (error) throw error;
+         data.value = trendsData;
+         return data.value;
+      } catch (error) {
+         console.error('Error fetching monthly trends:', error);
+         appErrorHandler(error);
+      } finally {
+         loading.value = false;
+      }
+   };
+
+   const chartData = ref(null);
+   const setChartData = () => {
+      if (!data.value || data.value.length === 0) return;
+
+      // Group data by month for line chart
+      const groupedByMonth = data.value.reduce(
+         (acc, item) => {
+            const monthKey = item.month;
+            if (!acc[monthKey]) {
+               acc[monthKey] = {
+                  month: item.month,
+                  total_revenue: 0,
+                  total_tax: 0,
+                  transaction_count: 0,
+                  unique_clients: 0,
+                  payment_types: {}
+               };
+            }
+
+            acc[monthKey].total_revenue += item.total_revenue || 0;
+            acc[monthKey].total_tax += item.total_tax || 0;
+            acc[monthKey].transaction_count += item.transaction_count || 0;
+            acc[monthKey].unique_clients += item.unique_clients || 0;
+
+            if (item.payment_type) {
+               acc[monthKey].payment_types[item.payment_type] =
+                  (acc[monthKey].payment_types[item.payment_type] || 0) + (item.total_revenue || 0);
+            }
+
+            return acc;
+         },
+         {} as Record<string, any>
+      );
+
+      const sortedMonths = Object.keys(groupedByMonth).sort();
+      const labels = sortedMonths.map((month) =>
+         new Date(month).toLocaleDateString(locale.value, { month: 'short', year: 'numeric' })
+      );
+
+      const documentStyle = getComputedStyle(document.documentElement);
+      const revenueColor = documentStyle.getPropertyValue('--p-primary-600');
+      const taxColor = documentStyle.getPropertyValue('--p-primary-400');
+      const transactionColor = documentStyle.getPropertyValue('--p-primary-300');
+
+      chartData.value = {
+         labels,
+         datasets: [
+            {
+               label: i18n.t('dashboard.monthly_trends.total_revenue'),
+               data: sortedMonths.map((month) => groupedByMonth[month].total_revenue),
+               borderColor: revenueColor,
+               backgroundColor: revenueColor + '20',
+               fill: true,
+               tension: 0.4,
+               yAxisID: 'y'
+            },
+            {
+               label: i18n.t('dashboard.monthly_trends.total_tax'),
+               data: sortedMonths.map((month) => groupedByMonth[month].total_tax),
+               borderColor: taxColor,
+               backgroundColor: taxColor + '20',
+               fill: true,
+               tension: 0.4,
+               yAxisID: 'y'
+            },
+            {
+               label: i18n.t('dashboard.monthly_trends.transaction_count'),
+               data: sortedMonths.map((month) => groupedByMonth[month].transaction_count),
+               borderColor: transactionColor,
+               backgroundColor: transactionColor + '20',
+               fill: true,
+               tension: 0.4,
+               yAxisID: 'y1'
+            }
+         ]
+      };
+   };
+
+   const chartOptions = ref<ChartOptions>(null);
+   const setChartOptions = () => {
+      const documentStyle = getComputedStyle(document.documentElement);
+      const borderColor = documentStyle.getPropertyValue('--surface-border');
+      const textColor = documentStyle.getPropertyValue('--text-color-secondary');
+
+      chartOptions.value = {
+         responsive: true,
+         maintainAspectRatio: false,
+         plugins: {
+            legend: {
+               labels: {
+                  color: textColor
+               }
+            }
+         },
+         scales: {
+            x: {
+               borderColor: borderColor,
+               ticks: {
+                  color: textColor
+               }
+            },
+            y: {
+               position: 'left',
+               ticks: {
+                  color: textColor,
+                  callback: function (value) {
+                     return value.toLocaleString();
+                  }
+               },
+               grid: {
+                  color: borderColor
+               }
+            },
+            y1: {
+               position: 'right',
+               ticks: {
+                  color: textColor,
+                  callback: function (value) {
+                     return value.toLocaleString();
+                  }
+               },
+               grid: {
+                  drawOnChartArea: false,
+                  color: borderColor
+               }
+            }
+         }
+      };
+   };
+
+   watch(
+      () => [layoutState.primary, layoutState.surface, layoutState.isDark, locale.value],
+      () => {
+         setChartData();
+         setChartOptions();
+      }
+   );
+
+   const component = h(
+      Card,
+      { class: 'flex-1' },
+      {
+         title: () =>
+            h(
+               'div',
+               { class: 'flex items-center justify-between gap-4 mb-4' },
+               i18n.t('dashboard.monthly_trends.title')
+            ),
+         content: () =>
+            h(Chart, {
+               class: 'w-full h-[50vh]',
+               type: 'line',
+               data: chartData.value,
+               options: chartOptions.value
+            })
+      }
+   );
+
+   return {
+      load,
+      setChartData,
+      setChartOptions,
+      data,
+      chartData,
+      chartOptions,
+      loading,
+      component
+   };
+};
 
 const bestSellingProducts = useBestSellingProducts();
 const dashboardNotifications = useDashboardNotifications();
 const categorySales = useCategorySales();
+const monthlyTrends = useMonthlyTrends();
 
 bestSellingProducts.load();
 dashboardNotifications.load();
@@ -325,6 +520,11 @@ onMounted(() => {
    categorySales.load().then(() => {
       categorySales.setChartData();
       categorySales.setChartOptions();
+   });
+
+   monthlyTrends.load().then(() => {
+      monthlyTrends.setChartData();
+      monthlyTrends.setChartOptions();
    });
 });
 </script>
@@ -710,6 +910,9 @@ onMounted(() => {
                </template>
             </Card>
          </div>
+      </div>
+      <div class="flex-1">
+         <component :is="monthlyTrends.component" />
       </div>
    </div>
 </template>

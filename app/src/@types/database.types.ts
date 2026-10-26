@@ -999,6 +999,19 @@ export type Database = {
           },
         ]
       }
+      monthly_trends_view: {
+        Row: {
+          currency_code: string | null
+          month: string | null
+          payment_type: string | null
+          total_discounted_revenue: number | null
+          total_revenue: number | null
+          total_tax: number | null
+          transaction_count: number | null
+          unique_clients: number | null
+        }
+        Relationships: []
+      }
       product_brands: {
         Row: {
           display_name: string | null
