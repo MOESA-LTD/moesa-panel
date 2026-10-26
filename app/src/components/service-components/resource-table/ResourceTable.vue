@@ -56,7 +56,7 @@ const values = Collection.create<T[]>([] as T[]);
 const modelValue = defineModel<T[]>({
    get: () => values,
    set: (value: any) => values._set(value),
-   default: []
+   default: () => []
 });
 
 const totalRecords = ref<number | null>(5);
@@ -83,7 +83,7 @@ async function getValues(metaObj: Partial<DataTableStateEvent>) {
          .abortSignal(ac.signal)
          .overrideTypes<T[], { merge: false }>();
 
-      !_isEmpty(meta._data) && req.setHeader('meta', encodeURI(JSON.stringify(meta._data)));
+      if (!_isEmpty(meta._data)) req.setHeader('meta', encodeURI(JSON.stringify(meta._data)));
 
       const { data } = await req.throwOnError();
       modelValue.value = data;

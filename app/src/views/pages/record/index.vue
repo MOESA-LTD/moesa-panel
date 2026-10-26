@@ -190,7 +190,7 @@ const dialogRef = inject('dialogRef', false);
          />
       </template>
 
-      <template v-if="$can('read', 'client')" #client_display_name_body="{ data, field }">
+      <template v-if="$can('read', 'client')" #client_display_name_body="{ data }">
          <CustomLink
             v-if="_get(data, `client.id`)"
             :to="{
@@ -210,7 +210,7 @@ const dialogRef = inject('dialogRef', false);
             />
          </CustomLink>
       </template>
-      <template v-if="$can('read', 'stock')" #stock_display_name_body="{ data, field }">
+      <template v-if="$can('read', 'stock')" #stock_display_name_body="{ data }">
          <CustomLink
             v-if="_get(data, `stock.id`)"
             :to="{

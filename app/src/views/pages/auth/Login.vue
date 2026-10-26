@@ -81,7 +81,7 @@ const login = async () => {
 watch(
    () => isSignedIn.value,
    async (value) => {
-      value && dialogRef?.value?.close?.();
+      if (value) dialogRef?.value?.close?.();
    },
    { immediate: true }
 );

@@ -433,10 +433,7 @@ onMounted(() => {
                         }
                      ]"
                   >
-                     <template
-                        v-if="$can('read', 'client')"
-                        #client_display_name_body="{ data, field }"
-                     >
+                     <template v-if="$can('read', 'client')" #client_display_name_body="{ data }">
                         <CustomLink
                            v-if="_get(data, `client.id`)"
                            :to="{
@@ -457,10 +454,7 @@ onMounted(() => {
                            />
                         </CustomLink>
                      </template>
-                     <template
-                        v-if="$can('read', 'stock')"
-                        #stock_display_name_body="{ data, field }"
-                     >
+                     <template v-if="$can('read', 'stock')" #stock_display_name_body="{ data }">
                         <CustomLink
                            v-if="_get(data, `stock.id`)"
                            :to="{
@@ -540,7 +534,7 @@ onMounted(() => {
                   >
                      <template #empty>
                         <div v-if="bestSellingProducts.loading.value" class="flex flex-col gap-4">
-                           <div class="flex flex-col gap-4" v-for="item in 5">
+                           <div class="flex flex-col gap-4" v-for="item in 5" :key="item">
                               <Skeleton class="!h-8 !w-1/4" />
                               <Skeleton class="!h-8 !w-full" />
                            </div>
@@ -550,7 +544,8 @@ onMounted(() => {
                      <template #list="slotProps">
                         <li
                            class="flex flex-wrap gap-2 justify-between"
-                           v-for="item in slotProps.items"
+                           v-for="(item, index) in slotProps.items"
+                           :key="item.product_id ?? index"
                         >
                            <div class="flex-1 flex gap-2 items-center justify-between">
                               <CustomLink
@@ -583,6 +578,7 @@ onMounted(() => {
                               <div class="flex gap-2">
                                  <Tag
                                     v-for="category in _get(item, `stock.0.product.categories`)"
+                                    :key="category.id"
                                     v-bind="_get(PRODUCT_CATEGORY_PROPS, category.display_name)"
                                  />
                               </div>
@@ -591,6 +587,7 @@ onMounted(() => {
                               <div
                                  class="w-full flex items-center justify-between gap-4"
                                  v-for="row in bestSellingProducts.rows.value"
+                                 :key="row.label"
                               >
                                  <span v-text="row.label" />
                                  <Tag
@@ -625,12 +622,17 @@ onMounted(() => {
                         dashboardNotifications.data,
                         (n) => n.since
                      )"
+                     :key="since"
                   >
                      <span
                         class="block text-muted-color font-medium my-2"
                         v-text="_get(dashboardNotifications.title.value, since)"
                      />
-                     <div class="flex flex-col gap-4" v-for="notification in notifications">
+                     <div
+                        class="flex flex-col gap-4"
+                        v-for="(notification, index) in notifications"
+                        :key="notification.id ?? index"
+                     >
                         <ul class="p-0 mx-0 mt-0 mb-6 list-none">
                            <li class="flex items-center gap-4 py-2">
                               <Tag

@@ -44,7 +44,7 @@ const options = computed(() => {
 
 const layout = defineModel('layout', { default: 'list' });
 
-let values = ref();
+const values = ref();
 const modelValue = defineModel({
    get: (value) => value || values,
    set: (value) => {
@@ -81,7 +81,7 @@ async function getValues(metaObj) {
 
       const req = supabase.from(props.from).select(props.select).abortSignal(ac.signal);
 
-      !_isEmpty(meta._data) && req.setHeader?.('meta', JSON.stringify(meta._data));
+      if (!_isEmpty(meta._data)) req.setHeader?.('meta', JSON.stringify(meta._data));
 
       const usePaginator = _get(attrs, 'paginator', true);
       if (usePaginator) {
@@ -90,7 +90,7 @@ async function getValues(metaObj) {
             .select?.(props.select, props.count)
             .abortSignal?.(ac.signal);
 
-         !_isEmpty(meta._data) &&
+         if (!_isEmpty(meta._data))
             countReq.setHeader?.('meta', JSON.stringify(_pick(meta._data, ['filters'])));
 
          countReq.then?.(({ count }) => {
