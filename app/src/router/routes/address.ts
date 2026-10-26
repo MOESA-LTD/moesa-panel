@@ -1,16 +1,14 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: 'address',
       name: 'address',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.address'),
+         label: 'route.label.address',
          index: -1,
          visible: false,
          icon: 'pi pi-address-book',
@@ -23,7 +21,7 @@ export default [
          ],
          contextMenuItems: [
             {
-               label: i18n.t('action.add'),
+               label: 'action.add',
                route: {
                   name: 'address-add',
                   query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -37,7 +35,7 @@ export default [
             path: 'list',
             name: 'address-list',
             meta: {
-               label: i18n.t('route.label.address_list'),
+               label: 'route.label.address_list',
                visible: false,
                index: 2,
                icon: PrimeIcons.LIST,
@@ -53,7 +51,7 @@ export default [
             name: 'address-edit',
             props: true,
             meta: {
-               label: i18n.t('route.label.address_edit'),
+               label: 'route.label.address_edit',
                visible: false,
                requiredPermissions: [
                   {
@@ -76,7 +74,7 @@ export default [
             name: 'address-add',
             props: true,
             meta: {
-               label: i18n.t('route.label.address_add'),
+               label: 'route.label.address_add',
                visible: false,
                requiredPermissions: [
                   {
@@ -93,3 +91,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

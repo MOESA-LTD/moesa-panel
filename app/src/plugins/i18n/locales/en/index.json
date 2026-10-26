@@ -481,6 +481,7 @@
          "enter-auth-otp-code": "Enter Authentication OTP Code",
          "access-denied": "Access Denied",
          "branch": "Branch",
+         "branch-profile": "Branch Profile",
          "branch-user": "Branch User",
          "manage-user": "Manage User",
          "user-general-info": "User General Information",

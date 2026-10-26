@@ -481,6 +481,7 @@
          "enter-auth-otp-code": "認証OTPコードを入力",
          "access-denied": "アクセス拒否",
          "branch": "支店",
+         "branch-profile": "支店プロフィール",
          "branch-user": "支店ユーザー",
          "manage-user": "ユーザー管理",
          "user-general-info": "ユーザーの一般情報",

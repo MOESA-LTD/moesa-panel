@@ -1,16 +1,17 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
 /**
  * @type {import('vue-router').RouteRecordNormalized[]}
  */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: 'record',
       name: 'record',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.record'),
+         label: 'route.label.record',
          icon: PrimeIcons.FOLDER,
          requiresAuth: true,
          requiredPermissions: [
@@ -29,7 +30,7 @@ export default [
          ],
          contextMenuItems: [
             {
-               label: i18n.t('action.add'),
+               label: 'action.add',
                route: {
                   name: 'record-add',
                   query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -48,7 +49,7 @@ export default [
             },
             props: true,
             meta: {
-               label: i18n.t('route.label.record_list'),
+               label: 'route.label.record_list',
                icon: PrimeIcons.LIST,
                visible: false
             }
@@ -58,7 +59,7 @@ export default [
             name: 'record-add',
             props: true,
             meta: {
-               label: i18n.t('route.label.record_add'),
+               label: 'route.label.record_add',
                visible: false,
                icon: PrimeIcons.PLUS,
                requiredPermissions: [
@@ -78,7 +79,7 @@ export default [
             name: 'record-edit',
             props: true,
             meta: {
-               label: i18n.t('route.label.record_edit'),
+               label: 'route.label.record_edit',
                visible: false,
                icon: PrimeIcons.PENCIL,
                requiredPermissions: [
@@ -100,3 +101,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

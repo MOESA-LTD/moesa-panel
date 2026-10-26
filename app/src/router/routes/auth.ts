@@ -1,3 +1,4 @@
+import type { RouteRecordRaw } from 'vue-router';
 import router from '..';
 
 const logoutBeforeEnter = async () => {
@@ -17,10 +18,7 @@ const logoutBeforeEnter = async () => {
    return true;
 };
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: '',
       name: 'auth',
@@ -38,7 +36,7 @@ export default [
             path: 'register',
             name: 'auth-register',
             meta: {
-               label: i18n.t('route.label.register'),
+               label: 'route.label.register',
                replace: true
             },
             components: {
@@ -50,7 +48,7 @@ export default [
             path: 'login',
             name: 'auth-login',
             meta: {
-               label: i18n.t('route.label.login'),
+               label: 'route.label.login',
                icon: PrimeIcons.SIGN_IN,
                replace: true
             },
@@ -62,8 +60,8 @@ export default [
             name: 'auth-otp',
             meta: {
                requiresAuth: false,
-               label: i18n.t('route.label.enter-auth-otp-code'),
-               icon: PrimeIcons.SIGN,
+               label: 'route.label.enter-auth-otp-code',
+               icon: PrimeIcons.KEY,
                replace: true
             },
             alias: ['forgot-password', 'invite-code'],
@@ -76,7 +74,7 @@ export default [
       path: 'access-denied',
       name: 'access-denied',
       meta: {
-         label: i18n.t('route.label.access-denied'),
+         label: 'route.label.access-denied',
          layout: 'dashboard',
          requiresAuth: false
       },
@@ -87,3 +85,5 @@ export default [
       }
    }
 ];
+
+export default routes;

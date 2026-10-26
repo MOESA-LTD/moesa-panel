@@ -481,6 +481,7 @@
          "enter-auth-otp-code": "Wprowadź kod OTP",
          "access-denied": "Dostęp zabroniony",
          "branch": "Oddział",
+         "branch-profile": "Profil oddziału",
          "branch-user": "Użytkownik oddziału",
          "manage-user": "Zarządzaj użytkownikami",
          "user-general-info": "Ogólne informacje o użytkowniku",

@@ -1,19 +1,16 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-
-export default [
+const routes: RouteRecordRaw[] = [
    {
-      path: 'battery',
-      name: 'battery',
+      path: 'spare-part',
+      name: 'spare-part',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.battery'),
+         label: 'route.label.spare-parts',
          requiresAuth: true,
-         icon: PrimeIcons.BOLT,
+         icon: PrimeIcons.WRENCH,
          requiredPermissions: [
             {
                action: 'select',
@@ -22,29 +19,29 @@ export default [
          ],
          contextMenuItems: [
             {
-               label: i18n.t('action.add'),
+               label: 'action.add',
                route: {
                   name: 'stock-add',
                   query: { showDialog: DIALOG_POSITIONS.CENTER },
                   params: {
-                     category: 'battery'
+                     category: 'spare part'
                   }
                }
             }
          ]
       },
-      redirect: { name: 'battery-list' },
+      redirect: { name: 'spare-part-list' },
       children: [
          {
             path: 'list',
-            name: 'battery-list',
+            name: 'spare-part-list',
             components: {
-               default: () => import('@/views/pages/stock/battery/Index.vue'),
-               skeleton: () => import('@/views/pages/stock/battery/Index.vue')
+               default: () => import('@/views/pages/stock/spare-part/Index.vue'),
+               skeleton: () => import('@/views/pages/stock/spare-part/Index.vue')
             },
             meta: {
+               label: 'route.label.spare_part_list',
                visible: false,
-               label: i18n.t('route.label.battery_list'),
                index: -1,
                icon: PrimeIcons.LIST,
                requiredPermissions: [
@@ -58,3 +55,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

@@ -481,6 +481,7 @@
          "enter-auth-otp-code": "Entrer le code OTP d'authentification",
          "access-denied": "Accès refusé",
          "branch": "Filiale",
+         "branch-profile": "Profil de la succursale",
          "branch-user": "Utilisateur de la filiale",
          "manage-user": "Gérer les utilisateurs",
          "user-general-info": "Informations générales de l'utilisateur",

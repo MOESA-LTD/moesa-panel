@@ -1,16 +1,13 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
-import { DIALOG_POSITIONS } from '../../constants/router';
+import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: 'branch',
       name: 'branch',
-      component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.branch'),
+         label: 'route.label.branch',
          index: -1,
          icon: PrimeIcons.BUILDING,
          requiresAuth: true
@@ -25,7 +22,7 @@ export default [
             name: 'branch-profile',
             meta: {
                index: -1,
-               label: i18n.t('route.label.branch-profile'),
+               label: 'route.label.branch-profile',
                icon: 'pi pi-building-columns',
                requiredPermissions: [
                   {
@@ -43,7 +40,7 @@ export default [
             path: 'user',
             name: 'branch-user',
             meta: {
-               label: i18n.t('route.label.branch-user'),
+               label: 'route.label.branch-user',
                icon: PrimeIcons.USER,
                requiredPermissions: [
                   {
@@ -53,7 +50,7 @@ export default [
                ],
                contextMenuItems: [
                   {
-                     label: i18n.t('action.add'),
+                     label: 'action.add',
                      route: {
                         name: 'branch-manage-user-general',
                         query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -69,7 +66,7 @@ export default [
                   name: 'branch-user-list',
                   meta: {
                      visible: false,
-                     label: i18n.t('route.label.branch_user_list'),
+                     label: 'route.label.branch_user_list',
                      requiredPermissions: [
                         {
                            action: 'select',
@@ -88,7 +85,7 @@ export default [
                   name: 'branch-user-manage',
                   props: true,
                   meta: {
-                     label: i18n.t('route.label.manage-user'),
+                     label: 'route.label.manage-user',
                      visible: false
                   },
                   components: {
@@ -101,7 +98,7 @@ export default [
                         name: 'branch-manage-user-general',
                         props: true,
                         meta: {
-                           label: i18n.t('route.label.user-general-info'),
+                           label: 'route.label.user-general-info',
                            icon: PrimeIcons.USER,
                            visible: false
                         },
@@ -120,7 +117,7 @@ export default [
             path: 'role',
             name: 'branch-role',
             meta: {
-               label: i18n.t('route.label.branch-role'),
+               label: 'route.label.branch-role',
                icon: PrimeIcons.LOCK,
                requiredPermissions: [
                   {
@@ -130,7 +127,7 @@ export default [
                ],
                contextMenuItems: [
                   {
-                     label: i18n.t('action.add'),
+                     label: 'action.add',
                      route: {
                         name: 'branch-role-add',
                         query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -145,7 +142,7 @@ export default [
                   path: 'list',
                   name: 'branch-role-list',
                   meta: {
-                     label: i18n.t('route.label.branch_role_list'),
+                     label: 'route.label.branch_role_list',
                      visible: false,
                      index: -1,
                      requiredPermissions: [
@@ -169,7 +166,7 @@ export default [
                   path: 'add',
                   name: 'branch-role-add',
                   meta: {
-                     label: i18n.t('route.label.add'),
+                     label: 'route.label.add',
                      visible: false,
                      icon: PrimeIcons.PLUS,
                      requiredPermissions: [
@@ -193,7 +190,7 @@ export default [
                   name: 'branch-role-edit',
                   props: true,
                   meta: {
-                     label: i18n.t('route.label.edit'),
+                     label: 'route.label.edit',
                      icon: PrimeIcons.FILE_EDIT,
                      visible: false,
                      requiredPermissions: [
@@ -218,7 +215,7 @@ export default [
             path: 'audit-log',
             name: 'branch-audit-log',
             meta: {
-               label: i18n.t('route.label.audit-logs'),
+               label: 'route.label.audit-logs',
                icon: PrimeIcons.HISTORY,
                requiredPermissions: [
                   {
@@ -234,7 +231,7 @@ export default [
                   path: 'list',
                   name: 'branch-audit-log-list',
                   meta: {
-                     label: i18n.t('route.label.audit_log_list'),
+                     label: 'route.label.audit_log_list',
                      visible: false,
                      index: -1,
                      requiredPermissions: [
@@ -255,3 +252,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

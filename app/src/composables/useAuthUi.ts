@@ -4,7 +4,14 @@ import { ToastSeverity } from '@primevue/core/api';
 import { storeToRefs } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { watch } from 'vue';
-import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
+import {
+   useRoute,
+   useRouter,
+   type RouteLocationRaw,
+   type RouteRecordNameGeneric
+} from 'vue-router';
+
+const isAuthRoute = (name: RouteRecordNameGeneric) => !!name?.toString().startsWith('auth-');
 
 /**
  * Reacts to signing in and out: greets the user and moves between auth pages and the app.
@@ -35,10 +42,10 @@ export function useAuthUi() {
             });
          }
 
-         // Back to where the user was sent to the login page from.
-         if (route.name?.toString().startsWith('auth-')) {
-            const backTo = (router.options.history.state.back as RouteLocationRaw) || '/';
-            await router.replace(backTo);
+         // Back to where the user was sent to the login page from, unless that was an auth page too.
+         if (isAuthRoute(route.name)) {
+            const back = router.options.history.state.back as RouteLocationRaw | null;
+            await router.replace(back && !isAuthRoute(router.resolve(back).name) ? back : '/');
          }
          return;
       }

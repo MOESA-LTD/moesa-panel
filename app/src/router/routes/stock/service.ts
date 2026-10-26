@@ -1,18 +1,17 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
-      path: 'spare-part',
-      name: 'spare-part',
+      path: 'service',
+      name: 'service',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.spare-parts'),
+         label: 'route.label.service',
+         index: Infinity,
          requiresAuth: true,
-         icon: PrimeIcons.WRENCH,
+         icon: PrimeIcons.FILE,
          requiredPermissions: [
             {
                action: 'select',
@@ -21,28 +20,28 @@ export default [
          ],
          contextMenuItems: [
             {
-               label: i18n.t('action.add'),
+               label: 'action.add',
                route: {
                   name: 'stock-add',
                   query: { showDialog: DIALOG_POSITIONS.CENTER },
                   params: {
-                     category: 'spare part'
+                     category: 'service'
                   }
                }
             }
          ]
       },
-      redirect: { name: 'spare-part-list' },
+      redirect: { name: 'service-list' },
       children: [
          {
             path: 'list',
-            name: 'spare-part-list',
+            name: 'service-list',
             components: {
-               default: () => import('@/views/pages/stock/spare-part/Index.vue'),
-               skeleton: () => import('@/views/pages/stock/spare-part/Index.vue')
+               default: () => import('@/views/pages/stock/service/Index.vue'),
+               skeleton: () => import('@/views/pages/stock/service/Index.vue')
             },
             meta: {
-               label: i18n.t('route.label.spare_part_list'),
+               label: 'route.label.service_list',
                visible: false,
                index: -1,
                icon: PrimeIcons.LIST,
@@ -57,3 +56,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

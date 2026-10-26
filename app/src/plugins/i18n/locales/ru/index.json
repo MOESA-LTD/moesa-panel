@@ -481,6 +481,7 @@
          "enter-auth-otp-code": "Введите код подтверждения OTP",
          "access-denied": "Доступ запрещен",
          "branch": "Филиал",
+         "branch-profile": "Профиль филиала",
          "branch-user": "Пользователь филиала",
          "manage-user": "Управление пользователями",
          "user-general-info": "Общая информация о пользователе",

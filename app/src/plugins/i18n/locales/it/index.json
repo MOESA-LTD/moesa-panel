@@ -575,6 +575,7 @@
          "enter-auth-otp-code": "Inserisci codice OTP",
          "access-denied": "Accesso negato",
          "branch": "Filiale",
+         "branch-profile": "Profilo della filiale",
          "branch-user": "Utente filiale",
          "manage-user": "Gestisci utente",
          "user-general-info": "Informazioni generali utente",

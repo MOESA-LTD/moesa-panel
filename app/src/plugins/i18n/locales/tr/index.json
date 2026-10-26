@@ -279,6 +279,7 @@
          "enter-auth-otp-code": "Doğrulama OTP Kodu Gir",
          "access-denied": "Erişim Reddedildi",
          "branch": "Şube",
+         "branch-profile": "Şube Profili",
          "branch-user": "Şube Kullanıcısı",
          "manage-user": "Kullanıcı Yönetimi",
          "user-general-info": "Kullanıcı Genel Bilgileri",

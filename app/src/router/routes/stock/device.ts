@@ -1,19 +1,16 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
-      path: 'service',
-      name: 'service',
+      path: 'device',
+      name: 'device',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.service'),
-         index: Infinity,
+         label: 'route.label.device',
          requiresAuth: true,
-         icon: PrimeIcons.FILE,
+         icon: 'pi pi-headphones',
          requiredPermissions: [
             {
                action: 'select',
@@ -22,29 +19,29 @@ export default [
          ],
          contextMenuItems: [
             {
-               label: i18n.t('action.add'),
+               label: 'action.add',
                route: {
                   name: 'stock-add',
                   query: { showDialog: DIALOG_POSITIONS.CENTER },
                   params: {
-                     category: 'service'
+                     category: 'device'
                   }
                }
             }
          ]
       },
-      redirect: { name: 'service-list' },
+      redirect: { name: 'device-list' },
       children: [
          {
             path: 'list',
-            name: 'service-list',
+            name: 'device-list',
             components: {
-               default: () => import('@/views/pages/stock/service/Index.vue'),
-               skeleton: () => import('@/views/pages/stock/service/Index.vue')
+               default: () => import('@/views/pages/stock/device/Index.vue'),
+               skeleton: () => import('@/views/pages/stock/device/Index.vue')
             },
             meta: {
-               label: i18n.t('route.label.service_list'),
                visible: false,
+               label: 'route.label.device_list',
                index: -1,
                icon: PrimeIcons.LIST,
                requiredPermissions: [
@@ -58,3 +55,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

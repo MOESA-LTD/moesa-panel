@@ -1,15 +1,16 @@
+import type { RouteRecordRaw } from 'vue-router';
 import batteryRoutes from './battery';
 import deviceRoutes from './device';
 import productRoutes from './product';
 import serviceRoutes from './service';
 import sparePartRoutes from './spare-part';
 
-export default [
+const routes: RouteRecordRaw[] = [
    {
       name: 'stock',
       path: 'stock',
       meta: {
-         label: i18n.t('route.label.stock'),
+         label: 'route.label.stock',
          icon: 'pi pi-warehouse',
          requiredPermissions: [
             {
@@ -28,7 +29,7 @@ export default [
             name: 'stock-add',
             props: true,
             meta: {
-               label: i18n.t('route.label.stock_add'),
+               label: 'route.label.stock_add',
                visible: false
             },
             components: {
@@ -41,7 +42,7 @@ export default [
             name: 'stock-edit',
             props: true,
             meta: {
-               label: i18n.t('route.label.stock_edit'),
+               label: 'route.label.stock_edit',
                visible: false
             },
             components: {
@@ -57,3 +58,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

@@ -1,24 +1,19 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { useConfirm } from 'primevue';
 import router from '..';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: 'account',
       name: 'account',
       meta: {
-         label: i18n.t('route.label.account'),
+         label: 'route.label.account',
          index: 10,
          icon: PrimeIcons.ID_CARD,
          layout: 'dashboard',
          requiresAuth: true,
-         visible: () => {
-            const { isSignedIn } = storeToRefs(useAuthStore());
-            return isSignedIn?.value;
-         }
+         visible: () => useAuthStore().isSignedIn
       },
       components: {
          default: () => import('@/views/pages/account/Index.vue')
@@ -28,7 +23,7 @@ export default [
             path: 'profile',
             name: 'account-profile',
             meta: {
-               label: i18n.t('route.label.profile'),
+               label: 'route.label.profile',
                icon: PrimeIcons.USER,
                index: 1
             },
@@ -41,7 +36,7 @@ export default [
             path: 'settings',
             name: 'account-settings',
             meta: {
-               label: i18n.t('route.label.settings'),
+               label: 'route.label.settings',
                icon: PrimeIcons.COG,
                index: 2
             },
@@ -52,7 +47,7 @@ export default [
                   path: 'update-profile',
                   name: 'update-profile',
                   meta: {
-                     label: i18n.t('route.label.update-profile'),
+                     label: 'route.label.update-profile',
                      icon: PrimeIcons.USER_EDIT
                   },
                   components: {
@@ -64,7 +59,7 @@ export default [
                   path: 'update-password',
                   name: 'update-password',
                   meta: {
-                     label: i18n.t('route.label.update-password'),
+                     label: 'route.label.update-password',
                      icon: PrimeIcons.LOCK
                   },
                   components: {
@@ -76,7 +71,7 @@ export default [
          },
          {
             meta: {
-               label: i18n.t('route.label.logout'),
+               label: 'route.label.logout',
                icon: PrimeIcons.SIGN_OUT
             },
             async beforeEnter() {
@@ -94,7 +89,7 @@ export default [
                         severity: 'secondary',
                         outlined: true
                      },
-                     accept: resolve,
+                     accept: () => resolve(true),
                      reject: async () => {
                         if (router.options.history.state.back) {
                            return resolve(false);
@@ -113,3 +108,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

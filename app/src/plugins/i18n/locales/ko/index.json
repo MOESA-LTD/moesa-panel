@@ -481,6 +481,7 @@
          "enter-auth-otp-code": "인증 OTP 코드 입력",
          "access-denied": "접근 거부",
          "branch": "지점",
+         "branch-profile": "지점 프로필",
          "branch-user": "지점 사용자",
          "manage-user": "사용자 관리",
          "user-general-info": "사용자 일반 정보",

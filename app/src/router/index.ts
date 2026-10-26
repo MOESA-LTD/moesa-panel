@@ -26,10 +26,7 @@ const router = createRouter({
                      meta: {
                         layout: 'dashboard',
                         requiresAuth: true,
-                        visible: computed(() => {
-                           const { isSignedIn } = storeToRefs(useAuthStore());
-                           return isSignedIn?.value;
-                        })
+                        visible: () => useAuthStore().isSignedIn
                      },
                      redirect: { name: 'dashboard' },
                      components: {
@@ -44,16 +41,15 @@ const router = createRouter({
                            path: 'dashboard',
                            name: 'dashboard',
                            meta: {
-                              label: i18n.t('route.label.dashboard'),
+                              label: 'route.label.dashboard',
                               icon: PrimeIcons.CHART_LINE,
                               index: -999,
-                              visible: computed(() => {
-                                 const { isSignedIn } = storeToRefs(useAuthStore());
-                                 return isSignedIn?.value;
-                              })
+                              visible: () => useAuthStore().isSignedIn
                            },
-                           component: () => import('@/views/pages/dashboard/Index.vue'),
-                           skeleton: () => import('@/views/pages/dashboard/Index.vue')
+                           components: {
+                              default: () => import('@/views/pages/dashboard/Index.vue'),
+                              skeleton: () => import('@/views/pages/dashboard/Index.vue')
+                           }
                         },
                         ...branchRoutes,
                         ...addressRoutes,
@@ -75,7 +71,7 @@ const router = createRouter({
                            path: 'error',
                            name: 'error',
                            meta: {
-                              label: i18n.t('route.label.error')
+                              label: 'route.label.error'
                            },
                            components: {
                               default: () => import('@/views/pages/Error.vue'),
@@ -89,7 +85,7 @@ const router = createRouter({
                            path: `:pathMatch(.*)*`,
                            name: 'notfound',
                            meta: {
-                              label: i18n.t('route.label.notfound')
+                              label: 'route.label.notfound'
                            },
                            components: {
                               default: () => import('@/views/pages/NotFound.vue'),
@@ -111,8 +107,8 @@ beforeEachMiddlewares.forEach((middleware) => {
    router.beforeEach(middleware);
 });
 
-router.onError(async (error, to) => {
-   const status = error?.status;
+router.onError(async (error) => {
+   const status = (error as { status?: number })?.status;
 
    switch (status) {
       case 401: {
@@ -122,8 +118,7 @@ router.onError(async (error, to) => {
 
       case 403: {
          await appErrorHandler(error);
-         to.name = 'access-denied';
-         await router.push(to);
+         await router.push({ name: 'access-denied' });
          break;
       }
 

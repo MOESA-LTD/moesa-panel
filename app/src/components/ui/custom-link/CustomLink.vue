@@ -69,7 +69,7 @@ const itemClick = (item: RouteLocationNormalized) => {
 
 const checkVisibility = (item: RouteLocationNormalized) => {
    return (
-      item?.meta?.visible ||
+      toValue(item?.meta?.visible) ||
       (item?.meta?.requiredPermissions as any)?.every?.(({ action, subject }: any) =>
          ability.can?.(action, subject)
       )

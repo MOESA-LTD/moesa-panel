@@ -367,7 +367,7 @@ export default () => {
                   const { meta, name } = route;
                   const currentKey = parentKey ? `${parentKey}_${i + 1}` : `${i}`;
                   const index = meta.index || ++lastIndex;
-                  let visible = meta?.visible;
+                  let visible = toValue(meta?.visible);
 
                   const children = toNestedArray(items, currentKey, visible || true, index).filter(
                      (c) => c.visible

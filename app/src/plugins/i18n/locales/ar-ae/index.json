@@ -575,6 +575,7 @@
          "enter-auth-otp-code": "أدخل رمز التحقق OTP",
          "access-denied": "الوصول ممنوع",
          "branch": "الفرع",
+         "branch-profile": "ملف الفرع",
          "branch-user": "مستخدم الفرع",
          "manage-user": "إدارة المستخدمين",
          "user-general-info": "معلومات المستخدم العامة",

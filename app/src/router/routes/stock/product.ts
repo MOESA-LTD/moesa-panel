@@ -1,16 +1,14 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: 'product',
       name: 'product',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.product'),
+         label: 'route.label.product',
          requiresAuth: true,
          index: -1,
          icon: 'pi pi-barcode',
@@ -22,7 +20,7 @@ export default [
          ],
          contextMenuItems: [
             {
-               label: i18n.t('action.add'),
+               label: 'action.add',
                route: {
                   name: 'product-add',
                   query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -40,7 +38,7 @@ export default [
                skeleton: () => import('@/views/pages/stock/product/Index.vue')
             },
             meta: {
-               label: i18n.t('route.label.product_list'),
+               label: 'route.label.product_list',
                visible: false,
                index: -1,
                icon: PrimeIcons.LIST,
@@ -57,7 +55,7 @@ export default [
             name: 'product-add',
             props: true,
             meta: {
-               label: i18n.t('route.label.product_add'),
+               label: 'route.label.product_add',
                visible: false
             },
             components: {
@@ -70,7 +68,7 @@ export default [
             name: 'product-edit',
             props: true,
             meta: {
-               label: i18n.t('route.label.product_edit'),
+               label: 'route.label.product_edit',
                visible: false
             },
             components: {
@@ -81,3 +79,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

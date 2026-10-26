@@ -1,16 +1,14 @@
+import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
-import { DIALOG_POSITIONS } from '../../constants/router';
+import { DIALOG_POSITIONS } from '@/constants/router';
 
-/**
- * @type {import('vue-router').RouteLocation[]}
- */
-export default [
+const routes: RouteRecordRaw[] = [
    {
       path: 'client',
       name: 'client',
       component: CustomRouteView,
       meta: {
-         label: i18n.t('route.label.client'),
+         label: 'route.label.client',
          index: -1,
          icon: PrimeIcons.USERS,
          requiresAuth: true,
@@ -27,7 +25,7 @@ export default [
             path: 'list',
             name: 'client-list',
             meta: {
-               label: i18n.t('route.label.client_list'),
+               label: 'route.label.client_list',
                icon: PrimeIcons.LIST,
                requiresAuth: true,
                requiredPermissions: [
@@ -38,7 +36,7 @@ export default [
                ],
                contextMenuItems: [
                   {
-                     label: i18n.t('action.add'),
+                     label: 'action.add',
                      route: {
                         name: 'client-manage',
                         query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -56,7 +54,7 @@ export default [
             name: 'client-manage',
             props: true,
             meta: {
-               label: i18n.t('route.label.manage-client'),
+               label: 'route.label.manage-client',
                visible: false
             },
             components: {
@@ -69,7 +67,7 @@ export default [
                   name: 'client-manage-general',
                   props: true,
                   meta: {
-                     label: i18n.t('route.label.client-general-info'),
+                     label: 'route.label.client-general-info',
                      icon: PrimeIcons.USER,
                      visible: false
                   },
@@ -83,7 +81,7 @@ export default [
                   name: 'client-manage-address',
                   props: true,
                   meta: {
-                     label: i18n.t('route.label.client-addresses'),
+                     label: 'route.label.client-addresses',
                      icon: 'pi pi-address-book',
                      visible: false
                   },
@@ -99,7 +97,7 @@ export default [
             name: 'client-address',
             component: CustomRouteView,
             meta: {
-               label: i18n.t('route.label.client-addresses'),
+               label: 'route.label.client-addresses',
                icon: 'pi pi-address-book',
                requiresAuth: true,
                contextMenuItems: computed(() => {
@@ -110,7 +108,7 @@ export default [
                   )
                      return [
                         {
-                           label: i18n.t('router.action.manage-addresses'),
+                           label: 'router.action.manage-addresses',
                            route: {
                               name: 'address-list',
                               query: { showDialog: DIALOG_POSITIONS.CENTER }
@@ -126,7 +124,7 @@ export default [
                   path: 'list',
                   name: 'client-address-list',
                   meta: {
-                     label: i18n.t('route.label.client_address_list'),
+                     label: 'route.label.client_address_list',
                      visible: false,
                      index: 2,
                      icon: PrimeIcons.LIST,
@@ -147,3 +145,5 @@ export default [
       ]
    }
 ];
+
+export default routes;

@@ -124,6 +124,7 @@
          "enter-auth-otp-code": "Ingrese el código OTP de autenticación",
          "access-denied": "Acceso denegado",
          "branch": "Sucursal",
+         "branch-profile": "Perfil de la sucursal",
          "branch-user": "Usuario de sucursal",
          "manage-user": "Gestionar usuario",
          "user-general-info": "Información general del usuario",
