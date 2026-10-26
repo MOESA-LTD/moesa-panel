@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 
 export type Client = Tables['client']['Row'];
 export type ClientInsert = Tables['client']['Insert'];
+/** What forms send: tenant_id is added to every write by customFetch. */
+export type ClientInput = Omit<ClientInsert, 'tenant_id'>;
 
 export const clientRepository = {
    async get(id: string, signal: AbortSignal) {
@@ -26,10 +28,10 @@ export const clientRepository = {
       return data;
    },
 
-   async save(values: ClientInsert) {
+   async save(values: ClientInput) {
       const { data } = await supabase
          .from('client')
-         .upsert(values)
+         .upsert(values as ClientInsert)
          .select()
          .single()
          .throwOnError();

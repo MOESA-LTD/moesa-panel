@@ -1,80 +1,44 @@
-<script setup>
+<script setup lang="ts">
 import { useClient, useSaveClient } from '@/api/client/queries';
+import type { Client } from '@/api/client/repository';
+import { clientSchema, toClientFormValues, toClientPayload } from '@/api/client/schema';
 import { useFormReadonly } from '@/composables/useFormReadonly';
-import { Form } from '@/lib/Form';
-
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
+import { useForm } from '@/lib/form/useForm';
 import { useToast } from 'primevue';
 
-/**
- * @type {{ id: ClientUpsertFormData['id'], data: ClientUpsertFormData }} */
-const props = defineProps({
-   id: {
-      type: String,
-      default: null,
-      required: false
-   },
-   data: {
-      type: Object,
-      default: null,
-      required: false
-   }
-});
+const props = defineProps<{
+   id?: string | null;
+   /** Prefill for a new client. */
+   data?: Partial<Client> | null;
+}>();
 
 const { t } = useI18n();
-
 const toast = useToast();
-
-/**
- * @type {ClientUpsertFormData} */
-const initialFormData = {
-   id: undefined,
-   national_id: null,
-   display_name: null,
-   birth_date: null,
-   gender: null,
-   email: null,
-   phone: null,
-   nationality: null
-};
-
-/**@type {[keyof ClientUpsertFormData]} */
-const fields = _keys(initialFormData);
 
 const clientId = computed(() => props.id ?? props.data?.id ?? null);
 const { data: client, suspense } = useClient(clientId);
 if (clientId.value) await suspense();
 
-/**@type {ClientUpsertFormData & Form<ClientUpsertFormData>} */
-const form = Form.create({
-   // _pick copies, so the source object is not mutated by _defaults.
-   data: _defaults(_pick(client.value ?? props.data, fields), initialFormData),
-   rules: {
-      display_name: 'required',
-      nationality: 'required',
-      national_id: 'required',
-      birth_date: 'required|date',
-      gender: 'required',
-      email: 'email',
-      phone: 'phone'
-   },
-   useDialogForm: false
+const { values, errors, isDirty, isSubmitting, reset, handleSubmit } = useForm({
+   schema: clientSchema,
+   initialValues: toClientFormValues(client.value ?? props.data)
 });
 
 // Follow fresh server data (e.g. saved in another view) unless the user has unsaved edits.
 watch(client, (value) => {
-   if (value && !form._isChanged) form._setDefaults(_pick(value, fields))._reset();
+   if (value && !isDirty.value) reset(toClientFormValues(value));
 });
 
-const readonly = useFormReadonly('client', () => form.id);
+useUnsavedChangesGuard(isDirty);
+
+const readonly = useFormReadonly('client', () => values.value.id);
 
 const { mutateAsync: saveClient } = useSaveClient();
 
-const save = async () => {
-   if (!form._validate()) return;
-
-   const saved = await saveClient(_pick(form._data, fields));
-
-   form._setDefaults(_pick(saved, fields))._reset();
+const save = handleSubmit(async (data) => {
+   const saved = await saveClient(toClientPayload(data));
+   reset(toClientFormValues(saved));
 
    toast.add({
       life: 3000,
@@ -82,52 +46,58 @@ const save = async () => {
       summary: t('toast.success'),
       detail: t('toast.saved')
    });
-};
+});
 </script>
 
 <template>
    <div class="card p-0">
-      <FormBox @submit="save" @reset="() => form._reset()" :form :readonly>
+      <FormBox
+         @submit="save"
+         @reset="() => reset()"
+         :dirty="isDirty"
+         :submitting="isSubmitting"
+         :readonly
+      >
          <FormField
             :readonly
             fluid
-            :error="form?._errors?.first('display_name')"
+            :error="errors.display_name"
             :label="$t('fields.name')"
             v-slot="slotProps"
          >
-            <InputText v-bind="slotProps" v-model="form.display_name" />
+            <InputText v-bind="slotProps" v-model="values.display_name" />
          </FormField>
          <FormField
             :readonly
             fluid
-            :error="form?._errors?.first('nationality')"
+            :error="errors.nationality"
             :label="$t('fields.nationality')"
             v-slot="slotProps"
          >
-            <SelectCountry v-bind="slotProps" v-model="form.nationality" />
+            <SelectCountry v-bind="slotProps" v-model="values.nationality" />
          </FormField>
          <FormField
             :readonly
             fluid
-            :error="form?._errors?.first('national_id')"
+            :error="errors.national_id"
             :label="$t('fields.national_id')"
             v-slot="slotProps"
          >
-            <InputText v-bind="slotProps" v-model="form.national_id" />
+            <InputText v-bind="slotProps" v-model="values.national_id" />
          </FormField>
          <FormField
             :readonly
             fluid
-            :error="form?._errors?.first('birth_date')"
+            :error="errors.birth_date"
             :label="$t('fields.birth_date')"
             v-slot="slotProps"
          >
-            <DatePicker v-bind="slotProps" v-model="form.birth_date" />
+            <DatePicker v-bind="slotProps" v-model="values.birth_date" />
          </FormField>
          <FormField
             :readonly
             fluid
-            :error="form?._errors?.first('gender')"
+            :error="errors.gender"
             :label="$t('fields.gender')"
             v-slot="slotProps"
          >
@@ -140,27 +110,27 @@ const save = async () => {
                option-value="value"
                option-label="label"
                v-bind="slotProps"
-               v-model="form.gender"
+               v-model="values.gender"
             />
          </FormField>
          <div class="form_box !flex-auto">
             <FormField
                :readonly
                fluid
-               :error="form?._errors?.first('email')"
+               :error="errors.email"
                :label="$t('fields.email')"
                v-slot="slotProps"
             >
-               <InputText v-bind="slotProps" v-model="form.email" />
+               <InputText v-bind="slotProps" v-model="values.email" />
             </FormField>
             <FormField
                :readonly
                fluid
-               :error="form?._errors?.first('phone')"
+               :error="errors.phone"
                :label="$t('fields.phone')"
                v-slot="slotProps"
             >
-               <PhoneInput v-bind="slotProps" v-model="form.phone" />
+               <PhoneInput v-bind="slotProps" v-model="values.phone" />
             </FormField>
          </div>
       </FormBox>
