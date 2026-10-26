@@ -750,6 +750,7 @@
       "unsaved_changes": {
          "header": "未保存的更改",
          "message": "您有未保存的更改。确定不保存就离开吗？"
-      }
+      },
+      "passwords_do_not_match": "两次输入的密码不一致"
    }
 }

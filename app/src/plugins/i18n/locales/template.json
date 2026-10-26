@@ -705,6 +705,7 @@
       "unsaved_changes": {
          "header": "",
          "message": ""
-      }
+      },
+      "passwords_do_not_match": ""
    }
 }

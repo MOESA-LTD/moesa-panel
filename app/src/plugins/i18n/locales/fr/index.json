@@ -750,6 +750,7 @@
       "unsaved_changes": {
          "header": "Modifications non enregistrées",
          "message": "Vous avez des modifications non enregistrées. Quitter sans enregistrer ?"
-      }
+      },
+      "passwords_do_not_match": "Les mots de passe ne correspondent pas"
    }
 }

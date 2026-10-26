@@ -750,6 +750,7 @@
       "unsaved_changes": {
          "header": "Ungespeicherte Änderungen",
          "message": "Sie haben ungespeicherte Änderungen. Ohne Speichern verlassen?"
-      }
+      },
+      "passwords_do_not_match": "Die Passwörter stimmen nicht überein"
    }
 }

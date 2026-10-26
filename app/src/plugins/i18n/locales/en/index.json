@@ -750,6 +750,7 @@
       "unsaved_changes": {
          "header": "Unsaved changes",
          "message": "You have unsaved changes. Leave without saving?"
-      }
+      },
+      "passwords_do_not_match": "Passwords do not match"
    }
 }

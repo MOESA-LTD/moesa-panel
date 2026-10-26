@@ -750,6 +750,7 @@
       "unsaved_changes": {
          "header": "Modifiche non salvate",
          "message": "Ci sono modifiche non salvate. Uscire senza salvare?"
-      }
+      },
+      "passwords_do_not_match": "Le password non corrispondono"
    }
 }
