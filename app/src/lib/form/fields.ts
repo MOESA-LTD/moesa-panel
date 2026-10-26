@@ -18,7 +18,13 @@ export const optional = <S extends z.ZodType>(schema: S) =>
       .nullish()
       .transform((value) => (value === '' ? null : value));
 
-export const email = () => z.email({ error: () => i18n.t('errors.invalid_email') });
+/** Empty input reports "required"; anything else must be a valid address. */
+export const email = () =>
+   z
+      .string()
+      .trim()
+      .min(1)
+      .pipe(z.email({ error: () => i18n.t('errors.invalid_email') }));
 
 export const phone = () =>
    z.string().refine((value) => isValidPhoneNumber(value), {

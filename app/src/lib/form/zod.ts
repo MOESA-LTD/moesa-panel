@@ -18,13 +18,15 @@ const ZOD_LOCALES: Record<string, () => { localeError: z.core.$ZodErrorMap }> = 
 
 const isEmpty = (input: unknown) => input === undefined || input === null || input === '';
 
-/** zod's own message for an empty value ("expected string to have >=1 characters") reads poorly. */
+/** zod's messages for an empty value ("expected string to have >=6 characters") read poorly. */
 const customError: z.core.$ZodErrorMap = (issue) => {
+   const emptyInput =
+      isEmpty(issue.input) || (Array.isArray(issue.input) && issue.input.length === 0);
    const missing =
-      (issue.code === 'invalid_type' && isEmpty(issue.input)) ||
+      (issue.code === 'invalid_type' && emptyInput) ||
       (issue.code === 'too_small' &&
-         issue.minimum === 1 &&
-         (issue.origin === 'string' || issue.origin === 'array'));
+         (issue.origin === 'string' || issue.origin === 'array') &&
+         (issue.minimum === 1 || emptyInput));
 
    return missing ? i18n.t('form.required') : undefined;
 };

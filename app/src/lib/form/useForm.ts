@@ -52,12 +52,17 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
       return result;
    }
 
-   /** Re-validates and replaces only the errors of the given top-level fields. */
+   /**
+    * Re-validates and replaces only the errors of the given top-level fields (e.g. one step of a
+    * wizard); returns whether those fields are valid.
+    */
    function validateFields(fields: string[]) {
       const result = parse();
       const next = result.success ? {} : collectErrors(result.error.issues);
       const inFields = (_: unknown, path: string) => fields.includes(topLevel(path));
-      errors.value = { ...omitBy(errors.value, inFields), ...pickBy(next, inFields) };
+      const fieldErrors = pickBy(next, inFields);
+      errors.value = { ...omitBy(errors.value, inFields), ...fieldErrors };
+      return Object.keys(fieldErrors).length === 0;
    }
 
    // A programmatic reset is not an edit and must not show errors.
@@ -90,7 +95,8 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
 
    /**
     * Wraps a submit handler: validates first, tracks `isSubmitting`, and turns database errors on
-    * known fields into field errors. Other errors are rethrown to the app error handler.
+    * known fields (or an error's own `fieldErrors`) into field errors. Other errors are rethrown to
+    * the app error handler.
     */
    function handleSubmit(onValid: (data: z.output<S>) => unknown) {
       return async () => {
@@ -103,7 +109,10 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
          try {
             await onValid(result.data);
          } catch (error) {
-            const fieldErrors = mapPostgrestError(error, Object.keys(values.value ?? {}));
+            // Errors may carry their own field messages (e.g. from an edge function).
+            const fieldErrors =
+               (error as { fieldErrors?: FormErrors } | null)?.fieldErrors ??
+               mapPostgrestError(error, Object.keys(values.value ?? {}));
             if (!fieldErrors) throw error;
             setErrors(fieldErrors);
          } finally {
@@ -112,5 +121,15 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
       };
    }
 
-   return { values, errors, isDirty, isSubmitting, validate, reset, setErrors, handleSubmit };
+   return {
+      values,
+      errors,
+      isDirty,
+      isSubmitting,
+      validate,
+      validateFields,
+      reset,
+      setErrors,
+      handleSubmit
+   };
 }

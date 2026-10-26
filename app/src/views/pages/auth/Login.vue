@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Form } from '@/lib/Form';
+import { emailSchema, loginSchema } from '@/api/auth';
+import { useForm } from '@/lib/form/useForm';
 import { useConfirm, useToast } from 'primevue';
+
 const authStore = useAuthStore();
 const { loginWithPassword } = authStore;
 const { isSignedIn } = storeToRefs(authStore);
@@ -12,28 +14,14 @@ const rememberMe = ref(!!localStorage.getItem('remember-me'));
 
 const dialogRef = inject('dialogRef', null);
 
-const loginForm = Form.create({
-   data: {
-      email: '',
-      password: ''
-   },
-   rules: {
-      email: 'required|email',
-      password: 'required'
-   }
+const login = useForm({
+   schema: loginSchema,
+   initialValues: { email: localStorage.getItem('remember-me') ?? '', password: '' }
 });
 
-const forgotPasswordForm = Form.create<{ email: string }>({
-   data: {
-      email: null
-   },
-   rules: {
-      email: 'required|email'
-   },
-   autoValidate: ['email']
-});
+const forgotPasswordForm = useForm({ schema: emailSchema, initialValues: { email: '' } });
 
-const forgotPassword = async () =>
+const forgotPassword = () =>
    confirm.require({
       group: 'forgot-password',
       header: i18n.t('auth.forgot_password.confirm.header'),
@@ -43,14 +31,13 @@ const forgotPassword = async () =>
          severity: 'secondary',
          outlined: true
       },
-      acceptProps: {
+      // reactive() unwraps the computed, so the button follows the e-mail's validity.
+      acceptProps: reactive({
          label: i18n.t('action.send'),
-         autoValidate: true,
-         disabled: computed(() => !forgotPasswordForm._isValid)
-      },
-      accept: async () => {
-         if (!forgotPasswordForm._validate()) return false;
-         await supabase.auth.resetPasswordForEmail(forgotPasswordForm.email);
+         disabled: computed(() => !emailSchema.safeParse(forgotPasswordForm.values.value).success)
+      }),
+      accept: forgotPasswordForm.handleSubmit(async ({ email }) => {
+         await supabase.auth.resetPasswordForEmail(email);
          await router.push({
             path: 'forgot-password'
          });
@@ -62,21 +49,17 @@ const forgotPassword = async () =>
             ),
             life: 0
          });
-      }
+      })
    });
 
-const login = async () => {
-   if (!loginForm._validate()) {
-      return;
-   }
-
-   await loginWithPassword(loginForm._data);
+const submit = login.handleSubmit(async (credentials) => {
+   await loginWithPassword({ email: credentials.email, password: credentials.password });
 
    localStorage.removeItem('remember-me');
    if (rememberMe.value) {
-      localStorage.setItem('remember-me', loginForm.email);
+      localStorage.setItem('remember-me', credentials.email);
    }
-};
+});
 
 watch(
    () => isSignedIn.value,
@@ -86,13 +69,12 @@ watch(
    { immediate: true }
 );
 
-if (rememberMe.value) {
-   loginForm.email = localStorage.getItem('remember-me');
-}
+const { values, errors } = login;
+const { values: forgotValues, errors: forgotErrors } = forgotPasswordForm;
 </script>
 
 <template>
-   <FormBox @submit="login" class="self-center gap-8" v-focustrap :loginForm>
+   <FormBox @submit="submit" class="self-center gap-8" v-focustrap>
       <div class="flex-auto w-full text-center flex flex-col justify-center gap-8">
          <div class="text-3xl font-medium" v-text="$t('auth.login.welcome_back')" />
 
@@ -102,23 +84,18 @@ if (rememberMe.value) {
          />
       </div>
       <div class="flex-auto flex flex-col gap-8">
-         <FormField
-            v-slot="slotProps"
-            fluid
-            :label="$t('fields.email')"
-            :error="loginForm?._errors?.first('email')"
-         >
-            <InputText autofocus v-bind="slotProps" v-model="loginForm['email']" />
+         <FormField v-slot="slotProps" fluid :label="$t('fields.email')" :error="errors.email">
+            <InputText autofocus v-bind="slotProps" v-model="values.email" />
          </FormField>
          <FormField
             v-slot="slotProps"
             fluid
             :label="$t('fields.password')"
-            :error="loginForm?._errors?.first('password')"
+            :error="errors.password"
          >
             <Password
                v-bind="slotProps"
-               v-model="loginForm.password"
+               v-model="values.password"
                :toggleMask="true"
                :feedback="false"
             />
@@ -170,9 +147,9 @@ if (rememberMe.value) {
             :label="$t('fields.email')"
             fluid
             v-slot="slotProps"
-            :error="forgotPasswordForm?._errors?.first('email')"
+            :error="forgotErrors.email"
          >
-            <InputText v-bind="slotProps" v-model="forgotPasswordForm.email" :length="6" />
+            <InputText v-bind="slotProps" v-model="forgotValues.email" :length="6" />
          </FormField>
       </template>
    </ConfirmDialog>
