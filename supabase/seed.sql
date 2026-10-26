@@ -12,9 +12,9 @@ INSERT INTO
 VALUES
     -- tenant
     ('public.tenant', 'branch', 'select', 'read', FALSE, FALSE, NULL),
-    --    ('public.tenant', 'branch', 'insert', 'create', FALSE, TRUE, NULL),
-    --    ('public.tenant', 'branch', 'update', 'modify', FALSE, TRUE, NULL),
-    --    ('public.tenant', 'branch', 'delete', 'modify', FALSE, TRUE, NULL),
+    -- ('public.tenant', 'branch', 'insert', 'create', FALSE, TRUE, NULL),
+    ('public.tenant', 'branch', 'update', 'modify', FALSE, TRUE, NULL),
+    -- ('public.tenant', 'branch', 'delete', 'modify', FALSE, TRUE, NULL),
     --
     --
     -- user   

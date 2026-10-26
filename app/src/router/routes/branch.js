@@ -21,6 +21,25 @@ export default [
       },
       children: [
          {
+            path: 'branch',
+            name: 'branch-profile',
+            meta: {
+               index: -1,
+               label: i18n.t('route.label.branch-profile'),
+               icon: 'pi pi-building-columns',
+               requiredPermissions: [
+                  {
+                     action: 'select',
+                     subject: 'tenant'
+                  }
+               ]
+            },
+            components: {
+               default: () => import('@/views/pages/branch/profile/index.vue'),
+               skeleton: () => import('@/views/pages/branch/profile/index.vue')
+            }
+         },
+         {
             path: 'user',
             name: 'branch-user',
             meta: {
