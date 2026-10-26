@@ -1,7 +1,7 @@
 // app/src/lib/Form.ts
 
 import Validator from '@/plugins/validatorjs';
-import { detailedDiff, diff, updatedDiff } from 'deep-object-diff';
+import { detailedDiff, diff } from 'deep-object-diff';
 import { PropertyName } from 'lodash';
 import { Errors, Rules } from 'validatorjs';
 import ValidatorErrors from 'validatorjs/src/errors';
@@ -56,20 +56,25 @@ export class Form<T = any> extends Collection<T> {
    }
 
    _initWatcher() {
+      // Validates the fields edited since the last change (true) or a fixed set of rules (array).
       watch(
-         () => [this._autoValidate, this._data, this._rules],
-         ([validateAttributes, changedData, changedRules]) => {
+         () => _cloneDeep(this._data) as T & object,
+         (current, previous) => {
+            const validateAttributes = this._autoValidate as unknown as Array<keyof T> | boolean;
+            const rules = this._rules as Rules;
+
             if (validateAttributes === true) {
-               this._validate(_keys(updatedDiff(changedData, changedRules)) as (keyof T)[]);
+               const edited = _keys(diff(previous ?? {}, current));
+               // Rule keys may be paths such as "user_metadata.display_name".
+               const keys = _keys(rules).filter((rule) => edited.includes(rule.split('.')[0]));
+               if (_size(keys)) this._validate(keys as Array<keyof T>);
                return;
             }
 
             if (_isArray(validateAttributes) && _size(validateAttributes) > 0) {
-               const rules = _pick(changedRules, validateAttributes) as Rules;
-               this._validate(null, rules);
+               this._validate(null, _pick(rules, validateAttributes) as Rules);
             }
-         },
-         { deep: true }
+         }
       );
       return this;
    }
@@ -118,7 +123,9 @@ export class Form<T = any> extends Collection<T> {
    _reset(attrs = this._defaults as T): this {
       super._reset(attrs);
 
-      this._errors = reactive<Errors>(new ValidatorErrors());
+      // Clear in place: templates keep a reference to this reactive errors object.
+      this._errors.errors = {};
+      this._isValid = false;
 
       return this;
    }
