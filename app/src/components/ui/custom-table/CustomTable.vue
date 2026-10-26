@@ -119,7 +119,7 @@ function useTableMeta({
    stateKey,
    ...rest
 }: UseTableMetaOptions<T>) {
-   stateStorage ??= props.stateStorage || (!dialogRef?.value && useMeta) ? 'local' : 'session';
+   stateStorage ??= props.stateStorage || (!dialogRef?.value && useMeta ? 'local' : 'session');
 
    const metaStateKey = 'dt-' + (stateStorage === 'local' ? stateKey : _uniqueId());
    const routeMeta = computed<CustomTableMetaEvent<T>>(() => {
@@ -143,7 +143,8 @@ function useTableMeta({
    };
    const storageOptions = { mergeDefaults: true, writeDefaults: true };
 
-   if (stateStorage === 'session') sessionStorage?.clear();
+   // _uniqueId restarts on every page load, so drop a leftover entry from a previous load.
+   if (stateStorage === 'session') sessionStorage.removeItem(metaStateKey);
 
    const meta = <RemovableRef<CustomTableMetaEvent<T>>>(
       (stateStorage === 'local' ? useLocalStorage : useSessionStorage)?.(
@@ -191,8 +192,6 @@ function useTableMeta({
       () => rows.value,
       (r) => _set(meta.value, 'rows', r)
    );
-
-   if (stateStorage == 'session') sessionStorage.removeItem(metaStateKey);
 
    onUnmounted(() => stateStorage == 'session' && sessionStorage.removeItem(metaStateKey));
 
@@ -292,7 +291,7 @@ const tableValue = computed(() => {
          v-bind="column"
          class="custom_table__column"
          v-for="(column, i) in columns"
-         :key="'column_' + (column?.field.toString() ? +column?.field.toString() + i : i) || i"
+         :key="`column_${column?.field?.toString() ?? ''}_${i}`"
          showClearButton
          :data-type="_get(DATA_TYPES, meta?.filters?.[column?.field.toString()]?.dataType)"
          :showFilterOperator="column?.field.toString()?.split?.('.')?.length > 1 ? false : true"
