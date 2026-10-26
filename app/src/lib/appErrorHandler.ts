@@ -1,4 +1,4 @@
-import { app } from '@/main';
+import ToastEventBus from 'primevue/toasteventbus';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
 export const appErrorHandler = async (error: any) => {
@@ -12,8 +12,6 @@ export const appErrorHandler = async (error: any) => {
    console.error(error);
 
    await nextTick(async () => {
-      const toast = app.config?.globalProperties?.$toast;
-
       const summaryKey = error.name || error.status;
       const summaryPath = 'errors.' + summaryKey;
       const summaryText = i18n.te(summaryPath) ? i18n.t(summaryPath) : summaryKey || '';
@@ -26,7 +24,8 @@ export const appErrorHandler = async (error: any) => {
       const summary = summaryText;
       const detail = detailText;
 
-      toast?.add?.({
+      // The bus behind useToast(); avoids importing the app instance (circular import).
+      ToastEventBus.emit('add', {
          life: 0,
          severity: ToastSeverity.WARN,
          summary,

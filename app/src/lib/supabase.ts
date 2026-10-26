@@ -3,7 +3,7 @@
 // app/src/lib/supabase.ts
 
 import { CustomTableMetaEvent } from '@/components/ui/custom-table/CustomTable.vue';
-import { app } from '@/main';
+import ConfirmationEventBus from 'primevue/confirmationeventbus';
 import { isValidDate, localeDateString, parseDayjs } from '@lib/dayjs';
 import { FilterOperatorOptions } from '@primevue/core';
 import { createClient, SupabaseClientOptions } from '@supabase/supabase-js';
@@ -291,7 +291,8 @@ const handleDeleteDialog = async (options: RequestInit & Request): Promise<boole
 
       if (item) options.headers.delete('item');
 
-      return app.config?.globalProperties?.$confirm?.require?.({
+      // The bus behind useConfirm(); avoids importing the app instance (circular import).
+      return ConfirmationEventBus.emit('confirm', {
          icon: PrimeIcons.EXCLAMATION_TRIANGLE,
          message: `${i18n.t('action.confirm.delete.question', { item })}`,
          header: i18n.t('action.confirm.delete.title', {
