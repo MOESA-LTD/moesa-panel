@@ -741,5 +741,15 @@
             "available_quantity": "可用数量"
          }
       }
+   },
+   "form": {
+      "required": "此字段为必填项",
+      "already_exists": "该值已被使用",
+      "invalid_reference": "所选记录不存在",
+      "invalid_value": "不允许使用该值",
+      "unsaved_changes": {
+         "header": "未保存的更改",
+         "message": "您有未保存的更改。确定不保存就离开吗？"
+      }
    }
 }

@@ -1,6 +1,7 @@
 import { useNavigatorLanguage } from '@vueuse/core';
 import dayjs from 'dayjs';
 import Validator from 'validatorjs';
+import { setZodLocale } from '@/lib/form/zod';
 import { computed, nextTick, watch } from 'vue';
 import { createI18n } from 'vue-i18n';
 
@@ -98,6 +99,8 @@ export async function loadLocaleMessages(locale, i18n = i18NPlugin.global) {
       } catch (error) {
          console.warn(`Failed to load validator locale '${locale}':`, error);
       }
+
+      setZodLocale(locale);
 
       try {
          if (loadPrimeLocales) {

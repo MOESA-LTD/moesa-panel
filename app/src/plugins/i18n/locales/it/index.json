@@ -741,5 +741,15 @@
             "available_quantity": "Quantità disponibile"
          }
       }
+   },
+   "form": {
+      "required": "Questo campo è obbligatorio",
+      "already_exists": "Questo valore è già in uso",
+      "invalid_reference": "Il record selezionato non esiste",
+      "invalid_value": "Questo valore non è consentito",
+      "unsaved_changes": {
+         "header": "Modifiche non salvate",
+         "message": "Ci sono modifiche non salvate. Uscire senza salvare?"
+      }
    }
 }

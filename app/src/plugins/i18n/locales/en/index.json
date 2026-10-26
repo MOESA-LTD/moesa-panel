@@ -741,5 +741,15 @@
             "available_quantity": "Available Quantity"
          }
       }
+   },
+   "form": {
+      "required": "This field is required",
+      "already_exists": "This value is already in use",
+      "invalid_reference": "The selected record does not exist",
+      "invalid_value": "This value is not allowed",
+      "unsaved_changes": {
+         "header": "Unsaved changes",
+         "message": "You have unsaved changes. Leave without saving?"
+      }
    }
 }

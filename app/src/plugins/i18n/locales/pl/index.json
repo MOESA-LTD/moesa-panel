@@ -741,5 +741,15 @@
             "available_quantity": "Dostępna ilość"
          }
       }
+   },
+   "form": {
+      "required": "To pole jest wymagane",
+      "already_exists": "Ta wartość jest już używana",
+      "invalid_reference": "Wybrany rekord nie istnieje",
+      "invalid_value": "Ta wartość jest niedozwolona",
+      "unsaved_changes": {
+         "header": "Niezapisane zmiany",
+         "message": "Masz niezapisane zmiany. Wyjść bez zapisywania?"
+      }
    }
 }

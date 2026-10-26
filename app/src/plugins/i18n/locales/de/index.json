@@ -741,5 +741,15 @@
             "available_quantity": "Verfügbare Menge"
          }
       }
+   },
+   "form": {
+      "required": "Dieses Feld ist erforderlich",
+      "already_exists": "Dieser Wert wird bereits verwendet",
+      "invalid_reference": "Der ausgewählte Datensatz existiert nicht",
+      "invalid_value": "Dieser Wert ist nicht zulässig",
+      "unsaved_changes": {
+         "header": "Ungespeicherte Änderungen",
+         "message": "Sie haben ungespeicherte Änderungen. Ohne Speichern verlassen?"
+      }
    }
 }

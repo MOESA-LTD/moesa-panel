@@ -741,5 +741,15 @@
          "account_info": "Hesap Bilgileri",
          "company_info": "Şirket Bilgileri"
       }
+   },
+   "form": {
+      "required": "Bu alan zorunludur",
+      "already_exists": "Bu değer zaten kullanılıyor",
+      "invalid_reference": "Seçilen kayıt mevcut değil",
+      "invalid_value": "Bu değere izin verilmiyor",
+      "unsaved_changes": {
+         "header": "Kaydedilmemiş değişiklikler",
+         "message": "Kaydedilmemiş değişiklikleriniz var. Kaydetmeden çıkılsın mı?"
+      }
    }
 }

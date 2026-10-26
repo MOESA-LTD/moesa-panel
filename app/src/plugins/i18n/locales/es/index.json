@@ -741,5 +741,15 @@
             "available_quantity": "Cantidad disponible"
          }
       }
+   },
+   "form": {
+      "required": "Este campo es obligatorio",
+      "already_exists": "Este valor ya está en uso",
+      "invalid_reference": "El registro seleccionado no existe",
+      "invalid_value": "Este valor no está permitido",
+      "unsaved_changes": {
+         "header": "Cambios sin guardar",
+         "message": "Tiene cambios sin guardar. ¿Salir sin guardar?"
+      }
    }
 }

@@ -741,5 +741,15 @@
             "available_quantity": "在庫数"
          }
       }
+   },
+   "form": {
+      "required": "この項目は必須です",
+      "already_exists": "この値はすでに使用されています",
+      "invalid_reference": "選択されたレコードは存在しません",
+      "invalid_value": "この値は許可されていません",
+      "unsaved_changes": {
+         "header": "未保存の変更",
+         "message": "保存されていない変更があります。保存せずに移動しますか？"
+      }
    }
 }

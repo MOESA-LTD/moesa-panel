@@ -741,5 +741,15 @@
             "available_quantity": "재고 수량"
          }
       }
+   },
+   "form": {
+      "required": "필수 항목입니다",
+      "already_exists": "이미 사용 중인 값입니다",
+      "invalid_reference": "선택한 레코드가 존재하지 않습니다",
+      "invalid_value": "허용되지 않는 값입니다",
+      "unsaved_changes": {
+         "header": "저장되지 않은 변경 사항",
+         "message": "저장되지 않은 변경 사항이 있습니다. 저장하지 않고 나가시겠습니까?"
+      }
    }
 }
