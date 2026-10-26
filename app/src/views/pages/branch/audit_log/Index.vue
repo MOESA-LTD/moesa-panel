@@ -1,4 +1,5 @@
 <script setup>
+import { useRevertAuditLog } from '@/api/auditLog';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import Collection from '@/lib/Collection';
 import { useI18n } from 'vue-i18n';
@@ -63,6 +64,7 @@ const filters = ref(
 );
 
 const { ability } = useAuthStore();
+const { mutateAsync: revertAuditLog } = useRevertAuditLog();
 const rowActions = Collection.create([
    {
       label: ({ data }) =>
@@ -70,10 +72,10 @@ const rowActions = Collection.create([
       command:
          ({ data }) =>
          async () =>
-            await supabase
-               .rpc('revert_audit_log', { target_correlation_id: data?.correlation_id || data?.id })
-               .throwOnError()
-               .then(() => emitter.emit('audit_log-update')),
+            await revertAuditLog({
+               correlationId: data?.correlation_id || data?.id,
+               tableName: data?.table_name
+            }),
       disabled: ({ data }) =>
          data?.reverted ||
          ability.cannot('create', data?.table_name) ||

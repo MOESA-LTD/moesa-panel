@@ -71,15 +71,11 @@ export default defineConfig({
             },
             {
                from: '@store/index.js',
-               imports: ['useAuthStore', 'useAccountStore']
+               imports: ['useAuthStore']
             },
             {
                from: '@plugins/i18n',
                imports: ['locale', 'loadLocaleMessages', 'SUPPORTED_LOCALES', ['default', 'i18n']]
-            },
-            {
-               from: '@plugins/mitt',
-               imports: ['emitter']
             },
             {
                from: 'lodash',

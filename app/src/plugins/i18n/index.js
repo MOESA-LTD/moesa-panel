@@ -1,37 +1,8 @@
 import { useNavigatorLanguage } from '@vueuse/core';
 import dayjs from 'dayjs';
-import Validator from 'validatorjs';
 import { setZodLocale } from '@/lib/form/zod';
 import { computed, nextTick, watch } from 'vue';
 import { createI18n } from 'vue-i18n';
-
-import ar from 'validatorjs/src/lang/ar.js';
-import de from 'validatorjs/src/lang/de.js';
-import en from 'validatorjs/src/lang/en.js';
-import es from 'validatorjs/src/lang/es.js';
-import fr from 'validatorjs/src/lang/fr.js';
-import it from 'validatorjs/src/lang/it.js';
-import ja from 'validatorjs/src/lang/ja.js';
-import ko from 'validatorjs/src/lang/ko.js';
-import pl from 'validatorjs/src/lang/pl.js';
-import ru from 'validatorjs/src/lang/ru.js';
-import tr from 'validatorjs/src/lang/tr.js';
-import zh from 'validatorjs/src/lang/zh.js';
-
-export const validatorLocales = {
-   de,
-   en,
-   fr,
-   ja,
-   ko,
-   pl,
-   ru,
-   tr,
-   es,
-   zh,
-   it,
-   'ar-ae': ar
-};
 
 export const dayjsLocales = {
    en: () => import('dayjs/locale/en'),
@@ -72,7 +43,6 @@ export async function loadLocaleMessages(locale, i18n = i18NPlugin.global) {
 
       // Dynamically load package locales
       const loadDayjsLocale = dayjsLocales[locale];
-      const loadValidatorLocales = validatorLocales[locale];
       const loadPrimeLocales = primeLocales[locale];
 
       try {
@@ -85,19 +55,6 @@ export async function loadLocaleMessages(locale, i18n = i18NPlugin.global) {
          }
       } catch (error) {
          console.warn(`Failed to load dayjs locale '${locale}':`, error);
-      }
-
-      try {
-         if (loadValidatorLocales) {
-            Validator.setMessages(locale, loadValidatorLocales);
-            Validator.useLang(locale);
-         } else {
-            console.warn(`validator locale '${locale}' not found, falling back to 'en'`);
-            Validator.setMessages(locale, await validatorLocales['en']?.());
-            Validator.useLang('en');
-         }
-      } catch (error) {
-         console.warn(`Failed to load validator locale '${locale}':`, error);
       }
 
       setZodLocale(locale);

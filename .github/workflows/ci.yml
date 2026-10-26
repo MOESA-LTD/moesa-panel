@@ -31,10 +31,12 @@ jobs:
                   cache-dependency-path: app/pnpm-lock.yaml
 
             - run: pnpm install --frozen-lockfile
+            # The build also generates auto-imports.d.ts and .eslintrc-auto-import.json (gitignored),
+            # which typecheck and lint need.
+            - run: pnpm build
             - run: pnpm lint
             - run: pnpm typecheck
             - run: pnpm test
-            - run: pnpm build
 
     functions:
         runs-on: ubuntu-latest

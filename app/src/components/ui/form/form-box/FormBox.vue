@@ -1,10 +1,6 @@
 <script setup lang="ts" generic="T = any">
-import { Form } from '@/lib/Form';
-
 export declare type FormBoxProps<T = any> = {
    legend?: string;
-   /** Legacy Form instance; forms built with useForm pass `dirty` instead. */
-   form?: Form<T>;
    /** Whether there are unsaved changes; enables the reset and save buttons. */
    dirty?: boolean;
    /** Shows the save button as busy while the form is being submitted. */
@@ -17,9 +13,7 @@ export declare type FormBoxProps<T = any> = {
    resetText?: string;
 };
 
-// Without an explicit undefined default Vue casts an absent boolean to false, which would
-// hide the legacy `form` fallback.
-const props = withDefaults(defineProps<FormBoxProps<T>>(), { dirty: undefined });
+const props = defineProps<FormBoxProps<T>>();
 
 const boxElement = ref<HTMLElement | null>(null);
 </script>
@@ -51,13 +45,13 @@ const boxElement = ref<HTMLElement | null>(null);
                         :label="resetText || $t('action.reset')"
                         severity="secondary"
                         class="form_box__button"
-                        :disabled="!(dirty ?? form?._isChanged)"
+                        :disabled="!dirty"
                         type="reset"
                      />
                      <Button
                         :label="submitText || $t('action.save')"
                         class="form_box__button"
-                        :disabled="!(dirty ?? form?._isChanged)"
+                        :disabled="!dirty"
                         :loading="submitting"
                         type="submit"
                      />

@@ -99,11 +99,6 @@ const totalRecords = computed(() => listQuery.data.value?.count ?? 0);
 const routeLoading = useRouteLoading();
 const loading = computed(() => routeLoading.value || listQuery.isFetching.value);
 
-// Transitional: modules not yet on src/api announce writes with `<stateKey>-update`.
-const refetch = () => listQuery.refetch();
-onMounted(() => emitter.on(`${props.stateKey || props.from}-update`, refetch));
-onBeforeUnmount(() => emitter.off(`${props.stateKey || props.from}-update`, refetch));
-
 const mounted = useMounted();
 
 const tableProps = computed(() => ({ ..._omit(props, ['stateKey']), ...attrs }));
