@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { applyTableMeta } from '@/api/postgrest/tableQuery';
 import StatisticCard, {
    StatisticCardProps,
    StatisticCardSlots
@@ -41,14 +42,10 @@ const selectedDate = ref(dateOptions[1]);
 const loadTotalStatistics = async () => {
    try {
       loading.value = true;
-      return await supabase
-         .from(props.from)
-         .select('', {
-            count: 'exact',
-            head: true
-         })
-         .setHeader('meta', encodeURI(JSON.stringify({ filters: props.filters })))
-         .then(({ count }) => (totalRowCount.value = count));
+      const query = supabase.from(props.from).select('', { count: 'exact', head: true });
+      return await applyTableMeta(query, { filters: props.filters }).then(
+         ({ count }) => (totalRowCount.value = count)
+      );
    } finally {
       loading.value = false;
    }
@@ -60,15 +57,10 @@ const loadTotalStatisticsByDate = async (sinceDate = selectedDate.value) => {
 
       const date = parseDayjs({ value: new Date(Date.now()).toISOString() })
          .subtract(sinceDate.value, sinceDate.unit)
-         .format('YYYY-MM-DDTHH:mm:ss');
+         .toISOString();
 
-      return await supabase
-         .from(props.from)
-         .select('', {
-            count: 'exact',
-            head: true
-         })
-         .setHeader('meta', encodeURI(JSON.stringify({ filters: props.filters })))
+      const query = supabase.from(props.from).select('', { count: 'exact', head: true });
+      return await applyTableMeta(query, { filters: props.filters })
          .gte('created_at', date)
          .then(({ count }) => count);
    } finally {

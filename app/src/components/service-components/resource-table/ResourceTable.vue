@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T = any">
+import { applyTableMeta } from '@/api/postgrest/tableQuery';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import CustomTable, {
    CustomTableProps,
@@ -66,14 +67,12 @@ const listQuery = useQuery({
       queryKeys.list(tenantId.value, props.from, { select: props.select, meta: meta.value })
    ),
    queryFn: async ({ signal }) => {
-      const req = supabase
+      const query = supabase
          .from(props.from)
          .select(props.select, props.paginator ? { count: props.count.count } : undefined)
          .abortSignal(signal);
 
-      if (!_isEmpty(meta.value)) req.setHeader('meta', encodeURI(JSON.stringify(meta.value)));
-
-      const { data, count } = await req.throwOnError();
+      const { data, count } = await applyTableMeta(query, meta.value).throwOnError();
       return { rows: data as T[], count };
    },
    enabled: computed(() => meta.value !== null),

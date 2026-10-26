@@ -1,6 +1,10 @@
 <script setup>
+import { applyTableMeta } from '@/api/postgrest/tableQuery';
+import { queryKeys } from '@/api/queryKeys';
+import { useTenantId } from '@/api/useTenantId';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import Collection from '@/lib/Collection';
+import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 
 defineOptions({
    inheritAttrs: false
@@ -56,80 +60,65 @@ const modelValue = defineModel({
 });
 
 const attrs = useAttrs();
+const tenantId = useTenantId();
 
-const totalRecords = ref(0);
-
-const routeLoading = useRouteLoading();
-const loading = ref(routeLoading.value);
-
-const meta = Collection.create({
+const meta = ref({
    first: 0,
    rows: 5,
    ...props.meta
 });
+const onPage = ({ first, rows }) => {
+   meta.value = { ...meta.value, first, rows };
+};
 
-let ac = new AbortController();
+const listQuery = useQuery({
+   queryKey: computed(() =>
+      queryKeys.list(tenantId.value, props.from, { select: props.select, meta: meta.value })
+   ),
+   queryFn: async ({ signal }) => {
+      const paginate = _get(attrs, 'paginator', true);
+      const query = supabase
+         .from(props.from)
+         .select(props.select, paginate ? { count: props.count.count } : undefined)
+         .abortSignal(signal);
 
-async function getValues(metaObj) {
-   if (loading.value) return;
-   try {
-      ac?.abort?.();
-      ac = new AbortController();
-
-      meta._merge(metaObj);
-
-      loading.value = true;
-
-      const req = supabase.from(props.from).select(props.select).abortSignal(ac.signal);
-
-      if (!_isEmpty(meta._data)) req.setHeader?.('meta', JSON.stringify(meta._data));
-
-      const usePaginator = _get(attrs, 'paginator', true);
-      if (usePaginator) {
-         const countReq = supabase
-            .from(props.from)
-            .select?.(props.select, props.count)
-            .abortSignal?.(ac.signal);
-
-         if (!_isEmpty(meta._data))
-            countReq.setHeader?.('meta', JSON.stringify(_pick(meta._data, ['filters'])));
-
-         countReq.then?.(({ count }) => {
-            totalRecords.value = count;
-         });
-      }
-
-      const { data } = await req.throwOnError();
-      modelValue.value = data;
-   } finally {
-      loading.value = false;
-   }
-}
-
-if (!loading.value) {
-   await getValues(meta._data);
-}
-
-const updateCallback = () => getValues(meta._data);
-onMounted(() => emitter.on(`${attrs.stateKey || props.from}-update`, updateCallback));
-onBeforeUnmount(() => {
-   emitter.off(`${attrs.stateKey || props.from}-update`, updateCallback);
-   ac.abort?.();
+      const { data, count } = await applyTableMeta(query, meta.value).throwOnError();
+      return { rows: data, count };
+   },
+   placeholderData: keepPreviousData
 });
+await listQuery.suspense();
+
+watch(
+   () => listQuery.data.value?.rows,
+   (rows) => {
+      if (rows) modelValue.value = rows;
+   },
+   { immediate: true }
+);
+
+const totalRecords = computed(() => listQuery.data.value?.count ?? 0);
+
+const routeLoading = useRouteLoading();
+const loading = computed(() => routeLoading.value || listQuery.isFetching.value);
+
+// Transitional: modules not yet on src/api announce writes with `<stateKey>-update`.
+const refetch = () => listQuery.refetch();
+onMounted(() => emitter.on(`${attrs.stateKey || props.from}-update`, refetch));
+onBeforeUnmount(() => emitter.off(`${attrs.stateKey || props.from}-update`, refetch));
 
 const viewProps = computed(() => ({
    totalRecords: totalRecords.value,
    stateKey: props.from,
    loading: loading.value,
-   onPage: async (value) => await getValues(value),
-   onRows: async (value) => await getValues(value),
+   onPage,
    layout: layout.value,
    value: modelValue.value,
    rowsPerPageOptions: [1, 5, 10],
    paginatorTemplate:
       'FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown',
    lazy: true,
-   ...meta._data,
+   ...meta.value,
    ...attrs
 }));
 </script>
