@@ -1,4 +1,5 @@
 <script setup>
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import Collection from '@/lib/Collection';
 import { useI18n } from 'vue-i18n';
 import CorrelatedAuditLogs from './CorrelatedAuditLogs.vue';
@@ -44,39 +45,22 @@ const columns = computed(() => [
 // Define the filters object
 
 /**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   table_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   operation: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.IN }]
-   },
-   reverted_at: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
-      dataType: 'date'
-   },
-   'old_data->>id': {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   'row_data->>id': {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   created_at: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
-      dataType: 'date'
-   },
-   ...attrs.filters
-});
+const filters = ref(
+   createFilters(
+      {
+         table_name: 'text',
+         operation: {
+            operator: FilterOperator.AND,
+            constraints: [{ value: null, matchMode: FilterMatchMode.IN }]
+         },
+         reverted_at: 'date',
+         'old_data->>id': 'text',
+         'row_data->>id': 'text',
+         created_at: 'date'
+      },
+      attrs.filters
+   )
+);
 
 const { ability } = useAuthStore();
 const rowActions = Collection.create([

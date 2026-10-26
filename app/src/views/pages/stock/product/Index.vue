@@ -1,4 +1,6 @@
 <script setup>
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import { useDeleteAction } from '@/composables/useDeleteAction';
 import { PRODUCT_CATEGORY_PROPS } from '@/constants/form/product';
 import Collection from '@/lib/Collection';
 import Upsert from './Upsert.vue';
@@ -43,51 +45,26 @@ const columns = computed(() => [
 
 // Define the filters object
 /**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   brand: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   details: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   'categories.display_name': {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.IN }]
-   },
-   created_at: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
-      dataType: 'date'
-   },
-   ...attrs.filters
-});
+const filters = ref(
+   createFilters(
+      {
+         display_name: 'startsWith',
+         brand: 'text',
+         details: 'text',
+         'categories.display_name': {
+            operator: FilterOperator.AND,
+            constraints: [{ value: null, matchMode: FilterMatchMode.IN }]
+         },
+         created_at: 'date'
+      },
+      attrs.filters
+   )
+);
 
 const stateKey = 'product';
+const deleteAction = useDeleteAction('product');
 const rowActions = Collection.create([
-   {
-      label: t('action.delete'),
-      command:
-         ({ data }) =>
-         async () =>
-            await supabase
-               .from('product')
-               .delete()
-               .eq('id', data?.id)
-               .setHeader('item', encodeURI(JSON.stringify(data)))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
-      icon: PrimeIcons.TRASH
-   },
+   deleteAction,
    {
       label: t('action.edit'),
       command:

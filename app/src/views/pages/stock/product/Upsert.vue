@@ -95,7 +95,6 @@ const save = async () => {
             .from('product_categories')
             .delete()
             .eq('product_id', form.id)
-            .setHeader('x-delete-confirmed', true)
             .throwOnError();
       }
 

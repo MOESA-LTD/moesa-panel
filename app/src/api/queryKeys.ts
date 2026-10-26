@@ -45,12 +45,35 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    ]
 };
 
+/** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */
+const CASCADES: Partial<Record<TableName, TableName[]>> = {
+   user: ['tenant_owner', 'tenant_user', 'user_role'],
+   address: ['client_address'],
+   permission: ['role_permission'],
+   role: ['role_permission', 'user_role'],
+   client: ['client_address', 'record'],
+   product: ['product_categories', 'stock'],
+   product_category: ['product_categories'],
+   stock: ['record']
+};
+
 // Every authenticated write is recorded by the audit trigger.
 const AUDIT: TableName[] = ['audit_log', 'audit_log_group', 'dashboard_notification_feed'];
 
-export const affectedTables = (tables: readonly TableName[]): TableName[] => [
-   ...new Set([...tables, ...tables.flatMap((table) => DERIVED[table] ?? []), ...AUDIT])
-];
+/** The tables, everything cascading from them, the views derived from all of these, and the audit log. */
+export const affectedTables = (tables: readonly TableName[]): TableName[] => {
+   const written = new Set<TableName>();
+   const visit = (table: TableName) => {
+      if (written.has(table)) return;
+      written.add(table);
+      CASCADES[table]?.forEach(visit);
+   };
+   tables.forEach(visit);
+
+   return [
+      ...new Set([...written, ...[...written].flatMap((table) => DERIVED[table] ?? []), ...AUDIT])
+   ];
+};
 
 export const isTableQuery = (queryKey: readonly unknown[], tables: readonly TableName[]) =>
    queryKey[0] === 'tenant' && tables.includes(queryKey[2] as TableName);

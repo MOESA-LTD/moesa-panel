@@ -91,7 +91,6 @@ const save = async () => {
                'role_id',
                form._defaults.role.filter((role) => role.tenant_id).map((role) => role.id)
             )
-            .setHeader('x-delete-confirmed', 'true')
             .throwOnError();
       }
       await supabase

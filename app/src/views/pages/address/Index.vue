@@ -1,4 +1,6 @@
 <script setup>
+import { useDeleteAction } from '@/composables/useDeleteAction';
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import Collection from '@/lib/Collection';
 import Upsert from './Upsert.vue';
 
@@ -41,50 +43,23 @@ const columns = computed(() => [
 ]);
 
 /**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   country: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   city: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   district: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   details: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   ...attrs.filters
-});
+const filters = ref(
+   createFilters(
+      {
+         display_name: 'startsWith',
+         country: 'startsWith',
+         city: 'startsWith',
+         district: 'startsWith',
+         details: 'startsWith'
+      },
+      attrs.filters
+   )
+);
 
 const stateKey = 'address';
+const deleteAction = useDeleteAction('address');
 const rowActions = Collection.create([
-   {
-      label: t('action.delete'),
-      command:
-         ({ data }) =>
-         async () =>
-            await supabase
-               .from('address')
-               .delete()
-               .eq('id', data?.id)
-               .setHeader('item', encodeURI(JSON.stringify(data)))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
-      icon: PrimeIcons.TRASH
-   },
+   deleteAction,
    {
       label: t('action.edit'),
       command:

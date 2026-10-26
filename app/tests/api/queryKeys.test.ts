@@ -44,6 +44,12 @@ describe('affectedTables', () => {
    it('marks stock_view stale when records change', () => {
       expect(affectedTables(['record'])).toContain('stock_view');
    });
+
+   it('follows ON DELETE CASCADE chains and their derived views', () => {
+      const tables = affectedTables(['product']);
+      expect(tables).toEqual(expect.arrayContaining(['stock', 'record', 'product_categories']));
+      expect(tables).toContain('stock_view');
+   });
 });
 
 describe('invalidateTables', () => {

@@ -1,4 +1,9 @@
 <script setup>
+import {
+   createFilters,
+   equalsFilter
+} from '@/components/service-components/resource-table/createFilters';
+import { useDeleteAction } from '@/composables/useDeleteAction';
 import Collection from '@/lib/Collection';
 import Upsert from '../Upsert.vue';
 
@@ -42,68 +47,24 @@ const columns = computed(() => [
 
 // Define the filters object
 /**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   'product.category.display_name': {
-      operator: FilterOperator.AND,
-      constraints: [{ value: 'device', matchMode: FilterMatchMode.EQUALS }]
-   },
-   display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   brand: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   barcode: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   serial_number: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   unit_cost: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
-      dataType: 'decimal'
-   },
-   quantity: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
-      dataType: 'numeric'
-   },
-   vendor: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   stocked_at: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
-      dataType: 'date'
-   }
-});
+const filters = ref(
+   createFilters({
+      'product.category.display_name': equalsFilter('device'),
+      display_name: 'text',
+      brand: 'text',
+      barcode: 'text',
+      serial_number: 'text',
+      unit_cost: 'decimal',
+      quantity: 'numeric',
+      vendor: 'text',
+      stocked_at: 'date'
+   })
+);
 
 const stateKey = 'device';
+const deleteAction = useDeleteAction('stock');
 const rowActions = Collection.create([
-   {
-      label: t('action.delete'),
-      command:
-         ({ data }) =>
-         async () =>
-            await supabase
-               .from('stock')
-               .delete()
-               .eq('id', data?.id)
-               .setHeader('item', encodeURI(JSON.stringify(data)))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
-      icon: PrimeIcons.TRASH
-   },
+   deleteAction,
    {
       label: t('action.edit'),
       command:

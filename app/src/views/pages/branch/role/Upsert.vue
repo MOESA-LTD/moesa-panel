@@ -78,12 +78,7 @@ const save = async () => {
 
    if (form._changedData['permission']) {
       if (form.id)
-         await supabase
-            .from('role_permission')
-            .delete()
-            .eq('role_id', form.id)
-            .setHeader('x-delete-confirmed', true)
-            .throwOnError();
+         await supabase.from('role_permission').delete().eq('role_id', form.id).throwOnError();
 
       const payload = form._data.permission.map(({ id: permission_id }) => ({
          permission_id,

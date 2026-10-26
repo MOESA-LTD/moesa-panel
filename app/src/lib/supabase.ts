@@ -2,51 +2,14 @@
 
 // app/src/lib/supabase.ts
 
-import ConfirmationEventBus from 'primevue/confirmationeventbus';
 import { createClient, SupabaseClientOptions } from '@supabase/supabase-js';
 
-const handleDeleteDialog = async (options: RequestInit & Request): Promise<boolean> => {
-   if (_toUpper(options.method) !== 'DELETE' || options.headers.has('x-delete-confirmed')) return;
-   options.headers.delete('x-delete-confirmed');
-
-   return await new Promise((resolve, reject) => {
-      const item = JSON.parse(decodeURI(options.headers?.get?.('item')));
-
-      if (item) options.headers.delete('item');
-
-      // The bus behind useConfirm(); avoids importing the app instance (circular import).
-      return ConfirmationEventBus.emit('confirm', {
-         icon: PrimeIcons.EXCLAMATION_TRIANGLE,
-         message: `${i18n.t('action.confirm.delete.question', { item })}`,
-         header: i18n.t('action.confirm.delete.title', {
-            name: item?.display_name || item?.name || item?.id
-         }),
-         acceptProps: {
-            label: i18n.t('action.yes'),
-            outlined: true
-         },
-         rejectProps: {
-            label: i18n.t('action.no'),
-            severity: 'secondary',
-            outlined: true
-         },
-         accept: () => resolve(true),
-         reject: () => reject(i18n.t('action.cancelled'))
-      });
-   });
-};
-
-/**
- * Adds the current tenant to every request. The delete confirmation is transitional: modules on
- * src/api confirm in the UI (useConfirmDelete) and send `x-delete-confirmed`.
- */
+/** Adds the current tenant to every request. */
 const customFetch = async (
    url: string | URL,
    options: RequestInit & Request
 ): Promise<Response> => {
    const { currentTenant } = useAuthStore();
-
-   await handleDeleteDialog(options);
 
    if (currentTenant?.display_name) {
       options?.headers?.set?.('x-tenant', currentTenant?.display_name);

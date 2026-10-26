@@ -37,8 +37,8 @@ export function useDeleteClient() {
 
    return useMutation({
       mutationFn: clientRepository.remove,
-      // Addresses and records of the client are removed by cascade.
-      onSuccess: () => invalidateTables(queryClient, ['client', 'client_address', 'record'])
+      // invalidateTables follows the cascade to the client's addresses and records.
+      onSuccess: () => invalidateTables(queryClient, ['client'])
    });
 }
 

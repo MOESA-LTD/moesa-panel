@@ -1,4 +1,5 @@
 <script setup>
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import { useDeleteClient } from '@/api/client/queries';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import Collection from '@/lib/Collection';
@@ -55,43 +56,20 @@ const columns = computed(() => [
 
 // Define the filters object
 /**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   national_id: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   nationality: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   birth_date: {
-      operator: FilterOperator.AND,
-      dataType: 'date',
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }]
-   },
-   display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   email: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   phone: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }]
-   },
-   created_at: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
-      dataType: 'date'
-   },
-   ...attrs.filters
-});
+const filters = ref(
+   createFilters(
+      {
+         national_id: 'text',
+         nationality: 'text',
+         birth_date: 'date',
+         display_name: 'text',
+         email: 'text',
+         phone: 'text',
+         created_at: 'date'
+      },
+      attrs.filters
+   )
+);
 
 const stateKey = 'client';
 const confirmDelete = useConfirmDelete();

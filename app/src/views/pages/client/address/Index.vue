@@ -1,4 +1,6 @@
 <script setup>
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import { useDeleteAction } from '@/composables/useDeleteAction';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import Collection from '@/lib/Collection';
 import Upsert from '@/views/pages/address/Upsert.vue';
@@ -49,60 +51,27 @@ const columns = computed(() => [
 
 // Define the filters object
 /**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   client_display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   client_national_id: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   address_display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   address_country: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   address_city: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   address_district: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   address_details: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   ...attrs.filters
-});
+const filters = ref(
+   createFilters(
+      {
+         client_display_name: 'startsWith',
+         client_national_id: 'startsWith',
+         address_display_name: 'startsWith',
+         address_country: 'startsWith',
+         address_city: 'startsWith',
+         address_district: 'startsWith',
+         address_details: 'startsWith'
+      },
+      attrs.filters
+   )
+);
 
 const stateKey = 'client-address';
-const rowActions = Collection.create([
-   {
-      label: t('action.delete'),
-      command:
-         ({ data }) =>
-         async () =>
-            await supabase
-               .from('client_address')
-               .delete()
-               .eq('address_id', data?.address_id)
-               .eq('client_id', data?.client_id)
-               .setHeader('item', encodeURI(JSON.stringify(data)))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
-      icon: PrimeIcons.TRASH
-   }
-]);
+const deleteAction = useDeleteAction('client_address', (row) => ({
+   address_id: row.address_id,
+   client_id: row.client_id
+}));
+const rowActions = Collection.create([deleteAction]);
 
 const dialogRef = inject('dialogRef', null);
 

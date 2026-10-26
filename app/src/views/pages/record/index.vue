@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Tables['record']['Row']">
+import { useDeleteAction } from '@/composables/useDeleteAction';
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
@@ -109,21 +110,9 @@ const filters = ref<ResourceTableProps['filters']>({
 
 const stateKey = props.record_type ? 'record-' + props.record_type : 'record';
 
+const deleteAction = useDeleteAction('record');
 const rowActions = Collection.create<ResourceTableProps['rowActions']>([
-   {
-      label: t('action.delete'),
-      command:
-         ({ data }) =>
-         async () =>
-            await supabase
-               .from('record')
-               .delete()
-               .eq('id', data?.id)
-               .setHeader('item', encodeURI(JSON.stringify(data)))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
-      icon: PrimeIcons.TRASH
-   },
+   deleteAction,
    {
       label: t('action.edit'),
       command:
