@@ -1,3 +1,4 @@
+import { syncJunction } from '@/api/junction';
 import { supabase } from '@/lib/supabase';
 
 export type Client = Tables['client']['Row'];
@@ -42,16 +43,14 @@ export const clientRepository = {
       await supabase.from('client').delete().eq('id', id).throwOnError();
    },
 
-   /** Replaces the client's addresses with the given ones. */
+   /** Makes the client's addresses exactly the given ones. */
    async setAddresses(clientId: string, addressIds: string[]) {
-      // TODO: run in one transaction (RPC) so a failed insert cannot leave the client without addresses.
-      await supabase.from('client_address').delete().eq('client_id', clientId).throwOnError();
-
-      if (!addressIds.length) return;
-
-      await supabase
-         .from('client_address')
-         .insert(addressIds.map((address_id) => ({ address_id, client_id: clientId })))
-         .throwOnError();
+      await syncJunction({
+         table: 'client_address',
+         ownerColumn: 'client_id',
+         ownerId: clientId,
+         itemColumn: 'address_id',
+         itemIds: addressIds
+      });
    }
 };

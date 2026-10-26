@@ -1,6 +1,6 @@
 <script setup>
+import { useLookup } from '@/api/useLookup';
 import { PRODUCT_CATEGORY_PROPS } from '@/constants/form/product';
-import Collection from '@/lib/Collection';
 
 const props = defineProps({
    select: {
@@ -9,14 +9,17 @@ const props = defineProps({
    }
 });
 
-const { data } = await supabase.from('product_category').select(props.select).throwOnError();
-const categories = Collection.create(data);
+const { data: categories, suspense } = useLookup('product_category', () => ({
+   select: props.select,
+   order: 'display_name'
+}));
+await suspense();
 </script>
 
 <template>
    <MultiSelect
       :filter="true"
-      :options="categories._data"
+      :options="categories ?? []"
       option-label="display_name"
       option-value="display_name"
       display="chip"

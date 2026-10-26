@@ -5,7 +5,7 @@ import i18n from '@plugins/i18n';
 import { ToastSeverity } from '@primevue/core/api';
 import type { UseMutationReturnType, UseQueryReturnType } from '@tanstack/vue-query';
 import { useToast } from 'primevue/usetoast';
-import { toValue, watch, type MaybeRefOrGetter } from 'vue';
+import { computed, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import type * as z from 'zod';
 
 export type UseUpsertFormOptions<S extends z.ZodType, Row, Payload> = {
@@ -25,6 +25,8 @@ export type UseUpsertFormOptions<S extends z.ZodType, Row, Payload> = {
    toFormValues: (row?: Partial<Row> | null) => z.input<S>;
    toPayload: (data: z.output<S>) => Payload;
    onSaved?: (row: Row) => void;
+   /** Makes the form read-only for some rows regardless of permissions (e.g. shared records). */
+   lockRow?: (row: Row) => boolean;
 };
 
 /**
@@ -51,9 +53,12 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
 
    useUnsavedChangesGuard(form.isDirty);
 
-   const readonly = useFormReadonly(
+   const cannotSubmit = useFormReadonly(
       options.subject,
       () => (form.values.value as { id?: string } | undefined)?.id
+   );
+   const readonly = computed(
+      () => cannotSubmit.value || (!!row.value && !!options.lockRow?.(row.value))
    );
 
    const toast = useToast();

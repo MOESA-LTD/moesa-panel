@@ -1,5 +1,5 @@
 <script setup>
-import Collection from '@/lib/Collection';
+import { useLookup } from '@/api/useLookup';
 
 const props = defineProps({
    select: {
@@ -9,27 +9,17 @@ const props = defineProps({
    }
 });
 
-const useVendors = () => {
-   const vendors = Collection.create([]);
-   const fetchVendors = async () => {
-      const { data } = await supabase.from('stock_vendor').select(props.select).throwOnError();
-      vendors._setDefaults(data)._reset();
-   };
-   return { vendors, fetchVendors };
-};
-
-const { vendors, fetchVendors } = useVendors();
-
-await fetchVendors();
-
-onMounted(() => emitter.on('stock-update', fetchVendors));
-onUnmounted(() => emitter.off('stock-update', fetchVendors));
+const { data: vendors, suspense } = useLookup('stock_vendor', () => ({
+   select: props.select,
+   order: 'display_name'
+}));
+await suspense();
 </script>
 
 <template>
    <Select
       filter
-      :options="vendors._data"
+      :options="vendors ?? []"
       option-label="display_name"
       option-value="display_name"
       editable

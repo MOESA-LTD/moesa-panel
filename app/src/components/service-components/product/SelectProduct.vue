@@ -1,5 +1,6 @@
 <script setup>
-import Collection from '@/lib/Collection';
+import { useLookup } from '@/api/useLookup';
+
 const props = defineProps({
    category: {
       type: String,
@@ -26,39 +27,21 @@ defineOptions({
 
 const modelValue = defineModel('modelValue');
 
-const categories = computed(() => props.category?.split?.('|') || []);
+const categories = computed(() => props.category?.split?.('|').filter(Boolean) || []);
 
-const useProducts = () => {
-   const products = Collection.create([]);
-   const fetchProducts = async () => {
-      const { data } = await (
-         props.category
-            ? supabase
-                 .from('product')
-                 .select(props.select)
-                 .in('product_category.display_name', categories.value)
-            : supabase.from('product').select(props.select)
-      ).throwOnError();
-      products._setDefaults(data)._reset();
-   };
-   return {
-      products,
-      fetchProducts
-   };
-};
-const { products, fetchProducts } = useProducts();
-
-await fetchProducts();
-
-onMounted(() => emitter.on('product-update', fetchProducts));
-onUnmounted(() => emitter.off('product-update', fetchProducts));
+const { data: products, suspense } = useLookup('product', () => ({
+   select: props.select,
+   order: 'display_name',
+   in: { column: 'product_category.display_name', values: categories.value }
+}));
+await suspense();
 </script>
 
 <template>
    <InputGroup :class="$attrs.class">
       <Select
          :filter="true"
-         :options="products._data"
+         :options="products ?? []"
          option-label="display_name"
          option-value="id"
          v-bind="_omit($attrs, ['class'])"
