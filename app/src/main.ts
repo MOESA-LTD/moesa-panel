@@ -14,7 +14,7 @@ import { defineAbility } from '@casl/ability';
 import { abilitiesPlugin, Can } from '@casl/vue';
 import { appErrorHandler } from '@lib/appErrorHandler';
 import { resolveAction } from '@plugins/casl';
-import { mutationCache, queryCache, queryClient } from '@plugins/tanstack-query';
+import { queryClient } from '@plugins/tanstack-query';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import DialogService from 'primevue/dialogservice';
 import FocusTrap from 'primevue/focustrap';
@@ -47,13 +47,7 @@ app.use(PrimeVue, {
    }
 });
 
-app.use(VueQueryPlugin, {
-   queryClient,
-   queryClientConfig: {
-      queryCache,
-      mutationCache
-   }
-});
+app.use(VueQueryPlugin, { queryClient });
 
 app.use(DialogService);
 app.use(ToastService);

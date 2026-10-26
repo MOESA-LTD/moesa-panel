@@ -4,6 +4,7 @@ import { BaseModel } from '@/services/models/BaseModel';
 import { MongoAbility } from '@casl/ability';
 import { ABILITY_TOKEN } from '@casl/vue';
 import Collection from '@lib/Collection';
+import { clearQueryCache } from '@plugins/tanstack-query';
 import { AuthChangeEvent, Session, UserMetadata } from '@supabase/supabase-js';
 import { jwtDecode } from 'jwt-decode';
 import { defineStore } from 'pinia';
@@ -67,6 +68,9 @@ export const useAuthStore = defineStore('auth', () => {
 
          await supabase.auth.refreshSession();
 
+         // Cached rows and permissions belong to the previous tenant.
+         await clearQueryCache();
+
          setCurrentTenant(tenant);
       }
 
@@ -123,6 +127,9 @@ export const useAuthStore = defineStore('auth', () => {
 
    const initialized = new Promise((resolve) => {
       supabase.auth.onAuthStateChange(async (event, newSession) => {
+         // Without a session nothing cached may survive: the next user could be someone else.
+         if (!newSession) await clearQueryCache();
+
          const result = await handleAuthStateChange(event, newSession);
 
          if (newSession?.access_token) setCurrentTenant();
