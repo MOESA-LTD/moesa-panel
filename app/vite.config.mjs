@@ -109,14 +109,6 @@ export default defineConfig({
       }
    },
    optimizeDeps: {
-      include: [
-         'vue',
-         'vue-router',
-         '@vueuse/core',
-         'pinia',
-         '@primevue/core/api',
-         '@plugins/mitt',
-         'lodash'
-      ]
+      include: ['vue', 'vue-router', '@vueuse/core', 'pinia', '@primevue/core/api', 'lodash']
    }
 });
