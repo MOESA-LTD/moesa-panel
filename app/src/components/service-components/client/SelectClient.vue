@@ -1,11 +1,7 @@
 <script setup>
-import Collection from '@/lib/Collection';
+import { useClientOptions } from '@/api/client/queries';
 
-const props = defineProps({
-   select: {
-      type: String,
-      default: '*, address(*)'
-   },
+defineProps({
    showEdit: {
       type: Boolean,
       default: true
@@ -22,32 +18,21 @@ defineEmits(['clientSelect']);
 
 const modelValue = defineModel('modelValue');
 
-const clients = Collection.create([]);
-
-const fetchClients = async () =>
-   await supabase
-      .from('client')
-      .select(props.select)
-      .throwOnError()
-      .then(({ data }) => clients._merge(data));
-
-await fetchClients();
-
-onMounted(() => emitter.on('client-update', fetchClients));
-onUnmounted(() => emitter.off('client-update', fetchClients));
+const { data: clients, suspense } = useClientOptions();
+await suspense();
 </script>
 
 <template>
    <InputGroup :class="$attrs.class">
       <Select
          :filter="true"
-         :options="clients._data"
+         :options="clients ?? []"
          option-label="display_name"
          option-value="id"
          @value-change="
             $emit(
                'clientSelect',
-               clients.find((c) => _get(c, $attrs.optionValue || 'id') == $event)
+               clients?.find((c) => _get(c, $attrs.optionValue || 'id') == $event)
             )
          "
          v-bind="_omit($attrs, ['class'])"

@@ -1,4 +1,5 @@
 <script setup>
+import { useClient, useSaveClient } from '@/api/client/queries';
 import { useFormReadonly } from '@/composables/useFormReadonly';
 import { Form } from '@/lib/Form';
 
@@ -39,10 +40,14 @@ const initialFormData = {
 /**@type {[keyof ClientUpsertFormData]} */
 const fields = _keys(initialFormData);
 
+const clientId = computed(() => props.id ?? props.data?.id ?? null);
+const { data: client, suspense } = useClient(clientId);
+if (clientId.value) await suspense();
+
 /**@type {ClientUpsertFormData & Form<ClientUpsertFormData>} */
 const form = Form.create({
-   // _pick copies, so the parent's reactive data is not mutated by _defaults.
-   data: _defaults(_pick(props.data, fields), initialFormData),
+   // _pick copies, so the source object is not mutated by _defaults.
+   data: _defaults(_pick(client.value ?? props.data, fields), initialFormData),
    rules: {
       display_name: 'required',
       nationality: 'required',
@@ -55,33 +60,21 @@ const form = Form.create({
    useDialogForm: false
 });
 
-if (props.id) {
-   await supabase
-      .from('client')
-      .select('*')
-      .eq('id', props.id)
-      .maybeSingle()
-      .throwOnError()
-      .then(({ data }) => form._setDefaults(_pick(data, fields))._reset());
-}
+// Follow fresh server data (e.g. saved in another view) unless the user has unsaved edits.
+watch(client, (value) => {
+   if (value && !form._isChanged) form._setDefaults(_pick(value, fields))._reset();
+});
 
 const readonly = useFormReadonly('client', () => form.id);
+
+const { mutateAsync: saveClient } = useSaveClient();
 
 const save = async () => {
    if (!form._validate()) return;
 
-   await supabase
-      .from('client')
-      .upsert(_pick(form._data, fields))
-      .eq('id', form.id)
-      .select()
-      .maybeSingle()
-      .throwOnError()
-      .then(({ data }) => form._merge(_pick(data, fields)));
+   const saved = await saveClient(_pick(form._data, fields));
 
-   emitter.emit('client-update', form._data);
-
-   form._setDefaults(form._data)._reset();
+   form._setDefaults(_pick(saved, fields))._reset();
 
    toast.add({
       life: 3000,
@@ -90,14 +83,6 @@ const save = async () => {
       detail: t('toast.saved')
    });
 };
-
-if (props.id || props.data?.id) {
-   const updateCallback = (data) => {
-      if (data?.id === form.id) form._setDefaults(_pick(data, fields))._reset();
-   };
-   onMounted(() => emitter.on('client-update', updateCallback));
-   onUnmounted(() => emitter.off('client-update', updateCallback));
-}
 </script>
 
 <template>

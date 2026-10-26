@@ -1,4 +1,6 @@
 <script setup>
+import { useDeleteClient } from '@/api/client/queries';
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import Collection from '@/lib/Collection';
 import parsePhoneNumberFromString from 'libphonenumber-js';
 import ClientUpsert from './upsert/Index.vue';
@@ -92,19 +94,17 @@ const filters = ref({
 });
 
 const stateKey = 'client';
+const confirmDelete = useConfirmDelete();
+const { mutateAsync: deleteClient } = useDeleteClient();
+
 const rowActions = Collection.create([
    {
       label: t('action.delete'),
       command:
          ({ data }) =>
-         async () =>
-            await supabase
-               .from('client')
-               .delete()
-               .eq('id', data?.id)
-               .setHeader('item', JSON.stringify(data))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
+         async () => {
+            if (await confirmDelete(data)) await deleteClient(data.id);
+         },
       icon: PrimeIcons.TRASH
    },
    {

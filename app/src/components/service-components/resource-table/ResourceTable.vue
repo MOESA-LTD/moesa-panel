@@ -4,7 +4,10 @@ import CustomTable, {
    CustomTableProps,
    CustomTableSlots
 } from '@/components/ui/custom-table/CustomTable.vue';
+import { queryKeys } from '@/api/queryKeys';
+import { useTenantId } from '@/api/useTenantId';
 import Collection from '@/lib/Collection';
+import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { DataTableStateEvent } from 'primevue';
 
 export declare type ResourceTableProps<T = any> = CustomTableProps<T> & {
@@ -50,8 +53,32 @@ const props = withDefaults(defineProps<ResourceTableProps<T>>(), {
 });
 const attrs = useAttrs();
 
-const meta = Collection.create<Partial<DataTableStateEvent>>({});
-const onMeta = (value: Partial<DataTableStateEvent>) => getValues(value);
+const tenantId = useTenantId();
+
+// Set by the first `meta` event of CustomTable, which carries the initial paging/sorting state.
+const meta = ref<Partial<DataTableStateEvent> | null>(null);
+const onMeta = (value: Partial<DataTableStateEvent>) => {
+   meta.value = _cloneDeep(value);
+};
+
+const listQuery = useQuery({
+   queryKey: computed(() =>
+      queryKeys.list(tenantId.value, props.from, { select: props.select, meta: meta.value })
+   ),
+   queryFn: async ({ signal }) => {
+      const req = supabase
+         .from(props.from)
+         .select(props.select, props.paginator ? { count: props.count.count } : undefined)
+         .abortSignal(signal);
+
+      if (!_isEmpty(meta.value)) req.setHeader('meta', encodeURI(JSON.stringify(meta.value)));
+
+      const { data, count } = await req.throwOnError();
+      return { rows: data as T[], count };
+   },
+   enabled: computed(() => meta.value !== null),
+   placeholderData: keepPreviousData
+});
 
 const values = Collection.create<T[]>([] as T[]);
 const modelValue = defineModel<T[]>({
@@ -60,61 +87,22 @@ const modelValue = defineModel<T[]>({
    default: () => []
 });
 
-const totalRecords = ref<number | null>(5);
+watch(
+   () => listQuery.data.value?.rows,
+   (rows) => {
+      if (rows) modelValue.value = rows;
+   }
+);
+
+const totalRecords = computed(() => listQuery.data.value?.count ?? 0);
 
 const routeLoading = useRouteLoading();
-const loading = ref(routeLoading.value);
+const loading = computed(() => routeLoading.value || listQuery.isFetching.value);
 
-let ac = new AbortController();
-
-async function getValues(metaObj: Partial<DataTableStateEvent>) {
-   if (loading.value) return;
-
-   try {
-      ac.abort();
-      ac = new AbortController();
-
-      meta._reset(metaObj);
-
-      loading.value = true;
-
-      const req = supabase
-         .from(props.from)
-         .select(props.select)
-         .abortSignal(ac.signal)
-         .overrideTypes<T[], { merge: false }>();
-
-      if (!_isEmpty(meta._data)) req.setHeader('meta', encodeURI(JSON.stringify(meta._data)));
-
-      const { data } = await req.throwOnError();
-      modelValue.value = data;
-
-      if (props.paginator) {
-         const countReq = supabase
-            .from(props.from)
-            .select(props.select, props.count)
-            .abortSignal(ac.signal);
-
-         if (!_isEmpty(meta._data)) {
-            const encodedMeta = encodeURI(JSON.stringify(_pick(meta._data, ['filters'])));
-            countReq.setHeader('meta', encodedMeta);
-         }
-
-         countReq.then(({ count }) => {
-            totalRecords.value = count;
-         });
-      }
-   } finally {
-      loading.value = false;
-   }
-}
-
-const updateCallback = () => getValues(meta._data);
-onMounted(() => emitter.on(`${props.stateKey || props.from}-update`, updateCallback));
-onBeforeUnmount(() => {
-   ac.abort();
-   emitter.off(`${props.stateKey || props.from}-update`, updateCallback);
-});
+// Transitional: modules not yet on src/api announce writes with `<stateKey>-update`.
+const refetch = () => listQuery.refetch();
+onMounted(() => emitter.on(`${props.stateKey || props.from}-update`, refetch));
+onBeforeUnmount(() => emitter.off(`${props.stateKey || props.from}-update`, refetch));
 
 const mounted = useMounted();
 
