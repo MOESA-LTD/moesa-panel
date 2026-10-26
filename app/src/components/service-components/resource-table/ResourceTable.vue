@@ -106,7 +106,7 @@ onBeforeUnmount(() => emitter.off(`${props.stateKey || props.from}-update`, refe
 
 const mounted = useMounted();
 
-const tableProps = computed(() => _merge({}, _omit(props, ['stateKey']), attrs));
+const tableProps = computed(() => ({ ..._omit(props, ['stateKey']), ...attrs }));
 </script>
 <template>
    <component
