@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouteLoading } from '@/composables/useRouteStatus';
 defineOptions({
    inheritAttrs: false
 });
@@ -16,12 +17,12 @@ export type FormFieldProps = {
 const props = withDefaults(defineProps<FormFieldProps>(), {
    // default props
 });
-const routeLoading = inject('routeLoading', false as any);
+const routeLoading = useRouteLoading();
 const isLoading = computed(() => {
    if (!_isNil(props.loading)) {
       return props.loading;
    }
-   return routeLoading?.value;
+   return routeLoading.value;
 });
 
 const attrs = useAttrs();

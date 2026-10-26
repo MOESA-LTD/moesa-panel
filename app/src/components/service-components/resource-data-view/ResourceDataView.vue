@@ -1,4 +1,5 @@
 <script setup>
+import { useRouteLoading } from '@/composables/useRouteStatus';
 import Collection from '@/lib/Collection';
 
 defineOptions({
@@ -58,8 +59,8 @@ const attrs = useAttrs();
 
 const totalRecords = ref(0);
 
-const routeLoading = inject('routeLoading', false);
-const loading = ref(routeLoading);
+const routeLoading = useRouteLoading();
+const loading = ref(routeLoading.value);
 
 const meta = Collection.create({
    first: 0,

@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T = any">
+import { useRouteLoading } from '@/composables/useRouteStatus';
 import CustomTable, {
    CustomTableProps,
    CustomTableSlots
@@ -61,8 +62,8 @@ const modelValue = defineModel<T[]>({
 
 const totalRecords = ref<number | null>(5);
 
-const routeLoading = inject('routeLoading', false);
-const loading = ref(routeLoading);
+const routeLoading = useRouteLoading();
+const loading = ref(routeLoading.value);
 
 let ac = new AbortController();
 

@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T = any">
+import { useRouteLoading } from '@/composables/useRouteStatus';
 import Collection from '@/lib/Collection';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
 import { RemovableRef } from '@vueuse/core';
@@ -81,9 +82,9 @@ const router = useRouter();
 const route = useRoute();
 const { t, te } = useI18n();
 
-const routeLoading = inject('routeLoading', false);
+const routeLoading = useRouteLoading();
 const loading = computed(() => {
-   return props.loading || routeLoading;
+   return props.loading || routeLoading.value;
 });
 
 const filterInput = computed({
