@@ -1,148 +1,70 @@
-<script setup>
-import { useFormReadonly } from '@/composables/useFormReadonly';
-import { Form } from '@/lib/Form';
+<script setup lang="ts">
+import {
+   addressResource,
+   addressSchema,
+   toAddressFormValues,
+   toAddressPayload,
+   type Address
+} from '@/api/address';
+import { useUpsertForm } from '@/composables/useUpsertForm';
 
-import { useToast } from 'primevue';
+const props = defineProps<{
+   id?: string | null;
+   /** Prefill for a new address. */
+   data?: Partial<Address> | null;
+}>();
 
-/**
- * @typedef {Tables['address']['Row']} Data
- * @type {{ id: Data['id'], data: Data }} */
-const props = defineProps({
-   id: {
-      type: String,
-      default: null,
-      required: false
-   },
-   data: {
-      type: Object,
-      default: null,
-      required: false
-   }
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
+   id: () => props.id ?? props.data?.id,
+   prefill: () => props.data,
+   useRow: addressResource.useOne,
+   useSaveRow: addressResource.useSave,
+   subject: 'address',
+   schema: addressSchema,
+   toFormValues: toAddressFormValues,
+   toPayload: toAddressPayload
 });
-
-const { t, te } = useI18n();
-const toast = useToast();
-
-const initialFormData = {
-   id: undefined,
-   display_name: null,
-   country: null,
-   city: null,
-   district: null,
-   details: null
-};
-
-/**@type {[keyof Data]} */
-const fields = _keys(initialFormData);
-
-const form = Form.create({
-   data: _defaults(_pick(props.data, fields), initialFormData),
-   rules: {
-      display_name: 'required',
-      country: 'required',
-      city: 'required'
-   },
-   useDialogForm: false
-});
-
-const readonly = useFormReadonly('address', () => form.id);
-
-if (props.id) {
-   await supabase
-      .from('address')
-      .select('*')
-      .eq('id', props.id)
-      .maybeSingle()
-      .throwOnError()
-      .then(({ data }) => form._setDefaults(_pick(data, fields))._reset());
-}
-
-const save = async () => {
-   if (!form._validate()) return;
-
-   await supabase
-      .from('address')
-      .upsert(form._data)
-      .eq('id', form.id)
-      .select()
-      .maybeSingle()
-      .throwOnError()
-      .then(({ data }) => form._merge(_pick(data, fields)));
-
-   emitter.emit('address-update', form._data);
-   emitter.emit('client_address-update', form._data);
-
-   form._setDefaults(form._data)._reset();
-
-   toast.add({
-      life: 3000,
-      severity: ToastSeverity.SUCCESS,
-      summary: t('toast.success'),
-      detail: t('toast.saved')
-   });
-};
-
-if (props.id || props.data?.id) {
-   const updateCallback = (data) => {
-      if (data?.id === form.id) form._setDefaults(_pick(data, fields))._reset();
-   };
-   onMounted(() => emitter.on('address-update', updateCallback));
-   onUnmounted(() => emitter.off('address-update', updateCallback));
-}
+await ready;
 </script>
 
 <template>
    <div class="card">
-      <FormBox @submit="save" @reset="() => form._reset()" :form :readonly>
-         <FormField
-            :readonly
-            fluid
-            :error="form?._errors?.first('display_name')"
-            :label="$t('fields.name')"
-         >
+      <FormBox
+         @submit="save"
+         @reset="() => reset()"
+         :dirty="isDirty"
+         :submitting="isSubmitting"
+         :readonly
+      >
+         <FormField :readonly fluid :error="errors.display_name" :label="$t('fields.name')">
             <template #default="slotProps">
-               <InputText v-bind="slotProps" v-model="form.display_name" />
+               <InputText v-bind="slotProps" v-model="values.display_name" />
             </template>
          </FormField>
-         <FormField
-            :readonly
-            fluid
-            :error="form?._errors?.first('country')"
-            :label="$t('fields.country')"
-         >
+         <FormField :readonly fluid :error="errors.country" :label="$t('fields.country')">
             <template #default="slotProps">
-               <InputText v-bind="slotProps" v-model="form.country" />
+               <InputText v-bind="slotProps" v-model="values.country" />
             </template>
          </FormField>
-         <FormField
-            :readonly
-            fluid
-            :error="form?._errors?.first('city')"
-            :label="$t('fields.city')"
-         >
+         <FormField :readonly fluid :error="errors.city" :label="$t('fields.city')">
             <template #default="slotProps">
-               <InputText v-bind="slotProps" v-model="form.city" />
+               <InputText v-bind="slotProps" v-model="values.city" />
             </template>
          </FormField>
-         <FormField
-            :readonly
-            fluid
-            :error="form?._errors?.first('district')"
-            :label="$t('fields.district')"
-         >
+         <FormField :readonly fluid :error="errors.district" :label="$t('fields.district')">
             <template #default="slotProps">
-               <InputText v-bind="slotProps" v-model="form.district" />
+               <InputText v-bind="slotProps" v-model="values.district" />
             </template>
          </FormField>
          <FormField
             class="!flex-auto !max-w-full w-full h-fit"
             :readonly
             fluid
-            :error="form?._errors?.first('details')"
+            :error="errors.details"
             :label="$t('fields.details')"
          >
             <template #default="slotProps">
-               <Editor v-bind="slotProps" v-model="form.details" />
+               <Editor v-bind="slotProps" v-model="values.details" />
             </template>
          </FormField>
       </FormBox>

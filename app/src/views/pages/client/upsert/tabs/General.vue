@@ -2,10 +2,7 @@
 import { useClient, useSaveClient } from '@/api/client/queries';
 import type { Client } from '@/api/client/repository';
 import { clientSchema, toClientFormValues, toClientPayload } from '@/api/client/schema';
-import { useFormReadonly } from '@/composables/useFormReadonly';
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
-import { useForm } from '@/lib/form/useForm';
-import { useToast } from 'primevue';
+import { useUpsertForm } from '@/composables/useUpsertForm';
 
 const props = defineProps<{
    id?: string | null;
@@ -13,40 +10,17 @@ const props = defineProps<{
    data?: Partial<Client> | null;
 }>();
 
-const { t } = useI18n();
-const toast = useToast();
-
-const clientId = computed(() => props.id ?? props.data?.id ?? null);
-const { data: client, suspense } = useClient(clientId);
-if (clientId.value) await suspense();
-
-const { values, errors, isDirty, isSubmitting, reset, handleSubmit } = useForm({
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
+   id: () => props.id ?? props.data?.id,
+   prefill: () => props.data,
+   useRow: useClient,
+   useSaveRow: useSaveClient,
+   subject: 'client',
    schema: clientSchema,
-   initialValues: toClientFormValues(client.value ?? props.data)
+   toFormValues: toClientFormValues,
+   toPayload: toClientPayload
 });
-
-// Follow fresh server data (e.g. saved in another view) unless the user has unsaved edits.
-watch(client, (value) => {
-   if (value && !isDirty.value) reset(toClientFormValues(value));
-});
-
-useUnsavedChangesGuard(isDirty);
-
-const readonly = useFormReadonly('client', () => values.value.id);
-
-const { mutateAsync: saveClient } = useSaveClient();
-
-const save = handleSubmit(async (data) => {
-   const saved = await saveClient(toClientPayload(data));
-   reset(toClientFormValues(saved));
-
-   toast.add({
-      life: 3000,
-      severity: ToastSeverity.SUCCESS,
-      summary: t('toast.success'),
-      detail: t('toast.saved')
-   });
-});
+await ready;
 </script>
 
 <template>
