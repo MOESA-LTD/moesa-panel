@@ -758,6 +758,11 @@
          "header": "Niezapisane zmiany",
          "message": "Masz niezapisane zmiany. Wyjść bez zapisywania?"
       },
-      "passwords_do_not_match": "Hasła nie są zgodne"
+      "passwords_do_not_match": "Hasła nie są zgodne",
+      "draft": {
+         "restored": "Przywrócono niezapisane zmiany.",
+         "stale": "Ten rekord zmienił się od rozpoczęcia edycji; zapisanie nadpisze te zmiany.",
+         "discard": "Odrzuć"
+      }
    }
 }

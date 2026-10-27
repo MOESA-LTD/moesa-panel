@@ -758,6 +758,11 @@
          "header": "Modifications non enregistrées",
          "message": "Vous avez des modifications non enregistrées. Quitter sans enregistrer ?"
       },
-      "passwords_do_not_match": "Les mots de passe ne correspondent pas"
+      "passwords_do_not_match": "Les mots de passe ne correspondent pas",
+      "draft": {
+         "restored": "Vos modifications non enregistrées ont été restaurées.",
+         "stale": "Cet enregistrement a changé depuis le début de votre modification ; enregistrer écrasera ces changements.",
+         "discard": "Abandonner"
+      }
    }
 }

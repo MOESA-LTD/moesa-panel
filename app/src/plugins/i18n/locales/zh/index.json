@@ -758,6 +758,11 @@
          "header": "未保存的更改",
          "message": "您有未保存的更改。确定不保存就离开吗？"
       },
-      "passwords_do_not_match": "两次输入的密码不一致"
+      "passwords_do_not_match": "两次输入的密码不一致",
+      "draft": {
+         "restored": "已恢复未保存的更改。",
+         "stale": "您开始编辑后此记录已被更改；保存将覆盖这些更改。",
+         "discard": "放弃"
+      }
    }
 }

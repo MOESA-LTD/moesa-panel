@@ -758,6 +758,11 @@
          "header": "Modifiche non salvate",
          "message": "Ci sono modifiche non salvate. Uscire senza salvare?"
       },
-      "passwords_do_not_match": "Le password non corrispondono"
+      "passwords_do_not_match": "Le password non corrispondono",
+      "draft": {
+         "restored": "Le modifiche non salvate sono state ripristinate.",
+         "stale": "Questo record è cambiato da quando hai iniziato a modificarlo; salvando sovrascriverai quelle modifiche.",
+         "discard": "Scarta"
+      }
    }
 }

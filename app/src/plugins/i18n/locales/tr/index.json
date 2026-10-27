@@ -758,6 +758,11 @@
          "header": "Kaydedilmemiş değişiklikler",
          "message": "Kaydedilmemiş değişiklikleriniz var. Kaydetmeden çıkılsın mı?"
       },
-      "passwords_do_not_match": "Şifreler eşleşmiyor"
+      "passwords_do_not_match": "Şifreler eşleşmiyor",
+      "draft": {
+         "restored": "Kaydedilmemiş değişiklikleriniz geri yüklendi.",
+         "stale": "Bu kayıt siz düzenlemeye başladıktan sonra değişti; kaydederseniz o değişikliklerin üzerine yazılır.",
+         "discard": "Taslağı at"
+      }
    }
 }

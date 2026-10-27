@@ -65,7 +65,7 @@ beforeEach(() => {
             frame = useDialogFrame(() => dialog, {
                minWidth: 200,
                minHeight: 150,
-               onChange: (style) => (saved = style)
+               onChange: ({ style }) => (saved = style)
             });
             return () => h('div');
          }

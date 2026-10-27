@@ -1,5 +1,7 @@
 // app/src/store/auth/index.ts
 
+import { clearDialogs } from '@/components/layout/route-dialog/session';
+import { clearDrafts } from '@/lib/form/drafts';
 import { supabase } from '@/lib/supabase';
 import { ability, toAbilityRules, type PermissionClaim } from '@plugins/casl';
 import { queryKeys } from '@/api/queryKeys';
@@ -95,7 +97,13 @@ export const useAuthStore = defineStore('auth', () => {
    }
 
    async function logout() {
-      return await supabase.auth.signOut();
+      const result = await supabase.auth.signOut();
+      // Signing out on purpose leaves nothing of the user's work in the tab. Cleared after the
+      // sign-out: with no user, no pending draft can be written back. (A session that merely
+      // expires keeps drafts and dialogs, so signing in again picks up where the user was.)
+      clearDrafts();
+      clearDialogs();
+      return result;
    }
 
    return {

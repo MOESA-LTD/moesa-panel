@@ -89,6 +89,13 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
       errors.value = {};
    }
 
+   /** Puts back earlier edits (e.g. a saved draft) over the initial values, without validating. */
+   function restore(edited: Input) {
+      if (!isEqual(values.value, edited)) skipNextChange = true;
+      values.value = cloneDeep(edited);
+      errors.value = {};
+   }
+
    function setErrors(fieldErrors: FormErrors) {
       errors.value = { ...errors.value, ...fieldErrors };
    }
@@ -129,6 +136,7 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
       validate,
       validateFields,
       reset,
+      restore,
       setErrors,
       handleSubmit
    };

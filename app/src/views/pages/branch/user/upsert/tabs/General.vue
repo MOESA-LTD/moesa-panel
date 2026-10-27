@@ -17,19 +17,20 @@ const props = defineProps<{
 
 const authStore = useAuthStore();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
-   id: () => props.id ?? props.data?.id,
-   prefill: () => props.data,
-   useRow: useUser,
-   useSaveRow: useSaveUser,
-   subject: 'user',
-   schema: userSchema,
-   toFormValues: toUserFormValues,
-   toPayload: toUserPayload,
-   // Another owner's account can only be changed by that owner.
-   lockRow: (user) =>
-      user.id !== authStore.user?.id && user.role?.some((role) => role.display_name === 'owner')
-});
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
+   useUpsertForm({
+      id: () => props.id ?? props.data?.id,
+      prefill: () => props.data,
+      useRow: useUser,
+      useSaveRow: useSaveUser,
+      subject: 'user',
+      schema: userSchema,
+      toFormValues: toUserFormValues,
+      toPayload: toUserPayload,
+      // Another owner's account can only be changed by that owner.
+      lockRow: (user) =>
+         user.id !== authStore.user?.id && user.role?.some((role) => role.display_name === 'owner')
+   });
 await ready;
 
 const metadata = computed(
@@ -50,6 +51,7 @@ const metadata = computed(
       :readonly
       :dirty="isDirty"
       :submitting="isSubmitting"
+      :draft
       :submit-text="values.id ? $t('action.save') : $t('action.invite')"
    >
       <span v-if="values.id" class="flex-0 m-4 mb-0 relative">

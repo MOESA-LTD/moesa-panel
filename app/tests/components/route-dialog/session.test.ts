@@ -1,0 +1,67 @@
+import {
+   clearDialogs,
+   forgetDialog,
+   markReopening,
+   rememberDialog,
+   savedDialogs,
+   takeReopening,
+   updateDialog
+} from '@/components/layout/route-dialog/session';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+const dialog = (id: string, userId = 'u1') => ({
+   id,
+   userId,
+   path: `/en/client/${id}/manage?showDialog=center`,
+   position: 'center' as const
+});
+
+beforeEach(() => sessionStorage.clear());
+
+describe('route dialog session', () => {
+   it('keeps the open dialogs of each user in opening order', () => {
+      rememberDialog(dialog('a'));
+      rememberDialog(dialog('b'));
+      rememberDialog(dialog('c', 'u2'));
+
+      expect(savedDialogs('u1').map(({ id }) => id)).toEqual(['a', 'b']);
+      expect(savedDialogs('u2').map(({ id }) => id)).toEqual(['c']);
+   });
+
+   it('replaces a dialog that is reopened instead of adding it twice', () => {
+      rememberDialog(dialog('a'));
+      rememberDialog({ ...dialog('a'), position: 'left' });
+
+      expect(savedDialogs('u1')).toEqual([{ ...dialog('a'), position: 'left' }]);
+   });
+
+   it('stores the frame and forgets closed dialogs', () => {
+      rememberDialog(dialog('a'));
+      updateDialog('a', { style: 'left: 10px;', state: 'maximized', normalStyle: 'left: 5px;' });
+      expect(savedDialogs('u1')[0]).toMatchObject({
+         state: 'maximized',
+         normalStyle: 'left: 5px;'
+      });
+
+      forgetDialog('a');
+      expect(savedDialogs('u1')).toEqual([]);
+      expect(sessionStorage.getItem('route-dialogs')).toBeNull();
+   });
+
+   it('clears everything', () => {
+      rememberDialog(dialog('a'));
+      rememberDialog(dialog('b', 'u2'));
+      clearDialogs();
+
+      expect(savedDialogs('u1')).toEqual([]);
+      expect(savedDialogs('u2')).toEqual([]);
+   });
+
+   it('hands a dialog being reopened to the guard once', () => {
+      const saved = dialog('a');
+      markReopening(saved);
+
+      expect(takeReopening(saved.path)).toBe(saved);
+      expect(takeReopening(saved.path)).toBeUndefined();
+   });
+});

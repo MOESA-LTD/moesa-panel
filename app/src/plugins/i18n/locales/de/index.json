@@ -758,6 +758,11 @@
          "header": "Ungespeicherte Änderungen",
          "message": "Sie haben ungespeicherte Änderungen. Ohne Speichern verlassen?"
       },
-      "passwords_do_not_match": "Die Passwörter stimmen nicht überein"
+      "passwords_do_not_match": "Die Passwörter stimmen nicht überein",
+      "draft": {
+         "restored": "Ihre nicht gespeicherten Änderungen wurden wiederhergestellt.",
+         "stale": "Dieser Datensatz wurde seit Beginn Ihrer Bearbeitung geändert; beim Speichern werden diese Änderungen überschrieben.",
+         "discard": "Verwerfen"
+      }
    }
 }

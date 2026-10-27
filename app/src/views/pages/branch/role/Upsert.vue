@@ -15,18 +15,19 @@ const props = defineProps<{
    data?: Partial<RoleWithPermissions> | null;
 }>();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
-   id: () => props.id ?? props.data?.id,
-   prefill: () => props.data,
-   useRow: useRole,
-   useSaveRow: useSaveRole,
-   subject: 'role',
-   schema: roleSchema,
-   toFormValues: toRoleFormValues,
-   toPayload: toRolePayload,
-   // Roles without a tenant are global (e.g. owner) and cannot be edited.
-   lockRow: (role) => !role.tenant_id
-});
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
+   useUpsertForm({
+      id: () => props.id ?? props.data?.id,
+      prefill: () => props.data,
+      useRow: useRole,
+      useSaveRow: useSaveRole,
+      subject: 'role',
+      schema: roleSchema,
+      toFormValues: toRoleFormValues,
+      toPayload: toRolePayload,
+      // Roles without a tenant are global (e.g. owner) and cannot be edited.
+      lockRow: (role) => !role.tenant_id
+   });
 await ready;
 </script>
 
@@ -38,6 +39,7 @@ await ready;
          v-focustrap
          :dirty="isDirty"
          :submitting="isSubmitting"
+         :draft
          :readonly
       >
          <FormField fluid :label="$t('fields.name')" :error="errors.display_name" :readonly>

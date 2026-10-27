@@ -4,10 +4,19 @@ import { useAuthStore } from '@/store/auth';
 import { useEventListener } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { ProgressSpinner } from 'primevue';
-import { computed, defineAsyncComponent, provide, ref, watch, type Component } from 'vue';
+import {
+   computed,
+   defineAsyncComponent,
+   onUnmounted,
+   provide,
+   ref,
+   watch,
+   type Component
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { RouteLocationNormalized } from 'vue-router';
 import { ROUTE_DIALOG, type DialogCloseGuard } from './context';
+import { forgetDialog, updateDialog, type SavedRouteDialog } from './session';
 import { bringToFront } from './stacking';
 import { useDialogFrame, type DialogEdges } from './useDialogFrame';
 
@@ -16,7 +25,13 @@ import { useDialogFrame, type DialogEdges } from './useDialogFrame';
  * owns its header, closing (with guards), moving, resizing and stacking; PrimeVue's DynamicDialog
  * only hosts it.
  */
-const props = defineProps<{ route: RouteLocationNormalized }>();
+const props = defineProps<{
+   route: RouteLocationNormalized;
+   /** Identifies the dialog in the tab's session (see session.ts). */
+   dialogId: string;
+   /** How it was shown before a reload, when it is being reopened. */
+   initialFrame?: Pick<SavedRouteDialog, 'state' | 'normalStyle'>;
+}>();
 
 const dialogRef = useDialogRef();
 const { t } = useI18n();
@@ -50,17 +65,28 @@ provide(ROUTE_DIALOG, {
    close
 });
 
+// Closed by losing the session (e.g. it expired), the dialog reopens after signing in again.
+let keepForSignIn = false;
+
 // The page belongs to the signed-in user and, if it needs permissions, to the current tenant.
 if (props.route.meta.requiresAuth) {
    const { isSignedIn, currentTenant } = storeToRefs(useAuthStore());
    const tenantId = currentTenant.value?.id;
 
    watch([isSignedIn, () => currentTenant.value?.id], ([signedIn, id]) => {
-      if (!signedIn || (id !== tenantId && props.route.meta.requiredPermissions)) {
+      if (!signedIn) {
+         keepForSignIn = true;
+         dialogRef?.value.close();
+      } else if (id !== tenantId && props.route.meta.requiredPermissions) {
          dialogRef?.value.close();
       }
    });
 }
+
+// A reload does not unmount the dialog, so it stays in the session and reopens.
+onUnmounted(() => {
+   if (!keepForSignIn) forgetDialog(props.dialogId);
+});
 
 // Frame
 
@@ -70,9 +96,11 @@ const dialogElement = () => root.value?.closest<HTMLElement>('.p-dialog');
 const { state, startDrag, startResize, toggleMaximize, toggleMinimize } = useDialogFrame(
    dialogElement,
    {
-      // Kept in the dialog's props so a re-render does not reset the position and size.
-      onChange: (style) => {
-         if (dialogRef?.value.options.props) dialogRef.value.options.props.style = style;
+      initial: props.initialFrame,
+      onChange: (snapshot) => {
+         // Kept in the dialog's props so a re-render does not reset the position and size.
+         if (dialogRef?.value.options.props) dialogRef.value.options.props.style = snapshot.style;
+         updateDialog(props.dialogId, snapshot);
       }
    }
 );

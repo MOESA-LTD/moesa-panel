@@ -758,6 +758,11 @@
          "header": "Cambios sin guardar",
          "message": "Tiene cambios sin guardar. ¿Salir sin guardar?"
       },
-      "passwords_do_not_match": "Las contraseñas no coinciden"
+      "passwords_do_not_match": "Las contraseñas no coinciden",
+      "draft": {
+         "restored": "Se restauraron sus cambios sin guardar.",
+         "stale": "Este registro cambió desde que empezó a editarlo; al guardar se sobrescribirán esos cambios.",
+         "discard": "Descartar"
+      }
    }
 }

@@ -14,16 +14,17 @@ const props = defineProps<{
    data?: Partial<Address> | null;
 }>();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
-   id: () => props.id ?? props.data?.id,
-   prefill: () => props.data,
-   useRow: addressResource.useOne,
-   useSaveRow: addressResource.useSave,
-   subject: 'address',
-   schema: addressSchema,
-   toFormValues: toAddressFormValues,
-   toPayload: toAddressPayload
-});
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
+   useUpsertForm({
+      id: () => props.id ?? props.data?.id,
+      prefill: () => props.data,
+      useRow: addressResource.useOne,
+      useSaveRow: addressResource.useSave,
+      subject: 'address',
+      schema: addressSchema,
+      toFormValues: toAddressFormValues,
+      toPayload: toAddressPayload
+   });
 await ready;
 </script>
 
@@ -34,6 +35,7 @@ await ready;
          @reset="() => reset()"
          :dirty="isDirty"
          :submitting="isSubmitting"
+         :draft
          :readonly
       >
          <FormField :readonly fluid :error="errors.display_name" :label="$t('fields.name')">

@@ -10,16 +10,17 @@ const props = defineProps<{
    data?: Partial<Client> | null;
 }>();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
-   id: () => props.id ?? props.data?.id,
-   prefill: () => props.data,
-   useRow: useClient,
-   useSaveRow: useSaveClient,
-   subject: 'client',
-   schema: clientSchema,
-   toFormValues: toClientFormValues,
-   toPayload: toClientPayload
-});
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
+   useUpsertForm({
+      id: () => props.id ?? props.data?.id,
+      prefill: () => props.data,
+      useRow: useClient,
+      useSaveRow: useSaveClient,
+      subject: 'client',
+      schema: clientSchema,
+      toFormValues: toClientFormValues,
+      toPayload: toClientPayload
+   });
 await ready;
 </script>
 
@@ -30,6 +31,7 @@ await ready;
          @reset="() => reset()"
          :dirty="isDirty"
          :submitting="isSubmitting"
+         :draft
          :readonly
       >
          <FormField

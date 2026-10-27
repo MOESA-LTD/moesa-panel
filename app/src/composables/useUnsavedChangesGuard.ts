@@ -9,7 +9,12 @@ import { onBeforeRouteLeave } from 'vue-router';
  * Asks before discarding unsaved changes, both when leaving the route and when closing the route
  * dialog the form is shown in (see RouteDialog).
  */
-export function useUnsavedChangesGuard(isDirty: MaybeRefOrGetter<boolean>) {
+export function useUnsavedChangesGuard(
+   isDirty: MaybeRefOrGetter<boolean>,
+   {
+      onDiscard
+   }: { /** Called when the user chooses to leave without saving. */ onDiscard?: () => void } = {}
+) {
    const confirm = useConfirm();
 
    const allowLeave: DialogCloseGuard = () => {
@@ -22,7 +27,10 @@ export function useUnsavedChangesGuard(isDirty: MaybeRefOrGetter<boolean>) {
             message: i18n.t('form.unsaved_changes.message'),
             acceptProps: { label: i18n.t('action.yes'), outlined: true },
             rejectProps: { label: i18n.t('action.no'), severity: 'secondary', outlined: true },
-            accept: () => resolve(true),
+            accept: () => {
+               onDiscard?.();
+               resolve(true);
+            },
             reject: () => resolve(false),
             onHide: () => resolve(false)
          })

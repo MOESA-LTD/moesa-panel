@@ -6,11 +6,22 @@ export type DialogWindowState = 'normal' | 'maximized' | 'minimized';
 /** The sides a resize handle moves; a corner moves two. */
 export type DialogEdges = { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean };
 
+/** What it takes to show the dialog the same way again (e.g. after a reload). */
+export type DialogFrameSnapshot = {
+   /** The dialog's inline style. */
+   style: string;
+   state: DialogWindowState;
+   /** The normal box to restore to while maximized or minimized. */
+   normalStyle: string;
+};
+
 export type DialogFrameOptions = {
    minWidth?: number;
    minHeight?: number;
-   /** Called with the dialog's inline style after it changes, to keep it across renders. */
-   onChange?: (style: string) => void;
+   /** The state to start in, e.g. from an earlier snapshot; the style itself is the dialog's. */
+   initial?: Partial<Pick<DialogFrameSnapshot, 'state' | 'normalStyle'>>;
+   /** Called after every change, e.g. to keep the style across renders. */
+   onChange?: (snapshot: DialogFrameSnapshot) => void;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -24,15 +35,16 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
  */
 export function useDialogFrame(
    dialog: () => HTMLElement | null | undefined,
-   { minWidth = 320, minHeight = 200, onChange }: DialogFrameOptions = {}
+   { minWidth = 320, minHeight = 200, initial, onChange }: DialogFrameOptions = {}
 ) {
    let stop: (() => void) | undefined;
 
-   const state = ref<DialogWindowState>('normal');
+   const state = ref<DialogWindowState>(initial?.state ?? 'normal');
    /** The dialog's inline style before it was maximized or minimized. */
-   let normalStyle = '';
+   let normalStyle = initial?.normalStyle ?? '';
 
-   const save = (el: HTMLElement) => onChange?.(el.style.cssText);
+   const save = (el: HTMLElement) =>
+      onChange?.({ style: el.style.cssText, state: state.value, normalStyle });
 
    const pin = (el: HTMLElement) => {
       const rect = el.getBoundingClientRect();

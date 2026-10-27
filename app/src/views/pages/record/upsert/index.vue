@@ -19,21 +19,22 @@ const props = defineProps<{
    data?: Partial<RecordWithRelations> | null;
 }>();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, row } = useUpsertForm({
-   id: () => props.id ?? props.data?.id,
-   prefill: () => props.data,
-   useRow: useRecord,
-   useSaveRow: useSaveRecord,
-   subject: 'record',
-   // Limits depend on the selected stock.
-   schema: () =>
-      createRecordSchema({
-         maxQuantity: availableQuantity.value,
-         unitType: selectedStock.value?.unit_type
-      }),
-   toFormValues: toRecordFormValues,
-   toPayload: toRecordPayload
-});
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, row, draft } =
+   useUpsertForm({
+      id: () => props.id ?? props.data?.id,
+      prefill: () => props.data,
+      useRow: useRecord,
+      useSaveRow: useSaveRecord,
+      subject: 'record',
+      // Limits depend on the selected stock.
+      schema: () =>
+         createRecordSchema({
+            maxQuantity: availableQuantity.value,
+            unitType: selectedStock.value?.unit_type
+         }),
+      toFormValues: toRecordFormValues,
+      toPayload: toRecordPayload
+   });
 await ready;
 
 const selectedStock = computed(() => values.value.stock as RecordStock | undefined);
@@ -62,6 +63,7 @@ provideRecordForm({ values, errors, availableQuantity });
                   @reset="() => reset()"
                   :dirty="isDirty"
                   :submitting="isSubmitting"
+                  :draft
                   :readonly
                   @submit="save"
                >

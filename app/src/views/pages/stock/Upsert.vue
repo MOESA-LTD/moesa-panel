@@ -15,16 +15,17 @@ const props = defineProps<{
    data?: Partial<StockWithProduct> | null;
 }>();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready } = useUpsertForm({
-   id: () => props.id ?? props.data?.id,
-   prefill: () => props.data,
-   useRow: useStock,
-   useSaveRow: useSaveStock,
-   subject: 'stock',
-   schema: stockSchema,
-   toFormValues: toStockFormValues,
-   toPayload: toStockPayload
-});
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
+   useUpsertForm({
+      id: () => props.id ?? props.data?.id,
+      prefill: () => props.data,
+      useRow: useStock,
+      useSaveRow: useSaveStock,
+      subject: 'stock',
+      schema: stockSchema,
+      toFormValues: toStockFormValues,
+      toPayload: toStockPayload
+   });
 await ready;
 
 const productCategories = computed(() =>
@@ -93,6 +94,7 @@ const tax = computed({
          @reset="() => reset()"
          :dirty="isDirty"
          :submitting="isSubmitting"
+         :draft
          :readonly
       >
          <FormBox class="!flex-auto" :legend="$t('stock.information')">

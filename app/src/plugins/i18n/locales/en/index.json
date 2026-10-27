@@ -758,6 +758,11 @@
          "header": "Unsaved changes",
          "message": "You have unsaved changes. Leave without saving?"
       },
-      "passwords_do_not_match": "Passwords do not match"
+      "passwords_do_not_match": "Passwords do not match",
+      "draft": {
+         "restored": "Your unsaved changes were restored.",
+         "stale": "This record has changed since you started editing; saving will overwrite those changes.",
+         "discard": "Discard"
+      }
    }
 }

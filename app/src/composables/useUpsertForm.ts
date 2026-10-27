@@ -1,3 +1,4 @@
+import { useFormDraft } from '@/composables/useFormDraft';
 import { useFormReadonly } from '@/composables/useFormReadonly';
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
 import { useForm } from '@/lib/form/useForm';
@@ -5,7 +6,14 @@ import i18n from '@plugins/i18n';
 import { ToastSeverity } from '@primevue/core/api';
 import type { UseMutationReturnType, UseQueryReturnType } from '@tanstack/vue-query';
 import { useToast } from 'primevue/usetoast';
-import { computed, toValue, watch, type MaybeRefOrGetter } from 'vue';
+import {
+   computed,
+   reactive,
+   readonly as readonlyReactive,
+   toValue,
+   watch,
+   type MaybeRefOrGetter
+} from 'vue';
 import type * as z from 'zod';
 
 export type UseUpsertFormOptions<S extends z.ZodType, Row, Payload> = {
@@ -52,7 +60,19 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
       if (value && !form.isDirty.value) form.reset(options.toFormValues(value));
    });
 
-   useUnsavedChangesGuard(form.isDirty);
+   const formValues = () => options.toFormValues(row.value ?? toValue(options.prefill));
+
+   // Unsaved edits survive a reload; leaving without saving drops them.
+   const draft = useFormDraft({
+      form: `${options.subject}:${toValue(options.id) || 'new'}`,
+      values: form.values,
+      isDirty: form.isDirty,
+      base: formValues,
+      restore: form.restore,
+      enabled: () => !readonly.value
+   });
+
+   useUnsavedChangesGuard(form.isDirty, { onDiscard: draft.discard });
 
    const cannotSubmit = useFormReadonly(
       options.subject,
@@ -79,11 +99,21 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
       if (saved) options.onSaved?.(saved);
    });
 
-   const ready: Promise<void> = toValue(options.id)
-      ? suspense().then(() => {
-           if (row.value && !form.isDirty.value) form.reset(options.toFormValues(row.value));
-        })
-      : Promise.resolve();
+   const ready: Promise<void> = (
+      toValue(options.id)
+         ? suspense().then(() => {
+              if (row.value && !form.isDirty.value) form.reset(options.toFormValues(row.value));
+           })
+         : Promise.resolve()
+   ).then(draft.apply);
 
-   return { ...form, row, readonly, save, ready };
+   return {
+      ...form,
+      row,
+      readonly,
+      save,
+      ready,
+      /** Whether a draft was restored, and whether the row changed since (see FormBox). */
+      draft: readonlyReactive(reactive({ restored: draft.restored, stale: draft.stale }))
+   };
 }
