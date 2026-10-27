@@ -3,7 +3,7 @@ import { useDialogRef } from '@/composables/useDialogRef';
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
-import { useRemoveUser } from '@/api/user';
+import { isOwnerAbove, useRemoveUser, type UserAccess } from '@/api/user';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import { useI18n } from 'vue-i18n';
 import Upsert from './upsert/Index.vue';
@@ -74,7 +74,8 @@ const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
             }
          },
       icon: PrimeIcons.TRASH,
-      requires: { action: 'modify', subject: 'user' }
+      requires: { action: 'modify', subject: 'user' },
+      disabled: ({ data }) => isOwnerAbove(data as UserAccess)
    },
    {
       label: t('action.edit'),
@@ -86,7 +87,8 @@ const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
                params: { id: data.id },
                query: { showDialog: 'true' }
             }),
-      icon: PrimeIcons.PENCIL
+      icon: PrimeIcons.PENCIL,
+      disabled: ({ data }) => isOwnerAbove(data as UserAccess)
    }
 ];
 
@@ -97,7 +99,7 @@ const dialogRef = useDialogRef();
       :is="ResourceTable<'user', T>"
       :stateKey
       :from="'user'"
-      :select="'*, role(*,permission(*))'"
+      :select="'*, role(*,permission(*)), owned_via, is_member'"
       :columns="columns"
       :rowActions="rowActions"
       v-model:filters="filters"
@@ -113,6 +115,20 @@ const dialogRef = useDialogRef();
                </CustomLink>
             </span>
          </Teleport>
+      </template>
+      <template #user_metadata_display_name_body="{ data }">
+         <span class="inline-flex items-center gap-2 flex-wrap">
+            <span>{{
+               (data.user_metadata as { display_name?: string } | null)?.display_name
+            }}</span>
+            <Tag
+               v-for="tenant in (data as UserAccess).owned_via"
+               :key="tenant"
+               severity="secondary"
+               :value="$t('user.owner_of', { name: tenant })"
+               v-tooltip.top="isOwnerAbove(data as UserAccess) ? $t('user.owner_above') : undefined"
+            />
+         </span>
       </template>
       <template #expansion="{ data }">
          <Upsert :id="data.id" class="p-0" />

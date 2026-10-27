@@ -5,6 +5,7 @@ import {
    userSchema,
    useSaveUser,
    useUser,
+   isOwnerAbove,
    type UserWithRoles
 } from '@/api/user';
 import { useUpsertForm } from '@/composables/useUpsertForm';
@@ -27,8 +28,10 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       schema: userSchema,
       toFormValues: toUserFormValues,
       toPayload: toUserPayload,
-      // Another owner's account can only be changed by that owner.
-      lockRow: (user) => user.id !== authStore.user?.id && !!user.tenant_owner?.length
+      // Another owner's account can only be changed by that owner; an owner of a tenant above who
+      // is no member here is managed in that tenant.
+      lockRow: (user) =>
+         isOwnerAbove(user) || (user.id !== authStore.user?.id && !!user.tenant_owner?.length)
    });
 await ready;
 

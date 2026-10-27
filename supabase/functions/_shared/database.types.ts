@@ -1120,11 +1120,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_member: {
+        Args: {
+          "": unknown
+        }
+        Returns: boolean
+      }
       my_access: {
         Args: {
           requested?: string
         }
         Returns: Json
+      }
+      owned_via: {
+        Args: {
+          "": unknown
+        }
+        Returns: string[]
       }
       register_tenant: {
         Args: {

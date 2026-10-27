@@ -625,7 +625,9 @@
          }
       },
       "general_info": "",
-      "security": ""
+      "security": "",
+      "owner_of": "",
+      "owner_above": ""
    },
    "record": {
       "table": {

@@ -108,3 +108,39 @@ BEGIN
     EXECUTE 'CREATE OR REPLACE TRIGGER notify_access_delete AFTER DELETE ON public.tenant REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()';
 END;
 $$;
+
+-- Computed fields of a user for the user list. owned_via: the tenants read, or above them, that the
+-- user owns directly (by name); is_member: whether the user belongs to one of the tenants read. An
+-- owner who is no member uses the tenants through ownership and is managed in the tenant above.
+CREATE OR REPLACE FUNCTION public.owned_via (public.user) RETURNS TEXT[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        SELECT t.display_name
+        FROM public.tenant_owner o
+        JOIN public.tenant t ON t.id = o.tenant_id
+        WHERE o.user_id = $1.id AND o.tenant_id = ANY (private.scope_and_above())
+        ORDER BY t.display_name
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_member (public.user) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.tenant_user tu
+        WHERE tu.user_id = $1.id AND tu.tenant_id = ANY (private.tenant_scope())
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.owned_via (public.user) FROM PUBLIC, anon;
+
+REVOKE ALL ON FUNCTION public.is_member (public.user) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.owned_via (public.user) TO authenticated;
+
+GRANT EXECUTE ON FUNCTION public.is_member (public.user) TO authenticated;

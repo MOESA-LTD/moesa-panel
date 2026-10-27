@@ -677,7 +677,9 @@
          }
       },
       "general_info": "Información general",
-      "security": "Seguridad"
+      "security": "Seguridad",
+      "owner_of": "Propietario · {name}",
+      "owner_above": "Usa esta sucursal como propietario de una sucursal superior y se gestiona allí."
    },
    "record": {
       "table": {

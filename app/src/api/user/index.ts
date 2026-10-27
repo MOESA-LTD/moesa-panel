@@ -11,7 +11,17 @@ export type UserWithRoles = Tables['user']['Row'] & {
    role: Role[];
    /** The current tenant's ownership row, if the user owns it. */
    tenant_owner?: { tenant_id: string }[];
-};
+} & UserAccess;
+
+/**
+ * How a listed user may use the tenants read (computed fields, see 012_init_branches.sql): the
+ * tenants among or above them they own, and whether they are a member. An owner who is no member
+ * uses them through a tenant above and is managed there.
+ */
+export type UserAccess = { owned_via?: string[]; is_member?: boolean };
+
+/** Whether the user is listed only as the owner of a tenant above (not managed in this one). */
+export const isOwnerAbove = (user: UserAccess) => user.is_member === false;
 
 /** Attributes the `user` edge function accepts; see supabase/functions/user. */
 export type UserAttributes = {
@@ -28,7 +38,7 @@ export const userRepository = {
       const { data } = await supabase
          .from('user')
          // tenant_owner: RLS keeps the current tenant's row, so it says whether they own it.
-         .select('*, role(*), tenant_owner(tenant_id)')
+         .select('*, role(*), tenant_owner(tenant_id), owned_via, is_member')
          .eq('id', id)
          .abortSignal(signal)
          .maybeSingle()

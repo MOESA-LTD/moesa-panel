@@ -677,7 +677,9 @@
          }
       },
       "general_info": "일반 정보",
-      "security": "보안"
+      "security": "보안",
+      "owner_of": "소유자 · {name}",
+      "owner_above": "상위 지점의 소유자로서 이 지점을 사용하며, 그곳에서 관리됩니다."
    },
    "record": {
       "table": {

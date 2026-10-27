@@ -395,6 +395,35 @@ BEGIN
 END;
 $$;
 
+-- The tenants read and every tenant above them: the owners of any of these may use the tenants read.
+CREATE OR REPLACE FUNCTION private.scope_and_above () RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        -- UNION (not UNION ALL) also stops at a cycle, should one ever get in.
+        WITH RECURSIVE above (id, parent_id) AS (
+            SELECT t.id, t.parent_id FROM public.tenant t WHERE t.id = ANY (private.tenant_scope())
+            UNION
+            SELECT t.id, t.parent_id FROM public.tenant t JOIN above ON t.id = above.parent_id
+        )
+        SELECT above.id FROM above
+    );
+END;
+$$;
+
+-- The users who may use the tenants read by owning them (directly or through a tenant above),
+-- without necessarily being members. They are shown with the members, e.g. as the actor of a change.
+CREATE OR REPLACE FUNCTION private.scope_owners () RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        SELECT DISTINCT o.user_id FROM public.tenant_owner o WHERE o.tenant_id = ANY (private.scope_and_above())
+    );
+END;
+$$;
+
 -- Of `tenants`, those where `user_id` has the permission: through their roles in that tenant, or
 -- through owning it (the built-in owner role's permissions). The one rule for policies and the app.
 CREATE OR REPLACE FUNCTION private.tenants_permitting (user_id UUID, tenants UUID[], p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE

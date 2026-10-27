@@ -677,7 +677,9 @@
          }
       },
       "general_info": "一般情報",
-      "security": "セキュリティ"
+      "security": "セキュリティ",
+      "owner_of": "オーナー · {name}",
+      "owner_above": "上位の支店のオーナーとしてこの支店を利用しており、そちらで管理されます。"
    },
    "record": {
       "table": {

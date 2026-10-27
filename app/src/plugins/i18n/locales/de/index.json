@@ -677,7 +677,9 @@
          }
       },
       "general_info": "Allgemeine Informationen",
-      "security": "Sicherheit"
+      "security": "Sicherheit",
+      "owner_of": "Inhaber · {name}",
+      "owner_above": "Nutzt diese Filiale als Inhaber einer übergeordneten Filiale und wird dort verwaltet."
    },
    "record": {
       "table": {

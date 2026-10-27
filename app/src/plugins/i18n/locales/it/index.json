@@ -677,7 +677,9 @@
          }
       },
       "general_info": "Informazioni generali",
-      "security": "Sicurezza"
+      "security": "Sicurezza",
+      "owner_of": "Proprietario · {name}",
+      "owner_above": "Usa questa filiale come proprietario di una filiale superiore ed è gestito lì."
    },
    "record": {
       "table": {

@@ -677,7 +677,9 @@
          }
       },
       "general_info": "Informations générales",
-      "security": "Sécurité"
+      "security": "Sécurité",
+      "owner_of": "Propriétaire · {name}",
+      "owner_above": "Utilise cette agence en tant que propriétaire d'une agence parente et y est géré."
    },
    "record": {
       "table": {

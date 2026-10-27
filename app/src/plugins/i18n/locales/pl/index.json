@@ -677,7 +677,9 @@
          }
       },
       "general_info": "Informacje ogólne",
-      "security": "Bezpieczeństwo"
+      "security": "Bezpieczeństwo",
+      "owner_of": "Właściciel · {name}",
+      "owner_above": "Korzysta z tego oddziału jako właściciel oddziału nadrzędnego i jest tam zarządzany."
    },
    "record": {
       "table": {

@@ -620,7 +620,9 @@
          }
       },
       "general_info": "Genel Bilgiler",
-      "security": "Güvenlik"
+      "security": "Güvenlik",
+      "owner_of": "Sahip · {name}",
+      "owner_above": "Bu şubeyi üstündeki bir şubenin sahibi olarak kullanıyor; orada yönetilir."
    },
    "record": {
       "table": {

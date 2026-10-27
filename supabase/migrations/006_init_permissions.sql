@@ -51,7 +51,11 @@ WITH
 -- User-specific policy
 DROP POLICY IF EXISTS restrict_to_tenant_user ON public.user;
 
-CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE TO authenticated USING (
+-- Users are read with the members of the tenants read and the owners above them (who may use
+-- these tenants too); only members are written.
+DROP POLICY IF EXISTS "restrict_to_tenant" ON public.user;
+
+CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT
       1
@@ -66,21 +70,67 @@ CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE TO authenticate
         )::UUID[]
       )
   )
-)
+  OR id = ANY ((SELECT private.scope_owners ())::UUID[])
+);
+
+CREATE POLICY "restrict_insert_to_tenant" ON public.user AS RESTRICTIVE FOR INSERT TO authenticated
 WITH
-  CHECK (
-    EXISTS (
-      SELECT
-        1
-      FROM
-        tenant_user tu
-      WHERE
-        tu.user_id = public.user.id
-        AND tu.tenant_id = ANY (
-          (
-            SELECT
-              private.tenant_scope ()
-          )::UUID[]
-        )
-    )
-  );
+  CHECK (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ));
+
+CREATE POLICY "restrict_update_to_tenant" ON public.user AS RESTRICTIVE FOR UPDATE TO authenticated USING (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ))
+WITH
+  CHECK (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ));
+
+CREATE POLICY "restrict_delete_to_tenant" ON public.user AS RESTRICTIVE FOR DELETE TO authenticated USING (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ));

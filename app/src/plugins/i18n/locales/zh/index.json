@@ -677,7 +677,9 @@
          }
       },
       "general_info": "基本信息",
-      "security": "安全设置"
+      "security": "安全设置",
+      "owner_of": "所有者 · {name}",
+      "owner_above": "作为上级分店的所有者使用此分店，并在上级分店中管理。"
    },
    "record": {
       "table": {

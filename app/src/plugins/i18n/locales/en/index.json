@@ -677,7 +677,9 @@
          }
       },
       "general_info": "General Information",
-      "security": "Security"
+      "security": "Security",
+      "owner_of": "Owner · {name}",
+      "owner_above": "Uses this branch as the owner of a branch above it, and is managed there."
    },
    "record": {
       "table": {
