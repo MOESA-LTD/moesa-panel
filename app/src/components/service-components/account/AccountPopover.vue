@@ -1,14 +1,14 @@
 <script setup>
+import { useMenuSection } from '@/router/menu';
+
 const accountMenu = ref();
 
 const authStore = useAuthStore();
 const { changeCurrentTenant } = authStore;
 const { user, branches, currentTenant } = storeToRefs(authStore);
 
-const { routes } = useLayout();
-const accountMenuItems = computed(() => {
-   return routes.value.find((item) => item.route?.name == 'account')?.items;
-});
+const account = useMenuSection('account');
+const accountMenuItems = computed(() => account.value?.items);
 </script>
 
 <template>

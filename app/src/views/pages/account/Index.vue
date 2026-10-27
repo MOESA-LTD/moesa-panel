@@ -1,4 +1,6 @@
 <script setup>
+import { useMenuSection } from '@/router/menu';
+
 const route = useRoute();
 const router = useRouter();
 watchEffect(() => {
@@ -7,8 +9,7 @@ watchEffect(() => {
    }
 });
 
-const { routes } = useLayout();
-const menuRoute = computed(() => routes.value.find((item) => item.route?.name == 'account'));
+const menuRoute = useMenuSection('account');
 </script>
 <template>
    <div class="card flex flex-col gap-4">

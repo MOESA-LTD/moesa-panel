@@ -1,5 +1,4 @@
 import tailwindConfig from '@/../tailwind.config.js';
-import router from '@/router';
 import { $t, updatePreset, updateSurfacePalette } from '@primeuix/themes';
 import aura from '@primeuix/themes/aura';
 import lara from '@primeuix/themes/lara';
@@ -338,87 +337,6 @@ nextTick(() => {
 });
 
 export default () => {
-   const {
-      ability: { can }
-   } = useAuthStore();
-
-   const routes = computed(() => {
-      function routesToNestedObject(routes) {
-         const root = {};
-
-         routes
-            .sort((a, b) => a.path?.length - b.path?.length)
-            .forEach((route) => {
-               const cleanedPath = route.path.replace(/\/:[^/]+/g, '');
-               const segments = cleanedPath?.split('/').filter(Boolean);
-
-               let current = root;
-               segments?.forEach((segment) => {
-                  if (!current[segment]) {
-                     current[segment] = { route, items: {} };
-                  }
-                  current = current[segment].items;
-               });
-            });
-
-         function toNestedArray(obj, parentKey = '', isVisible = false, lastIndex = 0) {
-            return _toPairs(obj)
-               .map(([key, { items, route }], i) => {
-                  const { meta, name } = route;
-                  const currentKey = parentKey ? `${parentKey}_${i + 1}` : `${i}`;
-                  const index = meta.index || ++lastIndex;
-                  let visible = toValue(meta?.visible);
-
-                  const children = toNestedArray(items, currentKey, visible || true, index).filter(
-                     (c) => c.visible
-                  );
-
-                  visible ??= meta?.requiredPermissions?.every?.(({ action, subject }) =>
-                     can?.(action, subject)
-                  );
-
-                  visible ??= children.length > 0 ? true : isVisible;
-                  return {
-                     key: currentKey,
-                     name,
-                     label: i18n.t(meta.label || key),
-                     icon: meta.icon,
-                     visible,
-                     route: { ...route, replace: meta?.replace },
-                     index,
-                     ...(_size(children) > 0 && {
-                        items: children
-                     })
-                  };
-               })
-               .sort((a, b) => a.index - b.index);
-         }
-
-         return toNestedArray(root);
-      }
-
-      const routes = router?.getRoutes();
-
-      const nestedRoutes = routesToNestedObject(routes);
-
-      return nestedRoutes;
-   });
-
-   const namedRoutes = computed(() => {
-      function renameItemsToChildren(acc, value) {
-         if (value.items) {
-            value.children ??= {};
-            value.items.forEach((item) => {
-               _merge(value.children, renameItemsToChildren({}, item));
-            });
-            delete value.items;
-         }
-         acc[value.route?.name || value.label] = value;
-         return acc;
-      }
-      return routes.value.reduce(renameItemsToChildren, {});
-   });
-
    return {
       layoutState: layoutState,
       surfaces: readonly(surfaces),
@@ -428,8 +346,6 @@ export default () => {
       getSurfaceColor: readonly(getSurfaceColor),
       presets: readonly(presets),
       sidebarModeOptions: readonly(sidebarModeOptions),
-      routes: readonly(routes),
-      namedRoutes: readonly(namedRoutes),
       breakpoints: readonly(breakpoints),
       sidebarToggle,
       setActiveMenuItem,

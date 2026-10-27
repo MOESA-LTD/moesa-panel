@@ -1,7 +1,7 @@
 <script setup>
 import { useDialogRef } from '@/composables/useDialogRef';
-const { routes } = useLayout();
-const menuRoute = computed(() => routes.value.find((item) => item.route?.name == 'stock'));
+import { useMenuSection } from '@/router/menu';
+const menuRoute = useMenuSection('stock');
 const dialogRef = useDialogRef();
 </script>
 <template>

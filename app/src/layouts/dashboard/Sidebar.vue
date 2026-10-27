@@ -1,5 +1,8 @@
 <script setup>
-const { layoutState, routes, resetSidebar } = useLayout();
+import { useNavigationMenu } from '@/router/menu';
+
+const { layoutState, resetSidebar } = useLayout();
+const { menu } = useNavigationMenu();
 
 const outsideClickListener = ref(null);
 
@@ -54,7 +57,7 @@ onUnmounted(() => {
    <PanelMenu
       class="layout-menu"
       v-model:expandedKeys="layoutState.activeMenuItem"
-      :model="routes"
+      :model="menu"
       multiple
    >
       <template #item="{ item, active, hasSubmenu }">
@@ -69,7 +72,7 @@ onUnmounted(() => {
                v-if="!hasSubmenu"
                :to="item.route"
                :title="item.label"
-               :contextMenuItems="item?.route?.meta?.contextMenuItems"
+               :contextMenuItems="item.contextMenuItems"
                v-slot="{ navigate }"
             >
                <button
