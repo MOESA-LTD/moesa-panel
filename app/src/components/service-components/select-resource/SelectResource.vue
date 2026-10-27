@@ -1,4 +1,5 @@
 <script setup>
+import { useFormTenant } from '@/api/formTenant';
 import ResourceTable from '@/components/service-components/resource-table/ResourceTable.vue';
 import { useDialog } from 'primevue';
 import { useI18n } from 'vue-i18n';
@@ -25,7 +26,12 @@ const props = defineProps({
 });
 const attrs = useAttrs();
 const slots = useSlots();
-const tableProps = reactive(_merge({}, _cloneDeep(props.tableProps)));
+// The dialog is outside the form, so the form's tenant is handed to the table: rows are picked
+// from the tenant of the row being edited only.
+const formTenant = useFormTenant();
+const tableProps = reactive(
+   _merge({ tenant: formTenant?.value ?? null }, _cloneDeep(props.tableProps))
+);
 
 let dialog = null;
 const dialogs = useDialog();
@@ -44,6 +50,10 @@ watch(
    () => props.tableProps,
    (value) => _merge(tableProps, _cloneDeep(value)),
    { deep: true }
+);
+watch(
+   () => formTenant?.value,
+   (tenant) => (tableProps.tenant = tenant ?? null)
 );
 </script>
 <template>

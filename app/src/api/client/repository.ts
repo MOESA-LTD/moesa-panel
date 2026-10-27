@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { forTenant } from '@/api/formTenant';
 import { saveRow } from '@/api/saveRow';
 
 export type Client = Tables['client']['Row'];
@@ -19,13 +20,12 @@ export const clientRepository = {
    },
 
    /** Clients for pickers, with their addresses so the caller can prefill them. */
-   async options(signal: AbortSignal) {
-      const { data } = await supabase
-         .from('client')
-         .select('*, address(*)')
-         .order('display_name')
-         .abortSignal(signal)
-         .throwOnError();
+   /** The clients to pick from, of `tenantId` alone when given (a form's tenant). */
+   async options(signal: AbortSignal, tenantId?: string | null) {
+      const { data } = await forTenant(
+         supabase.from('client').select('*, address(*)').order('display_name').abortSignal(signal),
+         tenantId
+      ).throwOnError();
       return data;
    },
 

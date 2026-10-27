@@ -13,9 +13,13 @@ const customFetch = async (
    // (private.tenant_id) and the tenants read together (private.tenant_scope); the database keeps
    // only those the user may use.
    const { currentTenant, scopeTenants } = useAuthStore();
-   if (currentTenant?.id) options?.headers?.set?.('x-tenant-id', currentTenant.id);
-   if (scopeTenants.length > 1) {
-      options?.headers?.set?.('x-tenant-ids', scopeTenants.map(({ id }) => id).join(','));
+   // A request may name its tenant itself (forTenant, e.g. a form's lookups).
+   const headers = options?.headers as Headers | undefined;
+   if (!headers?.has?.('x-tenant-id') && currentTenant?.id) {
+      headers?.set?.('x-tenant-id', currentTenant.id);
+      if (scopeTenants.length > 1) {
+         headers?.set?.('x-tenant-ids', scopeTenants.map(({ id }) => id).join(','));
+      }
    }
 
    // A new row goes to the active tenant unless it names one. Only inserts (POST to a table): an

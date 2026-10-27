@@ -44,4 +44,9 @@ export type CustomTableRowAction<T = any> = Omit<
    disabled?: RowActionValue<boolean, T>;
    visible?: RowActionValue<boolean, T>;
    command?: (body: CustomTableBodySlotProps<T>) => () => unknown;
+   /**
+    * The permission it needs, checked in the row's own tenant (`data.tenant_id`), which may be
+    * another of the branches shown; without it the button is disabled.
+    */
+   requires?: { action: string; subject: string };
 };

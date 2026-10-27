@@ -4,7 +4,7 @@ import { fetchAccess, type Access, type Tenant } from '@/api/access';
 import { clearDialogs } from '@/components/layout/route-dialog/session';
 import { clearDrafts } from '@/lib/form/drafts';
 import { supabase } from '@/lib/supabase';
-import { ability, toAbilityRules } from '@plugins/casl';
+import { ability, createAbility, toAbilityRules } from '@plugins/casl';
 import { queryKeys } from '@/api/queryKeys';
 import { clearQueryCache, queryClient } from '@plugins/tanstack-query';
 import type {
@@ -86,6 +86,18 @@ export const useAuthStore = defineStore('auth', () => {
       (permissions) => ability.update(toAbilityRules(permissions)),
       { immediate: true }
    );
+
+   // Each tenant's own permissions, for rows of the other branches shown.
+   const tenantAbilities = computed(
+      () => new Map(branches.value.map(({ id, permissions }) => [id, createAbility(permissions)]))
+   );
+
+   /**
+    * Whether the user may do `action` on `subject` in `tenantId`: a row's own tenant, which may be
+    * another of the branches shown. Rows without a tenant (shared) follow the active tenant.
+    */
+   const canIn = (tenantId: string | null | undefined, action: string, subject: string) =>
+      ((tenantId && tenantAbilities.value.get(tenantId)) || ability).can(action, subject);
 
    // The newest load wins; an older one finishing later is dropped.
    let latestLoad = 0;
@@ -245,6 +257,7 @@ export const useAuthStore = defineStore('auth', () => {
       refreshAccess,
       accessReady,
       ability,
+      canIn,
       loginWithPassword,
       logout,
       initialized

@@ -254,6 +254,7 @@
    },
    "component": {
       "branch_picker": {
+         "column": "Filiale",
          "hint": "Angezeigt werden die Daten der markierten Filialen. Neue Einträge kommen in die Filiale mit dem Stern.",
          "label": "Filialen",
          "active": "Aktive Filiale: neue Einträge kommen hierher",

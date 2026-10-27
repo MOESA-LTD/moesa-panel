@@ -4,6 +4,7 @@ import { useRouteLoading } from '@/composables/useRouteStatus';
 import CustomTable, { CustomTableProps } from '@/components/ui/custom-table/CustomTable.vue';
 import type { CustomTableSlots } from '@/components/ui/custom-table/types';
 import { queryKeys, type TableName } from '@/api/queryKeys';
+import { forTenant } from '@/api/formTenant';
 import { useTenantKey } from '@/api/useTenantKey';
 import { toModel, type ModelClass } from '@/lib/model/Model';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
@@ -32,6 +33,8 @@ export declare type ResourceTableProps<
       head: boolean;
       count: 'exact' | 'planned' | 'estimated';
    };
+   /** Reads this tenant alone instead of the branches shown (e.g. picking for a form's row). */
+   tenant?: string | null;
 };
 export declare type ResourceTableSlots<T = any> = CustomTableSlots<T>;
 
@@ -78,14 +81,20 @@ const onMeta = (value: Partial<DataTableStateEvent>) => {
 
 const listQuery = useQuery({
    queryKey: computed(() =>
-      queryKeys.list(tenantId.value, props.from, { select: props.select, meta: meta.value })
+      queryKeys.list(props.tenant ?? tenantId.value, props.from, {
+         select: props.select,
+         meta: meta.value
+      })
    ),
    queryFn: async ({ signal }) => {
-      const query = supabase
-         // supabase-js cannot narrow the row type for a table name held in a generic.
-         .from(props.from as keyof Tables)
-         .select(props.select, props.paginator ? { count: props.count.count } : undefined)
-         .abortSignal(signal);
+      const query = forTenant(
+         supabase
+            // supabase-js cannot narrow the row type for a table name held in a generic.
+            .from(props.from as keyof Tables)
+            .select(props.select, props.paginator ? { count: props.count.count } : undefined)
+            .abortSignal(signal),
+         props.tenant
+      );
 
       const { data, count } = await applyTableMeta(query, meta.value).throwOnError();
       return { rows: data as T[], count };
@@ -115,7 +124,29 @@ const loading = computed(() => routeLoading.value || listQuery.isFetching.value)
 
 const mounted = useMounted();
 
-const tableProps = computed(() => ({ ..._omit(props, ['stateKey', 'model']), ...attrs }));
+// Rows of several branches (rows with a tenant_id) are told apart by a branch column.
+const authStore = useAuthStore();
+const { t } = useI18n();
+const showBranch = computed(
+   () =>
+      !props.tenant &&
+      authStore.scopeTenants.length > 1 &&
+      !props.columns.some(({ field }) => field === 'tenant_id') &&
+      rows.value.some((row) => !!row && typeof row === 'object' && 'tenant_id' in row)
+);
+const branchName = (id: string | null | undefined) =>
+   authStore.branches.find((branch) => branch.id === id)?.display_name ?? '';
+const columns = computed(() =>
+   showBranch.value
+      ? [...props.columns, { field: 'tenant_id', header: t('component.branch_picker.column') }]
+      : props.columns
+);
+
+const tableProps = computed(() => ({
+   ..._omit(props, ['stateKey', 'model', 'tenant']),
+   ...attrs,
+   columns: columns.value
+}));
 </script>
 <template>
    <component
@@ -129,6 +160,12 @@ const tableProps = computed(() => ({ ..._omit(props, ['stateKey', 'model']), ...
    >
       <template v-for="slot in _keys(slots)" #[slot]="slotProps" :key="slot">
          <slot :name="slot" v-if="mounted" v-bind="slotProps" />
+      </template>
+      <template v-if="showBranch" #tenant_id_body="{ data }">
+         <Tag
+            severity="secondary"
+            :value="branchName((data as { tenant_id?: string }).tenant_id)"
+         />
       </template>
    </component>
 </template>

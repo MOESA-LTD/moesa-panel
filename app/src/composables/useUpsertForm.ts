@@ -1,4 +1,5 @@
 import { useFormDraft } from '@/composables/useFormDraft';
+import { provideFormTenant } from '@/api/formTenant';
 import { useFormReadonly } from '@/composables/useFormReadonly';
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
 import { useForm } from '@/lib/form/useForm';
@@ -74,9 +75,21 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
 
    useUnsavedChangesGuard(form.isDirty, { onDiscard: draft.discard });
 
+   // The row's own tenant, which may be another of the branches shown; a new row goes to the
+   // active one. The form's lookups read that tenant only (see provideFormTenant).
+   const authStore = useAuthStore();
+   const tenantId = computed(
+      () =>
+         (row.value as { tenant_id?: string | null } | null | undefined)?.tenant_id ??
+         authStore.currentTenant?.id ??
+         null
+   );
+   provideFormTenant(tenantId);
+
    const cannotSubmit = useFormReadonly(
       options.subject,
-      () => (form.values.value as { id?: string } | undefined)?.id
+      () => (form.values.value as { id?: string } | undefined)?.id,
+      tenantId
    );
    const readonly = computed(
       () => cannotSubmit.value || (!!row.value && !!options.lockRow?.(row.value))

@@ -254,6 +254,7 @@
    },
    "component": {
       "branch_picker": {
+         "column": "分店",
          "hint": "显示已勾选分店的数据。新记录将添加到带星标的分店。",
          "label": "分店",
          "active": "当前分店：新记录将添加到这里",

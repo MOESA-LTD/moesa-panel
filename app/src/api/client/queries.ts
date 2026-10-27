@@ -1,4 +1,5 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
+import { useFormTenant } from '@/api/formTenant';
 import { useTenantKey } from '@/api/useTenantKey';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -18,11 +19,15 @@ export function useClient(id: MaybeRefOrGetter<string | null | undefined>) {
 }
 
 export function useClientOptions() {
-   const tenantId = useTenantKey();
+   const tenantKey = useTenantKey();
+   // Inside a form, the form's tenant alone (see provideFormTenant).
+   const formTenant = useFormTenant();
 
    return useQuery({
-      queryKey: computed(() => queryKeys.list(tenantId.value, 'client', { view: 'options' })),
-      queryFn: ({ signal }) => clientRepository.options(signal),
+      queryKey: computed(() =>
+         queryKeys.list(formTenant?.value ?? tenantKey.value, 'client', { view: 'options' })
+      ),
+      queryFn: ({ signal }) => clientRepository.options(signal, formTenant?.value),
       select: (data) => toModel(ClientModel, data)
    });
 }

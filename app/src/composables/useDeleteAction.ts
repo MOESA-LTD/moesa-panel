@@ -18,6 +18,7 @@ export function useDeleteAction<T extends Record<string, any>>(
    return {
       label: i18n.t('action.delete'),
       icon: PrimeIcons.TRASH,
+      requires: { action: 'modify', subject: table },
       command:
          ({ data }) =>
          async () => {

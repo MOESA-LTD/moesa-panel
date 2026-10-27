@@ -1,4 +1,5 @@
 import { queryKeys, type TableName } from '@/api/queryKeys';
+import { forTenant, useFormTenant } from '@/api/formTenant';
 import { useTenantKey } from '@/api/useTenantKey';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/vue-query';
@@ -20,19 +21,25 @@ export function useLookup<Row = Record<string, any>>(
    table: TableName,
    options: MaybeRefOrGetter<LookupOptions> = {}
 ) {
-   const tenantId = useTenantKey();
+   const tenantKey = useTenantKey();
+   // Inside a form, the form's tenant alone (see provideFormTenant).
+   const formTenant = useFormTenant();
 
    return useQuery({
       queryKey: computed(() =>
-         queryKeys.list(tenantId.value, table, { view: 'lookup', ...toValue(options) })
+         queryKeys.list(formTenant?.value ?? tenantKey.value, table, {
+            view: 'lookup',
+            ...toValue(options)
+         })
       ),
       queryFn: async ({ signal }) => {
          const { select = '*', order, in: within } = toValue(options);
 
          // The row type of a table name held in a variable cannot be inferred; callers type it.
-         let query = (supabase.from(table as keyof Tables) as any)
-            .select(select)
-            .abortSignal(signal);
+         let query = forTenant(
+            (supabase.from(table as keyof Tables) as any).select(select).abortSignal(signal),
+            formTenant?.value
+         );
          if (order) query = query.order(order);
          if (within?.values.length) query = query.in(within.column, within.values);
 

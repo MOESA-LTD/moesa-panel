@@ -376,6 +376,7 @@
    },
    "component": {
       "branch_picker": {
+         "column": "Filiale",
          "hint": "Vengono mostrati i dati delle filiali selezionate. I nuovi record vanno nella filiale con la stella.",
          "label": "Filiali",
          "active": "Filiale attiva: i nuovi record vanno qui",

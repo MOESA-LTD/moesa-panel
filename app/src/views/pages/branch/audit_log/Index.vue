@@ -4,7 +4,6 @@ import { useRevertAuditTransaction } from '@/api/auditLog';
 import { AuditTransactionModel } from '@/api/auditLog/model';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
-import { ability } from '@plugins/casl';
 import { useI18n } from 'vue-i18n';
 import AuditUser from './AuditUser.vue';
 import CorrelatedAuditLogs from './CorrelatedAuditLogs.vue';
@@ -59,6 +58,7 @@ const filters = ref<NonNullable<Props['filters']>>(
    )
 );
 
+const authStore = useAuthStore();
 const { mutateAsync: revertTransaction } = useRevertAuditTransaction();
 const rowActions: Props['rowActions'] = [
    {
@@ -68,10 +68,11 @@ const rowActions: Props['rowActions'] = [
          ({ data }) =>
          async () =>
             await revertTransaction(data.id),
+      // In the tenant of the change, which may be another of the branches shown.
       disabled: ({ data }) =>
          data.reverted ||
-         ability.cannot('create', data.table_name) ||
-         ability.cannot('modify', data.table_name),
+         !authStore.canIn(data.tenant_id, 'create', data.table_name) ||
+         !authStore.canIn(data.tenant_id, 'modify', data.table_name),
       icon: PrimeIcons.REFRESH
    }
 ];

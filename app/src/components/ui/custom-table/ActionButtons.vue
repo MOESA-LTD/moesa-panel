@@ -7,7 +7,7 @@ const props = defineProps<{
    items?: CustomTableRowAction[];
 }>();
 
-const getSeverity = (item: CustomTableRowAction): string => {
+const getSeverity = (item: { icon?: unknown }): string => {
    switch (item?.icon) {
       case PrimeIcons.TRASH:
          return 'danger';
@@ -18,15 +18,29 @@ const getSeverity = (item: CustomTableRowAction): string => {
    }
 };
 
-const buttons = computed(() => {
+const authStore = useAuthStore();
+
+type RowButton = {
+   command?: (event: Event) => void;
+   label?: string;
+   icon?: string;
+   disabled?: boolean;
+   [key: string]: unknown;
+};
+
+const buttons = computed<RowButton[]>(() => {
+   const row = (props.body as { data?: { tenant_id?: string | null } }).data;
    return props.items
-      ? props.items.map((item) => {
+      ? props.items.map(({ requires, ...item }) => {
            const pairs = _toPairs(item);
            const transformedPairs = pairs.map(([key, value]) => [
               key,
               typeof value === 'function' ? value(props.body) : value
            ]);
-           return _fromPairs(transformedPairs);
+           const button: RowButton = _fromPairs(transformedPairs);
+           const allowed =
+              !requires || authStore.canIn(row?.tenant_id, requires.action, requires.subject);
+           return { ...button, disabled: !!button.disabled || !allowed };
         })
       : [];
 });

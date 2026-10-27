@@ -73,7 +73,8 @@ const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
                await removeUser(data.id);
             }
          },
-      icon: PrimeIcons.TRASH
+      icon: PrimeIcons.TRASH,
+      requires: { action: 'modify', subject: 'user' }
    },
    {
       label: t('action.edit'),

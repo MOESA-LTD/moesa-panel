@@ -91,7 +91,8 @@ const rowActions: Props['rowActions'] = [
          async () => {
             if (await confirmDelete(data)) await deleteClient(data.id);
          },
-      icon: PrimeIcons.TRASH
+      icon: PrimeIcons.TRASH,
+      requires: { action: 'modify', subject: 'client' }
    },
    {
       label: t('action.edit'),
