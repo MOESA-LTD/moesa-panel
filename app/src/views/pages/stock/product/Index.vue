@@ -1,8 +1,13 @@
-<script setup>
+<script setup lang="ts">
+import { ProductModel } from '@/api/product/model';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
 import { useDeleteAction } from '@/composables/useDeleteAction';
 import { PRODUCT_CATEGORY_PROPS } from '@/constants/form/product';
+import { DIALOG_POSITIONS } from '@/constants/router';
 import Upsert from './Upsert.vue';
+
+type Props = ResourceTableProps<'product', ProductModel>;
 
 defineOptions({
    inheritAttrs: false
@@ -11,8 +16,7 @@ defineOptions({
 const { t } = useI18n();
 const attrs = useAttrs();
 const router = useRouter();
-/**@type {ComputedRef<ResourceTableProps['columns']>} */
-const columns = computed(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'display_name',
       sortable: true,
@@ -42,9 +46,7 @@ const columns = computed(() => [
    }
 ]);
 
-// Define the filters object
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref(
+const filters = ref<Props['filters']>(
    createFilters(
       {
          display_name: 'startsWith',
@@ -56,13 +58,13 @@ const filters = ref(
          },
          created_at: 'date'
       },
-      attrs.filters
+      attrs.filters as Props['filters']
    )
 );
 
 const stateKey = 'product';
 const deleteAction = useDeleteAction('product');
-const rowActions = [
+const rowActions: Props['rowActions'] = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -71,31 +73,26 @@ const rowActions = [
          async () =>
             router.push({
                name: 'product-edit',
-               params: {
-                  id: data.id,
-                  categories: data?.product?.categories
-                     ?.map?.(({ display_name }) => display_name)
-                     .join?.('|')
-               },
-               query: { showDialog: true }
+               params: { id: data.id },
+               query: { showDialog: DIALOG_POSITIONS.CENTER }
             }),
       icon: PrimeIcons.PENCIL
    }
 ];
 
 const dialogRef = inject('dialogRef', null);
-
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'product',
-   select: '*, categories:product_category!inner(*)',
-   columns: columns.value,
-   rowActions: rowActions,
-   ...attrs
-}));
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="product"
+      select="*, categories:product_category!inner(*)"
+      :model="ProductModel"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
@@ -120,8 +117,8 @@ const tableProps = computed(() => ({
       <template #categories_display_name_body="{ data }">
          <div class="flex gap-2 flex-wrap justify-center">
             <Tag
-               v-for="category in data?.categories"
-               :value="$t(`fields.${_snakeCase(category?.display_name || category) || ''}`)"
+               v-for="category in data.categories"
+               :value="$t(`fields.${_snakeCase(category.display_name)}`)"
                size="large"
                :key="category.id"
                v-bind="PRODUCT_CATEGORY_PROPS[category.display_name]"
@@ -129,11 +126,7 @@ const tableProps = computed(() => ({
          </div>
       </template>
       <template #expansion="{ data }">
-         <Upsert
-            class="p-0"
-            :data
-            :categories="data?.categories?.map?.(({ display_name }) => display_name).join?.('|')"
-         />
+         <Upsert class="p-0" :data :categories="data.categoryPath" />
       </template>
    </ResourceTable>
 </template>

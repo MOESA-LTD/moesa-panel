@@ -1,8 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { useRevertAuditLog } from '@/api/auditLog';
+import { AuditLogModel } from '@/api/auditLog/model';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import { ability } from '@plugins/casl';
 import { useI18n } from 'vue-i18n';
+import AuditUser from './AuditUser.vue';
 import CorrelatedAuditLogs from './CorrelatedAuditLogs.vue';
+
+type Props = ResourceTableProps<'audit_log_group', AuditLogModel>;
 
 defineOptions({
    inheritAttrs: false
@@ -11,8 +17,7 @@ defineOptions({
 const attrs = useAttrs();
 const { t } = useI18n();
 
-// Define the columns
-const columns = computed(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'table_name',
       header: t('audit_log.table.headers.resource'),
@@ -42,10 +47,7 @@ const columns = computed(() => [
    { field: 'reverted_at', header: t('audit_log.table.headers.reverted_at'), sortable: true }
 ]);
 
-// Define the filters object
-
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref(
+const filters = ref<Props['filters']>(
    createFilters(
       {
          table_name: 'text',
@@ -58,27 +60,23 @@ const filters = ref(
          'row_data->>id': 'text',
          created_at: 'date'
       },
-      attrs.filters
+      attrs.filters as Props['filters']
    )
 );
 
-const { ability } = useAuthStore();
 const { mutateAsync: revertAuditLog } = useRevertAuditLog();
-const rowActions = [
+const rowActions: Props['rowActions'] = [
    {
       label: ({ data }) =>
-         data?.reverted ? t('audit_log.already_reverted') : t('audit_log.attempt_to_revert'),
+         data.reverted ? t('audit_log.already_reverted') : t('audit_log.attempt_to_revert'),
       command:
          ({ data }) =>
          async () =>
-            await revertAuditLog({
-               correlationId: data?.correlation_id || data?.id,
-               tableName: data?.table_name
-            }),
+            await revertAuditLog({ correlationId: data.groupId, tableName: data.table_name }),
       disabled: ({ data }) =>
-         data?.reverted ||
-         ability.cannot('create', data?.table_name) ||
-         ability.cannot('modify', data?.table_name),
+         !!data.reverted ||
+         ability.cannot('create', data.table_name) ||
+         ability.cannot('modify', data.table_name),
       icon: PrimeIcons.REFRESH
    }
 ];
@@ -90,28 +88,26 @@ const operations = computed(() => [
    { value: 'SELECT', label: t('audit_log.readed'), severity: 'secondary' }
 ]);
 
-const getOperationTag = (body) => {
-   const tag = _clone(_find(operations.value, (o) => o.value === _get(body, 'data.operation')));
-   if (tag) {
-      tag.value = t(tag?.label);
-      return tag;
-   }
+const getOperationTag = (operation: string | null) => {
+   const tag = operations.value.find((o) => o.value === operation);
+   return tag && { ...tag, value: tag.label };
 };
 
 const dialogRef = inject('dialogRef', null);
 
 const stateKey = 'audit_log';
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'audit_log_group',
-   select: '*, user_id:user!user_id(*), reverted_by:user!reverted_by(*)',
-   columns: columns.value,
-   rowActions: rowActions,
-   ...attrs
-}));
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="audit_log_group"
+      select="*, user_id:user!user_id(*), reverted_by:user!reverted_by(*)"
+      :model="AuditLogModel"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
@@ -119,75 +115,23 @@ const tableProps = computed(() => ({
             </span>
          </Teleport>
       </template>
-      <template #table_name_body="{ data, field }">
-         {{ $t('fields.' + _get(data, field, '')) }}
+      <template #table_name_body="{ data }">
+         {{ $t(`fields.${data.table_name ?? ''}`) }}
       </template>
       <template #operation_body="{ data }">
-         <Tag v-if="data" v-bind="getOperationTag({ data })" />
+         <Tag v-bind="getOperationTag(data.operation)" />
       </template>
       <template #operation_filter="{ filterModel }">
          <SelectAuditOperation v-model="filterModel.value" multiple />
       </template>
       <template #expansion="{ data }">
-         <CorrelatedAuditLogs v-if="data" :id="data.correlation_id" layout="list" />
+         <CorrelatedAuditLogs :id="data.correlation_id" layout="list" />
       </template>
-      <template #user_id_body="{ data, field }">
-         <div class="flex gap-4 items-center">
-            <CustomLink
-               v-if="_get(data, `${field}.id`) && $can('read', 'user')"
-               :to="{
-                  name: 'branch-manage-user-general',
-                  params: { id: _get(data, `${field}.id`) },
-                  query: { showDialog: 'center' }
-               }"
-               v-slot="{ navigate }"
-            >
-               <Button
-                  variant="link"
-                  size="small"
-                  raised
-                  :label="
-                     _get(data, `${field}.user_metadata.display_name`) ||
-                     _get(data, `${field}.email`)
-                  "
-                  @click="navigate"
-               />
-            </CustomLink>
-            <span v-else>
-               {{
-                  _get(data, `${field}.user_metadata.display_name`) || _get(data, `${field}.email`)
-               }}
-            </span>
-         </div>
+      <template #user_id_body="{ data }">
+         <AuditUser :user="data.user_id" />
       </template>
-      <template #reverted_by_body="{ data, field }">
-         <div class="flex gap-4 items-center">
-            <CustomLink
-               v-if="_get(data, `${field}.id`) && $can('read', 'user')"
-               :to="{
-                  name: 'branch-manage-user-general',
-                  params: { id: _get(data, `${field}.id`) },
-                  query: { showDialog: 'center' }
-               }"
-               v-slot="{ navigate }"
-            >
-               <Button
-                  variant="link"
-                  size="small"
-                  raised
-                  :label="
-                     _get(data, `${field}.user_metadata.display_name`) ||
-                     _get(data, `${field}.email`)
-                  "
-                  @click="navigate"
-               />
-            </CustomLink>
-            <span v-else>
-               {{
-                  _get(data, `${field}.user_metadata.display_name`) || _get(data, `${field}.email`)
-               }}
-            </span>
-         </div>
+      <template #reverted_by_body="{ data }">
+         <AuditUser :user="data.reverted_by" />
       </template>
    </ResourceTable>
 </template>

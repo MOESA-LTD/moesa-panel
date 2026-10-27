@@ -1,7 +1,12 @@
-<script setup>
-import { useDeleteAction } from '@/composables/useDeleteAction';
+<script setup lang="ts">
+import { AddressModel } from '@/api/address/model';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import { useDeleteAction } from '@/composables/useDeleteAction';
+import { DIALOG_POSITIONS } from '@/constants/router';
 import Upsert from './Upsert.vue';
+
+type Props = ResourceTableProps<'address', AddressModel>;
 
 defineOptions({
    inheritAttrs: false
@@ -12,7 +17,7 @@ const attrs = useAttrs();
 
 const router = useRouter();
 
-const columns = computed(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'display_name',
       header: t('address.table.headers.address_name'),
@@ -41,8 +46,7 @@ const columns = computed(() => [
    }
 ]);
 
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref(
+const filters = ref<Props['filters']>(
    createFilters(
       {
          display_name: 'startsWith',
@@ -51,13 +55,13 @@ const filters = ref(
          district: 'startsWith',
          details: 'startsWith'
       },
-      attrs.filters
+      attrs.filters as Props['filters']
    )
 );
 
 const stateKey = 'address';
 const deleteAction = useDeleteAction('address');
-const rowActions = [
+const rowActions: Props['rowActions'] = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -69,25 +73,25 @@ const rowActions = [
                params: {
                   id: data.id
                },
-               query: { showDialog: true }
+               query: { showDialog: DIALOG_POSITIONS.CENTER }
             }),
       icon: PrimeIcons.PENCIL
    }
 ];
 
 const dialogRef = inject('dialogRef', null);
-
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'address',
-   select: '*',
-   columns: columns.value,
-   rowActions: rowActions,
-   ...attrs
-}));
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="address"
+      select="*"
+      :model="AddressModel"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">

@@ -1,17 +1,19 @@
-<script setup>
+<script setup lang="ts">
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import { useDeleteAction } from '@/composables/useDeleteAction';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import Upsert from '@/views/pages/address/Upsert.vue';
 
+type Props = ResourceTableProps<'client_address_view'>;
+
 defineOptions({
    inheritAttrs: false
 });
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 const attrs = useAttrs();
-/**@type {ComputedRef<ResourceTableProps['columns']>} */
-const columns = computed(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'client_display_name',
       sortable: true,
@@ -48,9 +50,7 @@ const columns = computed(() => [
    }
 ]);
 
-// Define the filters object
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref(
+const filters = ref<Props['filters']>(
    createFilters(
       {
          client_display_name: 'startsWith',
@@ -61,7 +61,7 @@ const filters = ref(
          address_district: 'startsWith',
          address_details: 'startsWith'
       },
-      attrs.filters
+      attrs.filters as Props['filters']
    )
 );
 
@@ -70,21 +70,20 @@ const deleteAction = useDeleteAction('client_address', (row) => ({
    address_id: row.address_id,
    client_id: row.client_id
 }));
-const rowActions = [deleteAction];
+const rowActions: Props['rowActions'] = [deleteAction];
 
 const dialogRef = inject('dialogRef', null);
-
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'client_address_view',
-   select: '*',
-   columns: columns.value,
-   rowActions: rowActions,
-   ...attrs
-}));
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="client_address_view"
+      select="*"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">

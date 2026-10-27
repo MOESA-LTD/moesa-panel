@@ -1,7 +1,11 @@
-<script setup>
+<script setup lang="ts">
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import { DIALOG_POSITIONS } from '@/constants/router';
 import { useDeleteAction } from '@/composables/useDeleteAction';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import Upsert from './Upsert.vue';
+
+type Props = ResourceTableProps<'role'>;
 
 defineOptions({
    inheritAttrs: false
@@ -11,9 +15,7 @@ const attrs = useAttrs();
 const router = useRouter();
 const { t } = useI18n();
 
-// Define the columns
-/**@type {ComputedRef<ResourceTableProps['columns']>} */
-const columns = computed(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'display_name',
       sortable: true,
@@ -26,21 +28,19 @@ const columns = computed(() => [
    }
 ]);
 
-// Define the filters object
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref(
+const filters = ref<Props['filters']>(
    createFilters(
       {
          display_name: 'startsWith',
          created_at: 'date'
       },
-      attrs.filters
+      attrs.filters as Props['filters']
    )
 );
 
 const stateKey = 'role';
 const deleteAction = useDeleteAction('role');
-const rowActions = [
+const rowActions: Props['rowActions'] = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -50,25 +50,24 @@ const rowActions = [
             router.push({
                name: 'branch-role-edit',
                params: { id: data.id },
-               query: { showDialog: true }
+               query: { showDialog: DIALOG_POSITIONS.CENTER }
             }),
       icon: PrimeIcons.PENCIL
    }
 ];
 
 const dialogRef = inject('dialogRef', null);
-
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'role',
-   select: '*, permission(id, kind, group_name, resource_name)',
-   columns: columns.value,
-   rowActions: rowActions,
-   ...attrs
-}));
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="role"
+      select="*, permission(id, kind, group_name, resource_name)"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">

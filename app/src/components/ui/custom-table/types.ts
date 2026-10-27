@@ -28,10 +28,20 @@ export type CustomTableSlots<T = any> = Partial<DataTableSlots<T>> &
       table_actions?: () => VNode[];
    };
 
+/** A row action value, or a function of the row's body scope that returns it. */
+type RowActionValue<V, T> = V | ((body: CustomTableBodySlotProps<T>) => V);
+
 /**
- * A row action button. `command` gets the row's body scope and returns the click handler:
- * `command: ({ data }) => () => remove(data.id)`.
+ * A row action button. Function values get the row's body scope: `disabled: ({ data }) => ...`.
+ * `command` returns the click handler: `command: ({ data }) => () => remove(data.id)`.
  */
-export type CustomTableRowAction<T = any> = Omit<MenuItem, 'command'> & {
+export type CustomTableRowAction<T = any> = Omit<
+   MenuItem,
+   'command' | 'label' | 'icon' | 'disabled' | 'visible'
+> & {
+   label?: RowActionValue<string, T>;
+   icon?: RowActionValue<string, T>;
+   disabled?: RowActionValue<boolean, T>;
+   visible?: RowActionValue<boolean, T>;
    command?: (body: CustomTableBodySlotProps<T>) => () => unknown;
 };
