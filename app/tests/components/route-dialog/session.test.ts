@@ -74,10 +74,20 @@ describe('route dialog session', () => {
       // b was opened by the page's own URL before the restore ran.
       markOnScreen('b');
 
-      expect(dialogsToRestore('u1').map(({ id }) => id)).toEqual(['a']);
+      expect(dialogsToRestore('u1', null).map(({ id }) => id)).toEqual(['a']);
 
       // Closed again, e.g. by an expired session: restored after signing in.
       markOffScreen('b');
-      expect(dialogsToRestore('u1').map(({ id }) => id)).toEqual(['a', 'b']);
+      expect(dialogsToRestore('u1', null).map(({ id }) => id)).toEqual(['a', 'b']);
+   });
+
+   it('restores the dialogs of a tenant in that tenant only', () => {
+      rememberDialog({ ...dialog('a'), tenantId: 't1' });
+      rememberDialog({ ...dialog('b'), tenantId: 't2' });
+      // A page of no tenant (e.g. the account) comes back in every tenant.
+      rememberDialog(dialog('c'));
+
+      expect(dialogsToRestore('u1', 't1').map(({ id }) => id)).toEqual(['a', 'c']);
+      expect(dialogsToRestore('u1', 't2').map(({ id }) => id)).toEqual(['b', 'c']);
    });
 });

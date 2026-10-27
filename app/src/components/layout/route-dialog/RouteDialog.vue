@@ -65,8 +65,9 @@ provide(ROUTE_DIALOG, {
    close
 });
 
-// Closed by losing the session (e.g. it expired), the dialog reopens after signing in again.
-let keepForSignIn = false;
+// Closed by losing the session (e.g. it expired) or by switching tenants, the dialog stays in the
+// tab's session: it reopens after signing in again, or when its tenant is chosen again.
+let keepInSession = false;
 
 // The page belongs to the signed-in user and, if it needs permissions, to the current tenant.
 if (props.route.meta.requiresAuth) {
@@ -74,10 +75,8 @@ if (props.route.meta.requiresAuth) {
    const tenantId = currentTenant.value?.id;
 
    watch([isSignedIn, () => currentTenant.value?.id], ([signedIn, id]) => {
-      if (!signedIn) {
-         keepForSignIn = true;
-         dialogRef?.value.close();
-      } else if (id !== tenantId && props.route.meta.requiredPermissions) {
+      if (!signedIn || (id !== tenantId && props.route.meta.requiredPermissions)) {
+         keepInSession = true;
          dialogRef?.value.close();
       }
    });
@@ -86,7 +85,7 @@ if (props.route.meta.requiresAuth) {
 // A reload does not unmount the dialog, so it stays in the session and reopens.
 onUnmounted(() => {
    markOffScreen(props.dialogId);
-   if (!keepForSignIn) forgetDialog(props.dialogId);
+   if (!keepInSession) forgetDialog(props.dialogId);
 });
 
 // Frame

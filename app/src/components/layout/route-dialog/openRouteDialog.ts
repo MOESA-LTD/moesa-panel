@@ -19,9 +19,14 @@ export function openRouteDialog(
    const saved = takeReopening(route.fullPath);
    const id = saved?.id ?? crypto.randomUUID();
    // Only pages of the signed-in user are reopened; auth pages (login, ...) are not.
-   const userId = useAuthStore().user?.id;
+   const authStore = useAuthStore();
+   const userId = authStore.user?.id;
    if (userId && route.meta.requiresAuth) {
-      rememberDialog({ ...saved, id, userId, path: route.fullPath, position });
+      // A page that needs permissions shows the current tenant's data (see RouteDialog).
+      const tenantId = route.meta.requiredPermissions
+         ? (authStore.currentTenant?.id ?? null)
+         : null;
+      rememberDialog({ ...saved, id, userId, tenantId, path: route.fullPath, position });
    }
    markOnScreen(id);
 

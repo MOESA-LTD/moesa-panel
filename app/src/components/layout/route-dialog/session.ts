@@ -12,6 +12,11 @@ export type SavedRouteDialog = Partial<DialogFrameSnapshot> & {
    /** The route's full path, including `?showDialog=<position>`. */
    path: string;
    position: DialogPosition;
+   /**
+    * The tenant whose data the page shows (pages that need permissions); it is reopened in that
+    * tenant only. Unset for pages that belong to no tenant.
+    */
+   tenantId?: string | null;
 };
 
 const KEY = 'route-dialogs';
@@ -60,9 +65,14 @@ const onScreen = new Set<string>();
 export const markOnScreen = (id: string) => onScreen.add(id);
 export const markOffScreen = (id: string) => onScreen.delete(id);
 
-/** The user's saved dialogs that are not on screen, in the order they were opened. */
-export const dialogsToRestore = (userId: string) =>
-   savedDialogs(userId).filter(({ id }) => !onScreen.has(id));
+/**
+ * The user's saved dialogs that are not on screen and belong to `tenantId` (or to no tenant), in
+ * the order they were opened.
+ */
+export const dialogsToRestore = (userId: string, tenantId: string | null) =>
+   savedDialogs(userId).filter(
+      (dialog) => !onScreen.has(dialog.id) && (!dialog.tenantId || dialog.tenantId === tenantId)
+   );
 
 // A dialog being reopened by useRouteDialogRestore, matched by path when the guard opens it.
 const reopening = new Map<string, SavedRouteDialog>();
