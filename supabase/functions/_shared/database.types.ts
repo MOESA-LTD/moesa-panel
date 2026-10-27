@@ -1120,11 +1120,11 @@ export type Database = {
         }
         Returns: undefined
       }
-      is_member: {
+      managed_in: {
         Args: {
           "": unknown
         }
-        Returns: boolean
+        Returns: string
       }
       my_access: {
         Args: {

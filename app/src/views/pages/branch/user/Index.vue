@@ -3,7 +3,7 @@ import { useDialogRef } from '@/composables/useDialogRef';
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
-import { isOwnerAbove, useRemoveUser, type UserAccess } from '@/api/user';
+import { isOwnerAbove, USER_ACCESS, useRemoveUser, type UserAccess } from '@/api/user';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import { useI18n } from 'vue-i18n';
 import Upsert from './upsert/Index.vue';
@@ -70,7 +70,7 @@ const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
          ({ data }) =>
          async () => {
             if (await confirmDelete({ ...data, display_name: data.email })) {
-               await removeUser(data.id);
+               await removeUser({ id: data.id, tenantId: (data as UserAccess).tenant_id });
             }
          },
       icon: PrimeIcons.TRASH,
@@ -99,7 +99,7 @@ const dialogRef = useDialogRef();
       :is="ResourceTable<'user', T>"
       :stateKey
       :from="'user'"
-      :select="'*, role(*,permission(*)), owned_via, is_member'"
+      :select="`*, role(*,permission(*)), ${USER_ACCESS}`"
       :columns="columns"
       :rowActions="rowActions"
       v-model:filters="filters"

@@ -110,8 +110,10 @@ END;
 $$;
 
 -- Computed fields of a user for the user list. owned_via: the tenants read, or above them, that the
--- user owns directly (by name); is_member: whether the user belongs to one of the tenants read. An
--- owner who is no member uses the tenants through ownership and is managed in the tenant above.
+-- user owns directly (by name); managed_in: the tenant read where the user is managed (invited,
+-- given roles, removed): the active one if they belong to it, else the first by name they belong to.
+-- NULL for an owner who belongs to none of them: they use the tenants through a tenant above and
+-- are managed there.
 CREATE OR REPLACE FUNCTION public.owned_via (public.user) RETURNS TEXT[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
    search_path = '' AS $$
@@ -126,21 +128,25 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.is_member (public.user) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
+CREATE OR REPLACE FUNCTION public.managed_in (public.user) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
    search_path = '' AS $$
 BEGIN
-    RETURN EXISTS (
-        SELECT 1 FROM public.tenant_user tu
+    RETURN (
+        SELECT tu.tenant_id
+        FROM public.tenant_user tu
+        JOIN public.tenant t ON t.id = tu.tenant_id
         WHERE tu.user_id = $1.id AND tu.tenant_id = ANY (private.tenant_scope())
+        ORDER BY tu.tenant_id IS DISTINCT FROM private.tenant_id(), t.display_name, t.id
+        LIMIT 1
     );
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.owned_via (public.user) FROM PUBLIC, anon;
 
-REVOKE ALL ON FUNCTION public.is_member (public.user) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.managed_in (public.user) FROM PUBLIC, anon;
 
 GRANT EXECUTE ON FUNCTION public.owned_via (public.user) TO authenticated;
 
-GRANT EXECUTE ON FUNCTION public.is_member (public.user) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.managed_in (public.user) TO authenticated;
