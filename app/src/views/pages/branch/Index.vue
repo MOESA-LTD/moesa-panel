@@ -1,7 +1,8 @@
 <script setup>
+import { useDialogRef } from '@/composables/useDialogRef';
 const { routes } = useLayout();
 const menuRoute = computed(() => routes.value.find((item) => item.route?.name == 'branch'));
-const dialogRef = inject('dialogRef', false);
+const dialogRef = useDialogRef();
 </script>
 <template>
    <div class="card p-0 flex flex-col gap-4">

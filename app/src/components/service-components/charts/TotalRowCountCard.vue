@@ -15,13 +15,10 @@ export type TotalRowCountCardProps = StatisticCardProps & {
 
 const slots = defineSlots<StatisticCardSlots>();
 
-const props = withDefaults(defineProps<TotalRowCountCardProps>(), {
-   from: null,
-   filters: null
-});
+const props = defineProps<TotalRowCountCardProps>();
 
-const totalRowCount = ref(null);
-const sinceDateCount = ref(null);
+const totalRowCount = ref<number | null>(null);
+const sinceDateCount = ref<number | null>(null);
 const loading = ref(true);
 const selectLoading = ref(true);
 
@@ -93,7 +90,7 @@ const mounted = useMounted();
       :statistic="$t('dashboard.statistics.total') + ': ' + totalRowCount?.toString()"
       :loading
    >
-      <template #description v-if="totalRowCount > 0">
+      <template #description v-if="(totalRowCount ?? 0) > 0">
          <FormField :loading="selectLoading" v-slot="slotProps">
             <Select
                v-model="selectedDate"

@@ -3,14 +3,14 @@ import { fieldRoutes } from '@/constants/form/field';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
 import { detailedDiff, diff } from 'deep-object-diff';
 
-type Log = Tables['audit_log']['Update'] & {
-   changes?: {
-      key?: string;
-      type?: string;
-      oldValue?: any;
-      newValue?: any;
-   }[];
+type LogChange = {
+   key: string;
+   type: 'add' | 'delete' | 'update';
+   oldValue?: unknown;
+   newValue?: unknown;
 };
+
+type Log = Tables['audit_log']['Update'] & { changes?: LogChange[] };
 
 const props = defineProps<{
    id?: Tables['audit_log']['Row']['id'];
@@ -31,7 +31,7 @@ const getLogTagProps = (log: Log) => {
    }
 };
 
-const getChanges = (log: Log) => {
+const getChanges = (log: Log | null | undefined): Log => {
    if (!_isObject(log)) return {};
 
    const omitFn = (value: any, key: string) => {
@@ -63,7 +63,7 @@ const getChanges = (log: Log) => {
    }
 
    const diffResult = detailedDiff(oldData, rowData);
-   const changes = [];
+   const changes: LogChange[] = [];
 
    for (const [key, value] of _toPairs(diffResult?.added)) {
       changes.push({ key, type: 'add', oldValue: null, newValue: value });
@@ -89,7 +89,7 @@ const getChanges = (log: Log) => {
 
 function getLogResourceRoute(log: Log) {
    const { table_name, row_data, old_data } = log;
-   const { name, field } = fieldRoutes[table_name];
+   const { name, field } = fieldRoutes[table_name ?? ''];
    const id = field ? _get(row_data, field, _get(old_data, field)) : _get(row_data, 'id');
    const params = {
       id
@@ -101,10 +101,11 @@ function getLogResourceRoute(log: Log) {
    };
 }
 
-function getLogEntryRoute(entry: Log['changes'][0]) {
+function getLogEntryRoute(entry: LogChange) {
    const { key, newValue } = entry;
    const { name } = fieldRoutes[key];
-   const id = newValue;
+   // Shown only for `*_id` changes, so the value is the related row's id.
+   const id = newValue as string;
    const params = {
       id
    };
@@ -179,7 +180,7 @@ if (props.id) {
                v-if="
                   !log.reverted_at &&
                   log.operation !== 'DELETE' &&
-                  !!fieldRoutes[log.table_name] &&
+                  !!fieldRoutes[log.table_name ?? ''] &&
                   !!(log.row_data as any)?.id
                "
                :to="getLogResourceRoute(log)"
@@ -199,7 +200,11 @@ if (props.id) {
          <Tag v-bind="getLogTagProps(log)" />
       </template>
       <div class="audit_card__changes-container" v-if="_size(log.changes) > 0">
-         <div v-for="(entry, i) in log?.changes" :key="log?.id + i" class="audit_card__change-item">
+         <div
+            v-for="(entry, i) in log?.changes"
+            :key="`${log.id}-${i}`"
+            class="audit_card__change-item"
+         >
             <span class="audit_card__key" v-text="$t('fields.' + entry?.key || '')" />
 
             <div class="audit_card__value-container">

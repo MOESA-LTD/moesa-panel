@@ -42,7 +42,7 @@ const selectedStock = computed(() => values.value.stock as RecordStock | undefin
 const availableQuantity = computed(() => {
    const stock = selectedStock.value;
    const ownQuantity =
-      stock?.id && stock.id === row.value?.stock_id ? Number(row.value.quantity ?? 0) : 0;
+      stock?.id && stock.id === row.value?.stock_id ? Number(row.value?.quantity ?? 0) : 0;
    const quantity = _round(Number(stock?.available_quantity ?? 0) + ownQuantity, 2);
    return stock?.unit_type === 'pcs' ? Math.floor(quantity) : quantity;
 });

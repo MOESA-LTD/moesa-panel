@@ -18,7 +18,8 @@ const DATE_MODES: string[] = [
 ];
 
 const kind = computed(() => {
-   if (props.dataType === 'date' || DATE_MODES.includes(props.filterModel.matchMode)) return 'date';
+   if (props.dataType === 'date' || DATE_MODES.includes(props.filterModel.matchMode ?? ''))
+      return 'date';
    if (props.dataType === 'numeric' || props.dataType === 'decimal') return 'number';
    return 'text';
 });
@@ -59,7 +60,7 @@ const value = computed({
             v-else-if="kind === 'number'"
             v-bind="inputProps"
             v-model="value"
-            :max-fraction-digits="dataType === 'decimal' ? 3 : null"
+            :max-fraction-digits="dataType === 'decimal' ? 3 : undefined"
             @keydown.enter="filterCallback"
          />
          <InputText

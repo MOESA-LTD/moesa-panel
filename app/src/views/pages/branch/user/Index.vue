@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Tables['user']['Row']">
+import { useDialogRef } from '@/composables/useDialogRef';
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
@@ -36,7 +37,7 @@ const columns = computed<ResourceTableProps['columns']>(() => [
    }
 ]);
 
-const filters = ref<ResourceTableProps['filters']>({
+const filters = ref<NonNullable<ResourceTableProps['filters']>>({
    global: {
       value: null,
       matchMode: FilterMatchMode.CONTAINS
@@ -88,7 +89,7 @@ const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
    }
 ];
 
-const dialogRef = inject('dialogRef', false);
+const dialogRef = useDialogRef();
 </script>
 <template>
    <component
@@ -101,7 +102,7 @@ const dialogRef = inject('dialogRef', false);
       v-model:filters="filters"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
                <CustomLink v-if="$can('create', 'user')" :to="{ name: 'branch-user-manage' }">

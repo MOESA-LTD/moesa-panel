@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T = any">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import TableFilterInput from './TableFilterInput.vue';
 import type { CustomTableBodySlotProps, CustomTableRowAction, CustomTableSlots } from './types';
@@ -80,7 +81,7 @@ const filterInput = computed({
          if (!_has(meta.value.filters, field)) return;
          _merge(meta.value.filters[field], {
             ..._get(values as object, field),
-            ..._pick(props.filters[field], ['dataType'])
+            ..._pick(props.filters?.[field], ['dataType'])
          });
          if (meta.value.filters[field]?.constraints && _isArray(filter.constraints)) {
             _set(meta.value.filters[field], 'constraints', filter.constraints);
@@ -95,7 +96,7 @@ const rows = defineModel<CustomTableProps<T>['rows']>('rows');
 
 const values = defineModel<CustomTableProps<T>['value']>('value');
 
-const dialogRef = inject('dialogRef', null as any);
+const dialogRef = useDialogRef();
 
 const { meta, stateStorage, metaStateKey, onMeta } = useTableMeta({
    stateStorage: props.stateStorage as TableStateStorage,
@@ -188,7 +189,8 @@ const tableValue = computed(() => {
       :groupRowsBy="meta.multiSortMeta?.map(({ field }) => field as string)"
       v-model:filters="filterInput"
       v-model:expanded-row-groups="meta.expandedRowGroups"
-      v-model:multi-sort-meta="meta.multiSortMeta"
+      :multi-sort-meta="meta.multiSortMeta ?? undefined"
+      @update:multi-sort-meta="meta.multiSortMeta = $event"
       v-model:selection="selection"
       v-model:expanded-rows="meta.expandedRows"
       @page="(value: any) => onMeta(value)"
@@ -246,8 +248,8 @@ const tableValue = computed(() => {
          :data-type="dataType"
          :showFilterOperator="!nested"
          :showFilterMenu="!!filter"
-         :header="!$slots[`${slotPrefix}_header`] && column.header"
-         :footer="!$slots[`${slotPrefix}_footer`] && column.footer"
+         :header="$slots[`${slotPrefix}_header`] ? undefined : column.header"
+         :footer="$slots[`${slotPrefix}_footer`] ? undefined : column.footer"
       >
          <template
             v-for="slot in columnSlots(slotPrefix)"

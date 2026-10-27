@@ -5,7 +5,7 @@
       "allowJs": true,
       "types": ["vite/client"],
       // Transitional: tightened step by step during the TypeScript migration.
-      "strictNullChecks": false,
+      "strictNullChecks": true,
       "noImplicitAny": false,
       "verbatimModuleSyntax": false,
       "paths": {

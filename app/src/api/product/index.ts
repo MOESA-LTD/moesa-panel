@@ -105,6 +105,6 @@ export const toProductPayload = ({
    ...product
 }: z.output<typeof productSchema>): ProductInput => ({
    // tenant_id is set by customFetch; shared catalogue products (no tenant) are read-only.
-   product: product as ProductInput['product'],
+   product,
    categoryIds: categories.map(({ id }) => id)
 });

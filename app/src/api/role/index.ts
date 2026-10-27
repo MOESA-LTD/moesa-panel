@@ -81,6 +81,6 @@ export const toRoleFormValues = (role?: Partial<RoleWithPermissions> | null): Ro
 });
 
 export const toRolePayload = ({ permission, ...role }: z.output<typeof roleSchema>): RoleInput => ({
-   role: role as RoleInput['role'],
+   role,
    permissionIds: permission.map(({ id }) => id)
 });

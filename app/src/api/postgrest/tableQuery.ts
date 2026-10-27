@@ -15,7 +15,7 @@ export type TableMeta = {
    filters?: Record<string, unknown>;
    first?: number;
    rows?: number;
-   multiSortMeta?: Array<{ field?: unknown; order?: number | null }>;
+   multiSortMeta?: Array<{ field?: unknown; order?: number | null }> | null;
 };
 
 /** A single PostgREST condition: `column=operator.value`. */

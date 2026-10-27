@@ -58,11 +58,14 @@ const calcFinancials = (
    });
 };
 
+// The quantity input may be cleared while editing; the amounts treat that as zero.
+const quantity = computed(() => values.value.quantity ?? 0);
+
 const totalCost = computed({
    get: () =>
       (values.value.unit_cost - values.value.unit_discount + values.value.unit_tax) *
-      values.value.quantity,
-   set: (value: number) => calcFinancials(value, values.value.quantity, discount.value, tax.value)
+      quantity.value,
+   set: (value: number) => calcFinancials(value, quantity.value, discount.value, tax.value)
 });
 
 const discount = computed({
@@ -70,7 +73,7 @@ const discount = computed({
       if (!values.value.unit_cost) return 0;
       return (values.value.unit_discount / values.value.unit_cost) * 100 || 0;
    },
-   set: (value: number) => calcFinancials(totalCost.value, values.value.quantity, value, tax.value)
+   set: (value: number) => calcFinancials(totalCost.value, quantity.value, value, tax.value)
 });
 
 const tax = computed({
@@ -79,8 +82,7 @@ const tax = computed({
       if (base <= 0) return 0;
       return (values.value.unit_tax / base) * 100 || 0;
    },
-   set: (value: number) =>
-      calcFinancials(totalCost.value, values.value.quantity, discount.value, value)
+   set: (value: number) => calcFinancials(totalCost.value, quantity.value, discount.value, value)
 });
 </script>
 
@@ -305,7 +307,11 @@ const tax = computed({
             v-slot="slotProps"
             class="!flex-auto !max-w-full w-full h-fit"
          >
-            <Editor v-bind="slotProps" v-model="values.details" />
+            <Editor
+               v-bind="slotProps"
+               :model-value="values.details ?? undefined"
+               @update:model-value="values.details = $event"
+            />
          </FormField>
       </FormBox>
    </div>

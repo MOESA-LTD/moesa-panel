@@ -1,9 +1,10 @@
 <script setup>
+import { useDialogRef } from '@/composables/useDialogRef';
 const authStore = useAuthStore();
 const { isSignedIn } = storeToRefs(authStore);
 const { logout } = authStore;
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 
 dialogRef?.value?.options?.props?.closeButtonProps?.onClick?.();
 

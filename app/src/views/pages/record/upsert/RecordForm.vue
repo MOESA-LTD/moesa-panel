@@ -187,7 +187,7 @@ const tax = computed({
                v-bind="slotProps"
                option-label="label"
                option-value="value"
-               :options="_get(RECORD_STATUSES, values.record_type)"
+               :options="_get(RECORD_STATUSES, values.record_type ?? '')"
                v-model="values.record_status"
             />
          </FormField>
@@ -434,7 +434,11 @@ const tax = computed({
          v-slot="slotProps"
          class="!flex-auto !max-w-full w-full h-fit"
       >
-         <Editor v-bind="slotProps" v-model="values.details" />
+         <Editor
+            v-bind="slotProps"
+            :model-value="values.details ?? undefined"
+            @update:model-value="values.details = $event"
+         />
       </FormField>
    </span>
 </template>

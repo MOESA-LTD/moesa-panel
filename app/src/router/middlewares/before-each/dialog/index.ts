@@ -17,8 +17,10 @@ export const dialogBeforeEach: NavigationGuardWithThis<undefined> = async (to, f
    const showDialog = to.query?.showDialog as DialogPosition | undefined;
    if (!showDialog) return;
 
-   const lastMatchedRoute = _last(to.matched);
-   const components = lastMatchedRoute.components;
+   const lastMatchedRoute = to.matched.at(-1);
+   const components = lastMatchedRoute?.components;
+   if (!lastMatchedRoute || !components) return;
+
    const page = components.default;
    const dialogComponent = h(
       _isFunction(page)

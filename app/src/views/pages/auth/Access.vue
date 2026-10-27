@@ -1,5 +1,6 @@
 <script setup>
-const dialogRef = inject('dialogRef', null);
+import { useDialogRef } from '@/composables/useDialogRef';
+const dialogRef = useDialogRef();
 </script>
 
 <template>

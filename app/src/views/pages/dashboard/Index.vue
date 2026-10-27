@@ -1,14 +1,30 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { fieldRoutes } from '@/constants/form/field';
 import { PRODUCT_CATEGORY_PROPS } from '@/constants/form/product';
 import { RECORD_TYPES } from '@/constants/form/record';
 import { appErrorHandler } from '@/lib/appErrorHandler';
-import { ChartOptions } from 'chart.js';
+import type { ChartData, ChartOptions } from 'chart.js';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
 const { layoutState, isDarkTheme, primaryColors } = useLayout();
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
+
+const bestSellingProductsQuery = () =>
+   supabase
+      .from('dashboard_best_selling_products')
+      .select(
+         'record_type, record_status, record_count, currency_code, sum_quantity, sum_bid, sum_discount, sum_tax, stock:stock_view!inner(id,product!inner(display_name, categories:product_category!inner(display_name)))'
+      )
+      .order('sum_quantity', { ascending: true })
+      .eq('record_type', 'sale')
+      .eq('record_status', 'done')
+      .limit(4)
+      .limit(1, { foreignTable: 'stock_view' });
+type BestSellingProduct = NonNullable<
+   Awaited<ReturnType<typeof bestSellingProductsQuery>>['data']
+>[number];
 
 const useBestSellingProducts = () => {
    const rows = computed(() => [
@@ -50,24 +66,14 @@ const useBestSellingProducts = () => {
       }
    ]);
 
-   const data = ref<Partial<Views['dashboard_best_selling_products']['Row']>[]>(null);
-   const loading = ref(null);
+   const data = ref<BestSellingProduct[] | null>(null);
+   const loading = ref(false);
    const load = async () => {
       try {
          loading.value = true;
-         await supabase
-            .from('dashboard_best_selling_products')
-            .select(
-               'record_type, record_status, record_count, currency_code, sum_quantity, sum_bid, sum_discount, sum_tax, stock:stock_view!inner(id,product!inner(display_name, categories:product_category!inner(display_name)))'
-            )
-            .order('sum_quantity', { ascending: true })
-            .eq('record_type', 'sale')
-            .eq('record_status', 'done')
-            .limit(4)
-            .limit(1, { foreignTable: 'stock_view' })
-            .then((res) => {
-               data.value = res.data;
-            });
+         await bestSellingProductsQuery().then((res) => {
+            data.value = res.data;
+         });
          return data.value;
       } catch (error) {
          console.error('Error fetching best selling products:', error);
@@ -87,7 +93,7 @@ const useBestSellingProducts = () => {
 
 const useDashboardNotifications = () => {
    const getTagProps = (item: Views['dashboard_notification_feed']['Row']) => {
-      switch (_toLower(item?.activity)) {
+      switch (_toLower(item?.activity ?? undefined)) {
          case 'updated':
             return { icon: PrimeIcons.SYNC, severity: 'info' };
          case 'deleted':
@@ -103,8 +109,8 @@ const useDashboardNotifications = () => {
       notification: Views['dashboard_notification_feed']['Row']
    ): Partial<RouteLocationAsRelativeGeneric> => {
       const { old_data, row_data, resource_id, table_name } = notification;
-      const name = fieldRoutes[table_name]?.name;
-      const field = fieldRoutes[table_name]?.field;
+      const name = fieldRoutes[table_name ?? '']?.name;
+      const field = fieldRoutes[table_name ?? '']?.field;
       const id = (
          field ? _get(row_data, field, _get(old_data, field, resource_id)) : resource_id
       ) as string;
@@ -127,7 +133,7 @@ const useDashboardNotifications = () => {
 
    // Replaced as a whole; shallowRef also avoids unwrapping the nested Json types.
    const data = shallowRef<Views['dashboard_notification_feed']['Row'][]>([]);
-   const loading = ref(null);
+   const loading = ref(false);
    const SINCE = ['today', 'yesterday', 'last_week', 'older'];
    const load = async () => {
       try {
@@ -141,7 +147,7 @@ const useDashboardNotifications = () => {
                   .order('created_at', { ascending: false })
                   .limit(5)
                   .throwOnError()
-                  .then((res) => res.data)
+                  .then((res) => res.data ?? [])
             )
          );
          data.value = groups.flat();
@@ -164,14 +170,14 @@ const useDashboardNotifications = () => {
 
 const useCategorySales = () => {
    const data = ref<Views['dashboard_product_category_sales_summary']['Row'][]>([]);
-   const loading = ref(null);
+   const loading = ref(false);
 
    const load = async () => {
       try {
          await supabase
             .from('dashboard_product_category_sales_summary')
             .select('*')
-            .then((res) => (data.value = res.data));
+            .then((res) => (data.value = res.data ?? []));
          return data.value;
       } catch (error) {
          console.error('Error fetching sales by product category:', error);
@@ -181,11 +187,14 @@ const useCategorySales = () => {
       }
    };
 
-   const chartData = ref(null);
+   // Categories without sales have null totals; Chart.js leaves those bars out.
+   const chartData = ref<ChartData<'bar', (number | null)[]> | null>(null);
    const setChartData = () => {
       if (!data.value) return;
 
-      const labels = data.value.map((item) => i18n.t(`fields.${_snakeCase(item.category_name)}`));
+      const labels = data.value.map((item) =>
+         i18n.t(`fields.${_snakeCase(item.category_name ?? '')}`)
+      );
       const documentStyle = getComputedStyle(document.documentElement);
 
       const quantity = documentStyle.getPropertyValue('--p-primary-700');
@@ -200,35 +209,31 @@ const useCategorySales = () => {
                label: i18n.t('dashboard.sales_by_category.total_quantity_sold'),
                data: data.value.map((item) => item.total_quantity),
                backgroundColor: quantity,
-               borderSkipped: true,
                barThickness: 24
             },
             {
                label: i18n.t('dashboard.sales_by_category.total_bid'),
                data: data.value.map((item) => item.total_bid),
                backgroundColor: bid,
-               borderSkipped: true,
                barThickness: 24
             },
             {
                label: i18n.t('dashboard.sales_by_category.total_discount'),
                data: data.value.map((item) => item.total_discount),
                backgroundColor: discount,
-               borderSkipped: true,
                barThickness: 24
             },
             {
                label: i18n.t('dashboard.sales_by_category.total_tax'),
                data: data.value.map((item) => item.total_tax),
                backgroundColor: tax,
-               borderSkipped: true,
                barThickness: 24
             }
          ]
       };
    };
 
-   const chartOptions = ref<ChartOptions>(null);
+   const chartOptions = ref<ChartOptions | null>(null);
    const setChartOptions = () => {
       const documentStyle = getComputedStyle(document.documentElement);
       const borderColor = documentStyle.getPropertyValue('--surface-border');
@@ -482,8 +487,8 @@ onMounted(() => {
                <template #content>
                   <Chart
                      type="bar"
-                     :data="categorySales.chartData.value"
-                     :options="categorySales.chartOptions.value"
+                     :data="categorySales.chartData.value ?? undefined"
+                     :options="categorySales.chartOptions.value ?? undefined"
                      class="w-full h-[50vh]"
                   />
                </template>
@@ -631,10 +636,10 @@ onMounted(() => {
                                  <template #resource_name>
                                     <CustomLink
                                        v-if="
-                                          $can('read', notification.table_name) &&
+                                          $can('read', notification.table_name ?? '') &&
                                           !_isEqual(notification.operation, 'DELETE') &&
                                           !!_get(notification, 'resource_id') &&
-                                          !!_get(fieldRoutes, notification.table_name)
+                                          !!fieldRoutes[notification.table_name ?? '']
                                        "
                                        :to="
                                           dashboardNotifications.getNotificationResourceRoute(

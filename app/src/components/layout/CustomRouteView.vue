@@ -1,4 +1,5 @@
 <script setup>
+import { useDialogRef } from '@/composables/useDialogRef';
 import { provideRouteStatus } from '@/composables/useRouteStatus';
 
 defineOptions({
@@ -12,7 +13,7 @@ const props = defineProps({
    suspensible: { type: Boolean, default: false }
 });
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 
 const route = useRoute();
 

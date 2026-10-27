@@ -1,4 +1,6 @@
-<script setup lang="ts" generic="T extends Tables['record']['Row']">
+<script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
+import { RecordModel } from '@/api/record/model';
 import { useDeleteAction } from '@/composables/useDeleteAction';
 import ResourceTable, {
    ResourceTableProps
@@ -6,6 +8,8 @@ import ResourceTable, {
 import { RECORD_STATUSES, RECORD_TYPES } from '@/constants/form/record';
 import Upsert from '@/views/pages/record/upsert/index.vue';
 import { useI18n } from 'vue-i18n';
+
+type Props = ResourceTableProps<'record', RecordModel>;
 
 defineOptions({
    inheritAttrs: false
@@ -18,8 +22,8 @@ const { t } = useI18n();
 
 const props = withDefaults(
    defineProps<{
-      record_type?: T['record_type'];
-      record_status?: T['record_status'];
+      record_type?: RecordModel['record_type'] | null;
+      record_status?: RecordModel['record_status'] | null;
    }>(),
    {
       record_type: null,
@@ -27,7 +31,7 @@ const props = withDefaults(
    }
 );
 
-const columns = computed<ResourceTableProps['columns']>(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'record_type',
       sortable: true,
@@ -68,7 +72,7 @@ const columns = computed<ResourceTableProps['columns']>(() => [
    }
 ]);
 
-const filters = ref<ResourceTableProps['filters']>({
+const filters = ref<NonNullable<Props['filters']>>({
    global: {
       value: null,
       matchMode: FilterMatchMode.CONTAINS
@@ -104,13 +108,13 @@ const filters = ref<ResourceTableProps['filters']>({
       constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
       dataType: 'date'
    },
-   ...(attrs.filters as ResourceTableProps['filters'])
+   ...(attrs.filters as Props['filters'])
 });
 
 const stateKey = props.record_type ? 'record-' + props.record_type : 'record';
 
 const deleteAction = useDeleteAction('record');
-const rowActions: ResourceTableProps<'record', T>['rowActions'] = [
+const rowActions: Props['rowActions'] = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -126,22 +130,22 @@ const rowActions: ResourceTableProps<'record', T>['rowActions'] = [
    }
 ];
 
-const dialogRef = inject('dialogRef', false);
+const dialogRef = useDialogRef();
 </script>
 <template>
-   <component
-      :is="ResourceTable<'record', T>"
+   <ResourceTable
       :stateKey
-      :from="'record'"
+      from="record"
       :useMeta="!(record_type || record_status)"
-      :select="'*,stock:stock_view!inner(id,display_name,unit_type), client!inner(id,display_name,email)'"
+      select="*,stock:stock_view!inner(id,display_name,unit_type), client!inner(id,display_name,email)"
+      :model="RecordModel"
       :columns="columns"
       :rowActions="rowActions"
       v-model:filters="filters"
       v-bind="$attrs"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
                <CustomLink v-if="$can('create', 'record')" :to="{ name: 'record-add' }">
@@ -155,10 +159,9 @@ const dialogRef = inject('dialogRef', false);
       <template #expansion="{ data }">
          <Upsert :id="data.id" class="p-0" />
       </template>
-      <template #record_type_body="{ data, field }">
+      <template #record_type_body="{ data }">
          {{
-            ($te('fields.' + _get(data, field)) && $t('fields.' + _get(data, field))) ||
-            _get(data, field)
+            $te(`fields.${data.record_type}`) ? $t(`fields.${data.record_type}`) : data.record_type
          }}
       </template>
       <template #record_type_filter="{ filterModel }">
@@ -180,10 +183,10 @@ const dialogRef = inject('dialogRef', false);
 
       <template v-if="$can('read', 'client')" #client_display_name_body="{ data }">
          <CustomLink
-            v-if="_get(data, `client.id`)"
+            v-if="data.client"
             :to="{
                name: 'client-manage',
-               params: { id: _get(data, `client.id`) },
+               params: { id: data.client.id },
                query: { showDialog: 'center' }
             }"
             v-slot="{ navigate }"
@@ -193,17 +196,17 @@ const dialogRef = inject('dialogRef', false);
                size="small"
                class="!text-left"
                raised
-               :label="_get(data, `client.display_name`) || _get(data, `client.email`)"
+               :label="data.clientName ?? undefined"
                @click="navigate"
             />
          </CustomLink>
       </template>
       <template v-if="$can('read', 'stock')" #stock_display_name_body="{ data }">
          <CustomLink
-            v-if="_get(data, `stock.id`)"
+            v-if="data.stock?.id"
             :to="{
                name: 'stock-edit',
-               params: { id: _get(data, `stock.id`) },
+               params: { id: data.stock.id },
                query: { showDialog: 'center' }
             }"
             v-slot="{ navigate }"
@@ -213,23 +216,16 @@ const dialogRef = inject('dialogRef', false);
                size="small"
                class="!text-left"
                raised
-               :label="_get(data, `stock.display_name`)"
+               :label="data.stock.display_name ?? undefined"
                @click="navigate"
             />
          </CustomLink>
       </template>
-      <template #quantity_body="{ data, field }">
-         <span v-text="`${_get(data, field)} ${$t('fields.' + _get(data, 'stock.unit_type'))}`" />
+      <template #quantity_body="{ data }">
+         <span v-text="`${data.quantity} ${$t(`fields.${data.stock?.unit_type}`)}`" />
       </template>
-      <template #bid_body="{ data, field }">
-         <span
-            v-text="
-               _get(data, field)?.toLocaleString?.(undefined, {
-                  style: 'currency',
-                  currency: _get(data, 'currency_code')
-               })
-            "
-         />
+      <template #bid_body="{ data }">
+         <span v-text="data.bidText" />
       </template>
-   </component>
+   </ResourceTable>
 </template>

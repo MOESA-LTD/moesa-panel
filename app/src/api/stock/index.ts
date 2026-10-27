@@ -1,6 +1,6 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
-import { optional, requiredText } from '@/lib/form/fields';
+import { optional, required, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -76,7 +76,7 @@ export const stockSchema = z
       unit_cost: amount(),
       unit_discount: amount(),
       unit_tax: amount(),
-      quantity: z.number().min(1),
+      quantity: required(z.number().min(1)),
       stocked_at: z.date().nullish()
    })
    .superRefine((stock, ctx) => {
@@ -128,7 +128,7 @@ export const toStockPayload = ({
    unit_type,
    ...stock
 }: z.output<typeof stockSchema>): StockInput => ({
-   ...(stock as StockInput),
+   ...stock,
    unit_type: unit_type as StockInput['unit_type'],
    stocked_at: stocked_at?.toISOString() ?? null
 });

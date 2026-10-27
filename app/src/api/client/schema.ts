@@ -1,4 +1,12 @@
-import { dateOnly, email, optional, parseDateOnly, phone, requiredText } from '@/lib/form/fields';
+import {
+   dateOnly,
+   email,
+   optional,
+   parseDateOnly,
+   phone,
+   required,
+   requiredText
+} from '@/lib/form/fields';
 import * as z from 'zod';
 import type { Client, ClientInput } from './repository';
 
@@ -11,7 +19,7 @@ export const clientSchema = z.object({
    nationality: requiredText(),
    national_id: requiredText(),
    birth_date: dateOnly(),
-   gender: z.enum(GENDERS),
+   gender: required(z.enum(GENDERS)),
    email: optional(email()),
    phone: optional(phone())
 });
@@ -30,9 +38,7 @@ export const toClientFormValues = (client?: Partial<Client> | null): ClientFormV
    phone: client?.phone ?? ''
 });
 
-// The schema guarantees the required columns; the cast is only needed while strictNullChecks is off,
-// because zod then infers every key as optional.
-export const toClientPayload = (values: z.output<typeof clientSchema>) => values as ClientInput;
+export const toClientPayload = (values: z.output<typeof clientSchema>): ClientInput => values;
 
 /** The client's address selection (client_address rows). */
 export const clientAddressesSchema = z.object({

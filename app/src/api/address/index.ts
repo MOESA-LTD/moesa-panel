@@ -27,6 +27,6 @@ export const toAddressFormValues = (address?: Partial<Address> | null): AddressF
    details: address?.details ?? ''
 });
 
-// The schema guarantees the required columns; the cast is only needed while strictNullChecks is off.
-export const toAddressPayload = (values: z.output<typeof addressSchema>) =>
-   values as ResourceInput<'address'>;
+export const toAddressPayload = (
+   values: z.output<typeof addressSchema>
+): ResourceInput<'address'> => values;

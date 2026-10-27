@@ -1,7 +1,8 @@
+import type { Json } from '@/@types/database.types';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { RECORD_STATUSES, RECORD_TYPES } from '@/constants/form/record';
-import { optional, requiredText } from '@/lib/form/fields';
+import { optional, required, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -16,7 +17,7 @@ export type RecordStock = Views['stock_view']['Row'] & {
 /** A record as the form loads it: with its stock (and the stock's product categories) and client. */
 export type RecordWithRelations = Tables['record']['Row'] & {
    stock?: RecordStock | null;
-   client?: { id: string; display_name: string } | null;
+   client?: { id: string; display_name: string; email?: string | null } | null;
 };
 
 export type RecordInput = Omit<Tables['record']['Insert'], 'tenant_id'>;
@@ -109,12 +110,16 @@ export const createRecordSchema = ({ maxQuantity, unitType }: RecordSchemaContex
          /** Joined relations; only used by the form. */
          stock: z.custom<RecordStock>().optional(),
          client: z.custom<RecordWithRelations['client']>().optional(),
-         record_type: z.enum(RECORD_TYPES.value.map(({ value }) => value) as [string, ...string[]]),
+         record_type: required(
+            z.enum(RECORD_TYPES.value.map(({ value }) => value) as [string, ...string[]])
+         ),
          record_status: requiredText(),
-         quantity: z
-            .number()
-            .min(unitType === 'pcs' ? 1 : 0.01)
-            .max(maxQuantity),
+         quantity: required(
+            z
+               .number()
+               .min(unitType === 'pcs' ? 1 : 0.01)
+               .max(maxQuantity)
+         ),
          payment_type: optional(z.string()),
          currency_code: requiredText(),
          bid: amount(),
@@ -210,5 +215,10 @@ export const toRecordFormValues = (
 export const toRecordPayload = ({
    stock: _stock,
    client: _client,
+   attributes,
    ...record
-}: z.output<RecordSchema>): RecordInput => record as RecordInput;
+}: z.output<RecordSchema>): RecordInput => ({
+   ...record,
+   // A jsonb column; the schema keeps unknown keys, which zod types as `unknown`.
+   attributes: attributes as Json
+});

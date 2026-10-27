@@ -75,7 +75,7 @@ const routes: RouteRecordRaw[] = [
                icon: PrimeIcons.SIGN_OUT
             },
             async beforeEnter() {
-               const res = new Promise((resolve, reject) => {
+               const res = new Promise<boolean>((resolve) => {
                   useConfirm().require({
                      icon: PrimeIcons.EXCLAMATION_TRIANGLE,
                      message: i18n.t('auth.confirm.logout.question'),

@@ -67,7 +67,7 @@ export const isValidDate = ({
    formats = dateFormats
 }: DateConfig): boolean => {
    dayjs.locale(lang);
-   const utc = dayjs.utc(value, null, true);
+   const utc = dayjs.utc(value, undefined, true);
    if (utc.isValid()) {
       return true;
    }

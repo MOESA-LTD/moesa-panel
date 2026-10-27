@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { StockModel } from '@/api/stock/model';
 import {
    createFilters,
@@ -67,7 +68,7 @@ const select = computed(
    () => `id, ${props.fields.join(', ')}, product:product!inner(category:product_category!inner(*))`
 );
 
-const filters = ref<Props['filters']>(
+const filters = ref<NonNullable<Props['filters']>>(
    createFilters(
       {
          'product.category.display_name': equalsFilter(props.category),
@@ -101,7 +102,7 @@ const rowActions: Props['rowActions'] = [
    }
 ];
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 </script>
 <template>
    <ResourceTable
@@ -115,7 +116,7 @@ const dialogRef = inject('dialogRef', null);
       v-model:filters="filters"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
 

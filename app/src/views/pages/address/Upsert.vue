@@ -64,7 +64,11 @@ await ready;
             :label="$t('fields.details')"
          >
             <template #default="slotProps">
-               <Editor v-bind="slotProps" v-model="values.details" />
+               <Editor
+                  v-bind="slotProps"
+                  :model-value="values.details ?? undefined"
+                  @update:model-value="values.details = $event"
+               />
             </template>
          </FormField>
       </FormBox>

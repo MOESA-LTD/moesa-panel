@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { useDeleteAction } from '@/composables/useDeleteAction';
@@ -28,7 +29,7 @@ const columns = computed<Props['columns']>(() => [
    }
 ]);
 
-const filters = ref<Props['filters']>(
+const filters = ref<NonNullable<Props['filters']>>(
    createFilters(
       {
          display_name: 'startsWith',
@@ -56,7 +57,7 @@ const rowActions: Props['rowActions'] = [
    }
 ];
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 </script>
 <template>
    <ResourceTable
@@ -69,7 +70,7 @@ const dialogRef = inject('dialogRef', null);
       v-model:filters="filters"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
                <CustomLink v-if="$can('create', 'role')" :to="{ name: 'branch-role-add' }">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { useRevertAuditLog } from '@/api/auditLog';
 import { AuditLogModel } from '@/api/auditLog/model';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
@@ -47,7 +48,7 @@ const columns = computed<Props['columns']>(() => [
    { field: 'reverted_at', header: t('audit_log.table.headers.reverted_at'), sortable: true }
 ]);
 
-const filters = ref<Props['filters']>(
+const filters = ref<NonNullable<Props['filters']>>(
    createFilters(
       {
          table_name: 'text',
@@ -72,9 +73,12 @@ const rowActions: Props['rowActions'] = [
       command:
          ({ data }) =>
          async () =>
-            await revertAuditLog({ correlationId: data.groupId, tableName: data.table_name }),
+            data.groupId &&
+            data.table_name &&
+            (await revertAuditLog({ correlationId: data.groupId, tableName: data.table_name })),
       disabled: ({ data }) =>
          !!data.reverted ||
+         !data.table_name ||
          ability.cannot('create', data.table_name) ||
          ability.cannot('modify', data.table_name),
       icon: PrimeIcons.REFRESH
@@ -93,7 +97,7 @@ const getOperationTag = (operation: string | null) => {
    return tag && { ...tag, value: tag.label };
 };
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 
 const stateKey = 'audit_log';
 </script>
@@ -109,7 +113,7 @@ const stateKey = 'audit_log';
       v-model:filters="filters"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
             </span>
@@ -125,7 +129,7 @@ const stateKey = 'audit_log';
          <SelectAuditOperation v-model="filterModel.value" multiple />
       </template>
       <template #expansion="{ data }">
-         <CorrelatedAuditLogs :id="data.correlation_id" layout="list" />
+         <CorrelatedAuditLogs :id="data.correlation_id ?? undefined" layout="list" />
       </template>
       <template #user_id_body="{ data }">
          <AuditUser :user="data.user_id" />

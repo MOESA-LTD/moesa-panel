@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { ClientModel } from '@/api/client/model';
 import { useDeleteClient } from '@/api/client/queries';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
@@ -63,7 +64,7 @@ const columns = computed<Props['columns']>(() => [
    }
 ]);
 
-const filters = ref<Props['filters']>(
+const filters = ref<NonNullable<Props['filters']>>(
    createFilters(
       {
          national_id: 'text',
@@ -108,7 +109,7 @@ const rowActions: Props['rowActions'] = [
    }
 ];
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 </script>
 <template>
    <ResourceTable
@@ -122,7 +123,7 @@ const dialogRef = inject('dialogRef', null);
       v-model:filters="filters"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
                <CustomLink

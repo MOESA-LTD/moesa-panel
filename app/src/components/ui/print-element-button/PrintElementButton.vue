@@ -10,14 +10,14 @@ const props = withDefaults(defineProps<PrintElementButtonProps>(), {
 });
 
 const printElement = async (el: PrintElementButtonProps['element'], darkMode = false) => {
-   el = unref(el);
+   const target = unref(el);
 
-   if (!_isElement(el))
+   if (!(target instanceof Element))
       return console.warn('PrintElementButton: Invalid element provided for printing.');
 
    const { toggleDarkMode, isDarkTheme } = useLayout();
    const darkTheme = !!isDarkTheme.value;
-   const cloned = el.cloneNode(true) as Element;
+   const cloned = target.cloneNode(true) as Element;
 
    const beforePrint = () => document.body.classList.add('printing');
    const afterPrint = () => document.body.classList.remove('printing');
@@ -25,7 +25,8 @@ const printElement = async (el: PrintElementButtonProps['element'], darkMode = f
    addEventListener('beforeprint', beforePrint, { once: true });
    addEventListener('afterprint', afterPrint, { once: true });
 
-   if (darkTheme !== darkMode) await toggleDarkMode(null, darkMode).finished;
+   // Without view transitions toggleDarkMode switches synchronously and returns nothing.
+   if (darkTheme !== darkMode) await toggleDarkMode(null, darkMode)?.finished;
 
    document.body.appendChild(cloned);
    cloned.classList.add('printable');
@@ -45,7 +46,9 @@ const printElement = async (el: PrintElementButtonProps['element'], darkMode = f
       severity="info"
       @click="
          (e) =>
-            printElement(props.element || (e?.target as HTMLElement)?.parentElement?.offsetParent)
+            printElement(
+               props.element || (e?.target as HTMLElement)?.parentElement?.offsetParent || null
+            )
       "
    />
 </template>

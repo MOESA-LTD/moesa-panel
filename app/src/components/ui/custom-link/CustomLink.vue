@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import type { MenuItem } from 'primevue/menuitem';
 import { useI18n } from 'vue-i18n';
-import { RouteLocationNormalized, RouterLink, RouterLinkProps } from 'vue-router';
+import { RouterLink, type RouteLocation, type RouterLinkProps } from 'vue-router';
 
 defineOptions({
    inheritAttrs: false
@@ -32,7 +33,7 @@ const isExternalLink = computed<boolean>(() => {
    return true;
 });
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 
 const contextMenu = ref();
 
@@ -59,15 +60,13 @@ const contextMenuItems = computed<MenuItem[]>(() => {
    return items;
 });
 
-const itemClick = (item: RouteLocationNormalized) => {
-   if (dialogRef) {
-      item.query.showDialog = DIALOG_POSITIONS.CENTER;
-   }
+// Inside a dialog, links open in another dialog instead of leaving the page underneath.
+const itemClick = (item: RouteLocation) =>
+   router.push(
+      dialogRef ? { ...item, query: { ...item.query, showDialog: DIALOG_POSITIONS.CENTER } } : item
+   );
 
-   router.push(item);
-};
-
-const checkVisibility = (item: RouteLocationNormalized) => {
+const checkVisibility = (item: RouteLocation) => {
    return (
       toValue(item?.meta?.visible) ||
       (item?.meta?.requiredPermissions as any)?.every?.(({ action, subject }: any) =>
@@ -76,8 +75,10 @@ const checkVisibility = (item: RouteLocationNormalized) => {
    );
 };
 
-const getItemLabel = (item: MenuItem) =>
-   te(item.label.toString() || '') ? t(item.label.toString() || '') : item.label;
+const getItemLabel = (item: MenuItem) => {
+   const label = item.label?.toString() ?? '';
+   return te(label) ? t(label) : label;
+};
 </script>
 
 <template>
@@ -101,10 +102,10 @@ const getItemLabel = (item: MenuItem) =>
                $router.push({ ...route, query: { showDialog: DIALOG_POSITIONS.CENTER } })
             "
             class="custom_link__internal"
-            :class="{
-               'custom_link__internal--cursor-context': contextMenuItems.length,
-               ..._get($attrs, 'class', null)
-            }"
+            :class="[
+               { 'custom_link__internal--cursor-context': contextMenuItems.length },
+               $attrs.class
+            ]"
          >
             <slot
                v-bind="{

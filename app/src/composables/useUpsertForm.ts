@@ -17,8 +17,8 @@ export type UseUpsertFormOptions<S extends z.ZodType, Row, Payload> = {
    useRow: (
       id: MaybeRefOrGetter<string | null | undefined>
    ) => UseQueryReturnType<Row | null, Error>;
-   /** Saves the payload and returns the saved row, e.g. `resource.useSave`. */
-   useSaveRow: () => UseMutationReturnType<Row, Error, Payload, unknown>;
+   /** Saves the payload and returns the saved row (null if it cannot be read back). */
+   useSaveRow: () => UseMutationReturnType<Row | null, Error, Payload, unknown>;
    /** Table checked for `modify` / `create` permission. */
    subject: keyof Tables;
    /** May depend on the form state (e.g. limits from a selected row) through a getter. */
@@ -76,7 +76,7 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
          detail: i18n.t('toast.saved')
       });
 
-      options.onSaved?.(saved);
+      if (saved) options.onSaved?.(saved);
    });
 
    const ready: Promise<void> = toValue(options.id)

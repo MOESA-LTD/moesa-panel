@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
 import { emailSchema, loginSchema } from '@/api/auth';
 import { useForm } from '@/lib/form/useForm';
 import { useConfirm, useToast } from 'primevue';
@@ -12,7 +13,7 @@ const router = useRouter();
 
 const rememberMe = ref(!!localStorage.getItem('remember-me'));
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 
 const login = useForm({
    schema: loginSchema,

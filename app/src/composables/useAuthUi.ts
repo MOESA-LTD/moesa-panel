@@ -11,7 +11,8 @@ import {
    type RouteRecordNameGeneric
 } from 'vue-router';
 
-const isAuthRoute = (name: RouteRecordNameGeneric) => !!name?.toString().startsWith('auth-');
+const isAuthRoute = (name: RouteRecordNameGeneric | null | undefined) =>
+   !!name?.toString().startsWith('auth-');
 
 /**
  * Reacts to signing in and out: greets the user and moves between auth pages and the app.
