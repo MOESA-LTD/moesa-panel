@@ -52,6 +52,7 @@
    },
    "component": {
       "branch_picker": {
+         "hint": "İşaretli şubelerin verileri gösterilir. Yeni kayıtlar yıldızlı şubeye eklenir.",
          "label": "Şubeler",
          "active": "Aktif şube: yeni kayıtlar buraya eklenir",
          "make_active": "Aktif yap"

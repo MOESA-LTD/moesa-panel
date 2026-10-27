@@ -331,6 +331,7 @@
    },
    "component": {
       "branch_picker": {
+         "hint": "",
          "label": "",
          "active": "",
          "make_active": ""

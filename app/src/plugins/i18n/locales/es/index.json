@@ -215,6 +215,7 @@
    },
    "component": {
       "branch_picker": {
+         "hint": "Se muestran los datos de las sucursales marcadas. Los nuevos registros van a la sucursal con la estrella.",
          "label": "Sucursales",
          "active": "Sucursal activa: los nuevos registros van aquí",
          "make_active": "Activar"

@@ -254,6 +254,7 @@
    },
    "component": {
       "branch_picker": {
+         "hint": "Wyświetlane są dane zaznaczonych oddziałów. Nowe rekordy trafiają do oddziału z gwiazdką.",
          "label": "Oddziały",
          "active": "Aktywny oddział: tu trafiają nowe rekordy",
          "make_active": "Ustaw jako aktywny"

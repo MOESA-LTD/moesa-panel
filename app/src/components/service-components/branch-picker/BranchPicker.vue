@@ -74,11 +74,17 @@ function makeActive(tenant: Tenant) {
    >
       <template #value>
          <span class="branch_picker__value">
-            <span :class="PrimeIcons.STAR_FILL" class="branch_picker__star" />
-            <span v-text="currentTenant?.display_name" class="branch_picker__name" />
+            <span :class="PrimeIcons.SITEMAP" class="branch_picker__icon" />
+            <span v-text="t('component.branch_picker.label')" class="branch_picker__label" />
+            <!-- Small screens: the icon and how many branches are shown. -->
+            <span class="branch_picker__active">
+               <span :class="PrimeIcons.STAR_FILL" class="branch_picker__star" />
+               <span v-text="currentTenant?.display_name" class="branch_picker__name" />
+            </span>
             <Tag
                v-if="scopeTenants.length > 1"
                severity="secondary"
+               class="branch_picker__more"
                :value="`+${scopeTenants.length - 1}`"
                v-tooltip.bottom="
                   scopeTenants
@@ -87,7 +93,11 @@ function makeActive(tenant: Tenant) {
                      .join(', ')
                "
             />
+            <Tag severity="secondary" class="branch_picker__count" :value="scopeTenants.length" />
          </span>
+      </template>
+      <template #header>
+         <p v-text="t('component.branch_picker.hint')" class="branch_picker__hint" />
       </template>
       <template #option="{ node, selected }">
          <span class="branch_picker__option">
@@ -115,10 +125,35 @@ function makeActive(tenant: Tenant) {
 
 <style lang="scss">
 .branch_picker {
-   @apply min-w-48 max-w-80;
+   @apply max-w-80 max-sm:max-w-none;
 
    &__value {
       @apply flex items-center gap-2 min-w-0;
+   }
+
+   &__icon {
+      @apply text-muted-color;
+   }
+
+   &__label {
+      @apply text-muted-color text-sm hidden lg:inline;
+
+      &::after {
+         content: ':';
+      }
+   }
+
+   &__active {
+      @apply flex items-center gap-2 min-w-0 max-sm:hidden;
+   }
+
+   // Tag sets its own display, injected after these rules.
+   &__more {
+      @apply max-sm:!hidden;
+   }
+
+   &__count {
+      @apply sm:!hidden;
    }
 
    &__star {
@@ -127,6 +162,10 @@ function makeActive(tenant: Tenant) {
 
    &__name {
       @apply truncate;
+   }
+
+   &__hint {
+      @apply m-0 px-4 pt-3 pb-1 text-sm text-muted-color max-w-80;
    }
 
    &__option {

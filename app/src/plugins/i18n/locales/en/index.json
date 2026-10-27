@@ -254,6 +254,7 @@
    },
    "component": {
       "branch_picker": {
+         "hint": "Pages show the data of the checked branches. New records go to the branch with the star.",
          "label": "Branches",
          "active": "Active branch: new records go here",
          "make_active": "Make active"

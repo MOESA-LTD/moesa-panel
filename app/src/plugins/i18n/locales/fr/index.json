@@ -254,6 +254,7 @@
    },
    "component": {
       "branch_picker": {
+         "hint": "Les pages affichent les données des agences cochées. Les nouveaux enregistrements vont dans l’agence étoilée.",
          "label": "Agences",
          "active": "Agence active : les nouveaux enregistrements y vont",
          "make_active": "Rendre active"
