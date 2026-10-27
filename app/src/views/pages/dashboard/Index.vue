@@ -124,10 +124,9 @@ const useDashboardNotifications = () => {
       };
    };
 
-   /** The user's name or e-mail; writes made outside the app (no user) read as the system. */
+   /** The user's name, else "user"; writes made outside the app (no user) read as the system. */
    const getUserLabel = (notification: Views['dashboard_notification_feed']['Row']) =>
       notification.user_name ||
-      notification.user_email ||
       i18n.t(notification.user_id ? 'fields.user' : 'dashboard.notifications.system');
 
    const title = computed(() => ({
