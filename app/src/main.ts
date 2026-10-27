@@ -12,6 +12,7 @@ import '@/assets/style/styles.scss';
 import '@/assets/style/tailwind.css';
 import { abilitiesPlugin, Can } from '@casl/vue';
 import { appErrorHandler } from '@lib/appErrorHandler';
+import { setupTheme } from '@lib/theme/setup';
 import { ability } from '@plugins/casl';
 import { queryClient } from '@plugins/tanstack-query';
 import { VueQueryPlugin } from '@tanstack/vue-query';
@@ -50,5 +51,8 @@ app.directive('focustrap', FocusTrap);
 app.directive('ripple', Ripple);
 app.directive('tooltip', Tooltip);
 app.use(router);
+
+// The chosen preset is loaded before the first paint.
+await setupTheme();
 
 app.mount('#app');

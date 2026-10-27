@@ -1,7 +1,9 @@
 <script setup>
+import { useSidebar } from '@/composables/useSidebar';
+
 const { isSignedIn } = storeToRefs(useAuthStore());
 const appConfigurator = ref();
-const { layoutState, sidebarToggle } = useLayout();
+const sidebar = useSidebar();
 
 const version = import.meta.env.PACKAGE_VERSION;
 </script>
@@ -10,7 +12,7 @@ const version = import.meta.env.PACKAGE_VERSION;
    <Teleport
       to="#sidebar-start"
       defer
-      :disabled="!(layoutState.sidebarActive && layoutState.sidebarMode === 'overlay')"
+      :disabled="!(sidebar.active.value && sidebar.mode.value === 'overlay')"
    >
       <div class="layout-topbar-logo-container">
          <Button
@@ -21,7 +23,7 @@ const version = import.meta.env.PACKAGE_VERSION;
             aria-label="Sidebar toggle button"
             severity="secondary"
             :icon="PrimeIcons.BARS"
-            @click="sidebarToggle"
+            @click="sidebar.toggle"
             v-if="isSignedIn"
          />
          <router-link to="/" class="layout-topbar-logo">

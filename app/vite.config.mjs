@@ -32,6 +32,8 @@ export default defineConfig({
    },
    server: {
       port: 6161,
+      // Fail instead of moving to the next free port, which the auth redirect URLs do not allow.
+      strictPort: true,
       watch: {
          usePolling: true
       }
@@ -66,12 +68,8 @@ export default defineConfig({
                imports: ['supabase']
             },
             {
-               from: '@composables/useLayout',
-               imports: [['default', 'useLayout']]
-            },
-            {
                from: '@store/index.js',
-               imports: ['useAuthStore']
+               imports: ['useAuthStore', 'useThemeStore']
             },
             {
                from: '@plugins/i18n',

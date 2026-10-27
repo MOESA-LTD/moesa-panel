@@ -4,10 +4,16 @@ import { fieldRoutes } from '@/constants/form/field';
 import { PRODUCT_CATEGORY_PROPS } from '@/constants/form/product';
 import { RECORD_TYPES } from '@/constants/form/record';
 import { appErrorHandler } from '@/lib/appErrorHandler';
+import { findPalette, PRIMARY_COLORS } from '@/lib/theme/palettes';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
-const { layoutState, isDarkTheme, primaryColors } = useLayout();
+const theme = useThemeStore();
+
+/** A fixed colour per record type card, so the cards keep their colours between renders. */
+const CARD_COLORS = ['blue', 'emerald', 'amber', 'violet', 'rose', 'cyan'];
+const cardColor = (index: number) =>
+   findPalette(PRIMARY_COLORS, CARD_COLORS[index % CARD_COLORS.length])?.['500'];
 
 const dialogRef = useDialogRef();
 
@@ -286,7 +292,7 @@ const useCategorySales = () => {
    };
 
    watch(
-      () => [layoutState.primary, layoutState.surface, layoutState.isDark, locale.value],
+      () => [theme.profile.primary, theme.profile.surface, theme.isDark, locale.value],
       () => {
          setChartData();
          setChartOptions();
@@ -338,12 +344,12 @@ onMounted(() => {
          <template v-if="$can('read', 'record')">
             <TotalRowCountCard
                class="flex-[1_20%] lg:flex-[1_15%]"
-               v-for="recordType in RECORD_TYPES"
+               v-for="(recordType, index) in RECORD_TYPES"
                :key="recordType.value"
                from="record"
                :title="`${$t('fields.record_type')}: ${recordType.label}`"
                :icon="recordType.icon"
-               :iconColor="_get(_shuffle(primaryColors).shift(), `palette.500`)"
+               :iconColor="cardColor(index)"
                :filters="{
                   record_type: {
                      operator: FilterOperator.AND,

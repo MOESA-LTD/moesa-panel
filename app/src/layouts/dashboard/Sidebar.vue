@@ -1,7 +1,8 @@
 <script setup>
+import { useSidebar } from '@/composables/useSidebar';
 import { useNavigationMenu } from '@/router/menu';
 
-const { layoutState, resetSidebar } = useLayout();
+const { mode, active, expandedKeys, close } = useSidebar();
 const { menu } = useNavigationMenu();
 
 const outsideClickListener = ref(null);
@@ -10,7 +11,7 @@ function bindOutsideClickListener() {
    if (!outsideClickListener.value) {
       outsideClickListener.value = (event) => {
          if (isOutsideClicked(event)) {
-            resetSidebar();
+            close();
          }
       };
       document.addEventListener('mouseup', outsideClickListener.value);
@@ -37,9 +38,9 @@ function isOutsideClicked(event) {
 }
 
 watch(
-   () => [layoutState.sidebarActive, layoutState.sidebarMode],
-   ([sidebarActive, sidebarMode]) => {
-      if (sidebarActive && sidebarMode === 'overlay') {
+   [active, mode],
+   ([isActive, currentMode]) => {
+      if (isActive && currentMode === 'overlay') {
          bindOutsideClickListener();
       } else {
          unbindOutsideClickListener();
@@ -54,12 +55,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-   <PanelMenu
-      class="layout-menu"
-      v-model:expandedKeys="layoutState.activeMenuItem"
-      :model="menu"
-      multiple
-   >
+   <PanelMenu class="layout-menu" v-model:expandedKeys="expandedKeys" :model="menu" multiple>
       <template #item="{ item, active, hasSubmenu }">
          <span
             :class="{
