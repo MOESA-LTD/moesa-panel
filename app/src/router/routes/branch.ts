@@ -37,6 +37,61 @@ const routes: RouteRecordRaw[] = [
             }
          },
          {
+            path: 'branches',
+            name: 'branch-tree',
+            meta: {
+               label: 'route.label.branch-tree',
+               icon: PrimeIcons.SITEMAP
+            },
+            component: CustomRouteView,
+            redirect: { name: 'branch-tree-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'branch-tree-list',
+                  meta: {
+                     label: 'route.label.branch_tree_list',
+                     visible: false,
+                     index: -1,
+                     icon: PrimeIcons.LIST
+                  },
+                  components: {
+                     default: () => import('@/views/pages/branch/branches/Index.vue'),
+                     skeleton: () => import('@/views/pages/branch/branches/Index.vue')
+                  }
+               },
+               {
+                  // Opening a branch is up to the owners of the one above (checked by the form).
+                  path: ':parentId/add',
+                  name: 'branch-tree-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.branch_tree_add',
+                     visible: false,
+                     icon: PrimeIcons.PLUS
+                  },
+                  components: {
+                     default: () => import('@/views/pages/branch/branches/Upsert.vue'),
+                     skeleton: () => import('@/views/pages/branch/branches/Upsert.vue')
+                  }
+               },
+               {
+                  path: ':id/edit',
+                  name: 'branch-tree-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.edit',
+                     visible: false,
+                     icon: PrimeIcons.FILE_EDIT
+                  },
+                  components: {
+                     default: () => import('@/views/pages/branch/branches/Upsert.vue'),
+                     skeleton: () => import('@/views/pages/branch/branches/Upsert.vue')
+                  }
+               }
+            ]
+         },
+         {
             path: 'user',
             name: 'branch-user',
             meta: {

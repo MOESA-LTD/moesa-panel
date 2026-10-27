@@ -569,7 +569,10 @@
       "index_corrupted": "فهرس مُتَغَيّر",
       "sql_med_insufficient_privilege": "عدم وجود صلاحيات كافية (SQL)",
       "insufficient_permission": "عدم وجود صلاحيات كافية",
-      "AuthInvalidCredentialsError": "خطأ في مصادقة المستخدم"
+      "AuthInvalidCredentialsError": "خطأ في مصادقة المستخدم",
+      "branch_owner_required": "لا يمكن ذلك إلا لمالكي الفرع الأعلى.",
+      "branch_has_branches": "احذف الفروع التابعة له أولاً.",
+      "branch_not_found": "الفرع غير موجود."
    },
    "route": {
       "label": {
@@ -626,7 +629,10 @@
          "spare_part_list": "قائمة قطع الغيار",
          "branch_user_list": "قائمة مستخدمي الفرع",
          "audit_log_list": "قائمة سجلات المراجعة",
-         "branch_role_list": "قائمة أدوار الفرع"
+         "branch_role_list": "قائمة أدوار الفرع",
+         "branch-tree": "الفروع",
+         "branch_tree_list": "قائمة الفروع",
+         "branch_tree_add": "فرع جديد"
       }
    },
    "account": {
@@ -774,5 +780,12 @@
          "stale": "تم تغيير هذا السجل منذ أن بدأت التعديل؛ سيؤدي الحفظ إلى استبدال تلك التغييرات.",
          "discard": "تجاهل"
       }
+   },
+   "branch_tree": {
+      "hint": "فروعك والفروع التابعة لها. يفتح مالكو الفرع الفروع التابعة له ويحذفونها؛ ولا يمكن حذف إلا فرع ليس له فروع.",
+      "active": "نشط",
+      "owner": "المالك",
+      "add_branch": "فتح فرع تابع له",
+      "opened_under": "سيُفتح تحت {name}."
    }
 }

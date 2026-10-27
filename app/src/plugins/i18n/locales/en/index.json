@@ -447,7 +447,10 @@
       "index_corrupted": "Index corrupted",
       "sql_med_insufficient_privilege": "SQL MED insufficient privilege",
       "insufficient_permission": "Insufficient permission",
-      "AuthInvalidCredentialsError": "Authentication invalid credentials error"
+      "AuthInvalidCredentialsError": "Authentication invalid credentials error",
+      "branch_owner_required": "Only the owners of the branch above may do this.",
+      "branch_has_branches": "Remove the branches under it first.",
+      "branch_not_found": "Branch not found."
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "Spare Part List",
          "branch_user_list": "Branch User List",
          "audit_log_list": "Audit Log List",
-         "branch_role_list": "Branch Role List"
+         "branch_role_list": "Branch Role List",
+         "branch-tree": "Branches",
+         "branch_tree_list": "Branch List",
+         "branch_tree_add": "New Branch"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "This record has changed since you started editing; saving will overwrite those changes.",
          "discard": "Discard"
       }
+   },
+   "branch_tree": {
+      "hint": "Your branches and the branches below them. Owners of a branch open and remove the branches under it; only a branch without branches of its own can be removed.",
+      "active": "Active",
+      "owner": "Owner",
+      "add_branch": "Add a branch under it",
+      "opened_under": "Opened under {name}."
    }
 }

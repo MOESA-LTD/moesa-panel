@@ -37,6 +37,8 @@ export type UseUpsertFormOptions<S extends z.ZodType, Row, Payload> = {
    onSaved?: (row: Row) => void;
    /** Makes the form read-only for some rows regardless of permissions (e.g. shared records). */
    lockRow?: (row: Row) => boolean;
+   /** Replaces the permission check on `subject`, for a rule that is no table permission. */
+   canSubmit?: (values: z.input<S>) => boolean;
 };
 
 /**
@@ -86,11 +88,14 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
    );
    provideFormTenant(tenantId);
 
-   const cannotSubmit = useFormReadonly(
-      options.subject,
-      () => (form.values.value as { id?: string } | undefined)?.id,
-      tenantId
-   );
+   const { canSubmit } = options;
+   const cannotSubmit = canSubmit
+      ? computed(() => !canSubmit(form.values.value as z.input<S>))
+      : useFormReadonly(
+           options.subject,
+           () => (form.values.value as { id?: string } | undefined)?.id,
+           tenantId
+        );
    const readonly = computed(
       () => cannotSubmit.value || (!!row.value && !!options.lockRow?.(row.value))
    );

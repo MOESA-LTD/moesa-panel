@@ -447,7 +447,10 @@
       "index_corrupted": "索引损坏",
       "sql_med_insufficient_privilege": "SQL 医疗权限不足",
       "insufficient_permission": "权限不足",
-      "AuthInvalidCredentialsError": "认证凭据无效"
+      "AuthInvalidCredentialsError": "认证凭据无效",
+      "branch_owner_required": "只有上级分店的所有者可以执行此操作。",
+      "branch_has_branches": "请先删除其下属分店。",
+      "branch_not_found": "未找到分店。"
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "备件列表",
          "branch_user_list": "分支用户列表",
          "audit_log_list": "审计日志列表",
-         "branch_role_list": "分支角色列表"
+         "branch_role_list": "分支角色列表",
+         "branch-tree": "分店",
+         "branch_tree_list": "分店列表",
+         "branch_tree_add": "新分店"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "您开始编辑后此记录已被更改；保存将覆盖这些更改。",
          "discard": "放弃"
       }
+   },
+   "branch_tree": {
+      "hint": "您的分店及其下属分店。分店所有者可在其下开设和删除分店；只有没有下属分店的分店才能删除。",
+      "active": "当前",
+      "owner": "所有者",
+      "add_branch": "在其下开设分店",
+      "opened_under": "将在 {name} 下开设。"
    }
 }

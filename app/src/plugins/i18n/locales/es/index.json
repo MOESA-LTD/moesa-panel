@@ -146,7 +146,10 @@
          "spare-parts": "Piezas de repuesto",
          "branch_user_list": "Lista de usuarios de la sucursal",
          "audit_log_list": "Lista de registros de auditoría",
-         "branch_role_list": "Lista de roles de sucursal"
+         "branch_role_list": "Lista de roles de sucursal",
+         "branch-tree": "Sucursales",
+         "branch_tree_list": "Lista de sucursales",
+         "branch_tree_add": "Nueva sucursal"
       }
    },
    "auth": {
@@ -408,7 +411,10 @@
       "index_corrupted": "Índice corrupto",
       "sql_med_insufficient_privilege": "Privilegio insuficiente (SQL_MED)",
       "insufficient_permission": "Permiso insuficiente",
-      "AuthInvalidCredentialsError": "Error de credenciales inválidas"
+      "AuthInvalidCredentialsError": "Error de credenciales inválidas",
+      "branch_owner_required": "Solo los propietarios de la sucursal superior pueden hacerlo.",
+      "branch_has_branches": "Elimine primero las sucursales que dependen de ella.",
+      "branch_not_found": "Sucursal no encontrada."
    },
    "account": {
       "profile": {
@@ -774,5 +780,12 @@
          "stale": "Este registro cambió desde que empezó a editarlo; al guardar se sobrescribirán esos cambios.",
          "discard": "Descartar"
       }
+   },
+   "branch_tree": {
+      "hint": "Sus sucursales y las que dependen de ellas. Los propietarios de una sucursal abren y eliminan las sucursales que dependen de ella; solo se puede eliminar una sucursal sin sucursales propias.",
+      "active": "Activa",
+      "owner": "Propietario",
+      "add_branch": "Abrir una sucursal debajo",
+      "opened_under": "Se abrirá bajo {name}."
    }
 }

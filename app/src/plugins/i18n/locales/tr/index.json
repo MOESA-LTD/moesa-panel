@@ -245,7 +245,10 @@
       "index_corrupted": "İndeks bozuk",
       "sql_med_insufficient_privilege": "SQL_MED yetersiz yetki",
       "insufficient_permission": "Yetersiz izin",
-      "AuthInvalidCredentialsError": "Yetkilendirme Geçersiz Kimlik Bilgileri Hatası"
+      "AuthInvalidCredentialsError": "Yetkilendirme Geçersiz Kimlik Bilgileri Hatası",
+      "branch_owner_required": "Bunu yalnızca üst şubenin sahipleri yapabilir.",
+      "branch_has_branches": "Önce altındaki şubeleri silin.",
+      "branch_not_found": "Şube bulunamadı."
    },
    "account": {
       "profile": {
@@ -330,7 +333,10 @@
          "spare_part_list": "Yedek Parça Listesi",
          "branch_user_list": "Şube Kullanıcı Listesi",
          "audit_log_list": "Denetim Günlüğü Listesi",
-         "branch_role_list": "Şube Rol Listesi"
+         "branch_role_list": "Şube Rol Listesi",
+         "branch-tree": "Şubeler",
+         "branch_tree_list": "Şube Listesi",
+         "branch_tree_add": "Yeni Şube"
       }
    },
    "fields": {
@@ -774,5 +780,12 @@
          "stale": "Bu kayıt siz düzenlemeye başladıktan sonra değişti; kaydederseniz o değişikliklerin üzerine yazılır.",
          "discard": "Taslağı at"
       }
+   },
+   "branch_tree": {
+      "hint": "Şubeleriniz ve altlarındaki şubeler. Bir şubenin sahipleri altına şube açar ve siler; yalnızca alt şubesi olmayan bir şube silinebilir.",
+      "active": "Aktif",
+      "owner": "Sahip",
+      "add_branch": "Altına şube aç",
+      "opened_under": "{name} altına açılacak."
    }
 }

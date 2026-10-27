@@ -569,7 +569,10 @@
       "index_corrupted": "Indice corrotto",
       "sql_med_insufficient_privilege": "Privilegio insufficiente SQL MED",
       "insufficient_permission": "Permesso insufficiente",
-      "AuthInvalidCredentialsError": "Errore credenziali non valide"
+      "AuthInvalidCredentialsError": "Errore credenziali non valide",
+      "branch_owner_required": "Solo i proprietari della filiale superiore possono farlo.",
+      "branch_has_branches": "Rimuovi prima le filiali sottostanti.",
+      "branch_not_found": "Filiale non trovata."
    },
    "route": {
       "label": {
@@ -626,7 +629,10 @@
          "spare_part_list": "Elenco parti di ricambio",
          "branch_user_list": "Elenco utenti filiale",
          "audit_log_list": "Elenco log audit",
-         "branch_role_list": "Elenco ruoli filiale"
+         "branch_role_list": "Elenco ruoli filiale",
+         "branch-tree": "Filiali",
+         "branch_tree_list": "Elenco filiali",
+         "branch_tree_add": "Nuova filiale"
       }
    },
    "account": {
@@ -774,5 +780,12 @@
          "stale": "Questo record è cambiato da quando hai iniziato a modificarlo; salvando sovrascriverai quelle modifiche.",
          "discard": "Scarta"
       }
+   },
+   "branch_tree": {
+      "hint": "Le tue filiali e quelle sottostanti. I proprietari di una filiale aprono e rimuovono le filiali sottostanti; si può rimuovere solo una filiale senza filiali proprie.",
+      "active": "Attiva",
+      "owner": "Proprietario",
+      "add_branch": "Apri una filiale sotto",
+      "opened_under": "Verrà aperta sotto {name}."
    }
 }

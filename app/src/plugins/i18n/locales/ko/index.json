@@ -447,7 +447,10 @@
       "index_corrupted": "인덱스 손상",
       "sql_med_insufficient_privilege": "SQL 권한 부족",
       "insufficient_permission": "권한 부족",
-      "AuthInvalidCredentialsError": "인증 실패"
+      "AuthInvalidCredentialsError": "인증 실패",
+      "branch_owner_required": "상위 지점의 소유자만 할 수 있습니다.",
+      "branch_has_branches": "먼저 하위 지점을 삭제하세요.",
+      "branch_not_found": "지점을 찾을 수 없습니다."
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "부품 목록",
          "branch_user_list": "지점 사용자 목록",
          "audit_log_list": "감사 로그 목록",
-         "branch_role_list": "지점 역할 목록"
+         "branch_role_list": "지점 역할 목록",
+         "branch-tree": "지점",
+         "branch_tree_list": "지점 목록",
+         "branch_tree_add": "새 지점"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "편집을 시작한 후 이 레코드가 변경되었습니다. 저장하면 해당 변경 사항을 덮어씁니다.",
          "discard": "삭제"
       }
+   },
+   "branch_tree": {
+      "hint": "내 지점과 그 아래 지점입니다. 지점 소유자는 그 아래에 지점을 열고 삭제할 수 있으며, 하위 지점이 없는 지점만 삭제할 수 있습니다.",
+      "active": "활성",
+      "owner": "소유자",
+      "add_branch": "아래에 지점 열기",
+      "opened_under": "{name} 아래에 열립니다."
    }
 }

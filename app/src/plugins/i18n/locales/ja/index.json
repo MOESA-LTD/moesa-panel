@@ -447,7 +447,10 @@
       "index_corrupted": "インデックスが破損しています",
       "sql_med_insufficient_privilege": "SQL_MED権限が不足しています",
       "insufficient_permission": "権限が不足しています",
-      "AuthInvalidCredentialsError": "認証情報が無効です"
+      "AuthInvalidCredentialsError": "認証情報が無効です",
+      "branch_owner_required": "上位の支店のオーナーのみが実行できます。",
+      "branch_has_branches": "先に下位の支店を削除してください。",
+      "branch_not_found": "支店が見つかりません。"
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "消耗品一覧",
          "branch_user_list": "支店ユーザー一覧",
          "audit_log_list": "監査ログ一覧",
-         "branch_role_list": "支店ロール一覧"
+         "branch_role_list": "支店ロール一覧",
+         "branch-tree": "支店",
+         "branch_tree_list": "支店一覧",
+         "branch_tree_add": "新しい支店"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "編集を始めた後にこのレコードが変更されました。保存するとその変更は上書きされます。",
          "discard": "破棄"
       }
+   },
+   "branch_tree": {
+      "hint": "あなたの支店とその下の支店です。支店のオーナーはその下に支店を開設・削除できます。削除できるのは下位の支店がない支店のみです。",
+      "active": "アクティブ",
+      "owner": "オーナー",
+      "add_branch": "この下に支店を開設",
+      "opened_under": "{name} の下に開設されます。"
    }
 }

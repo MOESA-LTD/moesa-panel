@@ -447,7 +447,10 @@
       "index_corrupted": "Index corrompu",
       "sql_med_insufficient_privilege": "Privilege insuffisant (SQL_MED)",
       "insufficient_permission": "Permission insuffisante",
-      "AuthInvalidCredentialsError": "Erreur d'identifiants d'authentification"
+      "AuthInvalidCredentialsError": "Erreur d'identifiants d'authentification",
+      "branch_owner_required": "Seuls les propriétaires de l'agence parente peuvent le faire.",
+      "branch_has_branches": "Supprimez d'abord les agences qui en dépendent.",
+      "branch_not_found": "Agence introuvable."
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "Liste des pièces de rechange",
          "branch_user_list": "Liste des utilisateurs de la branche",
          "audit_log_list": "Liste des journaux d'audit",
-         "branch_role_list": "Liste des rôles de la branche"
+         "branch_role_list": "Liste des rôles de la branche",
+         "branch-tree": "Agences",
+         "branch_tree_list": "Liste des agences",
+         "branch_tree_add": "Nouvelle agence"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "Cet enregistrement a changé depuis le début de votre modification ; enregistrer écrasera ces changements.",
          "discard": "Abandonner"
       }
+   },
+   "branch_tree": {
+      "hint": "Vos agences et celles qui en dépendent. Les propriétaires d'une agence ouvrent et suppriment les agences qui en dépendent ; seule une agence sans agences peut être supprimée.",
+      "active": "Active",
+      "owner": "Propriétaire",
+      "add_branch": "Ouvrir une agence en dessous",
+      "opened_under": "Sera ouverte sous {name}."
    }
 }

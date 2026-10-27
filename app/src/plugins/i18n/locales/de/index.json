@@ -447,7 +447,10 @@
       "index_corrupted": "Index beschädigt",
       "sql_med_insufficient_privilege": "SQL_MED: Insufficient Privilege",
       "insufficient_permission": "Insufficient Permission",
-      "AuthInvalidCredentialsError": "AuthInvalidCredentialsError"
+      "AuthInvalidCredentialsError": "AuthInvalidCredentialsError",
+      "branch_owner_required": "Nur die Inhaber der übergeordneten Filiale dürfen das.",
+      "branch_has_branches": "Entfernen Sie zuerst die Filialen darunter.",
+      "branch_not_found": "Filiale nicht gefunden."
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "Ersatzteil Liste",
          "branch_user_list": "Benutzerliste",
          "audit_log_list": "Auditprotokoll",
-         "branch_role_list": "Rollenliste"
+         "branch_role_list": "Rollenliste",
+         "branch-tree": "Filialen",
+         "branch_tree_list": "Filialliste",
+         "branch_tree_add": "Neue Filiale"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "Dieser Datensatz wurde seit Beginn Ihrer Bearbeitung geändert; beim Speichern werden diese Änderungen überschrieben.",
          "discard": "Verwerfen"
       }
+   },
+   "branch_tree": {
+      "hint": "Ihre Filialen und die Filialen darunter. Die Inhaber einer Filiale eröffnen und entfernen die Filialen darunter; nur eine Filiale ohne eigene Filialen kann entfernt werden.",
+      "active": "Aktiv",
+      "owner": "Inhaber",
+      "add_branch": "Filiale darunter eröffnen",
+      "opened_under": "Wird unter {name} eröffnet."
    }
 }

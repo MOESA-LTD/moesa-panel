@@ -518,7 +518,10 @@
       "index_corrupted": "",
       "sql_med_insufficient_privilege": "",
       "insufficient_permission": "",
-      "AuthInvalidCredentialsError": ""
+      "AuthInvalidCredentialsError": "",
+      "branch_owner_required": "",
+      "branch_has_branches": "",
+      "branch_not_found": ""
    },
    "route": {
       "label": {
@@ -574,7 +577,10 @@
          "spare_part_list": "",
          "branch_user_list": "",
          "audit_log_list": "",
-         "branch_role_list": ""
+         "branch_role_list": "",
+         "branch-tree": "",
+         "branch_tree_list": "",
+         "branch_tree_add": ""
       }
    },
    "account": {
@@ -717,5 +723,12 @@
          "message": ""
       },
       "passwords_do_not_match": ""
+   },
+   "branch_tree": {
+      "hint": "",
+      "active": "",
+      "owner": "",
+      "add_branch": "",
+      "opened_under": ""
    }
 }

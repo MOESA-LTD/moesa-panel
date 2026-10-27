@@ -447,7 +447,10 @@
       "index_corrupted": "Zepsuty indeks",
       "sql_med_insufficient_privilege": "Niewystarczające uprawnienia (SQL_MED)",
       "insufficient_permission": "Niewystarczające uprawnienia",
-      "AuthInvalidCredentialsError": "Błąd nieprawidłowych danych logowania"
+      "AuthInvalidCredentialsError": "Błąd nieprawidłowych danych logowania",
+      "branch_owner_required": "Mogą to zrobić tylko właściciele oddziału nadrzędnego.",
+      "branch_has_branches": "Najpierw usuń oddziały pod nim.",
+      "branch_not_found": "Nie znaleziono oddziału."
    },
    "account": {
       "profile": {
@@ -532,7 +535,10 @@
          "spare_part_list": "Lista części zamiennej",
          "branch_user_list": "Lista użytkowników oddziału",
          "audit_log_list": "Lista logów audytowych",
-         "branch_role_list": "Lista ról oddziału"
+         "branch_role_list": "Lista ról oddziału",
+         "branch-tree": "Oddziały",
+         "branch_tree_list": "Lista oddziałów",
+         "branch_tree_add": "Nowy oddział"
       }
    },
    "dashboard": {
@@ -774,5 +780,12 @@
          "stale": "Ten rekord zmienił się od rozpoczęcia edycji; zapisanie nadpisze te zmiany.",
          "discard": "Odrzuć"
       }
+   },
+   "branch_tree": {
+      "hint": "Twoje oddziały i oddziały pod nimi. Właściciele oddziału otwierają i usuwają oddziały pod nim; usunąć można tylko oddział bez własnych oddziałów.",
+      "active": "Aktywny",
+      "owner": "Właściciel",
+      "add_branch": "Otwórz oddział pod nim",
+      "opened_under": "Zostanie otwarty pod {name}."
    }
 }
