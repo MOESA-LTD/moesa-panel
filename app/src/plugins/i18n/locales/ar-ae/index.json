@@ -294,6 +294,7 @@
          "yesterday": "أمس",
          "last_week": "الأسبوع الماضي",
          "older": "الأكثر من أسبوع",
+         "system": "النظام",
          "title": "الإشعارات",
          "activity": {
             "created": "تم إنشاء {resource_name} بواسطة {user_name}",

@@ -553,6 +553,7 @@
          "yesterday": "어제",
          "last_week": "지난 주",
          "older": "기타",
+         "system": "시스템",
          "title": "알림",
          "activity": {
             "created": "새로운 {resource_name}이 {user_name}에 의해 생성되었습니다",

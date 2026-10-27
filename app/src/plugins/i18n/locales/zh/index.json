@@ -553,6 +553,7 @@
          "yesterday": "昨日",
          "last_week": "上周",
          "older": "更早",
+         "system": "系统",
          "title": "通知",
          "activity": {
             "created": "新 {resource_name} 由 {user_name} 创建",

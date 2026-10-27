@@ -24,6 +24,7 @@
          "yesterday": "Ayer",
          "last_week": "Última semana",
          "older": "Anteriores",
+         "system": "el sistema",
          "title": "Notificaciones",
          "activity": {
             "created": "nuevo {resource_name} creado por {user_name}",

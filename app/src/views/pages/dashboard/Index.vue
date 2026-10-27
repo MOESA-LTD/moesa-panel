@@ -124,6 +124,12 @@ const useDashboardNotifications = () => {
       };
    };
 
+   /** The user's name or e-mail; writes made outside the app (no user) read as the system. */
+   const getUserLabel = (notification: Views['dashboard_notification_feed']['Row']) =>
+      notification.user_name ||
+      notification.user_email ||
+      i18n.t(notification.user_id ? 'fields.user' : 'dashboard.notifications.system');
+
    const title = computed(() => ({
       today: i18n.t('dashboard.notifications.today'),
       yesterday: i18n.t('dashboard.notifications.yesterday'),
@@ -162,6 +168,7 @@ const useDashboardNotifications = () => {
       load,
       getTagProps,
       getNotificationResourceRoute,
+      getUserLabel,
       data,
       loading,
       title
@@ -676,17 +683,14 @@ onMounted(() => {
                                           size="small"
                                           fluid
                                           class="!px-0 !text-primary-emphasis-alt"
-                                          :label="
-                                             _get(notification, `user_name`) || $t(`fields.user`)
-                                          "
+                                          :label="dashboardNotifications.getUserLabel(notification)"
                                           @click="navigate"
                                        />
                                     </CustomLink>
-                                    <span v-else>
-                                       {{
-                                          _get(notification, `user_name`) || $t(`fields.user`)
-                                       }}</span
-                                    >
+                                    <span
+                                       v-else
+                                       v-text="dashboardNotifications.getUserLabel(notification)"
+                                    />
                                  </template>
                               </i18n-t>
                            </li>

@@ -553,6 +553,7 @@
          "yesterday": "昨日",
          "last_week": "先週",
          "older": "以前",
+         "system": "システム",
          "title": "通知",
          "activity": {
             "created": "new {resource_name} created by {user_name}",

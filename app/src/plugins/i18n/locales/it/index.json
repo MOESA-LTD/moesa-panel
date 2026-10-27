@@ -294,6 +294,7 @@
          "yesterday": "Ieri",
          "last_week": "Settimana precedente",
          "older": "Più vecchi",
+         "system": "il sistema",
          "title": "Notifiche",
          "activity": {
             "created": "nuovo {resource_name} creato da {user_name}",

@@ -553,6 +553,7 @@
          "yesterday": "Yesterday",
          "last_week": "Last Week",
          "older": "Older",
+         "system": "the system",
          "title": "Notifications",
          "activity": {
             "created": "new {resource_name} created by {user_name}",

@@ -553,6 +553,7 @@
          "yesterday": "Вчера",
          "last_week": "За последнюю неделю",
          "older": "Старше",
+         "system": "системой",
          "title": "Уведомления",
          "activity": {
             "created": "новый {resource_name} создан {user_name}",

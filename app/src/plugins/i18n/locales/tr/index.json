@@ -496,6 +496,7 @@
          "yesterday": "Dün",
          "last_week": "Geçen Hafta",
          "older": "Daha Eski",
+         "system": "sistem",
          "title": "Bildirimler",
          "activity": {
             "created": "yeni {resource_name} {user_name} tarafından oluşturuldu",
