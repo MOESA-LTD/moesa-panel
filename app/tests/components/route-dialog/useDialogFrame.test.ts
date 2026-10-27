@@ -246,6 +246,35 @@ describe('useDialogFrame', () => {
          expect(box()).toEqual({ left: 0, top: 0, width: 500, height: 800 });
       });
 
+      it('outlines the drop zones while dragging, the one the pointer heads to standing out', () => {
+         const hints = () => document.querySelector('.route_dialog__snap-hints');
+         let during: { zones: number; near: string[]; over: boolean } | undefined;
+         // Ends 80px from the left edge: close, but not close enough to snap.
+         drag(-420, 0, {
+            during: () =>
+               (during = {
+                  zones: hints()!.children.length,
+                  near: [...hints()!.querySelectorAll('.route_dialog__snap-hint--near')].map(
+                     (hint) => (hint as HTMLElement).dataset.zone!
+                  ),
+                  over:
+                     hints()!.compareDocumentPosition(dialog) === Node.DOCUMENT_POSITION_PRECEDING
+               })
+         });
+
+         expect(during).toEqual({ zones: 8, near: ['left'], over: true });
+         expect(hints()).toBeNull();
+         expect(frame.state.value).toBe('normal');
+      });
+
+      it('shows no zones for a click on the header', () => {
+         let shown: boolean | undefined;
+         drag(2, 1, {
+            during: () => (shown = !!document.querySelector('.route_dialog__snap-hints'))
+         });
+         expect(shown).toBe(false);
+      });
+
       it('fills a quarter when dropped in a corner', () => {
          drag(495, 295);
          expect(box()).toEqual({ left: 500, top: 400, width: 500, height: 400 });

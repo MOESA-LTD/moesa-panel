@@ -282,6 +282,115 @@ useEventListener(
    }
 }
 
+// Where a dragged dialog can be dropped: bars along the edges (halves), brackets in the corners
+// (quarters). The one the pointer is heading to stands out (useDialogFrame).
+.route_dialog__snap-hints {
+   @apply fixed inset-0 pointer-events-none;
+   --snap-hint-color: var(--p-primary-color);
+   animation: route-dialog-snap-hints-in 150ms ease-out;
+}
+
+.route_dialog__snap-hint {
+   @apply absolute;
+   opacity: 0.35;
+   transition:
+      opacity 150ms ease-out,
+      transform 150ms ease-out;
+
+   &--left,
+   &--right,
+   &--top,
+   &--bottom {
+      @apply rounded-full;
+      background: var(--snap-hint-color);
+   }
+   &--left,
+   &--right {
+      @apply w-1.5 top-32 bottom-32;
+   }
+   &--top,
+   &--bottom {
+      @apply h-1.5 left-32 right-32;
+   }
+   &--left {
+      @apply left-1;
+   }
+   &--right {
+      @apply right-1;
+   }
+   &--top {
+      @apply top-1;
+   }
+   &--bottom {
+      @apply bottom-1;
+   }
+
+   &--top-left,
+   &--top-right,
+   &--bottom-left,
+   &--bottom-right {
+      @apply size-10;
+      transform-origin: bottom right;
+      border: 0 solid var(--snap-hint-color);
+   }
+   &--top-left {
+      @apply top-1 left-1 rounded-tl-2xl;
+      transform-origin: top left;
+      border-top-width: 6px;
+      border-left-width: 6px;
+   }
+   &--top-right {
+      @apply top-1 right-1 rounded-tr-2xl;
+      transform-origin: top right;
+      border-top-width: 6px;
+      border-right-width: 6px;
+   }
+   &--bottom-left {
+      @apply bottom-1 left-1 rounded-bl-2xl;
+      transform-origin: bottom left;
+      border-bottom-width: 6px;
+      border-left-width: 6px;
+   }
+   &--bottom-right {
+      @apply bottom-1 right-1 rounded-br-2xl;
+      border-bottom-width: 6px;
+      border-right-width: 6px;
+   }
+
+   &--near {
+      opacity: 1;
+   }
+   &--near#{&}--left,
+   &--near#{&}--right {
+      transform: scaleX(2);
+   }
+   &--near#{&}--top,
+   &--near#{&}--bottom {
+      transform: scaleY(2);
+   }
+   &--near#{&}--top-left,
+   &--near#{&}--top-right,
+   &--near#{&}--bottom-left,
+   &--near#{&}--bottom-right {
+      transform: scale(1.25);
+   }
+}
+
+@keyframes route-dialog-snap-hints-in {
+   from {
+      opacity: 0;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .route_dialog__snap-hints,
+   .route_dialog__snap-hint,
+   .route_dialog__snap-preview {
+      animation: none;
+      transition: none;
+   }
+}
+
 // Touch screens get the dialog at its layout size; resizing there is impractical.
 @media (pointer: coarse) {
    .route_dialog__handle {

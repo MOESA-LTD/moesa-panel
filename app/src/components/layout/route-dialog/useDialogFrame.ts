@@ -1,5 +1,12 @@
 import { onBeforeUnmount, readonly, ref } from 'vue';
-import { SNAP_BOXES, snapZoneAt, type SnapBox, type SnapZone } from './snap';
+import {
+   SNAP_BOXES,
+   SNAP_HINT_REACH,
+   SNAP_ZONES,
+   snapZoneAt,
+   type SnapBox,
+   type SnapZone
+} from './snap';
 
 /**
  * How the dialog is shown: as placed by the user, filling the viewport, as its header only, or
@@ -87,6 +94,35 @@ export function useDialogFrame(
    };
 
    /**
+    * While a dialog is dragged, the edges and corners it can be dropped on are outlined, so the user
+    * sees they exist; the one the pointer is heading to stands out (`near`).
+    */
+   let hints: HTMLElement | null = null;
+   const showHints = (el: HTMLElement, near: SnapZone | null) => {
+      if (!hints) {
+         hints = document.createElement('div');
+         hints.className = 'route_dialog__snap-hints';
+         hints.setAttribute('aria-hidden', 'true');
+         for (const zone of SNAP_ZONES) {
+            const hint = document.createElement('span');
+            hint.className = `route_dialog__snap-hint route_dialog__snap-hint--${zone}`;
+            hint.dataset.zone = zone;
+            hints.append(hint);
+         }
+      }
+      // Over the dialog, which is kept inside the viewport and so covers the edge it is dragged
+      // to; they let pointer events through (the preview stays below, as a shadow of the drop).
+      if (!hints.isConnected) el.after(hints);
+      for (const hint of hints.children as HTMLCollectionOf<HTMLElement>) {
+         hint.classList.toggle('route_dialog__snap-hint--near', hint.dataset.zone === near);
+      }
+   };
+   const hideHints = () => {
+      hints?.remove();
+      hints = null;
+   };
+
+   /**
     * Follows the pointer until it is released; `move` gets the distance from the start and the
     * event, `end` whether the gesture was completed (not cancelled).
     */
@@ -118,6 +154,7 @@ export function useDialogFrame(
          target.removeEventListener('pointercancel', onUp);
          document.body.classList.remove('select-none');
          hidePreview();
+         hideHints();
          stop = undefined;
       };
 
@@ -175,8 +212,13 @@ export function useDialogFrame(
          (dx, dy, e) => {
             el.style.left = `${clamp(start.left + dx, 0, innerWidth - start.width)}px`;
             el.style.top = `${clamp(start.top + dy, 0, innerHeight - start.height)}px`;
-            if (!snaps) return;
+            // Not for a click or double-click on the header, only once it is really dragged.
+            if (!snaps || Math.hypot(dx, dy) < 4) return;
             zone = snapZoneAt(e.clientX, e.clientY, innerWidth, innerHeight);
+            showHints(
+               el,
+               snapZoneAt(e.clientX, e.clientY, innerWidth, innerHeight, SNAP_HINT_REACH)
+            );
             showPreview(el, zone);
          },
          (completed) => {
@@ -289,6 +331,7 @@ export function useDialogFrame(
    onBeforeUnmount(() => {
       stop?.();
       hidePreview();
+      hideHints();
    });
 
    return {

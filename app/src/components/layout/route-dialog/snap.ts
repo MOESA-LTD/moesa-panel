@@ -13,13 +13,36 @@ export type SnapZone =
 export const SNAP_EDGE = 16;
 /** How far along an edge from a corner still snaps to the corner (a quarter). */
 export const SNAP_CORNER = 96;
+/** How close to an edge the pointer gets before that edge's drop zone is highlighted. */
+export const SNAP_HINT_REACH = 120;
 
-/** The zone under the pointer, if it is at an edge of the viewport. */
-export function snapZoneAt(x: number, y: number, width: number, height: number): SnapZone | null {
-   const atLeft = x <= SNAP_EDGE;
-   const atRight = x >= width - 1 - SNAP_EDGE;
-   const atTop = y <= SNAP_EDGE;
-   const atBottom = y >= height - 1 - SNAP_EDGE;
+/** All zones, for showing where a dragged dialog can be dropped. */
+export const SNAP_ZONES: SnapZone[] = [
+   'left',
+   'right',
+   'top',
+   'bottom',
+   'top-left',
+   'top-right',
+   'bottom-left',
+   'bottom-right'
+];
+
+/**
+ * The zone under the pointer, if it is within `edge` pixels of an edge of the viewport: SNAP_EDGE
+ * to snap, SNAP_HINT_REACH for the zone the pointer is heading to.
+ */
+export function snapZoneAt(
+   x: number,
+   y: number,
+   width: number,
+   height: number,
+   edge = SNAP_EDGE
+): SnapZone | null {
+   const atLeft = x <= edge;
+   const atRight = x >= width - 1 - edge;
+   const atTop = y <= edge;
+   const atBottom = y >= height - 1 - edge;
 
    const vertical = y < SNAP_CORNER ? 'top' : y > height - 1 - SNAP_CORNER ? 'bottom' : null;
    const horizontal = x < SNAP_CORNER ? 'left' : x > width - 1 - SNAP_CORNER ? 'right' : null;

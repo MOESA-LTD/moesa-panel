@@ -1,4 +1,9 @@
-import { SNAP_CORNER, SNAP_EDGE, snapZoneAt } from '@/components/layout/route-dialog/snap';
+import {
+   SNAP_CORNER,
+   SNAP_EDGE,
+   SNAP_HINT_REACH,
+   snapZoneAt
+} from '@/components/layout/route-dialog/snap';
 import { describe, expect, it } from 'vitest';
 
 const W = 1000;
@@ -29,5 +34,12 @@ describe('snapZoneAt', () => {
    it('takes a pointer past the edge (captured outside the window) as at the edge', () => {
       expect(zone(-50, 400)).toBe('left');
       expect(zone(5000, 5000)).toBe('bottom-right');
+   });
+
+   it('finds the zone the pointer is heading to within a wider reach', () => {
+      expect(zone(SNAP_HINT_REACH, 400)).toBeNull();
+      expect(snapZoneAt(SNAP_HINT_REACH, 400, W, H, SNAP_HINT_REACH)).toBe('left');
+      expect(snapZoneAt(500, H - 50, W, H, SNAP_HINT_REACH)).toBe('bottom');
+      expect(snapZoneAt(500, 400, W, H, SNAP_HINT_REACH)).toBeNull();
    });
 });
