@@ -2,39 +2,54 @@
 -- RLS reads access from the tables on every request (private.permissions, private.tenant_id); the
 -- app reads the same through my_access and reloads it when told that it changed.
 
--- The user's tenants, the tenant in use and its permissions. The tenant in use is `requested`
--- when the user belongs to it, else the one of the request (x-tenant-id header or the token's
--- current tenant), else their first tenant.
+-- The user's tenants as a tree (parent_id), each with the permissions the user has in it and
+-- whether they own it, and the active tenant. The active tenant is `requested` when the user may
+-- use it, else the one of the request (x-tenant-id header or the token's current tenant), else the
+-- first of their tenants. `permissions` repeats the active tenant's.
 CREATE OR REPLACE FUNCTION public.my_access (requested UUID DEFAULT NULL) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
    search_path = '' AS $$
 DECLARE
     uid UUID := auth.uid();
     allowed UUID[];
+    owned UUID[];
     tenant UUID;
+    tenants JSONB;
 BEGIN
     IF uid IS NULL THEN
         RETURN NULL;
     END IF;
 
     allowed := private.allowed_tenant();
+    owned := private.owned_tenants(uid);
     tenant := CASE WHEN requested = ANY (allowed) THEN requested END;
     tenant := coalesce(tenant, private.tenant_id());
     IF tenant IS NULL THEN
         SELECT t.id INTO tenant FROM public.tenant t WHERE t.id = ANY (allowed) ORDER BY t.created_at, t.id LIMIT 1;
     END IF;
 
-    RETURN jsonb_build_object(
-        'tenant_id', tenant,
-        'tenants', coalesce(
-            (SELECT jsonb_agg(jsonb_build_object('id', t.id, 'display_name', t.display_name) ORDER BY t.created_at, t.id)
-             FROM public.tenant t WHERE t.id = ANY (allowed)),
-            '[]'::JSONB
-        ),
+    SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'id', t.id,
+        'display_name', t.display_name,
+        -- Only a parent the user may use; otherwise the branch is a root for them.
+        'parent_id', CASE WHEN t.parent_id = ANY (allowed) THEN t.parent_id END,
+        'owned', t.id = ANY (owned),
         'permissions', coalesce(
             (SELECT jsonb_agg(jsonb_build_object('resource_name', p.resource_name, 'command', p.command)
                               ORDER BY p.resource_name, p.command)
-             FROM private.permissions(uid, tenant) p),
+             FROM private.permissions(uid, t.id) p),
+            '[]'::JSONB
+        )
+    ) ORDER BY t.created_at, t.id), '[]'::JSONB)
+    INTO tenants
+    FROM public.tenant t
+    WHERE t.id = ANY (allowed);
+
+    RETURN jsonb_build_object(
+        'tenant_id', tenant,
+        'tenants', tenants,
+        'permissions', coalesce(
+            (SELECT t -> 'permissions' FROM jsonb_array_elements(tenants) t WHERE (t ->> 'id')::UUID = tenant),
             '[]'::JSONB
         )
     );
@@ -80,8 +95,25 @@ BEGIN
         JOIN public.role ro ON ro.id = (r ->> 'role_id')::UUID AND ro.tenant_id IS NULL AND ro.display_name = 'owner'
         CROSS JOIN public.tenant_owner o
         WHERE TG_TABLE_NAME = 'role_permission'
+        UNION
+        -- tenant: the owners above a branch opened or removed, and the tenant's own owners...
+        SELECT o.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.tenant_owner o
+          ON o.tenant_id = (r ->> 'id')::UUID
+          OR (r ->> 'parent_id')::UUID = ANY (private.owned_tenants(o.user_id))
+        WHERE TG_TABLE_NAME = 'tenant'
+        UNION
+        -- ...and its members (a renamed tenant).
+        SELECT tu.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.tenant_user tu ON tu.tenant_id = (r ->> 'id')::UUID
+        WHERE TG_TABLE_NAME = 'tenant'
     ) affected
     WHERE affected.user_id IS NOT NULL;
+
+    -- What the transaction's later statements may use is no longer what private.tenant_scope kept.
+    PERFORM set_config('access.tenant_scope', '', true);
 
     PERFORM realtime.send(
         jsonb_build_object('table', TG_TABLE_NAME),

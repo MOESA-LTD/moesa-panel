@@ -59,9 +59,11 @@ CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE TO authenticate
       tenant_user tu
     WHERE
       tu.user_id = public.user.id
-      AND tu.tenant_id = (
-        SELECT
-          private.tenant_id ()
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
       )
   )
 )
@@ -74,9 +76,11 @@ WITH
         tenant_user tu
       WHERE
         tu.user_id = public.user.id
-        AND tu.tenant_id = (
-          SELECT
-            private.tenant_id ()
+        AND tu.tenant_id = ANY (
+          (
+            SELECT
+              private.tenant_scope ()
+          )::UUID[]
         )
     )
   );

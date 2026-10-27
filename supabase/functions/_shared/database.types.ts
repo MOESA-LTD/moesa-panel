@@ -1100,6 +1100,26 @@ export type Database = {
           user_metadata: Json | null
         }[]
       }
+      create_branch: {
+        Args: {
+          parent_id: string
+          branch: Json
+        }
+        Returns: {
+          created_at: string | null
+          display_name: string
+          email: string | null
+          id: string
+          parent_id: string | null
+          phone: string | null
+        }
+      }
+      delete_branch: {
+        Args: {
+          branch_id: string
+        }
+        Returns: undefined
+      }
       my_access: {
         Args: {
           requested?: string

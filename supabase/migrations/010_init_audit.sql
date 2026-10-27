@@ -168,10 +168,11 @@ BEGIN
         RETURN;
     END IF;
 
+    -- The tenant of the row: with several tenants in a request, not necessarily the active one.
     tenant_id := coalesce(
-        private.tenant_id(),
         (p_row ->> 'tenant_id')::UUID,
-        CASE WHEN p_table_name = 'tenant' THEN (p_row ->> 'id')::UUID END
+        CASE WHEN p_table_name = 'tenant' THEN (p_row ->> 'id')::UUID END,
+        private.tenant_id()
     );
     -- A tenant being deleted takes its trail with it; its own deletion is kept without a tenant.
     IF NOT EXISTS (SELECT 1 FROM public.tenant t WHERE t.id = tenant_id) THEN
@@ -450,16 +451,18 @@ ALTER TABLE public.audit_transaction ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 
--- The current tenant's trail only. An equality (not the shared `tenant_id IS NULL OR …` policy) so
--- the (tenant_id, created_at) index serves the lists.
+-- The trail of the request's tenants only. `= ANY` (not the shared `tenant_id IS NULL OR …` policy)
+-- so the (tenant_id, created_at) index serves the lists.
 DROP POLICY IF EXISTS restrict_to_current_tenant ON public.audit_transaction;
 
 CREATE POLICY restrict_to_current_tenant ON public.audit_transaction AS RESTRICTIVE FOR
 SELECT
    TO authenticated USING (
-      tenant_id = (
-         SELECT
-            private.tenant_id ()
+      tenant_id = ANY (
+         (
+            SELECT
+               private.tenant_scope ()
+         )::UUID[]
       )
    );
 
@@ -468,22 +471,26 @@ DROP POLICY IF EXISTS restrict_to_current_tenant ON public.audit_log;
 CREATE POLICY restrict_to_current_tenant ON public.audit_log AS RESTRICTIVE FOR
 SELECT
    TO authenticated USING (
-      tenant_id = (
-         SELECT
-            private.tenant_id ()
+      tenant_id = ANY (
+         (
+            SELECT
+               private.tenant_scope ()
+         )::UUID[]
       )
    );
 
--- Both tables are read with the audit_log permission (its policy on audit_log comes from the
--- permission row below).
+-- Both tables are read with the audit_log permission, in the tenants where the user has it (its
+-- policy on audit_log comes from the permission row below).
 DROP POLICY IF EXISTS select_public_audit_transaction ON public.audit_transaction;
 
 CREATE POLICY select_public_audit_transaction ON public.audit_transaction FOR
 SELECT
    TO authenticated USING (
-      (
-         SELECT
-            private.check_permission ('public.audit_log', 'select')
+      tenant_id = ANY (
+         (
+            SELECT
+               private.permitted_tenants ('public.audit_log', 'select')
+         )::UUID[]
       )
    );
 
