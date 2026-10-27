@@ -65,6 +65,12 @@
       "table": {
          "no_data_found": "Veri bulunamadı",
          "keyword_search": "Anahtar kelime araması"
+      },
+      "dialog": {
+         "minimize": "Küçült",
+         "maximize": "Ekranı kapla",
+         "restore": "Önceki boyuta getir",
+         "close": "Kapat"
       }
    },
    "common": {

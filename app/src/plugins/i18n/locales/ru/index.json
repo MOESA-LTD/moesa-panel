@@ -267,6 +267,12 @@
       "table": {
          "no_data_found": "Данные не найдены",
          "keyword_search": "Поиск по ключевому слову"
+      },
+      "dialog": {
+         "minimize": "Свернуть",
+         "maximize": "Развернуть",
+         "restore": "Восстановить",
+         "close": "Закрыть"
       }
    },
    "common": {

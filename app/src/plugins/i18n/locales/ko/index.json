@@ -267,6 +267,12 @@
       "table": {
          "no_data_found": "데이터가 없습니다.",
          "keyword_search": "키워드 검색"
+      },
+      "dialog": {
+         "minimize": "최소화",
+         "maximize": "최대화",
+         "restore": "이전 크기로 복원",
+         "close": "닫기"
       }
    },
    "common": {

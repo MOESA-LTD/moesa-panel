@@ -6,6 +6,7 @@ import { defineComponent, h } from 'vue';
 // happy-dom has no layout: the dialog's box comes from the inline style, as after a move.
 const VIEWPORT = { width: 1000, height: 800 };
 const START = { left: 100, top: 100, width: 400, height: 300 };
+const HEADER_HEIGHT = 40;
 
 let dialog: HTMLElement;
 let handle: HTMLElement;
@@ -47,7 +48,8 @@ beforeEach(() => {
          left: px(dialog.style.left),
          top: px(dialog.style.top),
          width: px(dialog.style.width),
-         height: px(dialog.style.height)
+         // Without a height the dialog shows its header only (minimized).
+         height: px(dialog.style.height) || HEADER_HEIGHT
       }) as DOMRect;
    Object.assign(dialog.style, {
       left: `${START.left}px`,
@@ -125,5 +127,72 @@ describe('useDialogFrame', () => {
    it('reports the style after a gesture so it can be kept', () => {
       resize({ right: true }, 10, 0);
       expect(saved).toContain('width: 410px');
+   });
+
+   describe('window state', () => {
+      it('maximizes to the viewport and restores the previous box', () => {
+         resize({ right: true }, 50, 0);
+         frame.toggleMaximize();
+
+         expect(frame.state.value).toBe('maximized');
+         expect(dialog.style).toMatchObject({
+            left: '0px',
+            top: '0px',
+            width: '100vw',
+            height: '100vh'
+         });
+
+         frame.toggleMaximize();
+         expect(frame.state.value).toBe('normal');
+         expect(box()).toEqual({ ...START, width: 450 });
+      });
+
+      it('neither moves nor resizes while maximized', () => {
+         frame.toggleMaximize();
+         drag(50, 50);
+         resize({ right: true }, 50, 0);
+
+         expect(dialog.style).toMatchObject({ left: '0px', top: '0px', width: '100vw' });
+      });
+
+      it('minimizes to the header and restores the height', () => {
+         frame.toggleMinimize();
+
+         expect(frame.state.value).toBe('minimized');
+         expect(dialog.style.height).toBe('');
+
+         frame.toggleMinimize();
+         expect(box()).toEqual(START);
+      });
+
+      it('restores a dialog moved while minimized where it was moved to', () => {
+         frame.toggleMinimize();
+         drag(100, 50);
+         frame.restore();
+
+         expect(box()).toEqual({ ...START, left: 200, top: 150 });
+      });
+
+      it('keeps the restored box inside the viewport', () => {
+         frame.toggleMinimize();
+         drag(5000, 5000);
+         frame.restore();
+
+         expect(box()).toEqual({ ...START, left: 600, top: 500 });
+      });
+
+      it('switches between maximized and minimized through the normal box', () => {
+         frame.toggleMaximize();
+         frame.toggleMinimize();
+         expect(frame.state.value).toBe('minimized');
+
+         frame.restore();
+         expect(box()).toEqual(START);
+      });
+
+      it('reports the style after a state change', () => {
+         frame.toggleMaximize();
+         expect(saved).toContain('width: 100vw');
+      });
    });
 });

@@ -267,6 +267,12 @@
       "table": {
          "no_data_found": "未找到数据",
          "keyword_search": "关键字搜索"
+      },
+      "dialog": {
+         "minimize": "最小化",
+         "maximize": "最大化",
+         "restore": "还原",
+         "close": "关闭"
       }
    },
    "common": {

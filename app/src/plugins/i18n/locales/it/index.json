@@ -388,6 +388,12 @@
       "table": {
          "no_data_found": "Nessun dato trovato",
          "keyword_search": "Cerca per parola chiave"
+      },
+      "dialog": {
+         "minimize": "Riduci",
+         "maximize": "Ingrandisci",
+         "restore": "Ripristina",
+         "close": "Chiudi"
       }
    },
    "common": {

@@ -4,8 +4,8 @@ import { useAuthStore } from '@/store/auth';
 import { useEventListener } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { ProgressSpinner } from 'primevue';
-import { usePrimeVue } from 'primevue/config';
-import { defineAsyncComponent, provide, ref, watch, type Component } from 'vue';
+import { computed, defineAsyncComponent, provide, ref, watch, type Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { RouteLocationNormalized } from 'vue-router';
 import { ROUTE_DIALOG, type DialogCloseGuard } from './context';
 import { bringToFront } from './stacking';
@@ -19,7 +19,7 @@ import { useDialogFrame, type DialogEdges } from './useDialogFrame';
 const props = defineProps<{ route: RouteLocationNormalized }>();
 
 const dialogRef = useDialogRef();
-const primevue = usePrimeVue();
+const { t } = useI18n();
 
 const record = props.route.matched.at(-1)!;
 const view = record.components?.default;
@@ -67,12 +67,48 @@ if (props.route.meta.requiresAuth) {
 const root = ref<HTMLElement | null>(null);
 const dialogElement = () => root.value?.closest<HTMLElement>('.p-dialog');
 
-const { startDrag, startResize } = useDialogFrame(dialogElement, {
-   // Kept in the dialog's props so a re-render does not reset the position and size.
-   onChange: (style) => {
-      if (dialogRef?.value.options.props) dialogRef.value.options.props.style = style;
+const { state, startDrag, startResize, toggleMaximize, toggleMinimize } = useDialogFrame(
+   dialogElement,
+   {
+      // Kept in the dialog's props so a re-render does not reset the position and size.
+      onChange: (style) => {
+         if (dialogRef?.value.options.props) dialogRef.value.options.props.style = style;
+      }
    }
-});
+);
+
+/** Double-clicking the header maximizes or restores, as in desktop windows. */
+const onHeaderDblclick = (event: MouseEvent) => {
+   if (!(event.target as HTMLElement).closest('button, a, input')) toggleMaximize();
+};
+
+/** Window buttons: minimize or restore, maximize or restore, close. */
+const controls = computed(() => [
+   // Both restores share PrimeVue's restore icon, so maximize keeps its own.
+   state.value === 'minimized'
+      ? {
+           icon: PrimeIcons.WINDOW_MINIMIZE,
+           label: t('component.dialog.restore'),
+           command: toggleMinimize
+        }
+      : { icon: PrimeIcons.MINUS, label: t('component.dialog.minimize'), command: toggleMinimize },
+   state.value === 'maximized'
+      ? {
+           icon: PrimeIcons.WINDOW_MINIMIZE,
+           label: t('component.dialog.restore'),
+           command: toggleMaximize
+        }
+      : {
+           icon: PrimeIcons.WINDOW_MAXIMIZE,
+           label: t('component.dialog.maximize'),
+           command: toggleMaximize
+        },
+   {
+      icon: PrimeIcons.TIMES,
+      label: t('component.dialog.close'),
+      command: close
+   }
+]);
 
 const EDGES: Record<string, DialogEdges> = {
    n: { top: true },
@@ -102,22 +138,33 @@ useEventListener(
 </script>
 
 <template>
-   <div ref="root" class="route_dialog">
-      <div class="p-dialog-header route_dialog__header" @pointerdown="startDrag">
+   <div ref="root" :class="['route_dialog', `route_dialog--${state}`]">
+      <div
+         class="p-dialog-header route_dialog__header"
+         @pointerdown="startDrag"
+         @dblclick="onHeaderDblclick"
+      >
          <span class="p-dialog-title first-letter:uppercase" v-text="$t(route.meta.label ?? '')" />
-         <Button
-            :icon="PrimeIcons.TIMES"
-            severity="secondary"
-            rounded
-            text
-            :aria-label="primevue.config.locale?.aria?.close"
-            @click="close"
-         />
+         <div class="route_dialog__controls">
+            <Button
+               v-for="control in controls"
+               :key="control.label"
+               :icon="control.icon"
+               severity="secondary"
+               rounded
+               text
+               size="small"
+               :aria-label="control.label"
+               v-tooltip.bottom="control.label"
+               @click="control.command"
+            />
+         </div>
       </div>
-      <div class="p-dialog-content route_dialog__body">
+      <div v-show="state !== 'minimized'" class="p-dialog-content route_dialog__body">
          <component :is="page" v-bind="route.params" />
       </div>
       <span
+         v-show="state === 'normal'"
          v-for="(edges, name) in EDGES"
          :key="name"
          :class="`route_dialog__handle route_dialog__handle--${name}`"
@@ -132,7 +179,15 @@ useEventListener(
    @apply flex flex-col h-full min-h-0;
 
    &__header {
-      @apply cursor-move touch-none;
+      @apply cursor-move touch-none select-none;
+   }
+
+   &--maximized &__header {
+      @apply cursor-default;
+   }
+
+   &__controls {
+      @apply flex items-center gap-1;
    }
 
    &__body {

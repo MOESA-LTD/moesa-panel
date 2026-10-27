@@ -8,7 +8,7 @@ export function bringToFront(mask: HTMLElement) {
    ].sort((a, b) => +a.style.zIndex - +b.style.zIndex);
    const top = masks.at(-1);
 
-   if (!top || top === mask || mask.querySelector('.p-dialog-maximized')) return;
+   if (!top || top === mask) return;
 
    const topZIndex = +top.style.zIndex;
    masks.forEach((element) => (element.style.zIndex = `${+element.style.zIndex - 1}`));

@@ -388,6 +388,12 @@
       "table": {
          "no_data_found": "لم يتم العثور على بيانات",
          "keyword_search": "بحث بالكلمة المفتاحية"
+      },
+      "dialog": {
+         "minimize": "تصغير",
+         "maximize": "تكبير",
+         "restore": "استعادة",
+         "close": "إغلاق"
       }
    },
    "common": {

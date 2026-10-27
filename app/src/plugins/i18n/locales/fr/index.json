@@ -267,6 +267,12 @@
       "table": {
          "no_data_found": "Aucun données trouvé",
          "keyword_search": "Recherche par mot-clé"
+      },
+      "dialog": {
+         "minimize": "Réduire",
+         "maximize": "Agrandir",
+         "restore": "Restaurer",
+         "close": "Fermer"
       }
    },
    "common": {
