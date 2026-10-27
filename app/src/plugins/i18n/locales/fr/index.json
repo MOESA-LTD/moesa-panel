@@ -253,6 +253,11 @@
       "select_unit_type": "Sélectionnez le type d'unité"
    },
    "component": {
+      "branch_picker": {
+         "label": "Agences",
+         "active": "Agence active : les nouveaux enregistrements y vont",
+         "make_active": "Rendre active"
+      },
       "select_permission": {
          "table": {
             "headers": {

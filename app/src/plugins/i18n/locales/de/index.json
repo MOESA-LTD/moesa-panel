@@ -253,6 +253,11 @@
       "select_unit_type": "Einheitstyp auswählen"
    },
    "component": {
+      "branch_picker": {
+         "label": "Filialen",
+         "active": "Aktive Filiale: neue Einträge kommen hierher",
+         "make_active": "Aktiv setzen"
+      },
       "select_permission": {
          "table": {
             "headers": {

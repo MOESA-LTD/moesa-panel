@@ -1,8 +1,9 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+import { saveRow } from '@/api/saveRow';
 
 export type ResourceRow<T extends keyof Tables> = Tables[T]['Row'];
 /** What forms send: tenant_id is added to every write by customFetch. */
@@ -31,14 +32,11 @@ export function defineResource<T extends keyof Tables, Row = ResourceRow<T>>(
          return data;
       },
 
-      async save(values: ResourceInput<T>): Promise<Row> {
-         const { data } = await from().upsert(values).select(select).single().throwOnError();
-         return data;
-      }
+      save: (values: ResourceInput<T>) => saveRow<Row>(table as keyof Tables, values, select)
    };
 
    function useOne(id: MaybeRefOrGetter<string | null | undefined>) {
-      const tenantId = useTenantId();
+      const tenantId = useTenantKey();
 
       return useQuery({
          queryKey: computed(() => queryKeys.detail(tenantId.value, table, toValue(id))),

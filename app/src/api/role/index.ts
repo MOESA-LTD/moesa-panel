@@ -1,5 +1,5 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
@@ -42,7 +42,7 @@ export const roleRepository = {
 };
 
 export function useRole(id: MaybeRefOrGetter<string | null | undefined>) {
-   const tenantId = useTenantId();
+   const tenantId = useTenantKey();
 
    return useQuery({
       queryKey: computed(() => queryKeys.detail(tenantId.value, 'role', toValue(id))),

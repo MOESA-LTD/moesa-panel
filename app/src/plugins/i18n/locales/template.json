@@ -330,6 +330,11 @@
       "select_unit_type": ""
    },
    "component": {
+      "branch_picker": {
+         "label": "",
+         "active": "",
+         "make_active": ""
+      },
       "select_permission": {
          "table": {
             "headers": {

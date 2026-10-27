@@ -51,6 +51,11 @@
       "select_unit_type": "Birim Türünü Seçin"
    },
    "component": {
+      "branch_picker": {
+         "label": "Şubeler",
+         "active": "Aktif şube: yeni kayıtlar buraya eklenir",
+         "make_active": "Aktif yap"
+      },
       "select_permission": {
          "table": {
             "headers": {

@@ -1,10 +1,11 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { optional, required, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
+import { saveRow } from '@/api/saveRow';
 
 type StockView = Views['stock_view']['Row'];
 type StockProduct = { category?: Array<{ id: string; display_name: string }> };
@@ -28,12 +29,7 @@ export const stockRepository = {
    },
 
    async save(values: StockInput) {
-      const { data } = await supabase
-         .from('stock')
-         .upsert(values as Tables['stock']['Insert'])
-         .select('id')
-         .single()
-         .throwOnError();
+      const data = await saveRow<{ id: string }>('stock', values, 'id');
 
       // Return the row as the form shows it (view columns and product categories).
       return stockRepository.get(data.id, new AbortController().signal);
@@ -41,7 +37,7 @@ export const stockRepository = {
 };
 
 export function useStock(id: MaybeRefOrGetter<string | null | undefined>) {
-   const tenantId = useTenantId();
+   const tenantId = useTenantKey();
 
    return useQuery({
       queryKey: computed(() => queryKeys.detail(tenantId.value, 'stock', toValue(id))),

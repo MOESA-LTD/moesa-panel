@@ -1,5 +1,5 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { optional, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
@@ -53,7 +53,7 @@ export const productRepository = {
 };
 
 export function useProduct(id: MaybeRefOrGetter<string | null | undefined>) {
-   const tenantId = useTenantId();
+   const tenantId = useTenantKey();
 
    return useQuery({
       queryKey: computed(() => queryKeys.detail(tenantId.value, 'product', toValue(id))),

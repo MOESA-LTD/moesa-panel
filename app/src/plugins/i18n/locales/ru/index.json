@@ -253,6 +253,11 @@
       "select_unit_type": "Выберите тип единицы измерения"
    },
    "component": {
+      "branch_picker": {
+         "label": "Филиалы",
+         "active": "Активный филиал: новые записи добавляются сюда",
+         "make_active": "Сделать активным"
+      },
       "select_permission": {
          "table": {
             "headers": {

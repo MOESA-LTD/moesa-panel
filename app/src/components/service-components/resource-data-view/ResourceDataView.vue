@@ -1,7 +1,7 @@
 <script setup>
 import { applyTableMeta } from '@/api/postgrest/tableQuery';
 import { queryKeys } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 
@@ -48,7 +48,7 @@ const items = ref([]);
 const modelValue = defineModel({ default: () => [] });
 
 const attrs = useAttrs();
-const tenantId = useTenantId();
+const tenantId = useTenantKey();
 
 const meta = ref({
    first: 0,

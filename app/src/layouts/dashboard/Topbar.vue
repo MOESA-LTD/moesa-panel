@@ -1,4 +1,5 @@
 <script setup>
+import BranchPicker from '@/components/service-components/branch-picker/BranchPicker.vue';
 import { useSidebar } from '@/composables/useSidebar';
 
 const { isSignedIn } = storeToRefs(useAuthStore());
@@ -36,6 +37,7 @@ const version = import.meta.env.PACKAGE_VERSION;
    </Teleport>
 
    <div class="layout-topbar-actions">
+      <BranchPicker v-if="isSignedIn" />
       <AccountPopover v-if="isSignedIn" class="mt-auto" />
       <Button
          :aria-label="'App configurator toggle button'"

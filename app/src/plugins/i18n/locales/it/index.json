@@ -375,6 +375,11 @@
       "select_unit_type": "Seleziona tipo unità"
    },
    "component": {
+      "branch_picker": {
+         "label": "Filiali",
+         "active": "Filiale attiva: i nuovi record vanno qui",
+         "make_active": "Rendi attiva"
+      },
       "select_permission": {
          "table": {
             "headers": {

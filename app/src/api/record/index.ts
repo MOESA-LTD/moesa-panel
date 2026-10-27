@@ -1,11 +1,12 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { RECORD_STATUSES, RECORD_TYPES } from '@/constants/form/record';
 import { optional, required, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
+import { saveRow } from '@/api/saveRow';
 
 type StockCategory = { id?: string; display_name: string };
 
@@ -37,19 +38,14 @@ export const recordRepository = {
    },
 
    async save(values: RecordInput) {
-      const { data } = await supabase
-         .from('record')
-         .upsert(values as Tables['record']['Insert'])
-         .select('id')
-         .single()
-         .throwOnError();
+      const data = await saveRow<{ id: string }>('record', values, 'id');
 
       return recordRepository.get(data.id, new AbortController().signal);
    }
 };
 
 export function useRecord(id: MaybeRefOrGetter<string | null | undefined>) {
-   const tenantId = useTenantId();
+   const tenantId = useTenantKey();
 
    return useQuery({
       queryKey: computed(() => queryKeys.detail(tenantId.value, 'record', toValue(id))),

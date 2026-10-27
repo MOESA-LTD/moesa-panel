@@ -4,7 +4,7 @@ import { useRouteLoading } from '@/composables/useRouteStatus';
 import CustomTable, { CustomTableProps } from '@/components/ui/custom-table/CustomTable.vue';
 import type { CustomTableSlots } from '@/components/ui/custom-table/types';
 import { queryKeys, type TableName } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { toModel, type ModelClass } from '@/lib/model/Model';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { DataTableStateEvent } from 'primevue';
@@ -68,7 +68,7 @@ const props = withDefaults(defineProps<ResourceTableProps<F, T>>(), {
 });
 const attrs = useAttrs();
 
-const tenantId = useTenantId();
+const tenantId = useTenantKey();
 
 // Set by the first `meta` event of CustomTable, which carries the initial paging/sorting state.
 const meta = ref<Partial<DataTableStateEvent> | null>(null);

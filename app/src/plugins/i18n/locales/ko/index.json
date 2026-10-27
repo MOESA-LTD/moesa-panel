@@ -253,6 +253,11 @@
       "select_unit_type": "단위 유형 선택"
    },
    "component": {
+      "branch_picker": {
+         "label": "지점",
+         "active": "활성 지점: 새 레코드가 여기에 추가됩니다",
+         "make_active": "활성화"
+      },
       "select_permission": {
          "table": {
             "headers": {

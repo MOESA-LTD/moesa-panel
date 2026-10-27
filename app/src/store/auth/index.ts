@@ -12,7 +12,7 @@ import type {
    Session,
    SignInWithPasswordCredentials
 } from '@supabase/supabase-js';
-import { useEventListener } from '@vueuse/core';
+import { useEventListener, useStorage } from '@vueuse/core';
 import { jwtDecode } from 'jwt-decode';
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
@@ -53,10 +53,33 @@ export const useAuthStore = defineStore('auth', () => {
 
    const subdomainTenant = SUBDOMAIN.exec(window.location.href)?.groups?.tenant ?? null;
 
-   /** The tenant the permissions belong to, which every request names (x-tenant-id). */
+   /** The active tenant: new rows go there, and the permissions are its (x-tenant-id). */
    const currentTenant = computed<Tenant | null>(
       () => branches.value.find(({ id }) => id === access.value?.tenant_id) ?? null
    );
+
+   // The tenants read together (x-tenant-ids), kept per user in this browser.
+   const savedScopes = useStorage<Record<string, string[]>>('tenant-scope', {}, localStorage);
+   const selectedTenantIds = computed<string[]>({
+      get: () => savedScopes.value[user.value?.id ?? ''] ?? [],
+      set: (ids) => {
+         if (user.value) savedScopes.value = { ...savedScopes.value, [user.value.id]: ids };
+      }
+   });
+
+   /** The tenants requests read from: the selected ones the user may still use, and the active. */
+   const scopeTenants = computed<Tenant[]>(() => {
+      const ids = new Set([...selectedTenantIds.value, currentTenant.value?.id]);
+      return branches.value.filter(({ id }) => ids.has(id));
+   });
+
+   /** What requests read and write (the active tenant, then the others); in every query key. */
+   const tenantKey = computed<string | null>(() => {
+      const active = currentTenant.value?.id;
+      if (!active) return null;
+      const others = scopeTenants.value.map(({ id }) => id).filter((id) => id !== active);
+      return [active, ...others.sort()].join(',');
+   });
 
    watch(
       () => access.value?.permissions,
@@ -131,9 +154,18 @@ export const useAuthStore = defineStore('auth', () => {
       if (isSignedIn.value) refreshAccess().catch(() => {});
    });
 
+   // Queries are keyed by tenantKey, so the open pages already fetch the new tenants' rows.
+   // Clearing the whole cache would abort those fetches; drop only the previous tenants' queries.
+   const dropPreviousQueries = (previousKey: string | null) => {
+      if (previousKey !== tenantKey.value) {
+         queryClient.removeQueries({ queryKey: queryKeys.tenant(previousKey) });
+      }
+   };
+
    async function changeCurrentTenant(tenant: Tenant) {
       const previousId = currentTenant.value?.id ?? null;
       if (!tenant || tenant.id === previousId) return;
+      const previousKey = tenantKey.value;
 
       preferredTenantId.value = tenant.id;
       await refreshAccess();
@@ -142,9 +174,19 @@ export const useAuthStore = defineStore('auth', () => {
       const { error } = await supabase.auth.updateUser({ data: { current_tenant_id: tenant.id } });
       if (error) throw error;
 
-      // Queries are keyed by tenant, so the open pages already fetch the new tenant's rows.
-      // Clearing the whole cache here would abort those fetches; drop only the previous tenant.
-      queryClient.removeQueries({ queryKey: queryKeys.tenant(previousId) });
+      dropPreviousQueries(previousKey);
+   }
+
+   /** Reads from these tenants; the active one stays among them (or becomes the first of them). */
+   async function setScope(ids: string[]) {
+      const previousKey = tenantKey.value;
+      selectedTenantIds.value = ids;
+
+      const active = currentTenant.value;
+      const first = branches.value.find(({ id }) => ids.includes(id));
+      if (active && first && !ids.includes(active.id)) await changeCurrentTenant(first);
+
+      dropPreviousQueries(previousKey);
    }
 
    let resolveInitialized: () => void;
@@ -196,7 +238,10 @@ export const useAuthStore = defineStore('auth', () => {
       isSignedIn,
       branches,
       currentTenant,
+      scopeTenants,
+      tenantKey,
       changeCurrentTenant,
+      setScope,
       refreshAccess,
       accessReady,
       ability,

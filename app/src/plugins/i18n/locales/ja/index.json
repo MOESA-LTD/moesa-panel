@@ -253,6 +253,11 @@
       "select_unit_type": "単位タイプを選択"
    },
    "component": {
+      "branch_picker": {
+         "label": "支店",
+         "active": "アクティブな支店：新しいレコードはここに追加されます",
+         "make_active": "アクティブにする"
+      },
       "select_permission": {
          "table": {
             "headers": {

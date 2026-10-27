@@ -1,7 +1,16 @@
 import type { PermissionClaim } from '@plugins/casl';
 import { supabase } from '@/lib/supabase';
 
-export type Tenant = { id: string; display_name: string };
+export type Tenant = {
+   id: string;
+   display_name: string;
+   /** The tenant above it, if the user may use that one too (else it is a root for them). */
+   parent_id?: string | null;
+   /** Whether the user owns it (directly or through a tenant above). */
+   owned?: boolean;
+   /** The user's permissions in it. */
+   permissions?: PermissionClaim[];
+};
 
 /** The signed-in user's tenants, the tenant in use and its permissions (public.my_access). */
 export type Access = {

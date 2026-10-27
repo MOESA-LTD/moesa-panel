@@ -214,6 +214,11 @@
       "select_unit_type": "Seleccionar tipo de unidad"
    },
    "component": {
+      "branch_picker": {
+         "label": "Sucursales",
+         "active": "Sucursal activa: los nuevos registros van aquí",
+         "make_active": "Activar"
+      },
       "select_permission": {
          "table": {
             "headers": {

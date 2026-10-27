@@ -3,9 +3,7 @@ import { useMenuSection } from '@/router/menu';
 
 const accountMenu = ref();
 
-const authStore = useAuthStore();
-const { changeCurrentTenant } = authStore;
-const { user, branches, currentTenant } = storeToRefs(authStore);
+const { user } = storeToRefs(useAuthStore());
 
 const account = useMenuSection('account');
 const accountMenuItems = computed(() => account.value?.items);
@@ -44,17 +42,6 @@ const accountMenuItems = computed(() => account.value?.items);
                />
                <p v-if="user.email" v-text="user.email" class="account_popover__email" />
             </div>
-            <Select
-               v-if="branches?.length > 1"
-               fluid=""
-               size="small"
-               :label="$t('auth.branch')"
-               :model-value="currentTenant"
-               @change="(e) => changeCurrentTenant(e.value)"
-               optionLabel="display_name"
-               :options="branches"
-               class="account_popover__select"
-            />
          </template>
 
          <template #item="{ item, props, hasSubmenu }">
@@ -103,10 +90,6 @@ const accountMenuItems = computed(() => account.value?.items);
 
    &__email {
       @apply text-sm;
-   }
-
-   &__select {
-      @apply my-2;
    }
 
    &__menu {

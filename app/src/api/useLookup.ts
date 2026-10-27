@@ -1,5 +1,5 @@
 import { queryKeys, type TableName } from '@/api/queryKeys';
-import { useTenantId } from '@/api/useTenantId';
+import { useTenantKey } from '@/api/useTenantKey';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -20,7 +20,7 @@ export function useLookup<Row = Record<string, any>>(
    table: TableName,
    options: MaybeRefOrGetter<LookupOptions> = {}
 ) {
-   const tenantId = useTenantId();
+   const tenantId = useTenantKey();
 
    return useQuery({
       queryKey: computed(() =>

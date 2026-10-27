@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { saveRow } from '@/api/saveRow';
 
 export type Client = Tables['client']['Row'];
 export type ClientInsert = Tables['client']['Insert'];
@@ -28,15 +29,7 @@ export const clientRepository = {
       return data;
    },
 
-   async save(values: ClientInput) {
-      const { data } = await supabase
-         .from('client')
-         .upsert(values as ClientInsert)
-         .select()
-         .single()
-         .throwOnError();
-      return data;
-   },
+   save: (values: ClientInput) => saveRow<Tables['client']['Row']>('client', values),
 
    async remove(id: string) {
       await supabase.from('client').delete().eq('id', id).throwOnError();

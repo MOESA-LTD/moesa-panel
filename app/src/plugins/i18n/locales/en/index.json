@@ -253,6 +253,11 @@
       "select_unit_type": "Select Unit Type"
    },
    "component": {
+      "branch_picker": {
+         "label": "Branches",
+         "active": "Active branch: new records go here",
+         "make_active": "Make active"
+      },
       "select_permission": {
          "table": {
             "headers": {

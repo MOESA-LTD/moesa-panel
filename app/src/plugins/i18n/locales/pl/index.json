@@ -253,6 +253,11 @@
       "select_unit_type": "Wybierz typ jednostki"
    },
    "component": {
+      "branch_picker": {
+         "label": "Oddziały",
+         "active": "Aktywny oddział: tu trafiają nowe rekordy",
+         "make_active": "Ustaw jako aktywny"
+      },
       "select_permission": {
          "table": {
             "headers": {

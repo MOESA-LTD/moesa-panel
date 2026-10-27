@@ -9,17 +9,23 @@ const customFetch = async (
    url: string | URL,
    options: RequestInit & Request
 ): Promise<Response> => {
-   // Read on every request, so it is always the tenant selected now.
-   const { currentTenant } = useAuthStore();
-
-   // The tenant RLS works in (private.tenant_id); the database checks the user belongs to it.
+   // Read on every request, so it is always the tenants selected now. The active tenant
+   // (private.tenant_id) and the tenants read together (private.tenant_scope); the database keeps
+   // only those the user may use.
+   const { currentTenant, scopeTenants } = useAuthStore();
    if (currentTenant?.id) options?.headers?.set?.('x-tenant-id', currentTenant.id);
+   if (scopeTenants.length > 1) {
+      options?.headers?.set?.('x-tenant-ids', scopeTenants.map(({ id }) => id).join(','));
+   }
 
-   if (currentTenant?.id && _isString(options?.body) && !_includes(url as string, 'rpc/')) {
+   // A new row goes to the active tenant unless it names one. Only inserts (POST to a table): an
+   // update keeps the row's tenant, which may be another of the tenants read together.
+   const isInsert = options?.method === 'POST' && /\/rest\/v1\/(?!rpc\/)/.test(String(url));
+   if (currentTenant?.id && isInsert && _isString(options?.body)) {
       const body = JSON.parse(options.body || '{}');
 
-      if (!_isNil(body) && !_isEmpty(body) && !_isArray(body)) {
-         _merge(body, { tenant_id: currentTenant?.id });
+      if (_isPlainObject(body) && !_isEmpty(body) && !body.tenant_id) {
+         body.tenant_id = currentTenant.id;
          options.body = JSON.stringify(body) as BodyInit & ReadableStream<Uint8Array<ArrayBuffer>>;
       }
    }

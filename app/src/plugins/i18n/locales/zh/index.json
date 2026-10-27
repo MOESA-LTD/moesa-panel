@@ -253,6 +253,11 @@
       "select_unit_type": "请选择单位类型"
    },
    "component": {
+      "branch_picker": {
+         "label": "分店",
+         "active": "当前分店：新记录将添加到这里",
+         "make_active": "设为当前"
+      },
       "select_permission": {
          "table": {
             "headers": {

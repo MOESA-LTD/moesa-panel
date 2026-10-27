@@ -16,7 +16,7 @@ export const corsHeaders = (req: Request): Record<string, string> => {
       'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers':
-         'authorization, x-tenant-id, x-client-info, apikey, content-type',
+         'authorization, x-tenant-id, x-tenant-ids, x-client-info, apikey, content-type',
       Vary: 'Origin'
    };
 };

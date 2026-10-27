@@ -375,6 +375,11 @@
       "select_unit_type": "اختر نوع الوحدة"
    },
    "component": {
+      "branch_picker": {
+         "label": "الفروع",
+         "active": "الفرع النشط: تُضاف السجلات الجديدة هنا",
+         "make_active": "تعيين كنشط"
+      },
       "select_permission": {
          "table": {
             "headers": {
