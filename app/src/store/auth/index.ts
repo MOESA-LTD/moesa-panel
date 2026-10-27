@@ -110,8 +110,12 @@ export const useAuthStore = defineStore('auth', () => {
          return;
       }
 
+      // The user's metadata, not the token's: updateUser saves it at once, while the token keeps
+      // the old tenant until it is refreshed (a reload right after switching opened the old one).
       const requested =
-         preferredTenantId.value ?? jwt.value?.user_metadata?.current_tenant_id ?? null;
+         preferredTenantId.value ??
+         (session.value.user.user_metadata?.current_tenant_id as string | undefined) ??
+         null;
       const result = await fetchAccess(requested);
       if (load !== latestLoad) return;
 
