@@ -153,7 +153,8 @@ GRANT EXECUTE ON FUNCTION public.managed_in (public.user) TO authenticated;
 
 -- The user list: a row per membership in the tenants read where the caller may see users (the
 -- member is managed in that tenant), and a row without a tenant for an owner of a tenant above who
--- belongs to none of them (managed there). `key` tells the rows of one user apart.
+-- belongs to none of them (managed there). `key` tells the rows of one user apart; branch_name
+-- sorts the list by branch.
 CREATE OR REPLACE VIEW public.tenant_member
 WITH
    (security_invoker = TRUE) AS
@@ -165,6 +166,7 @@ SELECT
    u.phone,
    u.created_at,
    tu.tenant_id,
+   (SELECT t.display_name FROM public.tenant t WHERE t.id = tu.tenant_id) AS branch_name,
    public.owned_via (u) AS owned_via
 FROM
    public.tenant_user tu
@@ -180,6 +182,7 @@ SELECT
    u.phone,
    u.created_at,
    NULL::UUID AS tenant_id,
+   NULL::TEXT AS branch_name,
    public.owned_via (u) AS owned_via
 FROM
    public.user u

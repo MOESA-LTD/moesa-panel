@@ -1088,6 +1088,7 @@ export type Database = {
       }
       tenant_member: {
         Row: {
+          branch_name: string | null
           created_at: string | null
           email: string | null
           id: string | null

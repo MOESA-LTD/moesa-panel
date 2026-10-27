@@ -101,6 +101,7 @@ const dialogRef = useDialogRef();
       :from="'tenant_member'"
       select="*"
       dataKey="key"
+      branchSortField="branch_name"
       :columns="columns"
       :rowActions="rowActions"
       v-model:filters="filters"

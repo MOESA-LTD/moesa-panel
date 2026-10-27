@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="F extends TableName, T = TableRow<F>">
-import { applyTableMeta } from '@/api/postgrest/tableQuery';
+import { applyTableMeta, type ColumnFilter, type TableMeta } from '@/api/postgrest/tableQuery';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import CustomTable, { CustomTableProps } from '@/components/ui/custom-table/CustomTable.vue';
 import type { CustomTableSlots } from '@/components/ui/custom-table/types';
@@ -35,6 +35,11 @@ export declare type ResourceTableProps<
    };
    /** Reads this tenant alone instead of the branches shown (e.g. picking for a form's row). */
    tenant?: string | null;
+   /**
+    * What the branch column sorts by: by default the branch's name through the row's tenant
+    * relation; a view without that relation names a column of its own.
+    */
+   branchSortField?: string;
 };
 export declare type ResourceTableSlots<T = any> = CustomTableSlots<T>;
 
@@ -87,16 +92,23 @@ const listQuery = useQuery({
       })
    ),
    queryFn: async ({ signal }) => {
+      const { meta: tableMeta, branches, embedBranch } = withBranchColumn(meta.value);
       const query = forTenant(
          supabase
             // supabase-js cannot narrow the row type for a table name held in a generic.
             .from(props.from as keyof Tables)
-            .select(props.select, props.paginator ? { count: props.count.count } : undefined)
+            .select(
+               embedBranch ? `${props.select}, ${BRANCH_EMBED}` : props.select,
+               props.paginator ? { count: props.count.count } : undefined
+            )
             .abortSignal(signal),
          props.tenant
       );
 
-      const { data, count } = await applyTableMeta(query, meta.value).throwOnError();
+      const filtered = applyTableMeta(query, tableMeta);
+      const { data, count } = await (
+         branches.length ? filtered.in('tenant_id', branches) : filtered
+      ).throwOnError();
       return { rows: data as T[], count };
    },
    select: (data) => (props.model ? { ...data, rows: toModel(props.model, data.rows) } : data),
@@ -124,27 +136,63 @@ const loading = computed(() => routeLoading.value || listQuery.isFetching.value)
 
 const mounted = useMounted();
 
-// Rows of several branches (rows with a tenant_id) are told apart by a branch column.
+// Rows of several branches (rows with a tenant_id) are told apart by a branch column. Once the
+// table had such rows it keeps the column, so a branch filter that matches nothing can be cleared.
 const authStore = useAuthStore();
 const { t } = useI18n();
+const hasBranchRows = ref(false);
+watch(rows, (value) => {
+   if (value.some((row) => !!row && typeof row === 'object' && 'tenant_id' in row))
+      hasBranchRows.value = true;
+});
 const showBranch = computed(
    () =>
       !props.tenant &&
       authStore.scopeTenants.length > 1 &&
       !props.columns.some(({ field }) => field === 'tenant_id') &&
-      rows.value.some((row) => !!row && typeof row === 'object' && 'tenant_id' in row)
+      hasBranchRows.value
 );
 const branchName = (id: string | null | undefined) =>
    authStore.branches.find((branch) => branch.id === id)?.display_name ?? '';
 const columns = computed(() =>
    showBranch.value
-      ? [...props.columns, { field: 'tenant_id', header: t('component.branch_picker.column') }]
+      ? [
+           ...props.columns,
+           { field: 'tenant_id', header: t('component.branch_picker.column'), sortable: true }
+        ]
       : props.columns
 );
 
+// The branch filter: a list of branches (shown or not, the filter state always has it, as the
+// table reads its filters once).
+const BRANCH_FILTER = { tenant_id: { value: null, matchMode: FilterMatchMode.IN } };
+const BRANCH_EMBED = 'branch:tenant(display_name)';
+
+/**
+ * The table state with the branch column's filter and sort taken out: the filter keeps only the
+ * branches still shown (and none without the column), and sorting goes by the branch's name. The
+ * global search skips the column, as its values are ids.
+ */
+const withBranchColumn = (value: TableMeta | null) => {
+   const { tenant_id: filter, ...filters } = (value?.filters ?? {}) as Record<string, ColumnFilter>;
+   const picked = (filter?.value ?? filter?.constraints?.[0]?.value ?? []) as string[];
+   const shown = new Set(authStore.scopeTenants.map(({ id }) => id));
+   const branches = showBranch.value ? picked.filter((id) => shown.has(id)) : [];
+
+   const sortField = props.branchSortField ?? 'branch.display_name';
+   const multiSortMeta = value?.multiSortMeta?.map((sort) =>
+      sort.field === 'tenant_id' ? { ...sort, field: sortField } : sort
+   );
+   const embedBranch =
+      !props.branchSortField && !!value?.multiSortMeta?.some(({ field }) => field === 'tenant_id');
+
+   return { meta: value && { ...value, filters, multiSortMeta }, branches, embedBranch };
+};
+
 const tableProps = computed(() => ({
-   ..._omit(props, ['stateKey', 'model', 'tenant']),
+   ..._omit(props, ['stateKey', 'model', 'tenant', 'branchSortField']),
    ...attrs,
+   filters: { ...BRANCH_FILTER, ...props.filters },
    columns: columns.value
 }));
 </script>
@@ -165,6 +213,17 @@ const tableProps = computed(() => ({
          <Tag
             severity="secondary"
             :value="branchName((data as { tenant_id?: string }).tenant_id)"
+         />
+      </template>
+      <template v-if="showBranch" #tenant_id_filter="{ filterModel }">
+         <MultiSelect
+            v-model="filterModel.value"
+            :options="authStore.scopeTenants"
+            optionLabel="display_name"
+            optionValue="id"
+            :placeholder="t('component.branch_picker.column')"
+            display="chip"
+            class="w-full min-w-56"
          />
       </template>
    </component>
