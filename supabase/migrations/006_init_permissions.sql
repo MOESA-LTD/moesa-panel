@@ -7,9 +7,6 @@ GRANT usage ON SCHEMA "private" TO supabase_auth_admin;
 GRANT
 EXECUTE ON FUNCTION private.custom_access_token_hook TO supabase_auth_admin;
 
-GRANT
-EXECUTE ON FUNCTION public.revert_audit_log (TEXT) TO authenticated;
-
 CREATE POLICY allow_select_permission ON public.permission FOR
 SELECT
   TO authenticated USING (TRUE);

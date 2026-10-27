@@ -30,16 +30,6 @@ UPDATE
 OR DELETE ON public.permission FOR EACH ROW
 EXECUTE FUNCTION private.manage_policies ();
 
--- Create a new trigger that will be executed after inserting or updating the audit config table
-DROP TRIGGER IF EXISTS trg_audit_config ON private.audit_config;
-
-CREATE TRIGGER trg_audit_config
-AFTER INSERT
-OR
-UPDATE
-OR DELETE ON private.audit_config FOR EACH STATEMENT
-EXECUTE FUNCTION private.audit_sync_triggers_wrapper ();
-
 CREATE TRIGGER before_record_insert_update BEFORE INSERT
 OR
 UPDATE ON public.record FOR EACH ROW

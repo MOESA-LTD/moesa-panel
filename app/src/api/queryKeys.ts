@@ -60,7 +60,7 @@ const CASCADES: Partial<Record<TableName, TableName[]>> = {
 };
 
 // Every authenticated write is recorded by the audit trigger.
-const AUDIT: TableName[] = ['audit_log', 'audit_log_group', 'dashboard_notification_feed'];
+const AUDIT: TableName[] = ['audit_transaction', 'audit_log', 'dashboard_notification_feed'];
 
 /** The tables, everything cascading from them, the views derived from all of these, and the audit log. */
 export const affectedTables = (tables: readonly TableName[]): TableName[] => {

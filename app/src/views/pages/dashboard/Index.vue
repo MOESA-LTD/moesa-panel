@@ -108,11 +108,11 @@ const useDashboardNotifications = () => {
    const getNotificationResourceRoute = (
       notification: Views['dashboard_notification_feed']['Row']
    ): Partial<RouteLocationAsRelativeGeneric> => {
-      const { old_data, row_data, resource_id, table_name } = notification;
+      const { old_data, new_data, resource_id, table_name } = notification;
       const name = fieldRoutes[table_name ?? '']?.name;
       const field = fieldRoutes[table_name ?? '']?.field;
       const id = (
-         field ? _get(row_data, field, _get(old_data, field, resource_id)) : resource_id
+         field ? _get(new_data, field, _get(old_data, field, resource_id)) : resource_id
       ) as string;
       const params = {
          id

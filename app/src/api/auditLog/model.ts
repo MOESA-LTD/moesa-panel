@@ -2,32 +2,31 @@ import { UserModel, type UserDto } from '@/api/user/model';
 import { Model, toModel } from '@/lib/model/Model';
 
 /**
- * An `audit_log_group` row whose user columns are replaced by the users themselves, as the list
- * selects them: `user_id:user!user_id(*), reverted_by:user!reverted_by(*)`.
+ * An `audit_transaction` row with who made and who reverted it, as the list selects them:
+ * `*, actor(*), reverter(*)` (computed relationships, see 010_init_audit.sql).
  */
-export type AuditLogDto = Omit<Views['audit_log_group']['Row'], 'user_id' | 'reverted_by'> & {
-   user_id: UserDto | null;
-   reverted_by: UserDto | null;
+export type AuditTransactionDto = Omit<Tables['audit_transaction']['Row'], 'actor' | 'reverter'> & {
+   actor?: UserDto | null;
+   reverter?: UserDto | null;
 };
 
 // Columns come from the DTO through declaration merging (see Model).
 /* eslint-disable @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging */
-export interface AuditLogModel extends Omit<AuditLogDto, 'user_id' | 'reverted_by'> {}
-export class AuditLogModel extends Model<AuditLogDto> {
+export interface AuditTransactionModel extends Omit<AuditTransactionDto, 'actor' | 'reverter'> {}
+export class AuditTransactionModel extends Model<AuditTransactionDto> {
    /* eslint-enable @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging */
-   /** Who made the change. */
-   declare user_id: UserModel | null;
+   /** Who made the change; null for system writes and users no longer in the tenant. */
+   declare actor: UserModel | null;
    /** Who reverted it, if anyone. */
-   declare reverted_by: UserModel | null;
+   declare reverter: UserModel | null;
 
-   constructor(dto: AuditLogDto) {
+   constructor(dto: AuditTransactionDto) {
       super(dto);
-      this.user_id = toModel(UserModel, dto.user_id);
-      this.reverted_by = toModel(UserModel, dto.reverted_by);
+      this.actor = toModel(UserModel, dto.actor ?? null);
+      this.reverter = toModel(UserModel, dto.reverter ?? null);
    }
 
-   /** The id that groups the changes made together; a single change is its own group. */
-   get groupId() {
-      return this.correlation_id || this.id;
+   get reverted() {
+      return !!this.reverted_at;
    }
 }

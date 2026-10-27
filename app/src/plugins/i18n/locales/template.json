@@ -402,6 +402,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "",
+      "audit_conflict": "",
       "access_denied": "",
       "confirmation_required": "",
       "email_change_required": "",

@@ -332,6 +332,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "此更改已被撤销。",
+      "audit_conflict": "无法撤销此更改：该记录之后已被修改。请先撤销之后的更改。",
       "access_denied": "访问被拒绝",
       "confirmation_required": "需要确认",
       "email_change_required": "需要更改电子邮件",

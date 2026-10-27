@@ -1,7 +1,7 @@
-<script setup lang="ts" generic="T = Tables['audit_log']['Update']">
+<script setup lang="ts">
 import { fieldRoutes } from '@/constants/form/field';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
-import { detailedDiff, diff } from 'deep-object-diff';
+import { diff } from 'deep-object-diff';
 
 type LogChange = {
    key: string;
@@ -10,10 +10,10 @@ type LogChange = {
    newValue?: unknown;
 };
 
-type Log = Tables['audit_log']['Update'] & { changes?: LogChange[] };
+type Log = Partial<Tables['audit_log']['Row']> & { changes?: LogChange[] };
 
+/** One changed row of an audit transaction. */
 const props = defineProps<{
-   id?: Tables['audit_log']['Row']['id'];
    data?: Tables['audit_log']['Row'];
 }>();
 const { t, te } = useI18n();
@@ -39,7 +39,7 @@ const getChanges = (log: Log | null | undefined): Log => {
       return false;
    };
 
-   const rowData = _omitBy(_get(log, 'row_data', {}) as object, omitFn);
+   const rowData = _omitBy(_get(log, 'new_data', {}) as object, omitFn);
    const oldData = _omitBy(_get(log, 'old_data', {}) as object, omitFn);
 
    const operation = _toLower(log?.operation);
@@ -62,35 +62,25 @@ const getChanges = (log: Log | null | undefined): Log => {
       return log;
    }
 
-   const diffResult = detailedDiff(oldData, rowData);
-   const changes: LogChange[] = [];
-
-   for (const [key, value] of _toPairs(diffResult?.added)) {
-      changes.push({ key, type: 'add', oldValue: null, newValue: value });
-   }
-   for (const [key, value] of _toPairs(diffResult?.deleted)) {
-      changes.push({ key, type: 'delete', oldValue: value, newValue: null });
-   }
-   for (const [key, newValue] of _toPairs(diffResult?.updated)) {
-      let oldValue = _get(oldData, key);
-      if (_isObject(newValue)) {
-         oldValue = diff(_merge(_cloneDeep(_get(oldData, key)), newValue), _get(oldData, key));
-      }
-      changes.push({
-         key,
-         type: 'update',
-         oldValue,
-         newValue
-      });
-   }
-   log.changes = changes;
+   // An update keeps the old values of the changed columns only; objects show their changed parts.
+   log.changes = _toPairs(oldData).map(([key, oldValue]): LogChange => {
+      const newValue = _get(rowData, key);
+      return _isPlainObject(oldValue) && _isPlainObject(newValue)
+         ? {
+              key,
+              type: 'update',
+              oldValue: diff(newValue, oldValue),
+              newValue: diff(oldValue, newValue)
+           }
+         : { key, type: 'update', oldValue, newValue };
+   });
    return log;
 };
 
 function getLogResourceRoute(log: Log) {
-   const { table_name, row_data, old_data } = log;
+   const { table_name, new_data, old_data } = log;
    const { name, field } = fieldRoutes[table_name ?? ''];
-   const id = field ? _get(row_data, field, _get(old_data, field)) : _get(row_data, 'id');
+   const id = field ? _get(new_data, field, _get(old_data, field)) : log.record_id;
    const params = {
       id
    };
@@ -156,19 +146,8 @@ function formatValue(value: any, indentSize = 0): any {
    return te('fields.' + value) ? t('fields.' + value) : value;
 }
 
-// Replaced as a whole; shallowRef also avoids unwrapping the nested Json types.
-const log = shallowRef(getChanges(props.data));
-
-if (props.id) {
-   await supabase
-      .from('audit_log')
-      .select('*')
-      .or(`id.eq.${props.id},correlation_id.eq.${props.id}`)
-      .maybeSingle()
-      .then((res) => {
-         log.value = getChanges(res.data);
-      });
-}
+// Copied, as getChanges adds to it; shallowRef also avoids unwrapping the nested Json types.
+const log = shallowRef(getChanges(props.data && { ...props.data }));
 </script>
 
 <template>
@@ -178,10 +157,9 @@ if (props.id) {
             <span v-text="$t('fields.' + log?.table_name || '')" />
             <CustomLink
                v-if="
-                  !log.reverted_at &&
                   log.operation !== 'DELETE' &&
                   !!fieldRoutes[log.table_name ?? ''] &&
-                  !!(log.row_data as any)?.id
+                  !!log.record_id
                "
                :to="getLogResourceRoute(log)"
                v-slot="{ navigate }"
@@ -220,7 +198,6 @@ if (props.id) {
                </span>
                <CustomLink
                   v-if="
-                     !log.reverted_at &&
                      (log.operation !== 'INSERT' || entry?.type !== 'delete') &&
                      !!fieldRoutes[entry.key] &&
                      _endsWith(entry.key, '_id') &&

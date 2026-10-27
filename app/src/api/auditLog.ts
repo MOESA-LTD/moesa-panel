@@ -2,18 +2,21 @@ import { invalidateTables, type TableName } from '@/api/queryKeys';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
-/** Reverts the change recorded under an audit log entry (and those correlated with it). */
-export function useRevertAuditLog() {
+/**
+ * Undoes everything a transaction changed. Fails with 409 `audit_conflict` when a row was changed
+ * since, and `audit_already_reverted` when it was undone already.
+ */
+export function useRevertAuditTransaction() {
    const queryClient = useQueryClient();
 
    return useMutation({
-      mutationFn: async ({ correlationId }: { correlationId: string; tableName: string }) => {
-         await supabase
-            .rpc('revert_audit_log', { target_correlation_id: correlationId })
+      mutationFn: async (transactionId: string) => {
+         const { data } = await supabase
+            .rpc('revert_audit_transaction', { transaction_id: transactionId })
             .throwOnError();
+         return data;
       },
-      // The revert rewrites rows of the logged table.
-      onSuccess: (_, { tableName }) =>
-         invalidateTables(queryClient, [tableName.replace(/^public\./, '') as TableName])
+      // The tables the revert wrote to.
+      onSuccess: (tables) => invalidateTables(queryClient, tables as TableName[])
    });
 }

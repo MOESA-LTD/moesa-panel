@@ -453,6 +453,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "Questa modifica è già stata annullata.",
+      "audit_conflict": "Impossibile annullare questa modifica: il record è stato modificato in seguito. Annulla prima le modifiche successive.",
       "access_denied": "Accesso negato",
       "confirmation_required": "Conferma richiesta",
       "email_change_required": "Cambiamento email richiesto",

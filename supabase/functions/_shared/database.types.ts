@@ -77,73 +77,120 @@ export type Database = {
       }
       audit_log: {
         Row: {
-          correlation_id: string | null
-          created_at: string | null
-          id: string
+          created_at: string
+          id: number
+          new_data: Json | null
           old_data: Json | null
           operation: string
-          request_id: string | null
-          reverted: boolean | null
-          reverted_at: string | null
-          reverted_by: string | null
-          row_data: Json | null
+          record_id: string | null
           table_name: string
           table_schema: string
           tenant_id: string | null
-          user_id: string | null
+          transaction_id: string
         }
         Insert: {
-          correlation_id?: string | null
-          created_at?: string | null
-          id?: string
+          created_at?: string
+          id?: number
+          new_data?: Json | null
           old_data?: Json | null
           operation: string
-          request_id?: string | null
-          reverted?: boolean | null
-          reverted_at?: string | null
-          reverted_by?: string | null
-          row_data?: Json | null
+          record_id?: string | null
           table_name: string
           table_schema: string
           tenant_id?: string | null
-          user_id?: string | null
+          transaction_id: string
         }
         Update: {
-          correlation_id?: string | null
-          created_at?: string | null
-          id?: string
+          created_at?: string
+          id?: number
+          new_data?: Json | null
           old_data?: Json | null
           operation?: string
-          request_id?: string | null
-          reverted?: boolean | null
-          reverted_at?: string | null
-          reverted_by?: string | null
-          row_data?: Json | null
+          record_id?: string | null
           table_name?: string
           table_schema?: string
           tenant_id?: string | null
-          user_id?: string | null
+          transaction_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "audit_log_reverted_by_fkey"
-            columns: ["reverted_by"]
+            foreignKeyName: "audit_log_transaction_id_fkey"
+            columns: ["transaction_id"]
             isOneToOne: false
-            referencedRelation: "user"
+            referencedRelation: "audit_transaction"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "audit_log_tenant_id_fkey"
+            foreignKeyName: "audit_log_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_notification_feed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_transaction: {
+        Row: {
+          actor_id: string | null
+          actor_role: string
+          created_at: string
+          id: string
+          operation: string
+          record_id: string | null
+          reverted_at: string | null
+          reverted_by: string | null
+          reverts_id: string | null
+          table_name: string
+          tenant_id: string | null
+          actor: unknown | null
+          reverter: unknown | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role: string
+          created_at?: string
+          id?: string
+          operation: string
+          record_id?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          reverts_id?: string | null
+          table_name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string
+          created_at?: string
+          id?: string
+          operation?: string
+          record_id?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          reverts_id?: string | null
+          table_name?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_transaction_reverts_id_fkey"
+            columns: ["reverts_id"]
+            isOneToOne: false
+            referencedRelation: "audit_transaction"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_transaction_reverts_id_fkey"
+            columns: ["reverts_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_notification_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_transaction_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "audit_log_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user"
             referencedColumns: ["id"]
           },
         ]
@@ -841,47 +888,6 @@ export type Database = {
       }
     }
     Views: {
-      audit_log_group: {
-        Row: {
-          correlation_id: string | null
-          created_at: string | null
-          id: string | null
-          old_data: Json | null
-          operation: string | null
-          request_id: string | null
-          reverted: boolean | null
-          reverted_at: string | null
-          reverted_by: string | null
-          row_data: Json | null
-          table_name: string | null
-          table_schema: string | null
-          tenant_id: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_log_reverted_by_fkey"
-            columns: ["reverted_by"]
-            isOneToOne: false
-            referencedRelation: "user"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "audit_log_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenant"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "audit_log_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       client_address_view: {
         Row: {
           address_city: string | null
@@ -942,10 +948,10 @@ export type Database = {
           activity: string | null
           created_at: string | null
           id: string | null
+          new_data: Json | null
           old_data: Json | null
           operation: string | null
           resource_id: string | null
-          row_data: Json | null
           since: string | null
           table_name: string | null
           tenant_id: string | null
@@ -955,17 +961,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "audit_log_tenant_id_fkey"
+            foreignKeyName: "audit_transaction_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "audit_log_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user"
             referencedColumns: ["id"]
           },
         ]
@@ -1089,6 +1088,18 @@ export type Database = {
       }
     }
     Functions: {
+      actor: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          created_at: string | null
+          email: string
+          id: string
+          phone: string | null
+          user_metadata: Json | null
+        }[]
+      }
       register_tenant: {
         Args: {
           owner_id: string
@@ -1103,11 +1114,23 @@ export type Database = {
           phone: string | null
         }
       }
-      revert_audit_log: {
+      revert_audit_transaction: {
         Args: {
-          target_correlation_id: string
+          transaction_id: string
         }
-        Returns: undefined
+        Returns: string[]
+      }
+      reverter: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          created_at: string | null
+          email: string
+          id: string
+          phone: string | null
+          user_metadata: Json | null
+        }[]
       }
       save_product: {
         Args: {

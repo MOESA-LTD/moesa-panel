@@ -332,6 +332,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "Diese Änderung wurde bereits rückgängig gemacht.",
+      "audit_conflict": "Diese Änderung kann nicht rückgängig gemacht werden: Der Datensatz wurde danach geändert. Machen Sie zuerst die späteren Änderungen rückgängig.",
       "access_denied": "Zugriff verweigert",
       "confirmation_required": "Bestätigung erforderlich",
       "email_change_required": "E-Mail-Änderung erforderlich",

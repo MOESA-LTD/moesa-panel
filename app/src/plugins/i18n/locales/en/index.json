@@ -332,6 +332,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "This change has already been reverted.",
+      "audit_conflict": "This change cannot be reverted: the record was changed afterwards. Revert the later changes first.",
       "access_denied": "Access denied",
       "confirmation_required": "Confirmation required",
       "email_change_required": "Email change required",

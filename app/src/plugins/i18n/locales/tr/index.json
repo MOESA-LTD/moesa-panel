@@ -130,6 +130,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "Bu değişiklik zaten geri alınmış.",
+      "audit_conflict": "Bu değişiklik geri alınamıyor: kayıt sonradan değiştirildi. Önce sonraki değişiklikleri geri alın.",
       "access_denied": "Erişim reddedildi",
       "confirmation_required": "Onay gerekiyor",
       "email_change_required": "E-posta değişikliği gerekiyor",

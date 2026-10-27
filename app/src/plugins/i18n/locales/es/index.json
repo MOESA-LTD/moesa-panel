@@ -292,6 +292,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "Este cambio ya se ha revertido.",
+      "audit_conflict": "No se puede revertir este cambio: el registro se modificó después. Revierta primero los cambios posteriores.",
       "access_denied": "Acceso denegado",
       "confirmation_required": "Confirmación requerida",
       "email_change_required": "Cambio de correo electrónico requerido",

@@ -155,31 +155,9 @@ VALUES
     ('public.record', 'record', 'select', 'read', FALSE, FALSE, NULL),
     ('public.record', 'record', 'insert', 'create', FALSE, TRUE, NULL),
     ('public.record', 'record', 'update', 'modify', FALSE, TRUE, NULL),
-    ('public.record', 'record', 'delete', 'modify', FALSE, TRUE, NULL),
-    --
-    --
-    -- audit_log
-    ('public.audit_log', 'audit_log', 'select', 'read', FALSE, FALSE, 'tenant_id IS NOT NULL')
+    ('public.record', 'record', 'delete', 'modify', FALSE, TRUE, NULL)
+    -- audit_log: in 010_init_audit.sql, after its tables.
 ON CONFLICT (resource_name, command) DO NOTHING;
-
--- Tables whose changes are written to the audit log (see private.audit_config triggers).
-INSERT INTO
-    private.audit_config (table_name, audit_enabled)
-VALUES
-    ('public.tenant', TRUE),
-    ('public.tenant_user', TRUE),
-    ('public.user', TRUE),
-    ('public.user_role', TRUE),
-    ('public.role', TRUE),
-    ('public.role_permission', TRUE),
-    ('public.product', TRUE),
-    ('public.product_categories', TRUE),
-    ('public.stock', TRUE),
-    ('public.client', TRUE),
-    ('public.address', TRUE),
-    ('public.client_address', TRUE),
-    ('public.record', TRUE)
-ON CONFLICT (table_name) DO NOTHING;
 
 -- The built-in owner role (tenant_id NULL: shared by every tenant), with every permission.
 INSERT INTO

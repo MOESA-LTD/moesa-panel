@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDialogRef } from '@/composables/useDialogRef';
-import { useRevertAuditLog } from '@/api/auditLog';
-import { AuditLogModel } from '@/api/auditLog/model';
+import { useRevertAuditTransaction } from '@/api/auditLog';
+import { AuditTransactionModel } from '@/api/auditLog/model';
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
 import { ability } from '@plugins/casl';
@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n';
 import AuditUser from './AuditUser.vue';
 import CorrelatedAuditLogs from './CorrelatedAuditLogs.vue';
 
-type Props = ResourceTableProps<'audit_log_group', AuditLogModel>;
+type Props = ResourceTableProps<'audit_transaction', AuditTransactionModel>;
 
 defineOptions({
    inheritAttrs: false
@@ -33,18 +33,14 @@ const columns = computed<Props['columns']>(() => [
       showFilterOperator: false,
       showAddButton: false
    },
-   { field: 'user_id', header: t('audit_log.table.headers.user_who_performed'), sortable: true },
+   { field: 'actor_id', header: t('audit_log.table.headers.user_who_performed') },
    {
       field: 'created_at',
       header: t('audit_log.table.headers.created_at'),
       sortable: true,
       sortOrder: { value: -1 }
    },
-   {
-      field: 'reverted_by',
-      header: t('audit_log.table.headers.user_who_reverted'),
-      sortable: true
-   },
+   { field: 'reverted_by', header: t('audit_log.table.headers.user_who_reverted') },
    { field: 'reverted_at', header: t('audit_log.table.headers.reverted_at'), sortable: true }
 ]);
 
@@ -57,15 +53,13 @@ const filters = ref<NonNullable<Props['filters']>>(
             constraints: [{ value: null, matchMode: FilterMatchMode.IN }]
          },
          reverted_at: 'date',
-         'old_data->>id': 'text',
-         'row_data->>id': 'text',
          created_at: 'date'
       },
       attrs.filters as Props['filters']
    )
 );
 
-const { mutateAsync: revertAuditLog } = useRevertAuditLog();
+const { mutateAsync: revertTransaction } = useRevertAuditTransaction();
 const rowActions: Props['rowActions'] = [
    {
       label: ({ data }) =>
@@ -73,12 +67,9 @@ const rowActions: Props['rowActions'] = [
       command:
          ({ data }) =>
          async () =>
-            data.groupId &&
-            data.table_name &&
-            (await revertAuditLog({ correlationId: data.groupId, tableName: data.table_name })),
+            await revertTransaction(data.id),
       disabled: ({ data }) =>
-         !!data.reverted ||
-         !data.table_name ||
+         data.reverted ||
          ability.cannot('create', data.table_name) ||
          ability.cannot('modify', data.table_name),
       icon: PrimeIcons.REFRESH
@@ -105,9 +96,9 @@ const stateKey = 'audit_log';
    <ResourceTable
       v-bind="attrs"
       :stateKey
-      from="audit_log_group"
-      select="*, user_id:user!user_id(*), reverted_by:user!reverted_by(*)"
-      :model="AuditLogModel"
+      from="audit_transaction"
+      select="*, actor(*), reverter(*)"
+      :model="AuditTransactionModel"
       :columns
       :rowActions
       v-model:filters="filters"
@@ -129,13 +120,13 @@ const stateKey = 'audit_log';
          <SelectAuditOperation v-model="filterModel.value" multiple />
       </template>
       <template #expansion="{ data }">
-         <CorrelatedAuditLogs :id="data.correlation_id ?? undefined" layout="list" />
+         <CorrelatedAuditLogs :id="data.id" layout="list" />
       </template>
-      <template #user_id_body="{ data }">
-         <AuditUser :user="data.user_id" />
+      <template #actor_id_body="{ data }">
+         <AuditUser :user="data.actor" />
       </template>
       <template #reverted_by_body="{ data }">
-         <AuditUser :user="data.reverted_by" />
+         <AuditUser :user="data.reverter" />
       </template>
    </ResourceTable>
 </template>

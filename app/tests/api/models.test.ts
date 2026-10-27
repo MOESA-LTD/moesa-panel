@@ -1,4 +1,4 @@
-import { AuditLogModel, type AuditLogDto } from '@/api/auditLog/model';
+import { AuditTransactionModel, type AuditTransactionDto } from '@/api/auditLog/model';
 import { ProductModel } from '@/api/product/model';
 import { StockModel } from '@/api/stock/model';
 import { UserModel, type UserDto } from '@/api/user/model';
@@ -44,35 +44,41 @@ describe('categoryPath', () => {
    });
 });
 
-describe('AuditLogModel', () => {
-   const log = (overrides: Partial<AuditLogDto> = {}): AuditLogDto => ({
-      id: 'l1',
-      correlation_id: null,
-      created_at: null,
-      old_data: null,
-      operation: 'UPDATE',
-      request_id: null,
-      reverted: false,
-      reverted_at: null,
-      row_data: null,
+describe('AuditTransactionModel', () => {
+   const transaction = (overrides: Partial<AuditTransactionDto> = {}): AuditTransactionDto => ({
+      id: 't1',
+      tenant_id: 'tenant',
+      actor_id: 'u1',
+      actor_role: 'authenticated',
       table_name: 'client',
-      table_schema: 'public',
-      tenant_id: 't1',
-      user_id: user({ display_name: 'Ada' }),
+      record_id: 'c1',
+      operation: 'UPDATE',
+      reverts_id: null,
+      reverted_at: null,
       reverted_by: null,
+      created_at: '2026-10-27T10:00:00Z',
+      actor: user({ display_name: 'Ada' }),
+      reverter: null,
       ...overrides
    });
 
    it('maps the embedded users to UserModels', () => {
-      const model = toModel(AuditLogModel, log());
+      const model = toModel(AuditTransactionModel, transaction());
 
-      expect(model.user_id).toBeInstanceOf(UserModel);
-      expect(model.user_id?.displayName).toBe('Ada');
-      expect(model.reverted_by).toBeNull();
+      expect(model.actor).toBeInstanceOf(UserModel);
+      expect(model.actor?.displayName).toBe('Ada');
+      expect(model.reverter).toBeNull();
    });
 
-   it('groups a change by its correlation id, or by itself', () => {
-      expect(toModel(AuditLogModel, log()).groupId).toBe('l1');
-      expect(toModel(AuditLogModel, log({ correlation_id: 'g1' })).groupId).toBe('g1');
+   it('has no actor for system writes', () => {
+      expect(toModel(AuditTransactionModel, transaction({ actor: undefined })).actor).toBeNull();
+   });
+
+   it('is reverted once it has a revert time', () => {
+      expect(toModel(AuditTransactionModel, transaction()).reverted).toBe(false);
+      expect(
+         toModel(AuditTransactionModel, transaction({ reverted_at: '2026-10-27T11:00:00Z' }))
+            .reverted
+      ).toBe(true);
    });
 });

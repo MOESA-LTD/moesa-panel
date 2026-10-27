@@ -332,6 +332,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "Ta zmiana została już cofnięta.",
+      "audit_conflict": "Nie można cofnąć tej zmiany: rekord został później zmieniony. Najpierw cofnij późniejsze zmiany.",
       "access_denied": "Dostęp zabroniony",
       "confirmation_required": "Potwierdzenie wymagane",
       "email_change_required": "Zmiana adresu e-mail wymagana",

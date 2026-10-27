@@ -3,8 +3,8 @@ import ResourceDataView from '@/components/service-components/resource-data-view
 import { DataView } from 'primevue';
 
 /**
- * @typedef {Views['audit_log_group']['Row']} Data
- * @type {{ id: Data['correlation_id'], data: Data[] }} */
+ * The changes of one audit transaction.
+ * @type {{ id: Tables['audit_transaction']['Row']['id'], data: Tables['audit_log']['Row'][] }} */
 const props = defineProps({
    id: {
       type: String,
@@ -18,7 +18,7 @@ const props = defineProps({
 
 const meta = {
    filters: {
-      correlation_id: {
+      transaction_id: {
          operator: FilterOperator.AND,
          constraints: [{ value: props.id, matchMode: FilterMatchMode.EQUALS }]
       }

@@ -332,6 +332,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "この変更はすでに元に戻されています。",
+      "audit_conflict": "この変更は元に戻せません。レコードはその後変更されています。先に後の変更を元に戻してください。",
       "access_denied": "アクセスが拒否されました",
       "confirmation_required": "確認が必要です",
       "email_change_required": "メールアドレスの変更が必要です",

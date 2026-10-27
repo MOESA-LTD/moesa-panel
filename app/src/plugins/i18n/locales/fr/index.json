@@ -332,6 +332,8 @@
       }
    },
    "errors": {
+      "audit_already_reverted": "Cette modification a déjà été annulée.",
+      "audit_conflict": "Impossible d'annuler cette modification : l'enregistrement a été modifié depuis. Annulez d'abord les modifications ultérieures.",
       "access_denied": "Accès refusé",
       "confirmation_required": "Confirmation requise",
       "email_change_required": "Changement d'e-mail requis",
