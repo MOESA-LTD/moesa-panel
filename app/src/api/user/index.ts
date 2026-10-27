@@ -7,7 +7,11 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
 
 type Role = Pick<Tables['role']['Row'], 'id' | 'display_name' | 'tenant_id'>;
-export type UserWithRoles = Tables['user']['Row'] & { role: Role[] };
+export type UserWithRoles = Tables['user']['Row'] & {
+   role: Role[];
+   /** The current tenant's ownership row, if the user owns it. */
+   tenant_owner?: { tenant_id: string }[];
+};
 
 /** Attributes the `user` edge function accepts; see supabase/functions/user. */
 export type UserAttributes = {
@@ -23,7 +27,8 @@ export const userRepository = {
    async get(id: string, signal: AbortSignal) {
       const { data } = await supabase
          .from('user')
-         .select('*, role(*)')
+         // tenant_owner: RLS keeps the current tenant's row, so it says whether they own it.
+         .select('*, role(*), tenant_owner(tenant_id)')
          .eq('id', id)
          .abortSignal(signal)
          .maybeSingle()

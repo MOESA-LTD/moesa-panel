@@ -1100,6 +1100,12 @@ export type Database = {
           user_metadata: Json | null
         }[]
       }
+      my_access: {
+        Args: {
+          requested?: string
+        }
+        Returns: Json
+      }
       register_tenant: {
         Args: {
           owner_id: string

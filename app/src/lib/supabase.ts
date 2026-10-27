@@ -12,10 +12,8 @@ const customFetch = async (
    // Read on every request, so it is always the tenant selected now.
    const { currentTenant } = useAuthStore();
 
-   if (currentTenant?.display_name) {
-      options?.headers?.set?.('x-tenant', currentTenant?.display_name);
-      options?.headers?.set?.('x-tenant-id', currentTenant?.id);
-   }
+   // The tenant RLS works in (private.tenant_id); the database checks the user belongs to it.
+   if (currentTenant?.id) options?.headers?.set?.('x-tenant-id', currentTenant.id);
 
    if (currentTenant?.id && _isString(options?.body) && !_includes(url as string, 'rpc/')) {
       const body = JSON.parse(options.body || '{}');

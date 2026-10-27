@@ -1,20 +1,24 @@
 import { type AnyAbility, createMongoAbility, jwtDecode } from './deps.ts';
 import { HttpError } from './http.ts';
-import { supabaseAdmin } from './supabaseClient.ts';
+import { supabaseAdmin, supabaseClient } from './supabaseClient.ts';
 
 export type Permission = [action: string, subject: string];
 export type Requirement = Permission[] | ((ability: AnyAbility) => boolean);
 
-/** Claims added by private.custom_access_token_hook. */
+/** The token's claims; it identifies the user only (see private.custom_access_token_hook). */
 export type Claims = {
    sub: string;
-   app_metadata?: {
-      permission?: { command: string; resource_name: string | null }[];
-      allowed_tenant?: { id: string }[];
-   };
    user_metadata?: {
       current_tenant_id?: string;
    };
+};
+
+export type PermissionClaim = { command: string; resource_name: string | null };
+
+/** The caller's tenant in use and its permissions, as public.my_access returns them. */
+export type Access = {
+   tenant_id: string | null;
+   permissions: PermissionClaim[];
 };
 
 export type AuthContext = {
@@ -24,9 +28,9 @@ export type AuthContext = {
    tenantId: string;
 };
 
-export const buildAbility = (claims: Claims) =>
+export const buildAbility = (permissions: PermissionClaim[] = []) =>
    createMongoAbility(
-      (claims.app_metadata?.permission ?? []).map(({ command, resource_name }) => ({
+      permissions.map(({ command, resource_name }) => ({
          action: command,
          subject: resource_name?.replace(/^public\./, '') ?? ''
       }))
@@ -38,16 +42,22 @@ export const isAuthorized = (ability: AnyAbility, required: Requirement) =>
       : required.every(([action, subject]) => ability.can(action, subject));
 
 /**
- * Permissions in the token belong to `current_tenant_id`, so that is the only tenant a request
- * may act on. A conflicting `x-tenant-id` header is rejected rather than trusted.
+ * The tenant a request may act on: the one the database settled on for the caller. A requested
+ * tenant (`x-tenant-id`) the caller does not belong to is rejected rather than replaced.
  */
-export const resolveTenantId = (claims: Claims, requested?: string | null) => {
-   const current = claims.user_metadata?.current_tenant_id;
-   const allowed = claims.app_metadata?.allowed_tenant?.some(({ id }) => id === current);
-
-   if (!current || !allowed) return null;
+export const resolveTenantId = (access: Access | null, requested?: string | null) => {
+   const current = access?.tenant_id;
+   if (!current) return null;
    if (requested && requested !== current) return null;
    return current;
+};
+
+/** The caller's access, read from the database as RLS reads it (so changes apply at once). */
+export const loadAccess = async (req: Request, requested: string | null) => {
+   const { data } = await supabaseClient(req)
+      .rpc('my_access', requested ? { requested } : {})
+      .throwOnError();
+   return data as Access | null;
 };
 
 /** Verifies the bearer token with Supabase Auth and returns its claims. */
@@ -72,10 +82,12 @@ export async function withAuthorization(
 ): Promise<Response> {
    const claims = await authenticate(req);
 
-   const tenantId = resolveTenantId(claims, req.headers.get('x-tenant-id'));
+   const requested = req.headers.get('x-tenant-id');
+   const access = await loadAccess(req, requested);
+   const tenantId = resolveTenantId(access, requested);
    if (!tenantId) throw new HttpError(403, 'tenant_not_allowed');
 
-   const ability = buildAbility(claims);
+   const ability = buildAbility(access?.permissions);
    if (!isAuthorized(ability, required)) throw new HttpError(403, 'forbidden');
 
    return handler({ ability, claims, userId: claims.sub, tenantId });

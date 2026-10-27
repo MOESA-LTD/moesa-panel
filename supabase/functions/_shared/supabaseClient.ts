@@ -14,7 +14,7 @@ const options = {
    }
 };
 
-const FORWARDED_HEADERS = ['Authorization', 'x-tenant', 'x-tenant-id'];
+const FORWARDED_HEADERS = ['Authorization', 'x-tenant-id'];
 
 let admin: SupabaseClient<Database> | undefined;
 

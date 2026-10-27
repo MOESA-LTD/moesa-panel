@@ -1,24 +1,20 @@
 import { assertEquals } from 'jsr:@std/assert@1';
-import { buildAbility, type Claims, isAuthorized, resolveTenantId } from '../_shared/auth.ts';
+import { type Access, buildAbility, isAuthorized, resolveTenantId } from '../_shared/auth.ts';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const OTHER_TENANT = '22222222-2222-2222-2222-222222222222';
 
-const claims = (overrides: Partial<Claims> = {}): Claims => ({
-   sub: 'user-1',
-   app_metadata: {
-      permission: [
-         { command: 'select', resource_name: 'public.user' },
-         { command: 'update', resource_name: 'public.user' }
-      ],
-      allowed_tenant: [{ id: TENANT }]
-   },
-   user_metadata: { current_tenant_id: TENANT },
+const access = (overrides: Partial<Access> = {}): Access => ({
+   tenant_id: TENANT,
+   permissions: [
+      { command: 'select', resource_name: 'public.user' },
+      { command: 'update', resource_name: 'public.user' }
+   ],
    ...overrides
 });
 
 Deno.test('isAuthorized allows when every required permission is granted', () => {
-   const ability = buildAbility(claims());
+   const ability = buildAbility(access().permissions);
    assertEquals(isAuthorized(ability, [['select', 'user']]), true);
    assertEquals(
       isAuthorized(ability, [
@@ -30,7 +26,7 @@ Deno.test('isAuthorized allows when every required permission is granted', () =>
 });
 
 Deno.test('isAuthorized denies when any required permission is missing', () => {
-   const ability = buildAbility(claims());
+   const ability = buildAbility(access().permissions);
    assertEquals(isAuthorized(ability, [['delete', 'user']]), false);
    assertEquals(
       isAuthorized(ability, [
@@ -41,29 +37,30 @@ Deno.test('isAuthorized denies when any required permission is missing', () => {
    );
 });
 
-Deno.test('isAuthorized denies a token without permissions', () => {
-   const ability = buildAbility(claims({ app_metadata: {} }));
-   assertEquals(isAuthorized(ability, [['select', 'user']]), false);
+Deno.test('isAuthorized denies without permissions', () => {
+   assertEquals(isAuthorized(buildAbility([]), [['select', 'user']]), false);
+   assertEquals(isAuthorized(buildAbility(), [['select', 'user']]), false);
 });
 
 Deno.test('isAuthorized supports predicate requirements', () => {
-   const ability = buildAbility(claims());
+   const ability = buildAbility(access().permissions);
    assertEquals(
       isAuthorized(ability, (a) => a.can('select', 'user') || a.can('delete', 'user')),
       true
    );
 });
 
-Deno.test('resolveTenantId uses the current tenant from the token', () => {
-   assertEquals(resolveTenantId(claims()), TENANT);
-   assertEquals(resolveTenantId(claims(), TENANT), TENANT);
+Deno.test('resolveTenantId uses the tenant the database settled on', () => {
+   assertEquals(resolveTenantId(access()), TENANT);
+   assertEquals(resolveTenantId(access(), TENANT), TENANT);
 });
 
-Deno.test('resolveTenantId rejects a conflicting tenant header', () => {
-   assertEquals(resolveTenantId(claims(), OTHER_TENANT), null);
+Deno.test('resolveTenantId rejects a requested tenant the caller does not belong to', () => {
+   // my_access falls back to another of the caller's tenants; the request named a different one.
+   assertEquals(resolveTenantId(access(), OTHER_TENANT), null);
 });
 
-Deno.test('resolveTenantId rejects a current tenant that is not allowed', () => {
-   assertEquals(resolveTenantId(claims({ user_metadata: { current_tenant_id: OTHER_TENANT } })), null);
-   assertEquals(resolveTenantId(claims({ user_metadata: {} })), null);
+Deno.test('resolveTenantId rejects a caller without a tenant', () => {
+   assertEquals(resolveTenantId(access({ tenant_id: null })), null);
+   assertEquals(resolveTenantId(null), null);
 });

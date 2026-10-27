@@ -28,8 +28,7 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       toFormValues: toUserFormValues,
       toPayload: toUserPayload,
       // Another owner's account can only be changed by that owner.
-      lockRow: (user) =>
-         user.id !== authStore.user?.id && user.role?.some((role) => role.display_name === 'owner')
+      lockRow: (user) => user.id !== authStore.user?.id && !!user.tenant_owner?.length
    });
 await ready;
 

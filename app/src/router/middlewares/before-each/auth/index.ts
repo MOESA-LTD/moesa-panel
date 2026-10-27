@@ -1,9 +1,9 @@
 import { ability } from '@plugins/casl';
-import { CustomAuthError } from '@supabase/supabase-js';
+import { AuthSessionMissingError, CustomAuthError } from '@supabase/supabase-js';
 import { useToast } from 'primevue';
 import type { NavigationGuardWithThis } from 'vue-router';
 
-export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to, from) => {
+export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to) => {
    // Invite and recovery links sign the user in through tokens in the URL hash.
    const params = new URLSearchParams(window.location.hash?.substring(1));
    const access_token = params.get('access_token');
@@ -27,17 +27,16 @@ export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to, fro
       return { name: 'update-password' };
    }
 
-   await useAuthStore().initialized;
+   const authStore = useAuthStore();
+   await authStore.initialized;
+   // Signing in loads the permissions in the background; a navigation right after waits for them.
+   await authStore.accessReady();
 
    const { meta } = to;
 
-   // Entering a protected route checks that the session is still valid on the server.
-   if (
-      meta.requiresAuth &&
-      (from.name !== to.name || (to.redirectedFrom?.name && to.redirectedFrom.name !== to.name))
-   ) {
-      const { error } = await supabase.auth.refreshSession();
-      if (error) throw Object.assign(error, { status: 401 });
+   // A protected page without a session goes to the login page (router.onError, 401).
+   if (meta.requiresAuth && !authStore.isSignedIn) {
+      throw Object.assign(new AuthSessionMissingError(), { status: 401 });
    }
 
    if (meta.requiredPermissions?.some(({ action, subject }) => ability.cannot(action, subject))) {

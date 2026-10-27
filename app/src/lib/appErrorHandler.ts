@@ -9,6 +9,12 @@ export const appErrorHandler = async (error: any) => {
 
    if (!error.status && !error.code) return;
 
+   // Refused: the user's permissions may have changed since they were loaded.
+   if (error.code === '42501' || error.status === 403)
+      useAuthStore()
+         .refreshAccess()
+         .catch(() => {});
+
    console.error(error);
 
    await nextTick(async () => {
