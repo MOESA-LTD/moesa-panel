@@ -1,20 +1,24 @@
-<script setup>
-import { createFilters } from '@/components/service-components/resource-table/createFilters';
+<script setup lang="ts">
 import { ClientModel } from '@/api/client/model';
 import { useDeleteClient } from '@/api/client/queries';
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import { DIALOG_POSITIONS } from '@/constants/router';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import parsePhoneNumberFromString from 'libphonenumber-js';
 import ClientUpsert from './upsert/Index.vue';
+
+type Props = ResourceTableProps<'client', ClientModel>;
 
 defineOptions({
    inheritAttrs: false
 });
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 const attrs = useAttrs();
 const router = useRouter();
-/**@type {ComputedRef<ResourceTableProps['columns']>} */
-const columns = computed(() => [
+
+const columns = computed<Props['columns']>(() => [
    {
       field: 'display_name',
       header: t('client.table.headers.client'),
@@ -59,9 +63,7 @@ const columns = computed(() => [
    }
 ]);
 
-// Define the filters object
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref(
+const filters = ref<Props['filters']>(
    createFilters(
       {
          national_id: 'text',
@@ -72,7 +74,7 @@ const filters = ref(
          phone: 'text',
          created_at: 'date'
       },
-      attrs.filters
+      attrs.filters as Props['filters']
    )
 );
 
@@ -80,7 +82,7 @@ const stateKey = 'client';
 const confirmDelete = useConfirmDelete();
 const { mutateAsync: deleteClient } = useDeleteClient();
 
-const rowActions = [
+const rowActions: Props['rowActions'] = [
    {
       label: t('action.delete'),
       command:
@@ -100,26 +102,25 @@ const rowActions = [
                params: {
                   id: data.id
                },
-               query: { showDialog: true }
+               query: { showDialog: DIALOG_POSITIONS.CENTER }
             }),
       icon: PrimeIcons.PENCIL
    }
 ];
 
 const dialogRef = inject('dialogRef', null);
-
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'client',
-   select: '*, address(*)',
-   model: ClientModel,
-   columns: columns.value,
-   rowActions: rowActions,
-   ...attrs
-}));
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="client"
+      select="*, address(*)"
+      :model="ClientModel"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
@@ -144,20 +145,20 @@ const tableProps = computed(() => ({
       <template #address_body="{ data }">
          <span v-text="data.primaryAddress?.fullAddress" />
       </template>
-      <template #email_body="{ data, field }">
+      <template #email_body="{ data }">
          <a
-            v-if="_get(data, field)"
+            v-if="data.email"
             class="underline"
-            :href="'mailto:' + _get(data, field)"
-            v-text="_get(data, field)"
+            :href="`mailto:${data.email}`"
+            v-text="data.email"
          />
       </template>
-      <template #phone_body="{ data, field }">
+      <template #phone_body="{ data }">
          <a
-            v-if="_get(data, field)"
+            v-if="data.phone"
             class="underline"
-            :href="parsePhoneNumberFromString(_get(data, field, ''))?.getURI?.()"
-            v-text="_get(data, field)"
+            :href="parsePhoneNumberFromString(data.phone)?.getURI()"
+            v-text="data.phone"
          />
       </template>
       <template v-for="slot in _keys($slots)" #[slot]="slotProps" :key="slot">

@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { MenuItem } from 'primevue/menuitem';
+import type { CustomTableRowAction } from './types';
 import { computed, defineProps } from 'vue';
 
 const props = defineProps<{
    body: object;
-   items?: MenuItem[];
+   items?: CustomTableRowAction[];
 }>();
 
-const getSeverity = (item: MenuItem): string => {
+const getSeverity = (item: CustomTableRowAction): string => {
    switch (item?.icon) {
       case PrimeIcons.TRASH:
          return 'danger';

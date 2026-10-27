@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T = any">
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import TableFilterInput from './TableFilterInput.vue';
+import type { CustomTableBodySlotProps, CustomTableRowAction, CustomTableSlots } from './types';
 import { useTableMeta, type TableStateStorage } from './useTableMeta';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
 import {
@@ -19,7 +20,7 @@ import { isVNode, VNode } from 'vue';
 
 export declare type CustomTableProps<T = any> = DataTableProps<T> & {
    columns: (ColumnProps & { sortOrder?: { value: number }; translateValue?: boolean })[];
-   rowActions?: MenuItem[];
+   rowActions?: CustomTableRowAction<T>[];
    useMeta?: boolean;
    filters?: {
       [key: string | 'global']: Partial<DataTableFilterMetaData> &
@@ -41,10 +42,6 @@ export declare type CustomTableMetaEvent<T = any> = Partial<
       DataTableStateEvent &
       DataTableSortEvent & { filters: CustomTableProps<T>['filters'] }
 >;
-
-export declare type CustomTableSlots<T = any> = DataTableSlots<T> & {
-   [key: string]: (props: any) => VNode[];
-};
 
 const DATA_TYPES = {
    numeric: 'numeric',
@@ -283,7 +280,11 @@ const tableValue = computed(() => {
          </template>
          <template #body="body" v-if="!column.expander && field">
             <Skeleton v-if="loading" class="absolute left-0 top-0 right-0 bottom-0 min-h-8" />
-            <slot v-else :name="`${_snakeCase(body?.field?.toString())}_body`" v-bind="body">
+            <slot
+               v-else
+               :name="`${slotPrefix}_body`"
+               v-bind="{ ...body, field } as CustomTableBodySlotProps<T>"
+            >
                <div
                   class="custom_table__cell"
                   :title="getFieldValue(body)"

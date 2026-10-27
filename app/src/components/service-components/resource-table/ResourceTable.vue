@@ -1,18 +1,30 @@
-<script setup lang="ts" generic="T = any">
+<script setup lang="ts" generic="F extends TableName, T = TableRow<F>">
 import { applyTableMeta } from '@/api/postgrest/tableQuery';
 import { useRouteLoading } from '@/composables/useRouteStatus';
-import CustomTable, {
-   CustomTableProps,
-   CustomTableSlots
-} from '@/components/ui/custom-table/CustomTable.vue';
-import { queryKeys } from '@/api/queryKeys';
+import CustomTable, { CustomTableProps } from '@/components/ui/custom-table/CustomTable.vue';
+import type { CustomTableSlots } from '@/components/ui/custom-table/types';
+import { queryKeys, type TableName } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { toModel, type ModelClass } from '@/lib/model/Model';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { DataTableStateEvent } from 'primevue';
 
-export declare type ResourceTableProps<T = any> = CustomTableProps<T> & {
-   from: string & keyof Tables;
+/** The row type of a table or view, used for the slots when no model is given. */
+export declare type TableRow<F extends TableName> = F extends keyof Tables
+   ? Tables[F]['Row']
+   : F extends keyof Views
+     ? Views[F]['Row']
+     : never;
+
+/**
+ * The slots' row type is the model's when `model` is set, otherwise the table's row type (embedded
+ * relations in `select` are not part of it).
+ */
+export declare type ResourceTableProps<
+   F extends TableName = TableName,
+   T = TableRow<F>
+> = CustomTableProps<T> & {
+   from: F;
    select: string;
    /** Rows are mapped to this model (see lib/model); the cache keeps the plain rows. */
    model?: ModelClass<any, T>;
@@ -29,7 +41,7 @@ defineOptions({
 
 const slots = defineSlots<CustomTableSlots<T>>();
 
-const props = withDefaults(defineProps<ResourceTableProps<T>>(), {
+const props = withDefaults(defineProps<ResourceTableProps<F, T>>(), {
    count: () => ({
       head: true,
       count: 'exact'
@@ -70,7 +82,8 @@ const listQuery = useQuery({
    ),
    queryFn: async ({ signal }) => {
       const query = supabase
-         .from(props.from)
+         // supabase-js cannot narrow the row type for a table name held in a generic.
+         .from(props.from as keyof Tables)
          .select(props.select, props.paginator ? { count: props.count.count } : undefined)
          .abortSignal(signal);
 

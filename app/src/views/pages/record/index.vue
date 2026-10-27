@@ -110,7 +110,7 @@ const filters = ref<ResourceTableProps['filters']>({
 const stateKey = props.record_type ? 'record-' + props.record_type : 'record';
 
 const deleteAction = useDeleteAction('record');
-const rowActions: ResourceTableProps['rowActions'] = [
+const rowActions: ResourceTableProps<'record', T>['rowActions'] = [
    deleteAction,
    {
       label: t('action.edit'),
@@ -130,7 +130,7 @@ const dialogRef = inject('dialogRef', false);
 </script>
 <template>
    <component
-      :is="ResourceTable<T>"
+      :is="ResourceTable<'record', T>"
       :stateKey
       :from="'record'"
       :useMeta="!(record_type || record_status)"

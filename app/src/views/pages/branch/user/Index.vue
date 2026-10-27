@@ -62,7 +62,7 @@ const stateKey = 'user';
 const confirmDelete = useConfirmDelete();
 const { mutateAsync: removeUser } = useRemoveUser();
 
-const rowActions: ResourceTableProps['rowActions'] = [
+const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
    {
       label: t('action.delete'),
       command:
@@ -92,7 +92,7 @@ const dialogRef = inject('dialogRef', false);
 </script>
 <template>
    <component
-      :is="ResourceTable<T>"
+      :is="ResourceTable<'user', T>"
       :stateKey
       :from="'user'"
       :select="'*, role(*,permission(*))'"
