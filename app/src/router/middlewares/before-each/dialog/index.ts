@@ -1,143 +1,25 @@
-import RouteDialogHeader from '@/components/layout/RouteDialogHeader.vue';
+import { openRouteDialog } from '@/components/layout/route-dialog/openRouteDialog';
 import type { DialogPosition } from '@/constants/router';
-import { ProgressSpinner, useDialog } from 'primevue';
-import type { DynamicDialogInstance, DynamicDialogOptions } from 'primevue/dynamicdialogoptions';
-import { type Component, type WatchStopHandle } from 'vue';
+import { useDialog } from 'primevue';
 import type { NavigationGuardWithThis, RouteLocationRaw } from 'vue-router';
-
-export type DialogCloseGuard = () => boolean | Promise<boolean>;
 
 /**
  * A route opened with `?showDialog=<position>` renders its page in a dialog over the current page
- * instead of navigating to it.
+ * instead of navigating to it (see RouteDialog).
  */
 export const dialogBeforeEach: NavigationGuardWithThis<undefined> = async (to, from) => {
    if (to.name == 'logout') return;
 
-   const showDialog = to.query?.showDialog as DialogPosition | undefined;
-   if (!showDialog) return;
+   const position = to.query?.showDialog as DialogPosition | undefined;
+   if (!position || !to.matched.at(-1)?.components) return;
 
-   const lastMatchedRoute = to.matched.at(-1);
-   const components = lastMatchedRoute?.components;
-   if (!lastMatchedRoute || !components) return;
-
-   const page = components.default;
-   const dialogComponent = h(
-      _isFunction(page)
-         ? defineAsyncComponent({
-              loader: page as () => Promise<Component>,
-              loadingComponent: (components.skeleton as Component) || ProgressSpinner
-           })
-         : page,
-      to.params
-   );
-
+   // Injected before the first await: guards only have the app's injection context until then.
    const dialogs = useDialog();
 
-   let dialog: DynamicDialogInstance | null = null;
+   // RouteDialog reads the session to close itself on sign-out or tenant change.
+   if (to.meta.requiresAuth) await useAuthStore().initialized;
 
-   // Components register guards here (useUnsavedChangesGuard); every guard must allow the close.
-   const closeGuards = new Set<DialogCloseGuard>();
-   let unwatchAuth: WatchStopHandle | undefined;
-
-   const requestClose = async () => {
-      for (const guard of closeGuards) {
-         if (!(await guard())) return;
-      }
-      unwatchAuth?.();
-      dialog?.close();
-   };
-
-   const updateStyles = (e: Event | HTMLElement | null): void => {
-      const dialogElement = (e instanceof Event ? e.target : e) as HTMLElement | null;
-      if (!dialogElement) return;
-
-      if (dialogElement.role != 'dialog') return updateStyles(dialogElement.parentElement);
-
-      dialog!.options.props!.style = dialogElement.style.cssText;
-   };
-
-   // Brings the clicked dialog to the front.
-   const focusToDialog = (e: Event | HTMLElement | null): void => {
-      const dialogElement = (e instanceof Event ? e.target : e) as HTMLElement | null;
-      if (!dialogElement) return;
-
-      if (!dialogElement.classList.contains('p-dialog-mask'))
-         return focusToDialog(dialogElement.parentElement);
-
-      if (dialogElement.querySelectorAll('.p-dialog-maximized').length > 0) return;
-
-      const allDialogElements = [
-         ...document.querySelectorAll<HTMLElement>('.p-dialog-mask:has(.p-dialog[role="dialog"])')
-      ];
-      const topDialogElement = _last(
-         allDialogElements.sort((a, b) => +a.style.zIndex - +b.style.zIndex)
-      );
-
-      if (!topDialogElement || topDialogElement.isSameNode(dialogElement)) return;
-
-      allDialogElements.forEach(
-         (element) => (element.style.zIndex = `${+element.style.zIndex - 1}`)
-      );
-
-      dialogElement.style.zIndex = `${+topDialogElement.style.zIndex + 1}`;
-   };
-
-   const dialogOptions: DynamicDialogOptions = {
-      data: { to, from, closeGuards },
-      templates: {
-         header: () =>
-            h(RouteDialogHeader, {
-               title: i18n.t(lastMatchedRoute.meta.label ?? ''),
-               onClose: requestClose
-            })
-      },
-      props: {
-         maximizable: false,
-         // Closing goes through RouteDialogHeader so that close guards can veto it.
-         closable: false,
-         closeOnEscape: false,
-         position: showDialog,
-         keepInViewport: false,
-         // Not in PrimeVue's DialogProps; passed through to the dialog element as attributes.
-         ...({
-            class: 'min-w-[clamp(32rem,50%,100vw)] max-w-min',
-            onDragend: updateStyles,
-            onMousedown: focusToDialog
-         } as object)
-      }
-   };
-
-   if (to.meta.requiresAuth) {
-      const authStore = useAuthStore();
-      const { isSignedIn, currentTenant } = storeToRefs(authStore);
-
-      await authStore.initialized;
-
-      const tenantId = currentTenant.value?.id;
-
-      // The page belongs to the signed-in user and tenant; close it when either goes away.
-      const unwatch = watch(
-         () => [currentTenant.value?.id, isSignedIn.value] as const,
-         ([newTenantId, signedIn]) => {
-            if (!signedIn) return dialog?.close();
-            if (newTenantId !== tenantId && !_isNil(to.meta.requiredPermissions))
-               return dialog?.close();
-            dialog ??= dialogs.open(dialogComponent, dialogOptions);
-         }
-      );
-
-      dialogOptions.data.unwatch = unwatch;
-      unwatchAuth = unwatch;
-
-      dialogOptions.onClose = (options) => {
-         dialog = null;
-         if (options?.type !== 'dialog-close') return;
-         unwatch();
-      };
-   }
-
-   dialog = dialogs.open(dialogComponent, dialogOptions);
+   openRouteDialog(dialogs, to, position);
 
    // Opened directly (page load): show the closest named parent route underneath.
    if (from.matched.length < 1) {
