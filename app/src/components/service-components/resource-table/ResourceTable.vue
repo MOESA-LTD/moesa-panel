@@ -7,12 +7,15 @@ import CustomTable, {
 } from '@/components/ui/custom-table/CustomTable.vue';
 import { queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
+import { toModel, type ModelClass } from '@/lib/model/Model';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { DataTableStateEvent } from 'primevue';
 
 export declare type ResourceTableProps<T = any> = CustomTableProps<T> & {
    from: string & keyof Tables;
    select: string;
+   /** Rows are mapped to this model (see lib/model); the cache keeps the plain rows. */
+   model?: ModelClass<any, T>;
    count?: {
       head: boolean;
       count: 'exact' | 'planned' | 'estimated';
@@ -74,6 +77,7 @@ const listQuery = useQuery({
       const { data, count } = await applyTableMeta(query, meta.value).throwOnError();
       return { rows: data as T[], count };
    },
+   select: (data) => (props.model ? { ...data, rows: toModel(props.model, data.rows) } : data),
    enabled: computed(() => meta.value !== null),
    placeholderData: keepPreviousData
 });
@@ -98,7 +102,7 @@ const loading = computed(() => routeLoading.value || listQuery.isFetching.value)
 
 const mounted = useMounted();
 
-const tableProps = computed(() => ({ ..._omit(props, ['stateKey']), ...attrs }));
+const tableProps = computed(() => ({ ..._omit(props, ['stateKey', 'model']), ...attrs }));
 </script>
 <template>
    <component

@@ -1,5 +1,6 @@
 <script setup>
 import { createFilters } from '@/components/service-components/resource-table/createFilters';
+import { ClientModel } from '@/api/client/model';
 import { useDeleteClient } from '@/api/client/queries';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import parsePhoneNumberFromString from 'libphonenumber-js';
@@ -34,6 +35,11 @@ const columns = computed(() => [
       field: 'birth_date',
       sortable: true,
       header: t('client.table.headers.birth_date')
+   },
+   {
+      // Derived from the embedded addresses by ClientModel; not a column, so not sortable.
+      field: 'address',
+      header: t('fields.address')
    },
    {
       field: 'email',
@@ -106,6 +112,7 @@ const tableProps = computed(() => ({
    stateKey,
    from: 'client',
    select: '*, address(*)',
+   model: ClientModel,
    columns: columns.value,
    rowActions: rowActions,
    ...attrs
@@ -129,6 +136,13 @@ const tableProps = computed(() => ({
       </template>
       <template #expansion="{ data }">
          <ClientUpsert :id="data.id" class="p-0" />
+      </template>
+      <template #birth_date_body="{ data }">
+         <span v-text="data.birth_date" />
+         <span v-if="data.age !== null" class="text-muted-color" v-text="` (${data.age})`" />
+      </template>
+      <template #address_body="{ data }">
+         <span v-text="data.primaryAddress?.fullAddress" />
       </template>
       <template #email_body="{ data, field }">
          <a

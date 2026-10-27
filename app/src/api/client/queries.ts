@@ -2,6 +2,8 @@ import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+import { toModel } from '@/lib/model/Model';
+import { ClientModel } from './model';
 import { clientRepository } from './repository';
 
 export function useClient(id: MaybeRefOrGetter<string | null | undefined>) {
@@ -10,6 +12,7 @@ export function useClient(id: MaybeRefOrGetter<string | null | undefined>) {
    return useQuery({
       queryKey: computed(() => queryKeys.detail(tenantId.value, 'client', toValue(id))),
       queryFn: ({ signal }) => clientRepository.get(toValue(id)!, signal),
+      select: (data) => toModel(ClientModel, data),
       enabled: computed(() => !!toValue(id))
    });
 }
@@ -19,7 +22,8 @@ export function useClientOptions() {
 
    return useQuery({
       queryKey: computed(() => queryKeys.list(tenantId.value, 'client', { view: 'options' })),
-      queryFn: ({ signal }) => clientRepository.options(signal)
+      queryFn: ({ signal }) => clientRepository.options(signal),
+      select: (data) => toModel(ClientModel, data)
    });
 }
 
