@@ -1,8 +1,8 @@
-import { syncJunction } from '@/api/junction';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { optional, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
@@ -37,24 +37,18 @@ export const productRepository = {
       return data;
    },
 
+   /** Saves the product and its categories in one transaction (see save_product). */
    async save({ product, categoryIds }: ProductInput) {
-      const { data } = await supabase
-         .from('product')
-         .upsert(product as Tables['product']['Insert'])
-         .select('id')
-         .single()
+      const { data: id } = await supabase
+         .rpc('save_product', {
+            // A new product belongs to the current tenant; the tenant policies check it.
+            product_data: { ...product, tenant_id: useAuthStore().currentTenant?.id },
+            category_ids: categoryIds
+         })
          .throwOnError();
 
-      await syncJunction({
-         table: 'product_categories',
-         ownerColumn: 'product_id',
-         ownerId: data.id,
-         itemColumn: 'category_id',
-         itemIds: categoryIds
-      });
-
       // Return the row as the form shows it, with its categories.
-      return productRepository.get(data.id, new AbortController().signal);
+      return productRepository.get(id, new AbortController().signal);
    }
 };
 

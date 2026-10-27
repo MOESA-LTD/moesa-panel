@@ -1,8 +1,8 @@
-import { syncJunction } from '@/api/junction';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
@@ -27,23 +27,17 @@ export const roleRepository = {
       return data as RoleWithPermissions | null;
    },
 
+   /** Saves the role and its permissions in one transaction (see save_role). */
    async save({ role, permissionIds }: RoleInput) {
-      const { data } = await supabase
-         .from('role')
-         .upsert(role as Tables['role']['Insert'])
-         .select('id')
-         .single()
+      const { data: id } = await supabase
+         .rpc('save_role', {
+            // A new role belongs to the current tenant; the tenant policies check it.
+            role_data: { ...role, tenant_id: useAuthStore().currentTenant?.id },
+            permission_ids: permissionIds
+         })
          .throwOnError();
 
-      await syncJunction({
-         table: 'role_permission',
-         ownerColumn: 'role_id',
-         ownerId: data.id,
-         itemColumn: 'permission_id',
-         itemIds: permissionIds
-      });
-
-      return roleRepository.get(data.id, new AbortController().signal);
+      return roleRepository.get(id, new AbortController().signal);
    }
 };
 

@@ -1,4 +1,3 @@
-import { syncJunction } from '@/api/junction';
 import { supabase } from '@/lib/supabase';
 
 export type Client = Tables['client']['Row'];
@@ -43,14 +42,10 @@ export const clientRepository = {
       await supabase.from('client').delete().eq('id', id).throwOnError();
    },
 
-   /** Makes the client's addresses exactly the given ones. */
+   /** Makes the client's addresses exactly the given ones, in one transaction. */
    async setAddresses(clientId: string, addressIds: string[]) {
-      await syncJunction({
-         table: 'client_address',
-         ownerColumn: 'client_id',
-         ownerId: clientId,
-         itemColumn: 'address_id',
-         itemIds: addressIds
-      });
+      await supabase
+         .rpc('set_client_addresses', { client_id: clientId, address_ids: addressIds })
+         .throwOnError();
    }
 };

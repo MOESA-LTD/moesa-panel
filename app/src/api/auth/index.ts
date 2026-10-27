@@ -45,6 +45,14 @@ export const registerSchema = z.object({
 
 export type RegisterFormValues = z.input<typeof registerSchema>;
 
+/** Values that are already registered, by the error the create-account function returns. */
+const REGISTRATION_CONFLICTS: Record<string, { field: string; message: string }> = {
+   email_exists: { field: 'account.email', message: 'errors.user_already_registered' },
+   user_already_exists: { field: 'account.email', message: 'errors.user_already_registered' },
+   company_email_exists: { field: 'company.email', message: 'form.already_exists' },
+   company_phone_exists: { field: 'company.phone', message: 'form.already_exists' }
+};
+
 /** Creates the owner account and its tenant (supabase/functions/create-account). */
 export async function createAccount({ account, company }: z.output<typeof registerSchema>) {
    const { error } = await supabase.functions.invoke('create-account', {
@@ -52,15 +60,18 @@ export async function createAccount({ account, company }: z.output<typeof regist
    });
    if (!error) return;
 
-   // Show "already registered" on the e-mail field instead of a generic toast.
+   // Show "already registered" on the field concerned instead of a generic toast.
    if (error instanceof FunctionsHttpError) {
       const body = await error.context
          .clone()
          .json()
          .catch(() => null);
-      if (['email_exists', 'user_already_exists'].includes(body?.code)) {
-         throw Object.assign(new Error(body.code), {
-            fieldErrors: { 'account.email': i18n.t('errors.user_already_registered') }
+      // Auth errors carry `code`; the function's own errors carry it as `message`.
+      const reason: string | undefined = body?.code ?? body?.message;
+      const conflict = reason ? REGISTRATION_CONFLICTS[reason] : undefined;
+      if (conflict) {
+         throw Object.assign(new Error(reason), {
+            fieldErrors: { [conflict.field]: i18n.t(conflict.message) }
          });
       }
    }

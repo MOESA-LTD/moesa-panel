@@ -1,4 +1,3 @@
-import { syncJunction } from '@/api/junction';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { email, optional, phone, requiredText } from '@/lib/form/fields';
@@ -42,14 +41,11 @@ export const userRepository = {
 
       const userId = id ?? data!.user.id;
 
+      // Only the roles of the current tenant are replaced (see set_user_roles).
       if (roleIds) {
-         await syncJunction({
-            table: 'user_role',
-            ownerColumn: 'user_id',
-            ownerId: userId,
-            itemColumn: 'role_id',
-            itemIds: roleIds
-         });
+         await supabase
+            .rpc('set_user_roles', { user_id: userId, role_ids: roleIds })
+            .throwOnError();
       }
 
       return userRepository.get(userId, new AbortController().signal);

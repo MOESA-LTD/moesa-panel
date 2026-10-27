@@ -83,7 +83,9 @@ CREATE TABLE IF NOT EXISTS public.permission (
    error_message TEXT,
    throws_error BOOLEAN DEFAULT FALSE,
    bypass BOOLEAN DEFAULT FALSE,
-   created_at TIMESTAMPTZ DEFAULT NOW()
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   -- One permission per command on a resource (also lets the reference data be re-applied).
+   CONSTRAINT unique_permission_resource_command UNIQUE (resource_name, command)
 );
 
 CREATE INDEX IF NOT EXISTS idx_permission_resource_name ON public.permission (resource_name);
@@ -157,7 +159,8 @@ CREATE INDEX IF NOT EXISTS idx_client_display_name ON public.client (display_nam
 CREATE TABLE IF NOT EXISTS public.product (
    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
    tenant_id UUID REFERENCES public.tenant (id) ON DELETE CASCADE,
-   display_name TEXT UNIQUE NOT NULL,
+   -- Unique per tenant (below), so tenants can name their products alike.
+   display_name TEXT NOT NULL,
    brand TEXT,
    details TEXT,
    created_at TIMESTAMPTZ DEFAULT NOW(),

@@ -6,7 +6,7 @@
       "dev": "pnpm dev:supabase-types && pnpm dev:vue",
       "dev:vue": "vite --host",
       "dev:supabase": "supabase start --ignore-health-check",
-      "dev:supabase-types": "supabase gen types typescript --local > src/@types/database.types.ts",
+      "dev:supabase-types": "supabase gen types typescript --local > ../supabase/functions/_shared/database.types.ts",
       "dev:supabase-reset": "supabase db reset && pnpm dev:supabase-types",
       "build": "vite build",
       "preview": "vite preview",

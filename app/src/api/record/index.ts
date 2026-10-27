@@ -1,4 +1,3 @@
-import type { Json } from '@/@types/database.types';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantId } from '@/api/useTenantId';
 import { RECORD_STATUSES, RECORD_TYPES } from '@/constants/form/record';
