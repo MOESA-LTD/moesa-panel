@@ -38,8 +38,8 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
  * Maximizing, minimizing or snapping keeps the normal box and returns to it on restore.
  *
  * Dragged to an edge or corner of the viewport, the dialog shows where it would snap and fills that
- * half or quarter when dropped. A maximized or snapped dialog dragged away gets its normal size
- * back, under the pointer.
+ * half or quarter when dropped; it can still be resized there. A maximized or snapped dialog dragged
+ * away gets its normal size back, under the pointer.
  */
 export function useDialogFrame(
    dialog: () => HTMLElement | null | undefined,
@@ -185,33 +185,54 @@ export function useDialogFrame(
       );
    }
 
+   /** The box in viewport units, so a snapped dialog keeps its share of a resized window. */
+   function toViewportUnits(el: HTMLElement) {
+      const rect = el.getBoundingClientRect();
+      const share = (value: number, of: number) => `${+((value / of) * 100).toFixed(4)}`;
+      Object.assign(el.style, {
+         left: `${share(rect.left, innerWidth)}vw`,
+         top: `${share(rect.top, innerHeight)}vh`,
+         width: `${share(rect.width, innerWidth)}vw`,
+         height: `${share(rect.height, innerHeight)}vh`,
+         minWidth: '0'
+      });
+   }
+
+   /** Resizes a normal or snapped dialog; a snapped one stays snapped, at its new size. */
    function startResize(event: PointerEvent, edges: DialogEdges) {
       const el = dialog();
-      if (!el || event.button !== 0 || state.value !== 'normal') return;
+      const snapped = state.value === 'snapped';
+      if (!el || event.button !== 0 || !(state.value === 'normal' || snapped)) return;
 
       const start = pin(el);
       el.style.height = `${start.height}px`;
       const right = start.left + start.width;
       const bottom = start.top + start.height;
 
-      track(event, (dx, dy) => {
-         if (edges.right) {
-            el.style.width = `${clamp(start.width + dx, minWidth, innerWidth - start.left)}px`;
+      track(
+         event,
+         (dx, dy) => {
+            if (edges.right) {
+               el.style.width = `${clamp(start.width + dx, minWidth, innerWidth - start.left)}px`;
+            }
+            if (edges.left) {
+               const width = clamp(start.width - dx, minWidth, right);
+               el.style.width = `${width}px`;
+               el.style.left = `${right - width}px`;
+            }
+            if (edges.bottom) {
+               el.style.height = `${clamp(start.height + dy, minHeight, innerHeight - start.top)}px`;
+            }
+            if (edges.top) {
+               const height = clamp(start.height - dy, minHeight, bottom);
+               el.style.height = `${height}px`;
+               el.style.top = `${bottom - height}px`;
+            }
+         },
+         () => {
+            if (snapped) toViewportUnits(el);
          }
-         if (edges.left) {
-            const width = clamp(start.width - dx, minWidth, right);
-            el.style.width = `${width}px`;
-            el.style.left = `${right - width}px`;
-         }
-         if (edges.bottom) {
-            el.style.height = `${clamp(start.height + dy, minHeight, innerHeight - start.top)}px`;
-         }
-         if (edges.top) {
-            const height = clamp(start.height - dy, minHeight, bottom);
-            el.style.height = `${height}px`;
-            el.style.top = `${bottom - height}px`;
-         }
-      });
+      );
    }
 
    /** Back to the normal box; a dialog moved while minimized stays where it was moved to. */

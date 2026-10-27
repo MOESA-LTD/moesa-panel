@@ -288,6 +288,19 @@ describe('useDialogFrame', () => {
          expect(box()).toEqual({ left: 350, top: 100, width: 400, height: 300 });
       });
 
+      it('resizes a snapped dialog, which stays snapped and keeps its share of the viewport', () => {
+         drag(-495, 0);
+         resize({ right: true }, 100, 0);
+
+         expect(frame.state.value).toBe('snapped');
+         expect(dialog.style.width).toBe('60vw');
+         expect(box()).toEqual({ left: 0, top: 0, width: 600, height: 800 });
+
+         // Its normal box is still the one from before the snap.
+         frame.restore();
+         expect(box()).toEqual(START);
+      });
+
       it('moves a minimized dialog without snapping it', () => {
          frame.toggleMinimize();
          drag(-495, 0);

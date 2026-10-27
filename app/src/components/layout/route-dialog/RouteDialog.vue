@@ -193,7 +193,7 @@ useEventListener(
          <component :is="page" v-bind="route.params" />
       </div>
       <span
-         v-show="state === 'normal'"
+         v-show="state === 'normal' || state === 'snapped'"
          v-for="(edges, name) in EDGES"
          :key="name"
          :class="`route_dialog__handle route_dialog__handle--${name}`"
