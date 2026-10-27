@@ -1,9 +1,9 @@
-<script setup lang="ts" generic="T extends Tables['user']['Row']">
+<script setup lang="ts" generic="T extends Views['tenant_member']['Row']">
 import { useDialogRef } from '@/composables/useDialogRef';
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
-import { isOwnerAbove, USER_ACCESS, useRemoveUser, type UserAccess } from '@/api/user';
+import { isOwnerAbove, useRemoveUser, type UserAccess } from '@/api/user';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import { useI18n } from 'vue-i18n';
 import Upsert from './upsert/Index.vue';
@@ -63,14 +63,14 @@ const stateKey = 'user';
 const confirmDelete = useConfirmDelete();
 const { mutateAsync: removeUser } = useRemoveUser();
 
-const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
+const rowActions: ResourceTableProps<'tenant_member', T>['rowActions'] = [
    {
       label: t('action.delete'),
       command:
          ({ data }) =>
          async () => {
             if (await confirmDelete({ ...data, display_name: data.email })) {
-               await removeUser({ id: data.id, tenantId: (data as UserAccess).tenant_id });
+               await removeUser({ id: data.id!, tenantId: data.tenant_id });
             }
          },
       icon: PrimeIcons.TRASH,
@@ -85,7 +85,7 @@ const rowActions: ResourceTableProps<'user', T>['rowActions'] = [
             await router.push({
                name: 'branch-user-manage',
                params: { id: data.id },
-               query: { showDialog: 'true' }
+               query: { showDialog: 'true', ...(data.tenant_id ? { tenant: data.tenant_id } : {}) }
             }),
       icon: PrimeIcons.PENCIL,
       disabled: ({ data }) => isOwnerAbove(data as UserAccess)
@@ -96,10 +96,11 @@ const dialogRef = useDialogRef();
 </script>
 <template>
    <component
-      :is="ResourceTable<'user', T>"
+      :is="ResourceTable<'tenant_member', T>"
       :stateKey
-      :from="'user'"
-      :select="`*, role(*,permission(*)), ${USER_ACCESS}`"
+      :from="'tenant_member'"
+      select="*"
+      dataKey="key"
       :columns="columns"
       :rowActions="rowActions"
       v-model:filters="filters"
@@ -131,7 +132,7 @@ const dialogRef = useDialogRef();
          </span>
       </template>
       <template #expansion="{ data }">
-         <Upsert :id="data.id" class="p-0" />
+         <Upsert :id="data.id" :tenant="data.tenant_id" class="p-0" />
       </template>
    </component>
 </template>

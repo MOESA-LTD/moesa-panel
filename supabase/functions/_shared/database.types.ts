@@ -1086,6 +1086,19 @@ export type Database = {
           },
         ]
       }
+      tenant_member: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          key: string | null
+          owned_via: string[] | null
+          phone: string | null
+          tenant_id: string | null
+          user_metadata: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       actor: {

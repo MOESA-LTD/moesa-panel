@@ -38,6 +38,9 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'dashboard_best_selling_products'
    ],
    // stock_view.available_quantity subtracts sold records.
+   user: ['tenant_member'],
+   tenant_user: ['tenant_member'],
+   tenant_owner: ['tenant_member'],
    record: [
       'stock_view',
       'stock_vendor_stat',

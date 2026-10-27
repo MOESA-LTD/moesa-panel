@@ -49,13 +49,17 @@ export type UserInput = {
 };
 
 export const userRepository = {
-   async get(id: string, signal: AbortSignal) {
-      const { data } = await supabase
-         .from('user')
-         // tenant_owner: RLS keeps the current tenant's row, so it says whether they own it.
-         .select(`*, role(*), tenant_owner(tenant_id), ${USER_ACCESS}`)
-         .eq('id', id)
-         .abortSignal(signal)
+   /** Read in `tenantId` alone if given (a membership of a branch), so it is managed there. */
+   async get(id: string, signal: AbortSignal, tenantId?: string | null) {
+      const { data } = await forTenant(
+         supabase
+            .from('user')
+            // tenant_owner: RLS keeps the current tenant's row, so it says whether they own it.
+            .select(`*, role(*), tenant_owner(tenant_id), ${USER_ACCESS}`)
+            .eq('id', id)
+            .abortSignal(signal),
+         tenantId
+      )
          .maybeSingle()
          .throwOnError();
       return data as UserWithRoles | null;
@@ -80,16 +84,22 @@ export const userRepository = {
          ).throwOnError();
       }
 
-      return userRepository.get(userId, new AbortController().signal);
+      return userRepository.get(userId, new AbortController().signal, tenantId);
    }
 };
 
-export function useUser(id: MaybeRefOrGetter<string | null | undefined>) {
-   const tenantId = useTenantKey();
+export function useUser(
+   id: MaybeRefOrGetter<string | null | undefined>,
+   tenant?: MaybeRefOrGetter<string | null | undefined>
+) {
+   const tenantKey = useTenantKey();
 
    return useQuery({
-      queryKey: computed(() => queryKeys.detail(tenantId.value, 'user', toValue(id))),
-      queryFn: ({ signal }) => userRepository.get(toValue(id)!, signal),
+      queryKey: computed(() => [
+         ...queryKeys.detail(tenantKey.value, 'user', toValue(id)),
+         toValue(tenant) ?? null
+      ]),
+      queryFn: ({ signal }) => userRepository.get(toValue(id)!, signal, toValue(tenant)),
       enabled: computed(() => !!toValue(id))
    });
 }

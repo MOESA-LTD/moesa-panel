@@ -1,6 +1,13 @@
-import type { RouteRecordRaw } from 'vue-router';
+import type { RouteLocationNormalized, RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
 import { DIALOG_POSITIONS } from '@/constants/router';
+
+// A member is opened in the branch of their row (`tenant` query): a member of several branches is
+// listed once per branch. Without it, in the user's own branch (managed_in).
+const memberProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   tenant: route.query.tenant ?? null
+});
 
 const routes: RouteRecordRaw[] = [
    {
@@ -138,7 +145,7 @@ const routes: RouteRecordRaw[] = [
                {
                   path: ':id?/manage/:tab?',
                   name: 'branch-user-manage',
-                  props: true,
+                  props: { default: memberProps, skeleton: memberProps },
                   meta: {
                      label: 'route.label.manage-user',
                      visible: false
@@ -151,7 +158,7 @@ const routes: RouteRecordRaw[] = [
                      {
                         path: 'general',
                         name: 'branch-manage-user-general',
-                        props: true,
+                        props: { default: memberProps, skeleton: memberProps },
                         meta: {
                            label: 'route.label.user-general-info',
                            icon: PrimeIcons.USER,

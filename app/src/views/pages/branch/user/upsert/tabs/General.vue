@@ -14,6 +14,8 @@ const props = defineProps<{
    id?: string | null;
    /** Prefill for an invitation. */
    data?: Partial<UserWithRoles> | null;
+   /** The branch of the membership edited; see the route. */
+   tenant?: string | null;
 }>();
 
 const authStore = useAuthStore();
@@ -22,7 +24,7 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
    useUpsertForm({
       id: () => props.id ?? props.data?.id,
       prefill: () => props.data,
-      useRow: useUser,
+      useRow: (id) => useUser(id, () => props.tenant),
       useSaveRow: useSaveUser,
       subject: 'user',
       schema: userSchema,

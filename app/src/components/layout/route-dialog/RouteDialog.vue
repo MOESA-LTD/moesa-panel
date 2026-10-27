@@ -46,6 +46,15 @@ const page: Component | undefined =
         })
       : view;
 
+// The page's props as RouterView passes them: the route's `props` option, else its params.
+const propsOption = record.props?.default;
+const pageProps =
+   typeof propsOption === 'function'
+      ? propsOption(props.route)
+      : propsOption && typeof propsOption === 'object'
+        ? propsOption
+        : props.route.params;
+
 // Closing
 
 const closeGuards = new Set<DialogCloseGuard>();
@@ -189,7 +198,7 @@ useEventListener(
          </div>
       </div>
       <div v-show="state !== 'minimized'" class="p-dialog-content route_dialog__body">
-         <component :is="page" v-bind="route.params" />
+         <component :is="page" v-bind="pageProps" />
       </div>
       <span
          v-show="state === 'normal' || state === 'snapped'"

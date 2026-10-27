@@ -150,3 +150,51 @@ REVOKE ALL ON FUNCTION public.managed_in (public.user) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.owned_via (public.user) TO authenticated;
 
 GRANT EXECUTE ON FUNCTION public.managed_in (public.user) TO authenticated;
+
+-- The user list: a row per membership in the tenants read where the caller may see users (the
+-- member is managed in that tenant), and a row without a tenant for an owner of a tenant above who
+-- belongs to none of them (managed there). `key` tells the rows of one user apart.
+CREATE OR REPLACE VIEW public.tenant_member
+WITH
+   (security_invoker = TRUE) AS
+SELECT
+   tu.tenant_id::TEXT || ':' || u.id::TEXT AS key,
+   u.id,
+   u.user_metadata,
+   u.email,
+   u.phone,
+   u.created_at,
+   tu.tenant_id,
+   public.owned_via (u) AS owned_via
+FROM
+   public.tenant_user tu
+   JOIN public.user u ON u.id = tu.user_id
+WHERE
+   tu.tenant_id = ANY ((SELECT private.permitted_tenants ('public.user', 'select'))::UUID[])
+UNION ALL
+SELECT
+   'owner:' || u.id::TEXT AS key,
+   u.id,
+   u.user_metadata,
+   u.email,
+   u.phone,
+   u.created_at,
+   NULL::UUID AS tenant_id,
+   public.owned_via (u) AS owned_via
+FROM
+   public.user u
+WHERE
+   u.id = ANY ((SELECT private.scope_owners ())::UUID[])
+   AND NOT EXISTS (
+      SELECT
+         1
+      FROM
+         public.tenant_user tu
+      WHERE
+         tu.user_id = u.id
+         AND tu.tenant_id = ANY ((SELECT private.tenant_scope ())::UUID[])
+   );
+
+REVOKE ALL ON public.tenant_member FROM anon;
+
+GRANT SELECT ON public.tenant_member TO authenticated;

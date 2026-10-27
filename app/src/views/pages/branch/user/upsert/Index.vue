@@ -7,12 +7,14 @@ import { RouteLocationAsRelativeGeneric } from 'vue-router';
 const props = defineProps<{
    id?: string | null;
    data?: Partial<UserWithRoles> | null;
+   /** The branch of the membership opened; see the route. */
+   tenant?: string | null;
 }>();
 
 const userId = computed(() => props.id ?? props.data?.id ?? null);
 
 // Loaded here so the route's Suspense waits for it; the tab reuses the cached query.
-const { suspense } = useUser(userId);
+const { suspense } = useUser(userId, () => props.tenant);
 if (userId.value) await suspense();
 
 const tabs: ComputedRef<(TabProps & { route: RouteLocationAsRelativeGeneric })[]> = computed(() => [
@@ -21,7 +23,8 @@ const tabs: ComputedRef<(TabProps & { route: RouteLocationAsRelativeGeneric })[]
       asChild: true,
       route: {
          name: 'branch-manage-user-general',
-         params: { id: userId.value }
+         params: { id: userId.value },
+         query: props.tenant ? { tenant: props.tenant } : {}
       }
    }
 ]);
@@ -53,7 +56,7 @@ const tabValue = computed(() => tab.value || tabs.value[0].value);
          </TabList>
          <TabPanels>
             <TabPanel :value="$t('user.upsert.tabs.general_info')">
-               <General :id="userId" :data="props.data" />
+               <General :id="userId" :data="props.data" :tenant="props.tenant" />
             </TabPanel>
          </TabPanels>
       </Tabs>
