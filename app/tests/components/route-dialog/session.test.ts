@@ -1,6 +1,9 @@
 import {
    clearDialogs,
+   dialogsToRestore,
    forgetDialog,
+   markOffScreen,
+   markOnScreen,
    markReopening,
    rememberDialog,
    savedDialogs,
@@ -63,5 +66,18 @@ describe('route dialog session', () => {
 
       expect(takeReopening(saved.path)).toBe(saved);
       expect(takeReopening(saved.path)).toBeUndefined();
+   });
+
+   it('restores only the dialogs that are not on screen', () => {
+      rememberDialog(dialog('a'));
+      rememberDialog(dialog('b'));
+      // b was opened by the page's own URL before the restore ran.
+      markOnScreen('b');
+
+      expect(dialogsToRestore('u1').map(({ id }) => id)).toEqual(['a']);
+
+      // Closed again, e.g. by an expired session: restored after signing in.
+      markOffScreen('b');
+      expect(dialogsToRestore('u1').map(({ id }) => id)).toEqual(['a', 'b']);
    });
 });

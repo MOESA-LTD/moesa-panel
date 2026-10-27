@@ -16,7 +16,7 @@ import {
 import { useI18n } from 'vue-i18n';
 import type { RouteLocationNormalized } from 'vue-router';
 import { ROUTE_DIALOG, type DialogCloseGuard } from './context';
-import { forgetDialog, updateDialog, type SavedRouteDialog } from './session';
+import { forgetDialog, markOffScreen, updateDialog, type SavedRouteDialog } from './session';
 import { bringToFront } from './stacking';
 import { useDialogFrame, type DialogEdges } from './useDialogFrame';
 
@@ -85,6 +85,7 @@ if (props.route.meta.requiresAuth) {
 
 // A reload does not unmount the dialog, so it stays in the session and reopens.
 onUnmounted(() => {
+   markOffScreen(props.dialogId);
    if (!keepForSignIn) forgetDialog(props.dialogId);
 });
 
@@ -210,10 +211,6 @@ useEventListener(
       @apply cursor-move touch-none select-none;
    }
 
-   &--maximized &__header {
-      @apply cursor-default;
-   }
-
    &__controls {
       @apply flex items-center gap-1;
    }
@@ -265,6 +262,24 @@ useEventListener(
       &--se {
          @apply -bottom-1 -right-1 cursor-nwse-resize;
       }
+   }
+}
+
+// Where a dragged dialog will snap (useDialogFrame inserts it below the dialog, in its mask).
+.route_dialog__snap-preview {
+   @apply fixed pointer-events-none;
+   transition:
+      left 120ms ease-out,
+      top 120ms ease-out,
+      width 120ms ease-out,
+      height 120ms ease-out;
+
+   &::after {
+      @apply absolute inset-2 rounded-xl;
+      content: '';
+      border: 2px solid var(--p-primary-color);
+      background: color-mix(in srgb, var(--p-primary-color) 18%, transparent);
+      backdrop-filter: blur(2px);
    }
 }
 

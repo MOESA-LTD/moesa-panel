@@ -1,7 +1,11 @@
 import { onBeforeUnmount, readonly, ref } from 'vue';
+import { SNAP_BOXES, snapZoneAt, type SnapBox, type SnapZone } from './snap';
 
-/** How the dialog is shown: as placed by the user, filling the viewport, or as its header only. */
-export type DialogWindowState = 'normal' | 'maximized' | 'minimized';
+/**
+ * How the dialog is shown: as placed by the user, filling the viewport, as its header only, or
+ * filling the part of the viewport it was dropped on (see snap.ts).
+ */
+export type DialogWindowState = 'normal' | 'maximized' | 'minimized' | 'snapped';
 
 /** The sides a resize handle moves; a corner moves two. */
 export type DialogEdges = { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean };
@@ -11,7 +15,7 @@ export type DialogFrameSnapshot = {
    /** The dialog's inline style. */
    style: string;
    state: DialogWindowState;
-   /** The normal box to restore to while maximized or minimized. */
+   /** The normal box to restore to while maximized, minimized or snapped. */
    normalStyle: string;
 };
 
@@ -31,7 +35,11 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
  *
  * On the first move or resize the dialog is pinned where it is (fixed position, explicit size), as
  * PrimeVue's own drag does; from then on its box follows the pointer instead of the mask's layout.
- * Maximizing or minimizing keeps the normal box and returns to it on restore.
+ * Maximizing, minimizing or snapping keeps the normal box and returns to it on restore.
+ *
+ * Dragged to an edge or corner of the viewport, the dialog shows where it would snap and fills that
+ * half or quarter when dropped. A maximized or snapped dialog dragged away gets its normal size
+ * back, under the pointer.
  */
 export function useDialogFrame(
    dialog: () => HTMLElement | null | undefined,
@@ -61,8 +69,32 @@ export function useDialogFrame(
       return rect;
    };
 
-   /** Follows the pointer until it is released; `move` gets the distance from the start. */
-   const track = (event: PointerEvent, move: (dx: number, dy: number) => void) => {
+   /** Shows where a dropped dialog would snap, just below it in the dialog's mask. */
+   let preview: HTMLElement | null = null;
+   const showPreview = (el: HTMLElement, zone: SnapZone | null) => {
+      if (!zone) return hidePreview();
+      if (!preview) {
+         preview = document.createElement('div');
+         preview.className = 'route_dialog__snap-preview';
+         preview.setAttribute('aria-hidden', 'true');
+      }
+      if (preview.nextElementSibling !== el) el.before(preview);
+      Object.assign(preview.style, SNAP_BOXES[zone]);
+   };
+   const hidePreview = () => {
+      preview?.remove();
+      preview = null;
+   };
+
+   /**
+    * Follows the pointer until it is released; `move` gets the distance from the start and the
+    * event, `end` whether the gesture was completed (not cancelled).
+    */
+   const track = (
+      event: PointerEvent,
+      move: (dx: number, dy: number, event: PointerEvent) => void,
+      end?: (completed: boolean) => void
+   ) => {
       // A gesture whose release was missed (e.g. released outside the window) ends here.
       stop?.();
       event.preventDefault();
@@ -72,9 +104,10 @@ export function useDialogFrame(
       document.body.classList.add('select-none');
 
       const onMove = (e: PointerEvent) =>
-         move(e.clientX - event.clientX, e.clientY - event.clientY);
-      const onUp = () => {
+         move(e.clientX - event.clientX, e.clientY - event.clientY, e);
+      const onUp = (e: PointerEvent) => {
          stop?.();
+         end?.(e.type === 'pointerup');
          const el = dialog();
          if (el) save(el);
       };
@@ -84,6 +117,7 @@ export function useDialogFrame(
          target.removeEventListener('pointerup', onUp);
          target.removeEventListener('pointercancel', onUp);
          document.body.classList.remove('select-none');
+         hidePreview();
          stop = undefined;
       };
 
@@ -92,22 +126,63 @@ export function useDialogFrame(
       target.addEventListener('pointercancel', onUp);
    };
 
+   /**
+    * A maximized or snapped dialog back at its normal size, placed so the pointer keeps its place
+    * on the header (horizontally in proportion, as the width changes).
+    */
+   function detach(el: HTMLElement, event: PointerEvent) {
+      const from = el.getBoundingClientRect();
+      const share = from.width ? (event.clientX - from.left) / from.width : 0.5;
+      const grabY = event.clientY - from.top;
+
+      el.style.cssText = normalStyle;
+      state.value = 'normal';
+      const { width, height } = pin(el);
+      el.style.left = `${clamp(event.clientX - share * width, 0, Math.max(innerWidth - width, 0))}px`;
+      el.style.top = `${clamp(event.clientY - grabY, 0, Math.max(innerHeight - height, 0))}px`;
+   }
+
+   /** Fills `zone`; the box it had before the drag is kept to return to. */
+   function snap(el: HTMLElement, zone: SnapZone, before: string) {
+      normalStyle = before;
+      Object.assign(el.style, {
+         position: 'fixed',
+         margin: '0',
+         minWidth: '0',
+         maxWidth: '100vw',
+         maxHeight: '100vh',
+         ...SNAP_BOXES[zone]
+      } satisfies Partial<CSSStyleDeclaration> & SnapBox);
+      state.value = 'snapped';
+   }
+
    function startDrag(event: PointerEvent) {
       const el = dialog();
-      // Buttons and links in the header keep their own behaviour; a maximized dialog stays put.
-      if (
-         !el ||
-         event.button !== 0 ||
-         state.value === 'maximized' ||
-         (event.target as HTMLElement).closest('button, a, input')
-      )
+      // Buttons and links in the header keep their own behaviour.
+      if (!el || event.button !== 0 || (event.target as HTMLElement).closest('button, a, input'))
          return;
 
+      if (state.value === 'maximized' || state.value === 'snapped') detach(el, event);
+
+      // A minimized dialog only moves; the others can be dropped on an edge to snap.
+      const snaps = state.value === 'normal';
       const start = pin(el);
-      track(event, (dx, dy) => {
-         el.style.left = `${clamp(start.left + dx, 0, innerWidth - start.width)}px`;
-         el.style.top = `${clamp(start.top + dy, 0, innerHeight - start.height)}px`;
-      });
+      const before = el.style.cssText;
+      let zone: SnapZone | null = null;
+
+      track(
+         event,
+         (dx, dy, e) => {
+            el.style.left = `${clamp(start.left + dx, 0, innerWidth - start.width)}px`;
+            el.style.top = `${clamp(start.top + dy, 0, innerHeight - start.height)}px`;
+            if (!snaps) return;
+            zone = snapZoneAt(e.clientX, e.clientY, innerWidth, innerHeight);
+            showPreview(el, zone);
+         },
+         (completed) => {
+            if (completed && zone) snap(el, zone, before);
+         }
+      );
    }
 
    function startResize(event: PointerEvent, edges: DialogEdges) {
@@ -190,7 +265,10 @@ export function useDialogFrame(
       save(el);
    }
 
-   onBeforeUnmount(() => stop?.());
+   onBeforeUnmount(() => {
+      stop?.();
+      hidePreview();
+   });
 
    return {
       state: readonly(state),

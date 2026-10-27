@@ -4,7 +4,7 @@ import { until } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { forgetDialog, markReopening, savedDialogs } from './session';
+import { dialogsToRestore, forgetDialog, markReopening } from './session';
 
 /**
  * Reopens the route dialogs of the tab's session (see session.ts) once the user is signed in: after
@@ -35,8 +35,9 @@ export function useRouteDialogRestore() {
             const userId = authStore.user?.id;
             if (!userId) return;
 
-            // In opening order, so they stack as they did.
-            for (const dialog of savedDialogs(userId)) {
+            // In opening order, so they stack as they did; those already on screen (e.g. opened by
+            // the page's own URL) are left as they are.
+            for (const dialog of dialogsToRestore(userId)) {
                const target = router.resolve(dialog.path);
                const allowed = (target.meta.requiredPermissions ?? []).every(
                   ({ action, subject }) => ability.can(action, subject)

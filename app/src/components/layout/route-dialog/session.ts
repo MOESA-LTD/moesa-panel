@@ -53,6 +53,17 @@ export function clearDialogs() {
    write([]);
 }
 
+// The dialogs on screen in this page. Opening a dialog's URL directly saves it before the restore
+// runs, so the restore skips those instead of opening them a second time.
+const onScreen = new Set<string>();
+
+export const markOnScreen = (id: string) => onScreen.add(id);
+export const markOffScreen = (id: string) => onScreen.delete(id);
+
+/** The user's saved dialogs that are not on screen, in the order they were opened. */
+export const dialogsToRestore = (userId: string) =>
+   savedDialogs(userId).filter(({ id }) => !onScreen.has(id));
+
 // A dialog being reopened by useRouteDialogRestore, matched by path when the guard opens it.
 const reopening = new Map<string, SavedRouteDialog>();
 

@@ -1,4 +1,8 @@
-import { useDialogFrame, type DialogEdges } from '@/components/layout/route-dialog/useDialogFrame';
+import {
+   useDialogFrame,
+   type DialogEdges,
+   type DialogFrameSnapshot
+} from '@/components/layout/route-dialog/useDialogFrame';
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
@@ -13,7 +17,13 @@ let handle: HTMLElement;
 let frame: ReturnType<typeof useDialogFrame>;
 let saved: string | undefined;
 
-const px = (value: string) => Math.round(parseFloat(value));
+/** A length in px; viewport units (snapped and maximized boxes) against VIEWPORT. */
+const px = (value: string) => {
+   const number = parseFloat(value);
+   if (value.endsWith('vw')) return Math.round((number * VIEWPORT.width) / 100);
+   if (value.endsWith('vh')) return Math.round((number * VIEWPORT.height) / 100);
+   return Math.round(number);
+};
 const box = () => ({
    left: px(dialog.style.left),
    top: px(dialog.style.top),
@@ -21,26 +31,46 @@ const box = () => ({
    height: px(dialog.style.height)
 });
 
+type GestureOptions = {
+   button?: number;
+   /** Where the pointer is pressed. */
+   from?: { x: number; y: number };
+   /** How the gesture ends; a cancelled one does not snap. */
+   end?: 'pointerup' | 'pointercancel';
+   /** Runs while the pointer is still down, after the move. */
+   during?: () => void;
+};
+
 /** Presses on `handle`, moves by (dx, dy) and releases. */
-function gesture(start: (event: PointerEvent) => void, dx: number, dy: number, button = 0) {
-   const init = { bubbles: true, pointerId: 1, button, clientX: 500, clientY: 500 };
+function gesture(
+   start: (event: PointerEvent) => void,
+   dx: number,
+   dy: number,
+   { button = 0, from = { x: 500, y: 500 }, end = 'pointerup', during }: GestureOptions = {}
+) {
+   const init = { bubbles: true, pointerId: 1, button, clientX: from.x, clientY: from.y };
    handle.addEventListener('pointerdown', start, { once: true });
    handle.dispatchEvent(new PointerEvent('pointerdown', init));
    handle.dispatchEvent(
-      new PointerEvent('pointermove', { ...init, clientX: 500 + dx, clientY: 500 + dy })
+      new PointerEvent('pointermove', { ...init, clientX: from.x + dx, clientY: from.y + dy })
    );
-   handle.dispatchEvent(new PointerEvent('pointerup', init));
+   during?.();
+   handle.dispatchEvent(new PointerEvent(end, init));
 }
 const resize = (edges: DialogEdges, dx: number, dy: number, button = 0) =>
-   gesture((e) => frame.startResize(e, edges), dx, dy, button);
-const drag = (dx: number, dy: number) => gesture((e) => frame.startDrag(e), dx, dy);
+   gesture((e) => frame.startResize(e, edges), dx, dy, { button });
+const drag = (dx: number, dy: number, options?: GestureOptions) =>
+   gesture((e) => frame.startDrag(e), dx, dy, options);
 
 beforeEach(() => {
    vi.stubGlobal('innerWidth', VIEWPORT.width);
    vi.stubGlobal('innerHeight', VIEWPORT.height);
    HTMLElement.prototype.setPointerCapture = () => {};
 
-   dialog = document.createElement('div');
+   // The dialog sits in its mask, where the snap preview is inserted next to it.
+   document.body.innerHTML = '';
+   const mask = document.body.appendChild(document.createElement('div'));
+   dialog = mask.appendChild(document.createElement('div'));
    handle = document.createElement('span');
    dialog.appendChild(handle);
    dialog.getBoundingClientRect = () =>
@@ -115,7 +145,8 @@ describe('useDialogFrame', () => {
       drag(50, -20);
       expect(box()).toMatchObject({ left: 150, top: 80 });
 
-      drag(5000, 5000);
+      // Cancelled, as dropping it there would snap it.
+      drag(5000, 5000, { end: 'pointercancel' });
       expect(box()).toMatchObject({ left: 600, top: 500 });
    });
 
@@ -147,12 +178,20 @@ describe('useDialogFrame', () => {
          expect(box()).toEqual({ ...START, width: 450 });
       });
 
-      it('neither moves nor resizes while maximized', () => {
+      it('does not resize while maximized', () => {
          frame.toggleMaximize();
-         drag(50, 50);
          resize({ right: true }, 50, 0);
 
          expect(dialog.style).toMatchObject({ left: '0px', top: '0px', width: '100vw' });
+      });
+
+      it('drags a maximized dialog out at its normal size, under the pointer', () => {
+         frame.toggleMaximize();
+         // Pressed in the middle of the header, 20px down.
+         drag(0, 200, { from: { x: 500, y: 20 } });
+
+         expect(frame.state.value).toBe('normal');
+         expect(box()).toEqual({ left: 300, top: 200, width: 400, height: 300 });
       });
 
       it('minimizes to the header and restores the height', () => {
@@ -193,6 +232,84 @@ describe('useDialogFrame', () => {
       it('reports the style after a state change', () => {
          frame.toggleMaximize();
          expect(saved).toContain('width: 100vw');
+      });
+   });
+
+   describe('snapping', () => {
+      const preview = () => document.querySelector<HTMLElement>('.route_dialog__snap-preview');
+
+      it('fills the half of the viewport it is dropped on', () => {
+         // The pointer ends 5px from the left edge.
+         drag(-495, 0);
+
+         expect(frame.state.value).toBe('snapped');
+         expect(box()).toEqual({ left: 0, top: 0, width: 500, height: 800 });
+      });
+
+      it('fills a quarter when dropped in a corner', () => {
+         drag(495, 295);
+         expect(box()).toEqual({ left: 500, top: 400, width: 500, height: 400 });
+      });
+
+      it('previews the zone below the dialog while dragging, and removes it on release', () => {
+         let during: { width: string; next: Element | null } | undefined;
+         drag(0, -495, {
+            during: () =>
+               (during = { width: preview()!.style.width, next: preview()!.nextElementSibling })
+         });
+
+         expect(during).toEqual({ width: '100vw', next: dialog });
+         expect(preview()).toBeNull();
+      });
+
+      it('does not snap a cancelled drag or one dropped away from the edges', () => {
+         drag(-495, 0, { end: 'pointercancel' });
+         expect(frame.state.value).toBe('normal');
+
+         drag(10, 10);
+         expect(frame.state.value).toBe('normal');
+         expect(preview()).toBeNull();
+      });
+
+      it('restores the box it had before the drag', () => {
+         drag(-495, 0);
+         frame.restore();
+
+         expect(frame.state.value).toBe('normal');
+         expect(box()).toEqual(START);
+      });
+
+      it('drags a snapped dialog out at its normal size, keeping its place under the pointer', () => {
+         drag(-495, 0);
+         // Pressed at the middle of the snapped header (250 of 500), 20px down.
+         drag(300, 100, { from: { x: 250, y: 20 } });
+
+         expect(frame.state.value).toBe('normal');
+         expect(box()).toEqual({ left: 350, top: 100, width: 400, height: 300 });
+      });
+
+      it('moves a minimized dialog without snapping it', () => {
+         frame.toggleMinimize();
+         drag(-495, 0);
+
+         expect(frame.state.value).toBe('minimized');
+      });
+
+      it('reports the snapped state so a reload shows the dialog the same way', () => {
+         let snapshot: DialogFrameSnapshot | undefined;
+         mount(
+            defineComponent({
+               setup() {
+                  frame = useDialogFrame(() => dialog, { onChange: (value) => (snapshot = value) });
+                  return () => h('div');
+               }
+            })
+         );
+         drag(-495, 0);
+
+         expect(snapshot?.state).toBe('snapped');
+         expect(snapshot?.style).toContain('width: 50vw');
+         expect(snapshot?.normalStyle).toContain('width: 400px');
       });
    });
 });

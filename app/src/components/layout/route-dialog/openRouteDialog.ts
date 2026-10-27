@@ -4,7 +4,7 @@ import type { useDialog } from 'primevue';
 import { h } from 'vue';
 import type { RouteLocationNormalized } from 'vue-router';
 import RouteDialog from './RouteDialog.vue';
-import { rememberDialog, takeReopening } from './session';
+import { markOnScreen, rememberDialog, takeReopening } from './session';
 
 /**
  * Opens `route`'s page in a RouteDialog; DynamicDialog only provides the mask and the box. The
@@ -23,6 +23,7 @@ export function openRouteDialog(
    if (userId && route.meta.requiresAuth) {
       rememberDialog({ ...saved, id, userId, path: route.fullPath, position });
    }
+   markOnScreen(id);
 
    return dialogs.open(h(RouteDialog, { route, dialogId: id, initialFrame: saved }), {
       props: {
