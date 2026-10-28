@@ -572,7 +572,11 @@
       "AuthInvalidCredentialsError": "Errore credenziali non valide",
       "branch_owner_required": "Solo i proprietari della filiale superiore possono farlo.",
       "branch_has_branches": "Rimuovi prima le filiali sottostanti.",
-      "branch_not_found": "Filiale non trovata."
+      "branch_not_found": "Filiale non trovata.",
+      "subscription_read_only": "L'abbonamento non è attivo: non si possono apportare modifiche fino al rinnovo.",
+      "plan_limit_branches": "Raggiunto il limite di filiali del piano. Passa a un piano superiore per aprirne altre.",
+      "plan_limit_users": "Raggiunto il limite di utenti del piano. Passa a un piano superiore per aggiungerne altri.",
+      "subscription_company_only": "Solo un'azienda (una filiale di primo livello) può avere un abbonamento."
    },
    "route": {
       "label": {

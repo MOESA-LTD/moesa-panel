@@ -167,20 +167,34 @@ BEGIN
 END;
 $$;
 
+-- A company's tenants: itself and every branch below it.
+CREATE OR REPLACE FUNCTION private.company_tenants (company_id UUID) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        -- UNION (not UNION ALL) also stops at a cycle, should one ever get in.
+        WITH RECURSIVE tree (id) AS (
+            SELECT company_tenants.company_id
+            UNION
+            SELECT t.id FROM public.tenant t JOIN tree ON t.parent_id = tree.id
+        )
+        SELECT tree.id FROM tree
+    );
+END;
+$$;
+
 -- The members and owners of a company's tenants: whom a change of its subscription concerns.
 CREATE OR REPLACE FUNCTION private.company_users (company_id UUID) RETURNS SETOF UUID LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
    search_path = '' AS $$
+DECLARE
+    tenants UUID[] := private.company_tenants(company_users.company_id);
 BEGIN
     RETURN QUERY
-    WITH RECURSIVE tree (id) AS (
-        SELECT company_users.company_id
-        UNION
-        SELECT t.id FROM public.tenant t JOIN tree ON t.parent_id = tree.id
-    )
-    SELECT tu.user_id FROM public.tenant_user tu WHERE tu.tenant_id IN (SELECT tree.id FROM tree)
+    SELECT tu.user_id FROM public.tenant_user tu WHERE tu.tenant_id = ANY (tenants)
     UNION
-    SELECT o.user_id FROM public.tenant_owner o WHERE o.tenant_id IN (SELECT tree.id FROM tree);
+    SELECT o.user_id FROM public.tenant_owner o WHERE o.tenant_id = ANY (tenants);
 END;
 $$;
 
@@ -370,16 +384,13 @@ CREATE OR REPLACE FUNCTION private.company_usage (company_id UUID) RETURNS TABLE
 SET
    search_path = '' AS $$
 #variable_conflict use_column
+DECLARE
+    tenants UUID[] := private.company_tenants(company_usage.company_id);
 BEGIN
     RETURN QUERY
-    WITH RECURSIVE tree (id) AS (
-        SELECT company_usage.company_id
-        UNION
-        SELECT t.id FROM public.tenant t JOIN tree ON t.parent_id = tree.id
-    )
     SELECT
-        (SELECT count(*)::INT - 1 FROM tree),
-        (SELECT count(DISTINCT tu.user_id)::INT FROM public.tenant_user tu WHERE tu.tenant_id IN (SELECT tree.id FROM tree));
+        cardinality(tenants) - 1,
+        (SELECT count(DISTINCT tu.user_id)::INT FROM public.tenant_user tu WHERE tu.tenant_id = ANY (tenants));
 END;
 $$;
 
@@ -428,3 +439,80 @@ BEGIN
     );
 END;
 $$;
+
+-- Whether the company of `tenant_id` may take a change: its subscription is in force (else
+-- subscription_read_only) and, for something a limit counts, `adding` more stays within it (else
+-- plan_limit_branches, plan_limit_users). Raises the reason; the super admin is not limited.
+CREATE OR REPLACE FUNCTION private.check_plan_allows (tenant_id UUID, limit_key TEXT DEFAULT NULL, adding INT DEFAULT 1) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    e RECORD;
+    usage RECORD;
+    allowed INT;
+    used INT;
+BEGIN
+    IF private.check_super_admin() THEN
+        RETURN;
+    END IF;
+
+    SELECT * INTO e FROM private.entitlements(ARRAY[check_plan_allows.tenant_id]);
+    IF NOT coalesce(e.writable, FALSE) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'subscription_read_only')::TEXT,
+            DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
+    END IF;
+
+    IF check_plan_allows.limit_key IS NULL THEN
+        RETURN;
+    END IF;
+    SELECT pl.value INTO allowed FROM public.plan_limit pl
+    WHERE pl.plan_id = e.plan_id AND pl.limit_key = check_plan_allows.limit_key;
+    IF allowed IS NULL THEN
+        RETURN;
+    END IF;
+
+    SELECT * INTO usage FROM private.company_usage(e.company_id);
+    used := CASE check_plan_allows.limit_key WHEN 'max_branches' THEN usage.branches ELSE usage.users END;
+    IF used + adding > allowed THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'plan_limit_' || substr(check_plan_allows.limit_key, 5))::TEXT,
+            DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
+    END IF;
+END;
+$$;
+
+-- A branch is opened only within the plan's branches (create_branch, or any other way in).
+CREATE OR REPLACE FUNCTION private.check_branch_limit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    PERFORM private.check_plan_allows(NEW.parent_id, 'max_branches');
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER check_branch_limit BEFORE INSERT ON public.tenant FOR EACH ROW WHEN (NEW.parent_id IS NOT NULL)
+EXECUTE FUNCTION private.check_branch_limit ();
+
+-- A member is added only within the plan's users; one already in another of the company's
+-- tenants is not counted again.
+CREATE OR REPLACE FUNCTION private.check_user_limit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    company UUID := (SELECT e.company_id FROM private.entitlements(ARRAY[NEW.tenant_id]) e);
+BEGIN
+    PERFORM private.check_plan_allows(
+        NEW.tenant_id,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM public.tenant_user tu
+            WHERE tu.user_id = NEW.user_id AND tu.tenant_id = ANY (private.company_tenants(company))
+        ) THEN NULL ELSE 'max_users' END
+    );
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER check_user_limit BEFORE INSERT ON public.tenant_user FOR EACH ROW
+EXECUTE FUNCTION private.check_user_limit ();

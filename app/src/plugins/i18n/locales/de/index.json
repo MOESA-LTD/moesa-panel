@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "AuthInvalidCredentialsError",
       "branch_owner_required": "Nur die Inhaber der übergeordneten Filiale dürfen das.",
       "branch_has_branches": "Entfernen Sie zuerst die Filialen darunter.",
-      "branch_not_found": "Filiale nicht gefunden."
+      "branch_not_found": "Filiale nicht gefunden.",
+      "subscription_read_only": "Das Abonnement ist nicht aktiv: Änderungen sind erst nach der Verlängerung möglich.",
+      "plan_limit_branches": "Das Filiallimit des Tarifs ist erreicht. Wechseln Sie den Tarif, um weitere Filialen zu eröffnen.",
+      "plan_limit_users": "Das Benutzerlimit des Tarifs ist erreicht. Wechseln Sie den Tarif, um weitere Benutzer hinzuzufügen.",
+      "subscription_company_only": "Nur ein Unternehmen (eine oberste Filiale) kann ein Abonnement haben."
    },
    "account": {
       "profile": {

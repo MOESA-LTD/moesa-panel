@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "認証情報が無効です",
       "branch_owner_required": "上位の支店のオーナーのみが実行できます。",
       "branch_has_branches": "先に下位の支店を削除してください。",
-      "branch_not_found": "支店が見つかりません。"
+      "branch_not_found": "支店が見つかりません。",
+      "subscription_read_only": "サブスクリプションが有効ではありません。更新されるまで変更できません。",
+      "plan_limit_branches": "プランの支店数の上限に達しました。さらに開設するにはプランをアップグレードしてください。",
+      "plan_limit_users": "プランのユーザー数の上限に達しました。さらに追加するにはプランをアップグレードしてください。",
+      "subscription_company_only": "サブスクリプションを持てるのは会社（最上位の支店）のみです。"
    },
    "account": {
       "profile": {

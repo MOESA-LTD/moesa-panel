@@ -572,7 +572,11 @@
       "AuthInvalidCredentialsError": "خطأ في مصادقة المستخدم",
       "branch_owner_required": "لا يمكن ذلك إلا لمالكي الفرع الأعلى.",
       "branch_has_branches": "احذف الفروع التابعة له أولاً.",
-      "branch_not_found": "الفرع غير موجود."
+      "branch_not_found": "الفرع غير موجود.",
+      "subscription_read_only": "الاشتراك غير سارٍ: لا يمكن إجراء تغييرات حتى التجديد.",
+      "plan_limit_branches": "تم بلوغ حد الفروع في الخطة. قم بترقية الخطة لفتح المزيد.",
+      "plan_limit_users": "تم بلوغ حد المستخدمين في الخطة. قم بترقية الخطة لإضافة المزيد.",
+      "subscription_company_only": "يمكن للشركة فقط (الفرع الأعلى) أن يكون لها اشتراك."
    },
    "route": {
       "label": {

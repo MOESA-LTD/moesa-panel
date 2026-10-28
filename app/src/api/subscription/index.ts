@@ -44,6 +44,27 @@ export const isEndingSoon = (subscription: SubscriptionSummary | null) => {
    return !!subscription?.writable && days !== null && days <= ENDING_SOON_DAYS;
 };
 
+/** Why the database refuses a change: the reasons check_plan_allows raises (an errors.* key). */
+export type PlanBlock = 'subscription_read_only' | 'plan_limit_branches' | 'plan_limit_users';
+
+/**
+ * Why the company may not take a change now, or null: read-only, or one more of what `limit`
+ * counts would go over it. Mirrors private.check_plan_allows, which has the last word.
+ */
+export function planBlock(
+   subscription: SubscriptionSummary | null,
+   limit?: keyof PlanLimits
+): PlanBlock | null {
+   if (!subscription) return null;
+   if (!subscription.writable) return 'subscription_read_only';
+   if (!limit) return null;
+
+   const allowed = subscription.limits[limit];
+   const used = subscription.usage[LIMIT_USAGE[limit]];
+   if (allowed === undefined || used + 1 <= allowed) return null;
+   return limit === 'max_branches' ? 'plan_limit_branches' : 'plan_limit_users';
+}
+
 /** The app's modules, in their order. */
 export const useModules = () =>
    useLookup<Module>('module', { select: 'id,is_core,position', order: 'position' });

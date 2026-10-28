@@ -248,7 +248,11 @@
       "AuthInvalidCredentialsError": "Yetkilendirme Geçersiz Kimlik Bilgileri Hatası",
       "branch_owner_required": "Bunu yalnızca üst şubenin sahipleri yapabilir.",
       "branch_has_branches": "Önce altındaki şubeleri silin.",
-      "branch_not_found": "Şube bulunamadı."
+      "branch_not_found": "Şube bulunamadı.",
+      "subscription_read_only": "Abonelik geçerli değil: yenilenene kadar değişiklik yapılamaz.",
+      "plan_limit_branches": "Planın şube limiti doldu. Daha fazla şube açmak için planı yükseltin.",
+      "plan_limit_users": "Planın kullanıcı limiti doldu. Daha fazla kullanıcı eklemek için planı yükseltin.",
+      "subscription_company_only": "Yalnızca bir firma (en üstteki şube) abone olabilir."
    },
    "account": {
       "profile": {

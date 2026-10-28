@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "认证凭据无效",
       "branch_owner_required": "只有上级分店的所有者可以执行此操作。",
       "branch_has_branches": "请先删除其下属分店。",
-      "branch_not_found": "未找到分店。"
+      "branch_not_found": "未找到分店。",
+      "subscription_read_only": "订阅未生效：续订前无法进行更改。",
+      "plan_limit_branches": "已达到套餐的分店上限。请升级套餐以开设更多分店。",
+      "plan_limit_users": "已达到套餐的用户上限。请升级套餐以添加更多用户。",
+      "subscription_company_only": "只有公司（最上级分店）才能订阅。"
    },
    "account": {
       "profile": {

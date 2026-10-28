@@ -416,7 +416,11 @@
       "AuthInvalidCredentialsError": "Error de credenciales inválidas",
       "branch_owner_required": "Solo los propietarios de la sucursal superior pueden hacerlo.",
       "branch_has_branches": "Elimine primero las sucursales que dependen de ella.",
-      "branch_not_found": "Sucursal no encontrada."
+      "branch_not_found": "Sucursal no encontrada.",
+      "subscription_read_only": "La suscripción no está vigente: no se pueden hacer cambios hasta que se renueve.",
+      "plan_limit_branches": "Se alcanzó el límite de sucursales del plan. Mejore el plan para abrir más.",
+      "plan_limit_users": "Se alcanzó el límite de usuarios del plan. Mejore el plan para añadir más.",
+      "subscription_company_only": "Solo una empresa (una sucursal de nivel superior) puede tener suscripción."
    },
    "account": {
       "profile": {

@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "Błąd nieprawidłowych danych logowania",
       "branch_owner_required": "Mogą to zrobić tylko właściciele oddziału nadrzędnego.",
       "branch_has_branches": "Najpierw usuń oddziały pod nim.",
-      "branch_not_found": "Nie znaleziono oddziału."
+      "branch_not_found": "Nie znaleziono oddziału.",
+      "subscription_read_only": "Subskrypcja nie obowiązuje: zmiany nie są możliwe do czasu odnowienia.",
+      "plan_limit_branches": "Osiągnięto limit oddziałów planu. Zmień plan, aby otworzyć kolejne.",
+      "plan_limit_users": "Osiągnięto limit użytkowników planu. Zmień plan, aby dodać kolejnych.",
+      "subscription_company_only": "Subskrypcję może mieć tylko firma (oddział najwyższego poziomu)."
    },
    "account": {
       "profile": {

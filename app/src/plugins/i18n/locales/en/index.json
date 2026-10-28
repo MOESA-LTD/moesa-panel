@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "Authentication invalid credentials error",
       "branch_owner_required": "Only the owners of the branch above may do this.",
       "branch_has_branches": "Remove the branches under it first.",
-      "branch_not_found": "Branch not found."
+      "branch_not_found": "Branch not found.",
+      "subscription_read_only": "The subscription is not in force: changes are not possible until it is renewed.",
+      "plan_limit_branches": "The plan's branch limit is reached. Upgrade the plan to open more branches.",
+      "plan_limit_users": "The plan's user limit is reached. Upgrade the plan to add more users.",
+      "subscription_company_only": "Only a company (a top-level branch) can have a subscription."
    },
    "account": {
       "profile": {

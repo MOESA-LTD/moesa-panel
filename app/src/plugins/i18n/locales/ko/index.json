@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "인증 실패",
       "branch_owner_required": "상위 지점의 소유자만 할 수 있습니다.",
       "branch_has_branches": "먼저 하위 지점을 삭제하세요.",
-      "branch_not_found": "지점을 찾을 수 없습니다."
+      "branch_not_found": "지점을 찾을 수 없습니다.",
+      "subscription_read_only": "구독이 유효하지 않습니다. 갱신될 때까지 변경할 수 없습니다.",
+      "plan_limit_branches": "요금제의 지점 한도에 도달했습니다. 더 열려면 요금제를 업그레이드하세요.",
+      "plan_limit_users": "요금제의 사용자 한도에 도달했습니다. 더 추가하려면 요금제를 업그레이드하세요.",
+      "subscription_company_only": "회사(최상위 지점)만 구독할 수 있습니다."
    },
    "account": {
       "profile": {

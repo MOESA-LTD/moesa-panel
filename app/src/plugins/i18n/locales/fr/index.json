@@ -450,7 +450,11 @@
       "AuthInvalidCredentialsError": "Erreur d'identifiants d'authentification",
       "branch_owner_required": "Seuls les propriétaires de l'agence parente peuvent le faire.",
       "branch_has_branches": "Supprimez d'abord les agences qui en dépendent.",
-      "branch_not_found": "Agence introuvable."
+      "branch_not_found": "Agence introuvable.",
+      "subscription_read_only": "L'abonnement n'est pas en vigueur : aucune modification avant son renouvellement.",
+      "plan_limit_branches": "La limite d'agences de la formule est atteinte. Changez de formule pour en ouvrir d'autres.",
+      "plan_limit_users": "La limite d'utilisateurs de la formule est atteinte. Changez de formule pour en ajouter.",
+      "subscription_company_only": "Seule une entreprise (agence de premier niveau) peut avoir un abonnement."
    },
    "account": {
       "profile": {

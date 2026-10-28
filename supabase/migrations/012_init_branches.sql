@@ -82,6 +82,9 @@ BEGIN
             DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
     END IF;
 
+    -- Not while the company is read-only (see 013_init_subscriptions.sql).
+    PERFORM private.check_plan_allows(branch_id);
+
     IF EXISTS (SELECT 1 FROM public.tenant t WHERE t.parent_id = branch_id) THEN
         RAISE SQLSTATE 'PGRST' USING
             MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_has_branches')::TEXT,

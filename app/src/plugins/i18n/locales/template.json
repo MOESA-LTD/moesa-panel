@@ -521,7 +521,11 @@
       "AuthInvalidCredentialsError": "",
       "branch_owner_required": "",
       "branch_has_branches": "",
-      "branch_not_found": ""
+      "branch_not_found": "",
+      "subscription_read_only": "",
+      "plan_limit_branches": "",
+      "plan_limit_users": "",
+      "subscription_company_only": ""
    },
    "route": {
       "label": {

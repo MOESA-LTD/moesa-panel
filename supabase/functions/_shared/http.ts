@@ -41,6 +41,11 @@ export const errorResponse = (error: unknown) => {
 
    const { code, status } = (error ?? {}) as { code?: string; status?: number };
 
+   // Raised on purpose by the database, with a reason of its own (e.g. plan_limit_users).
+   if (code === 'P0001') {
+      return json({ message: (error as Error).message, code }, 403);
+   }
+
    if (code && PG_ERROR_STATUS[code]) {
       return json({ message: 'request_rejected', code }, PG_ERROR_STATUS[code]);
    }

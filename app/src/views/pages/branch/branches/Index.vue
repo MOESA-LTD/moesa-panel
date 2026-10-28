@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { toBranchTree, useDeleteBranch, type BranchNode } from '@/api/branch';
+import { companyOf, toBranchTree, useDeleteBranch, type BranchNode } from '@/api/branch';
+import { planBlock } from '@/api/subscription';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
@@ -9,6 +10,15 @@ const confirmDelete = useConfirmDelete();
 const { mutateAsync: deleteBranch } = useDeleteBranch();
 
 const nodes = computed(() => toBranchTree(authStore.branches));
+
+// Under the active company, its plan may not allow another branch (read-only, or the limit
+// reached); the database refuses it anyway, this says why beforehand. Other companies' plans are
+// not loaded, so there the database alone decides.
+const addBlock = (id: string) =>
+   !authStore.isSuperAdmin &&
+   companyOf(authStore.branches, id) === authStore.subscription?.company_id
+      ? planBlock(authStore.subscription, 'max_branches')
+      : null;
 
 // Branches start expanded; what the user collapses stays collapsed while the page is open.
 const expandedKeys = ref<Record<string, boolean>>({});
@@ -32,6 +42,14 @@ const remove = async (branch: BranchNode['data']) => {
    <TreeTable :value="nodes" v-model:expandedKeys="expandedKeys" class="branch_tree">
       <template #header>
          <p class="text-sm text-muted-color m-0">{{ $t('branch_tree.hint') }}</p>
+         <Message
+            v-if="authStore.subscription && addBlock(authStore.subscription.company_id)"
+            severity="warn"
+            size="small"
+            class="mt-2"
+         >
+            {{ $t(`errors.${addBlock(authStore.subscription.company_id)}`) }}
+         </Message>
       </template>
       <Column field="display_name" :header="$t('fields.name')" expander>
          <template #body="{ node }: { node: BranchNode }">
@@ -54,9 +72,13 @@ const remove = async (branch: BranchNode['data']) => {
                   size="small"
                   icon="pi pi-plus"
                   severity="success"
-                  v-tooltip.left="$t('branch_tree.add_branch')"
+                  v-tooltip.left="
+                     addBlock(node.key)
+                        ? $t(`errors.${addBlock(node.key)}`)
+                        : $t('branch_tree.add_branch')
+                  "
                   :aria-label="$t('branch_tree.add_branch')"
-                  :disabled="!node.data.canAddBranch"
+                  :disabled="!node.data.canAddBranch || !!addBlock(node.key)"
                   @click="openForm('branch-tree-add', { parentId: node.key })"
                />
                <Button

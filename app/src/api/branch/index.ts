@@ -127,6 +127,14 @@ const byName = (a: Tenant, b: Tenant) => a.display_name.localeCompare(b.display_
  * The user's tenants as a tree. A tenant whose parent the user cannot use is a root for them, and
  * a root is never removed here (only branches are, by the owners above them).
  */
+/** The company (top-level tenant) a tenant belongs to, as far as the user's tenants show it. */
+export function companyOf(tenants: readonly Tenant[], id: string): string {
+   const byId = new Map(tenants.map((tenant) => [tenant.id, tenant]));
+   let current = byId.get(id);
+   while (current?.parent_id && byId.has(current.parent_id)) current = byId.get(current.parent_id);
+   return current?.id ?? id;
+}
+
 export function toBranchTree(tenants: readonly Tenant[]): BranchNode[] {
    const byId = new Map(tenants.map((tenant) => [tenant.id, tenant]));
    const childrenOf = new Map<string | null, Tenant[]>();
