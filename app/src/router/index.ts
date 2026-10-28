@@ -5,12 +5,8 @@ import { beforeEachMiddlewares } from './middlewares';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import accountRoutes from '@/router/routes/account';
 import adminRoutes from '@/router/routes/admin';
-import addressRoutes from '@/router/routes/address';
 import authRoutes from '@/router/routes/auth';
 import branchRoutes from '@/router/routes/branch';
-import clientRoutes from '@/router/routes/client';
-import recordRoutes from '@/router/routes/record';
-import stockRoutes from '@/router/routes/stock';
 import subscriptionRoutes from '@/router/routes/subscription';
 
 const router = createRouter({
@@ -54,11 +50,7 @@ const router = createRouter({
                            }
                         },
                         ...branchRoutes,
-                        ...addressRoutes,
-                        ...clientRoutes,
-                        ...stockRoutes,
                         ...accountRoutes,
-                        ...recordRoutes,
                         ...subscriptionRoutes,
                         ...adminRoutes
                      ]

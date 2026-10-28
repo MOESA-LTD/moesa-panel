@@ -47,7 +47,7 @@
       "branch": "Филиал",
       "welcome": {
          "title": "Добро пожаловать",
-         "text": "Добро пожаловать в приложение для слуховых аппаратов"
+         "text": "Добро пожаловать в панель управления"
       },
       "please_dont_forget_to_update_your_password": "Пожалуйста, не забудьте обновить свой пароль",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": "Ветка",
-      "device": "устройство",
-      "battery": "батарея",
-      "spare_part": "запчасть",
-      "service": "услуга",
-      "trial": "пробный период",
-      "sale": "продажа",
-      "assemble": "сборка",
-      "repair": "ремонт",
-      "promotion": "реклама",
-      "cash": "наличные",
-      "credit_card": "карта",
-      "pending": "ожидание",
-      "pending_service": "ожидание услуги",
-      "client_holds_service_bid": "клиент держит ставку по услуге",
-      "client_approved_service_bid": "клиент одобрел ставку по услуге",
-      "client_rejected_service_bid": "клиент отклонил ставку по услуге",
-      "done": "выполнено",
-      "approved": "одобрено",
-      "rejected": "отклонено",
-      "pending_client": "ожидание клиента",
-      "biopar": "биопар",
-      "hard": "твердый",
-      "micro": "микро",
-      "full": "полный",
-      "half": "полу",
-      "supported": "поддерживаемый",
-      "prob": "вероятность",
-      "pcs": "шт.",
-      "kg": "кг",
-      "gr": "г",
-      "lbs": "фунт",
-      "L": "л",
-      "mL": "мл",
-      "m": "м",
-      "m²": "м²",
-      "cm": "см",
-      "in": "дюйм",
       "password": "пароль",
       "password_confirmation": "подтверждение пароля",
       "name": "имя",
@@ -146,99 +109,29 @@
       "phone": "телефон",
       "country": "страна",
       "city": "город",
-      "district": "район",
       "details": "подробности",
       "remember_me": "запомнить меня",
       "code": "код",
       "company": "компания",
       "permission": "разрешение",
       "role": "роль",
-      "client_id": "клиент",
-      "nationality": "национальность",
-      "national_id": "национальный идентификатор",
-      "birth_date": "дата рождения",
-      "gender": "пол",
-      "rear_ear_devices": "устройства заднего уха",
-      "attributes": "атрибуты",
-      "rear_ear_device": "устройство заднего уха",
-      "type": "тип",
-      "model": "модель",
-      "speaker_power": "мощность динамика",
-      "side": "сторона",
-      "left": "левый",
-      "right": "правый",
-      "ventilation": "вентиляция",
-      "speaker_size": "размер динамика",
-      "inner_ear_devices": "устройства внутреннего уха",
-      "inner_ear_device": "устройство внутреннего уха",
-      "has_bluetooth": "имеет Bluetooth",
-      "has_button": "имеет кнопку",
-      "record_type": "тип записи",
-      "stock_id": "идентификатор товара",
-      "device_side": "сторона устройства",
-      "both": "оба",
-      "record_status": "статус записи",
-      "quantity": "количество",
-      "payment_type": "тип оплаты",
-      "currency_code": "код валюты",
-      "repair_fee": "стоимость ремонта",
-      "bid": "ставка",
-      "bid_discount": "скидка на ставку",
-      "tax": "налог",
-      "total_bid": "итоговая ставка",
-      "insurance_type": "тип страхования",
-      "retired": "вышел из строя",
-      "worker": "работник",
-      "insurance_contribution": "вклад в страхование",
-      "client_insurance_contribution": "вклад клиента в страхование",
-      "brand": "бренд",
-      "categories": "категории",
-      "product_id": "товар",
-      "vendor": "поставщик",
-      "stocked_at": "дата поступления",
-      "barcode": "штрих-код",
-      "serial_number": "серийный номер",
       "currency": "валюта",
-      "unit_cost": "стоимость за единицу",
-      "unit_discount": "скидка за единицу",
-      "unit_tax": "налог за единицу",
-      "total_cost": "итоговая стоимость",
       "none": "Нет",
       "tenant": "Филиал",
       "branch": "Филиал",
       "user": "Пользователь",
       "tenant_user": "Пользователь филиала",
       "tenant_owner": "Владелец филиала",
-      "address": "Адрес",
       "role_permission": "Роль/Право",
       "user_role": "Роль пользователя",
-      "client": "Клиент",
-      "product": "Товар",
-      "product_category": "Категория товара",
-      "product_categories": "Категории товаров",
-      "stock": "Склад",
-      "record": "Запись",
-      "client_address": "Адрес клиента",
       "audit_config": "Конфигурация аудита",
       "audit_log": "Журнал",
-      "product_brands": "Бренды товаров",
-      "stock_view": "Просмотр склада",
-      "stock_vendor": "Поставщик на складе",
-      "stock_vendor_stat": "Статистика по поставщику",
-      "stock_product_stat": "Статистика по товару",
-      "client_address_view": "Просмотр адреса клиента",
       "audit_log_group": "Группа журналов",
       "parent_id": "Родитель",
       "user_id": "Пользователь",
       "tenant_id": "Филиал",
       "role_id": "Роль",
       "permission_id": "Право",
-      "unit_type": "Тип единицы",
-      "category_id": "Категория",
-      "address_id": "Адрес",
-      "address_tenant_id": "Адрес филиала",
-      "client_national_id": "Национальный ID клиента",
-      "client_tenant_id": "Филиал клиента",
       "correlation_id": "Корреляция",
       "request_id": "Запрос",
       "display_name": "Имя",
@@ -249,8 +142,7 @@
       "select_or_write": "Выберите или введите"
    },
    "financial": {
-      "select_currency": "Выберите валюту",
-      "select_unit_type": "Выберите тип единицы измерения"
+      "select_currency": "Выберите валюту"
    },
    "component": {
       "branch_picker": {
@@ -283,7 +175,8 @@
       }
    },
    "common": {
-      "select": "Выбрать"
+      "select": "Выбрать",
+      "select_country": "Выберите страну"
    },
    "role": {
       "select_role": "Выберите роль",
@@ -297,9 +190,7 @@
    "router": {
       "action": {
          "open_in_window": "Открыть в окне",
-         "manage-addresses": "Управление адресами",
          "close": "Закрыть",
-         "manage_addresses": "Управление адресами",
          "go_back": "Вернуться назад",
          "go_to_profile": "Перейти к профилю"
       },
@@ -328,15 +219,6 @@
       "resend_code": "Повторно отправить код",
       "back": "Назад",
       "invite": "Пригласить"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "В ухо (ITE)",
-            "in_canal_(ITC)": "В ушной канал (ITC)",
-            "completely_in_canal_(CIC)": "Полностью в ушной канал (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "Это изменение уже отменено.",
@@ -502,7 +384,6 @@
          "update-profile": "Обновить профиль",
          "update-password": "Изменить пароль",
          "logout": "Выйти",
-         "address": "Адрес",
          "edit": "Редактировать",
          "add": "Добавить",
          "register": "Регистрация",
@@ -516,34 +397,6 @@
          "user-general-info": "Общая информация о пользователе",
          "branch-role": "Роль филиала",
          "audit-logs": "Журнал аудита",
-         "client": "Клиент",
-         "manage-client": "Управление клиентами",
-         "client-general-info": "Общая информация о клиенте",
-         "client-addresses": "Адреса клиента",
-         "record": "Запись",
-         "battery": "Аккумулятор",
-         "device": "Устройство",
-         "stock": "Запасы",
-         "product": "Товар",
-         "service": "Услуга",
-         "spare-parts": "Ремкомплект",
-         "address_list": "Список адресов",
-         "address_edit": "Редактировать адрес",
-         "address_add": "Добавить адрес",
-         "client_list": "Список клиентов",
-         "client_address_list": "Адреса клиента",
-         "record_list": "Список записей",
-         "record_add": "Добавить запись",
-         "record_edit": "Редактировать запись",
-         "battery_list": "Список аккумуляторов",
-         "device_list": "Список устройств",
-         "stock_add": "Добавить запас",
-         "stock_edit": "Редактировать запас",
-         "product_list": "Список продуктов",
-         "product_add": "Добавить продукт",
-         "product_edit": "Редактировать продукт",
-         "service_list": "Список услуг",
-         "spare_part_list": "Список запчастей",
          "branch_user_list": "Список пользователей филиала",
          "audit_log_list": "Список журналов аудита",
          "branch_role_list": "Список ролей филиала",
@@ -568,17 +421,9 @@
          "last_half": "За последнюю половину",
          "last_year": "За последний год",
          "total": "Всего",
-         "client": {
-            "clients": "Клиенты"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "Количество проданных единиц",
-         "total_gain": "Общий доход",
-         "total_discount": "Общая скидка",
-         "total_tax": "Общая налоговая ставка",
-         "title": "Топ-продукты",
-         "empty": "Нет данных"
+         "branches": "Филиалы",
+         "users": "Пользователи",
+         "roles": "Роли"
       },
       "notifications": {
          "today": "Сегодня",
@@ -592,19 +437,6 @@
             "updated": "обновлен {resource_name} {user_name}",
             "deleted": "удален {resource_name} {user_name}",
             "unknown": "деятельность обнаружена в {resource_name} {user_name}"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "Общее количество проданных единиц",
-         "total_bid": "Общая ставка",
-         "total_discount": "Общая скидка",
-         "total_tax": "Общая налоговая ставка",
-         "title": "Продажи по категориям"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "Недавние продажи",
-            "see_all": "Посмотреть все"
          }
       }
    },
@@ -632,44 +464,6 @@
       "deleted": "Удалено",
       "readed": "Прочитано"
    },
-   "client": {
-      "select_client": "Выберите клиента",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "Клиент",
-               "address": "Адрес",
-               "country": "Страна",
-               "city": "Город",
-               "district": "Район",
-               "created_at": "Дата создания"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "Клиент",
-            "nationality": "Гражданство",
-            "national_id": "Национальный ID",
-            "birth_date": "Дата рождения",
-            "email": "Электронная почта",
-            "phone": "Телефон",
-            "created_at": "Дата создания"
-         }
-      },
-      "general_info": "Общая информация",
-      "addresses": "Адреса",
-      "gender": {
-         "male": "Мужской",
-         "female": "Женский"
-      }
-   },
-   "product": {
-      "select_product": "Выберите продукт",
-      "category": {
-         "select_category": "Выберите категорию"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -687,104 +481,6 @@
       "security": "Безопасность",
       "owner_of": "Владелец · {name}",
       "owner_above": "Использует этот филиал как владелец вышестоящего филиала и управляется там."
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "Продукт",
-            "client": "Клиент",
-            "quantity": "Количество",
-            "bid": "Идентификатор",
-            "created_at": "Дата создания",
-            "record_type": "Тип записи",
-            "record_status": "Статус записи"
-         }
-      },
-      "tab": {
-         "record": "Запись",
-         "ear_device": "Устройство для слуха"
-      },
-      "information": "Информация",
-      "financial": "Финансовая информация"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "Продукт",
-               "unit_cost": "Стоимость за единицу",
-               "quantity": "Количество",
-               "vendor": "Поставщик",
-               "stocked_at": "На складе с"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "Продукт",
-               "serial_number": "Серийный номер",
-               "unit_cost": "Стоимость за единицу",
-               "vendor": "Поставщик",
-               "stocked_at": "На складе с"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "Продукт",
-               "brand": "Бренд",
-               "categories": "Категории",
-               "created_at": "Создано"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "Продукт",
-               "unit_cost": "Стоимость за единицу",
-               "quantity": "Количество",
-               "vendor": "Поставщик",
-               "stocked_at": "На складе с"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "Продукт",
-               "unit_cost": "Стоимость за единицу",
-               "quantity": "Количество",
-               "vendor": "Поставщик",
-               "stocked_at": "На складе с"
-            }
-         }
-      },
-      "information": "Информация",
-      "financial": "Финансовый",
-      "table": {
-         "headers": {
-            "product": "Продукт",
-            "unit_cost": "Стоимость за единицу",
-            "vendor": "Поставщик",
-            "stocked_at": "На складе с",
-            "available_quantity": "Доступное количество"
-         }
-      }
-   },
-   "address": {
-      "select_country": "Выберите страну",
-      "table": {
-         "headers": {
-            "address_name": "Название адреса",
-            "country": "Страна",
-            "city": "Город",
-            "district": "Район",
-            "created_at": "Дата создания"
-         }
-      }
    },
    "form": {
       "required": "Это поле обязательно",

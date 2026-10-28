@@ -288,14 +288,7 @@ FROM
          'public.user',
          'public.user_role',
          'public.role',
-         'public.role_permission',
-         'public.product',
-         'public.product_categories',
-         'public.stock',
-         'public.client',
-         'public.address',
-         'public.client_address',
-         'public.record'
+         'public.role_permission'
       ]::REGCLASS[]
    ) AS target;
 

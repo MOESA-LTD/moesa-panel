@@ -5,7 +5,7 @@ import { isEqual } from 'lodash';
 import { onBeforeUnmount, ref, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue';
 
 export type UseFormDraftOptions<T> = {
-   /** Identifies the form and row, e.g. `client:<id>` or `client:new`. */
+   /** Identifies the form and row, e.g. `role:<id>` or `role:new`. */
    form: string;
    values: Ref<T>;
    isDirty: Ref<boolean>;

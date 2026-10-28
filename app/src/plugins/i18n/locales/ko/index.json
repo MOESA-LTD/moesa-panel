@@ -47,7 +47,7 @@
       "branch": "지점",
       "welcome": {
          "title": "환영합니다",
-         "text": "환영합니다. 여기에서 필요한 모든 기능을 사용할 수 있습니다."
+         "text": "관리 패널에 오신 것을 환영합니다"
       },
       "please_dont_forget_to_update_your_password": "암호를 변경하지 않으셨다면, 잊지 마시기 바랍니다.",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": " ",
-      "device": "장비",
-      "battery": "배터리",
-      "spare_part": "부품",
-      "service": "서비스",
-      "trial": "시범",
-      "sale": "판매",
-      "assemble": "조립",
-      "repair": "수리",
-      "promotion": "프로모션",
-      "cash": "현금",
-      "credit_card": "신용카드",
-      "pending": "대기 중",
-      "pending_service": "서비스 대기 중",
-      "client_holds_service_bid": "클라이언트가 서비스 입찰을 보류 중",
-      "client_approved_service_bid": "클라이언트가 서비스 입찰을 승인함",
-      "client_rejected_service_bid": "클라이언트가 서비스 입찰을 거부함",
-      "done": "완료",
-      "approved": "승인됨",
-      "rejected": "거부됨",
-      "pending_client": "클라이언트 대기 중",
-      "biopar": "비오파",
-      "hard": "하드",
-      "micro": "마이크로",
-      "full": "풀",
-      "half": "하프",
-      "supported": "지원됨",
-      "prob": "확률",
-      "pcs": "개",
-      "kg": "킬로그램",
-      "gr": "그램",
-      "lbs": "파운드",
-      "L": "리터",
-      "mL": "밀리리터",
-      "m": "미터",
-      "m²": "제곱미터",
-      "cm": "센티미터",
-      "in": "인치",
       "password": "비밀번호",
       "password_confirmation": "비밀번호 확인",
       "name": "이름",
@@ -146,99 +109,29 @@
       "phone": "전화번호",
       "country": "국가",
       "city": "도시",
-      "district": "구",
       "details": "세부정보",
       "remember_me": "나중에 다시 로그인",
       "code": "코드",
       "company": "회사",
       "permission": "권한",
       "role": "역할",
-      "client_id": "클라이언트",
-      "nationality": "국적",
-      "national_id": "국민등록번호",
-      "birth_date": "생년월일",
-      "gender": "성별",
-      "rear_ear_devices": "후방 귀 장비",
-      "attributes": "속성",
-      "rear_ear_device": "후방 귀 장비",
-      "type": "유형",
-      "model": "모델",
-      "speaker_power": "스피커 출력",
-      "side": "측면",
-      "left": "왼쪽",
-      "right": "오른쪽",
-      "ventilation": "환기",
-      "speaker_size": "스피커 크기",
-      "inner_ear_devices": "내이 장비",
-      "inner_ear_device": "내이 장비",
-      "has_bluetooth": "블루투스 지원",
-      "has_button": "버튼 지원",
-      "record_type": "기록 유형",
-      "stock_id": "재고",
-      "device_side": "장비 측면",
-      "both": "양쪽",
-      "record_status": "기록 상태",
-      "quantity": "수량",
-      "payment_type": "결제 유형",
-      "currency_code": "통화 코드",
-      "repair_fee": "수리 비용",
-      "bid": "입찰",
-      "bid_discount": "입찰 할인",
-      "tax": "세금",
-      "total_bid": "총 입찰 금액",
-      "insurance_type": "보험 유형",
-      "retired": "퇴직",
-      "worker": "직원",
-      "insurance_contribution": "보험 기여",
-      "client_insurance_contribution": "클라이언트 보험 기여",
-      "brand": "브랜드",
-      "categories": "카테고리",
-      "product_id": "제품",
-      "vendor": "공급업체",
-      "stocked_at": "재고 위치",
-      "barcode": "바코드",
-      "serial_number": "시리얼 번호",
       "currency": "통화",
-      "unit_cost": "단가",
-      "unit_discount": "단위 할인",
-      "unit_tax": "단위 세금",
-      "total_cost": "총 비용",
       "none": "선택할 항목이 없습니다.",
       "tenant": "브랜치",
       "branch": "브랜치",
       "user": "사용자",
       "tenant_user": "브랜치 사용자",
       "tenant_owner": "브랜치 소유자",
-      "address": "주소",
       "role_permission": "역할 권한",
       "user_role": "사용자 역할",
-      "client": "고객",
-      "product": "제품",
-      "product_category": "제품 카테고리",
-      "product_categories": "제품 카테고리",
-      "stock": "재고",
-      "record": "기록",
-      "client_address": "고객 주소",
       "audit_config": "감사 설정",
       "audit_log": "로그",
-      "product_brands": "제품 브랜드",
-      "stock_view": "재고 보기",
-      "stock_vendor": "재고 공급업체",
-      "stock_vendor_stat": "재고 공급업체 통계",
-      "stock_product_stat": "재고 제품 통계",
-      "client_address_view": "고객 주소 보기",
       "audit_log_group": "로그 그룹",
       "parent_id": "부모",
       "user_id": "사용자",
       "tenant_id": "브랜치",
       "role_id": "역할",
       "permission_id": "권한",
-      "unit_type": "단위 유형",
-      "category_id": "카테고리",
-      "address_id": "주소",
-      "address_tenant_id": "주소 브랜치",
-      "client_national_id": "고객 국가",
-      "client_tenant_id": "고객 브랜치",
       "correlation_id": "상관",
       "request_id": "요청",
       "display_name": "이름",
@@ -249,8 +142,7 @@
       "select_or_write": "선택 또는 입력"
    },
    "financial": {
-      "select_currency": "통화 선택",
-      "select_unit_type": "단위 유형 선택"
+      "select_currency": "통화 선택"
    },
    "component": {
       "branch_picker": {
@@ -283,7 +175,8 @@
       }
    },
    "common": {
-      "select": "선택"
+      "select": "선택",
+      "select_country": "국가 선택"
    },
    "role": {
       "select_role": "역할 선택",
@@ -297,9 +190,7 @@
    "router": {
       "action": {
          "open_in_window": "새 창에서 열기",
-         "manage-addresses": "주소 관리",
          "close": "닫기",
-         "manage_addresses": "주소 관리",
          "go_back": "뒤로 가기",
          "go_to_profile": "프로필로 이동"
       },
@@ -328,15 +219,6 @@
       "resend_code": "코드 재전송",
       "back": "뒤로",
       "invite": "초대"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "귀에 삽입형 (ITE)",
-            "in_canal_(ITC)": "귀관 내형 (ITC)",
-            "completely_in_canal_(CIC)": "귀관 완전 내형 (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "이 변경은 이미 되돌려졌습니다.",
@@ -502,7 +384,6 @@
          "update-profile": "프로필 업데이트",
          "update-password": "비밀번호 변경",
          "logout": "로그아웃",
-         "address": "주소",
          "edit": "편집",
          "add": "추가",
          "register": "등록",
@@ -516,34 +397,6 @@
          "user-general-info": "사용자 일반 정보",
          "branch-role": "지점 역할",
          "audit-logs": "로그",
-         "client": "고객",
-         "manage-client": "고객 관리",
-         "client-general-info": "고객 일반 정보",
-         "client-addresses": "고객 주소",
-         "record": "기록",
-         "battery": "배터리",
-         "device": "장치",
-         "stock": "재고",
-         "product": "제품",
-         "service": "서비스",
-         "spare-parts": "부품",
-         "address_list": "주소 목록",
-         "address_edit": "주소 수정",
-         "address_add": "주소 추가",
-         "client_list": "고객 목록",
-         "client_address_list": "고객 주소 목록",
-         "record_list": "기록 목록",
-         "record_add": "기록 추가",
-         "record_edit": "기록 수정",
-         "battery_list": "배터리 목록",
-         "device_list": "장치 목록",
-         "stock_add": "재고 추가",
-         "stock_edit": "재고 수정",
-         "product_list": "제품 목록",
-         "product_add": "제품 추가",
-         "product_edit": "제품 수정",
-         "service_list": "서비스 목록",
-         "spare_part_list": "부품 목록",
          "branch_user_list": "지점 사용자 목록",
          "audit_log_list": "감사 로그 목록",
          "branch_role_list": "지점 역할 목록",
@@ -568,17 +421,9 @@
          "last_half": "지난 반년",
          "last_year": "지난 해",
          "total": "총",
-         "client": {
-            "clients": "고객"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "판매 수량",
-         "total_gain": "총 수익",
-         "total_discount": "총 할인액",
-         "total_tax": "총 세금",
-         "title": "인기 상품",
-         "empty": "상품이 없습니다."
+         "branches": "지점",
+         "users": "사용자",
+         "roles": "역할"
       },
       "notifications": {
          "today": "오늘",
@@ -592,31 +437,6 @@
             "updated": "{resource_name}이 {user_name}에 의해 수정되었습니다",
             "deleted": "{resource_name}이 {user_name}에 의해 삭제되었습니다",
             "unknown": "{resource_name}에서 활동이 감지되었습니다 ({user_name})"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "총 판매 수량",
-         "total_bid": "총 매입액",
-         "total_discount": "총 할인액",
-         "total_tax": "총 세금",
-         "title": "카테고리별 매출"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "최근 매출",
-            "see_all": "모두 보기"
-         }
-      }
-   },
-   "address": {
-      "select_country": "국가 선택",
-      "table": {
-         "headers": {
-            "address_name": "주소명",
-            "country": "국가",
-            "city": "도시",
-            "district": "구",
-            "created_at": "생성일"
          }
       }
    },
@@ -644,44 +464,6 @@
       "deleted": "삭제됨",
       "readed": "읽힘"
    },
-   "client": {
-      "select_client": "고객 선택",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "고객",
-               "address": "주소",
-               "country": "국가",
-               "city": "도시",
-               "district": "구",
-               "created_at": "생성일"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "고객",
-            "nationality": "국적",
-            "national_id": "국민ID",
-            "birth_date": "생일",
-            "email": "이메일",
-            "phone": "전화번호",
-            "created_at": "생성일"
-         }
-      },
-      "general_info": "일반 정보",
-      "addresses": "주소",
-      "gender": {
-         "male": "남성",
-         "female": "여성"
-      }
-   },
-   "product": {
-      "select_product": "제품 선택",
-      "category": {
-         "select_category": "카테고리 선택"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -699,92 +481,6 @@
       "security": "보안",
       "owner_of": "소유자 · {name}",
       "owner_above": "상위 지점의 소유자로서 이 지점을 사용하며, 그곳에서 관리됩니다."
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "제품",
-            "client": "고객",
-            "quantity": "수량",
-            "bid": "입찰",
-            "created_at": "생성일",
-            "record_type": "기록 유형",
-            "record_status": "기록 상태"
-         }
-      },
-      "tab": {
-         "record": "기록",
-         "ear_device": "귀 기기"
-      },
-      "information": "정보",
-      "financial": "재정"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "제품",
-               "unit_cost": "단가",
-               "quantity": "수량",
-               "vendor": "공급업체",
-               "stocked_at": "입고일"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "제품",
-               "serial_number": "시리얼 번호",
-               "unit_cost": "단가",
-               "vendor": "공급업체",
-               "stocked_at": "재고입고일"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "제품",
-               "brand": "브랜드",
-               "categories": "카테고리",
-               "created_at": "생성일"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "제품",
-               "unit_cost": "단가",
-               "quantity": "수량",
-               "vendor": "공급업체",
-               "stocked_at": "입고일"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "제품",
-               "unit_cost": "단가",
-               "quantity": "수량",
-               "vendor": "공급업체",
-               "stocked_at": "입고일"
-            }
-         }
-      },
-      "information": "정보",
-      "financial": "재무",
-      "table": {
-         "headers": {
-            "product": "제품",
-            "unit_cost": "단가",
-            "vendor": "공급업체",
-            "stocked_at": "입고일",
-            "available_quantity": "재고 수량"
-         }
-      }
    },
    "form": {
       "required": "필수 항목입니다",

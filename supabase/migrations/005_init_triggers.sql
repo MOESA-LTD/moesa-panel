@@ -30,10 +30,5 @@ UPDATE
 OR DELETE ON public.permission FOR EACH ROW
 EXECUTE FUNCTION private.manage_policies ();
 
-CREATE TRIGGER before_record_insert_update BEFORE INSERT
-OR
-UPDATE ON public.record FOR EACH ROW
-EXECUTE FUNCTION validate_record_quantity ();
-
 -- Tenant owners get the owner role's permissions from tenant_owner itself (see
 -- private.permissions); they are not given the role in user_role.

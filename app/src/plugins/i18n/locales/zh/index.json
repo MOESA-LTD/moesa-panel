@@ -47,7 +47,7 @@
       "branch": "分部",
       "welcome": {
          "title": "欢迎",
-         "text": "欢迎使用听力辅助设备CRM应用"
+         "text": "欢迎使用管理面板"
       },
       "please_dont_forget_to_update_your_password": "请勿忘记更新您的密码",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": " ",
-      "device": "设备",
-      "battery": "电池",
-      "spare_part": "备件",
-      "service": "服务",
-      "trial": "试用",
-      "sale": "销售",
-      "assemble": "组装",
-      "repair": "维修",
-      "promotion": "促销",
-      "cash": "现金",
-      "credit_card": "信用卡",
-      "pending": "待处理",
-      "pending_service": "待处理服务",
-      "client_holds_service_bid": "客户保留服务报价",
-      "client_approved_service_bid": "客户批准服务报价",
-      "client_rejected_service_bid": "客户拒绝服务报价",
-      "done": "完成",
-      "approved": "批准",
-      "rejected": "拒绝",
-      "pending_client": "待客户处理",
-      "biopar": "生物",
-      "hard": "硬质",
-      "micro": "微型",
-      "full": "全",
-      "half": "半",
-      "supported": "支持",
-      "prob": "概率",
-      "pcs": "件",
-      "kg": "千克",
-      "gr": "克",
-      "lbs": "磅",
-      "L": "升",
-      "mL": "毫升",
-      "m": "米",
-      "m²": "平方米",
-      "cm": "厘米",
-      "in": "英寸",
       "password": "密码",
       "password_confirmation": "密码确认",
       "name": "姓名",
@@ -146,99 +109,29 @@
       "phone": "电话",
       "country": "国家",
       "city": "城市",
-      "district": "区",
       "details": "详情",
       "remember_me": "记住我",
       "code": "代码",
       "company": "公司",
       "permission": "权限",
       "role": "角色",
-      "client_id": "客户",
-      "nationality": "国籍",
-      "national_id": "身份证",
-      "birth_date": "出生日期",
-      "gender": "性别",
-      "rear_ear_devices": "后耳设备",
-      "attributes": "属性",
-      "rear_ear_device": "后耳设备",
-      "type": "类型",
-      "model": "型号",
-      "speaker_power": "扬声器功率",
-      "side": "侧",
-      "left": "左",
-      "right": "右",
-      "ventilation": "通气",
-      "speaker_size": "扬声器尺寸",
-      "inner_ear_devices": "耳内设备",
-      "inner_ear_device": "耳内设备",
-      "has_bluetooth": "支持蓝牙",
-      "has_button": "有按钮",
-      "record_type": "记录类型",
-      "stock_id": "库存",
-      "device_side": "设备侧",
-      "both": "双",
-      "record_status": "记录状态",
-      "quantity": "数量",
-      "payment_type": "支付类型",
-      "currency_code": "货币代码",
-      "repair_fee": "维修费用",
-      "bid": "报价",
-      "bid_discount": "报价折扣",
-      "tax": "税",
-      "total_bid": "总报价",
-      "insurance_type": "保险类型",
-      "retired": "退休",
-      "worker": "员工",
-      "insurance_contribution": "保险费用",
-      "client_insurance_contribution": "客户保险费用",
-      "brand": "品牌",
-      "categories": "类别",
-      "product_id": "产品",
-      "vendor": "供应商",
-      "stocked_at": "库存位置",
-      "barcode": "条形码",
-      "serial_number": "序列号",
       "currency": "货币",
-      "unit_cost": "单位成本",
-      "unit_discount": "单位折扣",
-      "unit_tax": "单位税",
-      "total_cost": "总成本",
       "none": "无",
       "tenant": "租户",
       "branch": "租户",
       "user": "用户",
       "tenant_user": "租户用户",
       "tenant_owner": "租户所有者",
-      "address": "地址",
       "role_permission": "角色权限",
       "user_role": "用户角色",
-      "client": "客户",
-      "product": "产品",
-      "product_category": "产品类别",
-      "product_categories": "产品类别",
-      "stock": "库存",
-      "record": "记录",
-      "client_address": "客户地址",
       "audit_config": "审计配置",
       "audit_log": "日志",
-      "product_brands": "产品品牌",
-      "stock_view": "库存视图",
-      "stock_vendor": "库存供应商",
-      "stock_vendor_stat": "库存供应商统计",
-      "stock_product_stat": "库存产品统计",
-      "client_address_view": "客户地址视图",
       "audit_log_group": "日志组",
       "parent_id": "父级",
       "user_id": "用户",
       "tenant_id": "租户",
       "role_id": "角色",
       "permission_id": "权限",
-      "unit_type": "单位类型",
-      "category_id": "类别",
-      "address_id": "地址",
-      "address_tenant_id": "地址租户",
-      "client_national_id": "客户身份证",
-      "client_tenant_id": "客户租户",
       "correlation_id": "关联",
       "request_id": "请求",
       "display_name": "显示名称",
@@ -249,8 +142,7 @@
       "select_or_write": "请选择或填写"
    },
    "financial": {
-      "select_currency": "请选择货币",
-      "select_unit_type": "请选择单位类型"
+      "select_currency": "请选择货币"
    },
    "component": {
       "branch_picker": {
@@ -283,7 +175,8 @@
       }
    },
    "common": {
-      "select": "选择"
+      "select": "选择",
+      "select_country": "请选择国家"
    },
    "role": {
       "select_role": "请选择角色",
@@ -297,9 +190,7 @@
    "router": {
       "action": {
          "open_in_window": "在新窗口中打开",
-         "manage-addresses": "管理地址",
          "close": "关闭",
-         "manage_addresses": "管理地址",
          "go_back": "返回",
          "go_to_profile": "前往個人資料"
       },
@@ -328,15 +219,6 @@
       "resend_code": "重新發送驗證碼",
       "back": "返回",
       "invite": "邀請"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "耳內式（ITE）",
-            "in_canal_(ITC)": "耳道式（ITC）",
-            "completely_in_canal_(CIC)": "完全耳道式（CIC）"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "此更改已被撤销。",
@@ -502,7 +384,6 @@
          "update-profile": "更新个人资料",
          "update-password": "更新密码",
          "logout": "退出登录",
-         "address": "地址",
          "edit": "编辑",
          "add": "添加",
          "register": "注册",
@@ -516,34 +397,6 @@
          "user-general-info": "用户基本信息",
          "branch-role": "分部角色",
          "audit-logs": "日志",
-         "client": "客户",
-         "manage-client": "管理客户",
-         "client-general-info": "客户基本信息",
-         "client-addresses": "客户地址",
-         "record": "记录",
-         "battery": "电池",
-         "device": "设备",
-         "stock": "库存",
-         "product": "产品",
-         "service": "服务",
-         "spare-parts": "备用零件",
-         "address_list": "地址列表",
-         "address_edit": "编辑地址",
-         "address_add": "新增地址",
-         "client_list": "客户列表",
-         "client_address_list": "客户地址列表",
-         "record_list": "记录列表",
-         "record_add": "新增记录",
-         "record_edit": "编辑记录",
-         "battery_list": "电池列表",
-         "device_list": "设备列表",
-         "stock_add": "新增库存",
-         "stock_edit": "编辑库存",
-         "product_list": "产品列表",
-         "product_add": "新增产品",
-         "product_edit": "编辑产品",
-         "service_list": "服务列表",
-         "spare_part_list": "备件列表",
          "branch_user_list": "分支用户列表",
          "audit_log_list": "审计日志列表",
          "branch_role_list": "分支角色列表",
@@ -568,17 +421,9 @@
          "last_half": "上半年度",
          "last_year": "上年度",
          "total": "总计",
-         "client": {
-            "clients": "客户"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "销售数量",
-         "total_gain": "总收益",
-         "total_discount": "总折扣",
-         "total_tax": "总税额",
-         "title": "畅销产品",
-         "empty": "暂无数据"
+         "branches": "分店",
+         "users": "用户",
+         "roles": "角色"
       },
       "notifications": {
          "today": "今日",
@@ -592,31 +437,6 @@
             "updated": "{resource_name} 由 {user_name} 更新",
             "deleted": "{resource_name} 由 {user_name} 删除",
             "unknown": "{resource_name} 中检测到活动由 {user_name} 操作"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "总销售数量",
-         "total_bid": "总报价",
-         "total_discount": "总折扣",
-         "total_tax": "总税额",
-         "title": "按类别销售"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "最近销售",
-            "see_all": "查看全部"
-         }
-      }
-   },
-   "address": {
-      "select_country": "请选择国家",
-      "table": {
-         "headers": {
-            "address_name": "地址名称",
-            "country": "国家",
-            "city": "城市",
-            "district": "区",
-            "created_at": "创建时间"
          }
       }
    },
@@ -644,44 +464,6 @@
       "deleted": "已删除",
       "readed": "已查看"
    },
-   "client": {
-      "select_client": "选择客户",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "客户",
-               "address": "地址",
-               "country": "国家",
-               "city": "城市",
-               "district": "区",
-               "created_at": "创建时间"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "客户",
-            "nationality": "国籍",
-            "national_id": "国家ID",
-            "birth_date": "出生日期",
-            "email": "电子邮件",
-            "phone": "电话",
-            "created_at": "创建时间"
-         }
-      },
-      "general_info": "基本信息",
-      "addresses": "地址",
-      "gender": {
-         "male": "男性",
-         "female": "女性"
-      }
-   },
-   "product": {
-      "select_product": "请选择产品",
-      "category": {
-         "select_category": "请选择类别"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -699,92 +481,6 @@
       "security": "安全设置",
       "owner_of": "所有者 · {name}",
       "owner_above": "作为上级分店的所有者使用此分店，并在上级分店中管理。"
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "产品",
-            "client": "客户",
-            "quantity": "数量",
-            "bid": "报价编号",
-            "created_at": "创建时间",
-            "record_type": "记录类型",
-            "record_status": "记录状态"
-         }
-      },
-      "tab": {
-         "record": "记录",
-         "ear_device": "耳部设备"
-      },
-      "information": "信息",
-      "financial": "财务"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "产品",
-               "unit_cost": "单位成本",
-               "quantity": "数量",
-               "vendor": "供应商",
-               "stocked_at": "库存位置"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "产品",
-               "serial_number": "序列号",
-               "unit_cost": "单位成本",
-               "vendor": "供应商",
-               "stocked_at": "库存位置"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "产品",
-               "brand": "品牌",
-               "categories": "类别",
-               "created_at": "创建时间"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "产品",
-               "unit_cost": "单位成本",
-               "quantity": "数量",
-               "vendor": "供应商",
-               "stocked_at": "库存位置"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "产品",
-               "unit_cost": "单位成本",
-               "quantity": "数量",
-               "vendor": "供应商",
-               "stocked_at": "库存位置"
-            }
-         }
-      },
-      "information": "信息",
-      "financial": "财务",
-      "table": {
-         "headers": {
-            "product": "产品",
-            "unit_cost": "单位成本",
-            "vendor": "供应商",
-            "stocked_at": "库存位置",
-            "available_quantity": "可用数量"
-         }
-      }
    },
    "form": {
       "required": "此字段为必填项",

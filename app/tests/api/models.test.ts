@@ -1,6 +1,4 @@
 import { AuditTransactionModel, type AuditTransactionDto } from '@/api/auditLog/model';
-import { ProductModel } from '@/api/product/model';
-import { StockModel } from '@/api/stock/model';
 import { UserModel, type UserDto } from '@/api/user/model';
 import { toModel } from '@/lib/model/Model';
 import { describe, expect, it } from 'vitest';
@@ -13,34 +11,11 @@ const user = (user_metadata: UserDto['user_metadata']): UserDto => ({
    user_metadata
 });
 
-const categories = [
-   { id: 'c1', display_name: 'battery' },
-   { id: 'c2', display_name: 'spare part' }
-];
-
 describe('UserModel', () => {
    it('shows the chosen name, or the email without one', () => {
       expect(toModel(UserModel, user({ display_name: 'Ada' })).displayName).toBe('Ada');
       expect(toModel(UserModel, user({ display_name: '' })).displayName).toBe('ada@example.com');
       expect(toModel(UserModel, user(null)).displayName).toBe('ada@example.com');
-   });
-});
-
-describe('categoryPath', () => {
-   it('joins the categories for the route param', () => {
-      expect(
-         toModel(StockModel, { id: 's1', product: { category: categories } }).categoryPath
-      ).toBe('battery|spare part');
-      expect(toModel(ProductModel, { categories } as unknown as ProductModel).categoryPath).toBe(
-         'battery|spare part'
-      );
-   });
-
-   it('is undefined without categories, so the param is left out', () => {
-      expect(toModel(StockModel, { id: 's1' }).categoryPath).toBeUndefined();
-      expect(
-         toModel(StockModel, { id: 's1', product: { category: [] } }).categoryPath
-      ).toBeUndefined();
    });
 });
 
@@ -50,8 +25,8 @@ describe('AuditTransactionModel', () => {
       tenant_id: 'tenant',
       actor_id: 'u1',
       actor_role: 'authenticated',
-      table_name: 'client',
-      record_id: 'c1',
+      table_name: 'role',
+      record_id: 'r1',
       operation: 'UPDATE',
       reverts_id: null,
       reverted_at: null,

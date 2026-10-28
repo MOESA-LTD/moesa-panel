@@ -47,7 +47,7 @@
       "branch": "Filiale",
       "welcome": {
          "title": "Benvenuto",
-         "text": "Benvenuto nell'applicazione CRM per ausili acustici"
+         "text": "Benvenuto nel pannello di gestione"
       },
       "please_dont_forget_to_update_your_password": "Per favore, non dimenticare di aggiornare la tua password",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": "Campo",
-      "device": "Dispositivo",
-      "battery": "Batteria",
-      "spare_part": "Pezzo di ricambio",
-      "service": "Servizio",
-      "sale": "Vendita",
-      "trial": "Prova",
-      "assemble": "Assemblaggio",
-      "repair": "Riparazione",
-      "promotion": "Promozione",
-      "cash": "Contanti",
-      "credit_card": "Carta di credito",
-      "pending": "In attesa",
-      "pending_service": "Servizio in attesa",
-      "client_holds_service_bid": "Cliente tiene offerta di servizio",
-      "client_approved_service_bid": "Cliente ha approvato l'offerta di servizio",
-      "client_rejected_service_bid": "Cliente ha rifiutato l'offerta di servizio",
-      "done": "Fatto",
-      "approved": "Approvato",
-      "rejected": "Rifiutato",
-      "pending_client": "In attesa del cliente",
-      "biopar": "Biopar",
-      "hard": "Hard",
-      "micro": "Micro",
-      "full": "Completo",
-      "half": "Mezzo",
-      "supported": "Supportato",
-      "prob": "Prob",
-      "pcs": "Pezzi",
-      "kg": "Kg",
-      "gr": "Gr",
-      "lbs": "Lbs",
-      "L": "Litro",
-      "mL": "mL",
-      "m": "Metro",
-      "m²": "m²",
-      "cm": "Cm",
-      "in": "Pollice",
       "password": "Password",
       "password_confirmation": "Conferma password",
       "name": "Nome",
@@ -146,99 +109,29 @@
       "phone": "Telefono",
       "country": "Paese",
       "city": "Città",
-      "district": "Distretto",
       "details": "Dettagli",
       "remember_me": "Ricordami",
       "code": "Codice",
       "company": "Azienda",
       "permission": "Permesso",
       "role": "Ruolo",
-      "client_id": "Cliente",
-      "nationality": "Nazionalità",
-      "national_id": "Identificativo nazionale",
-      "birth_date": "Data di nascita",
-      "gender": "Genere",
-      "record_type": "Tipo di record",
-      "rear_ear_devices": "Dispositivi per orecchio posteriore",
-      "attributes": "Attributi",
-      "rear_ear_device": "Dispositivo per orecchio posteriore",
-      "type": "Tipo",
-      "model": "Modello",
-      "speaker_power": "Potenza del parlante",
-      "side": "Lato",
-      "left": "Sinistro",
-      "right": "Destro",
-      "ventilation": "Ventilazione",
-      "speaker_size": "Dimensione del parlante",
-      "inner_ear_devices": "Dispositivi per orecchio interno",
-      "inner_ear_device": "Dispositivo per orecchio interno",
-      "has_bluetooth": "Ha Bluetooth",
-      "has_button": "Ha pulsante",
-      "stock_id": "ID magazzino",
-      "device_side": "Lato del dispositivo",
-      "both": "Entrambi",
-      "record_status": "Stato del record",
-      "quantity": "Quantità",
-      "payment_type": "Tipo di pagamento",
-      "currency_code": "Codice valuta",
-      "repair_fee": "Costo della riparazione",
-      "bid": "Offerta",
-      "bid_discount": "Sconto sull'offerta",
-      "tax": "Tassa",
-      "total_bid": "Totale offerta",
-      "insurance_type": "Tipo di assicurazione",
-      "retired": "In pensione",
-      "worker": "Operaio",
       "none": "Nessuno",
-      "insurance_contribution": "Contributo all'assicurazione",
-      "client_insurance_contribution": "Contributo all'assicurazione del cliente",
-      "brand": "Marca",
-      "categories": "Categorie",
-      "product_id": "ID prodotto",
-      "vendor": "Fornitore",
-      "stocked_at": "In magazzino da",
-      "barcode": "Barcode",
-      "serial_number": "Numero di serie",
       "currency": "Valuta",
-      "unit_cost": "Costo unitario",
-      "unit_discount": "Sconto unitario",
-      "unit_tax": "Tassa unitaria",
-      "total_cost": "Costo totale",
       "tenant": "Tenant",
       "branch": "Tenant",
       "user": "Utente",
       "tenant_user": "Utente tenant",
       "tenant_owner": "Proprietario tenant",
-      "address": "Indirizzo",
       "role_permission": "Permesso ruolo",
       "user_role": "Ruolo utente",
-      "client": "Cliente",
-      "product": "Prodotto",
-      "product_category": "Categoria prodotto",
-      "product_categories": "Categorie prodotto",
-      "stock": "Magazzino",
-      "record": "Registro",
-      "client_address": "Indirizzo cliente",
       "audit_config": "Configurazione audit",
       "audit_log": "Log",
-      "product_brands": "Marchi prodotto",
-      "stock_view": "Visualizzazione magazzino",
-      "stock_vendor": "Fornitore magazzino",
-      "stock_vendor_stat": "Statistiche fornitore magazzino",
-      "stock_product_stat": "Statistiche prodotto magazzino",
-      "client_address_view": "Visualizzazione indirizzo cliente",
       "audit_log_group": "Gruppo log audit",
       "parent_id": "Parent",
       "user_id": "Utente",
       "tenant_id": "Tenant",
       "role_id": "Ruolo",
       "permission_id": "Permesso",
-      "unit_type": "Tipo unità",
-      "category_id": "Categoria",
-      "address_id": "Indirizzo",
-      "address_tenant_id": "Indirizzo tenant",
-      "client_national_id": "Codice nazionale cliente",
-      "client_tenant_id": "Tenant cliente",
       "correlation_id": "Correlazione",
       "request_id": "Richiesta",
       "display_name": "Nome visualizzato",
@@ -277,17 +170,9 @@
          "last_half": "Semestre precedente",
          "last_year": "Anno precedente",
          "total": "Totale",
-         "client": {
-            "clients": "Clienti"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "Quantità venduta",
-         "total_gain": "Guadagno totale",
-         "total_discount": "Sconto totale",
-         "total_tax": "Tasse totali",
-         "title": "Prodotti più venduti",
-         "empty": "Nessun prodotto disponibile"
+         "branches": "Filiali",
+         "users": "Utenti",
+         "roles": "Ruoli"
       },
       "notifications": {
          "today": "Oggi",
@@ -302,77 +187,13 @@
             "deleted": "eliminazione {resource_name} effettuata da {user_name}",
             "unknown": "attività rilevata in {resource_name} da {user_name}"
          }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "Quantità totale venduta",
-         "total_bid": "Offerta totale",
-         "total_discount": "Sconto totale",
-         "total_tax": "Tasse totali",
-         "title": "Vendite per categoria"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "Vendite recenti",
-            "see_all": "Visualizza tutte"
-         }
-      }
-   },
-   "client": {
-      "select_client": "Seleziona cliente",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "Cliente",
-               "address": "Indirizzo",
-               "country": "Paese",
-               "city": "Città",
-               "district": "Distretto",
-               "created_at": "Creato il"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "Cliente",
-            "nationality": "Nazionalità",
-            "national_id": "ID nazionale",
-            "birth_date": "Data di nascita",
-            "email": "Email",
-            "phone": "Telefono",
-            "created_at": "Creato il"
-         }
-      },
-      "general_info": "Informazioni generali",
-      "addresses": "Indirizzi",
-      "gender": {
-         "male": "Maschio",
-         "female": "Femmina"
-      }
-   },
-   "product": {
-      "select_product": "Seleziona prodotto",
-      "category": {
-         "select_category": "Seleziona categoria"
       }
    },
    "input": {
       "select_or_write": "Seleziona o scrivi"
    },
-   "address": {
-      "select_country": "Seleziona paese",
-      "table": {
-         "headers": {
-            "address_name": "Nome indirizzo",
-            "country": "Paese",
-            "city": "Città",
-            "district": "Distretto",
-            "created_at": "Creato il"
-         }
-      }
-   },
    "financial": {
-      "select_currency": "Seleziona valuta",
-      "select_unit_type": "Seleziona tipo unità"
+      "select_currency": "Seleziona valuta"
    },
    "component": {
       "branch_picker": {
@@ -405,7 +226,8 @@
       }
    },
    "common": {
-      "select": "Seleziona"
+      "select": "Seleziona",
+      "select_country": "Seleziona paese"
    },
    "role": {
       "select_role": "Seleziona ruolo",
@@ -419,10 +241,8 @@
    "router": {
       "action": {
          "open_in_window": "Apri in finestra",
-         "manage-addresses": "Gestisci indirizzi",
          "close": "Chiudi",
          "go_to_profile": "Vai al profilo",
-         "manage_addresses": "Gestisci indirizzi",
          "go_back": "Torna indietro"
       },
       "error_occured": "Si è verificato un errore",
@@ -450,15 +270,6 @@
       "resend_code": "Rinvia codice",
       "back": "Indietro",
       "invite": "Invita"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "In Orecchio (ITE)",
-            "in_canal_(ITC)": "In Canale (ITC)",
-            "completely_in_canal_(CIC)": "Completamente In Canale (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "Questa modifica è già stata annullata.",
@@ -596,10 +407,6 @@
          "update-profile": "Aggiorna profilo",
          "update-password": "Aggiorna password",
          "logout": "Esci",
-         "address": "Indirizzo",
-         "address_list": "Elenco indirizzi",
-         "address_edit": "Modifica indirizzo",
-         "address_add": "Aggiungi indirizzo",
          "register": "Registrati",
          "login": "Accedi",
          "enter-auth-otp-code": "Inserisci codice OTP",
@@ -613,31 +420,6 @@
          "add": "Aggiungi",
          "edit": "Modifica",
          "audit-logs": "Log audit",
-         "client": "Cliente",
-         "client_list": "Elenco clienti",
-         "manage-client": "Gestisci cliente",
-         "client-general-info": "Informazioni generali cliente",
-         "client-addresses": "Indirizzi cliente",
-         "client_address_list": "Elenco indirizzi cliente",
-         "record": "Registro",
-         "record_list": "Elenco registri",
-         "record_add": "Aggiungi registro",
-         "record_edit": "Modifica registro",
-         "battery": "Batteria",
-         "battery_list": "Elenco batterie",
-         "device": "Dispositivo",
-         "device_list": "Elenco dispositivi",
-         "stock": "Magazzino",
-         "stock_add": "Aggiungi magazzino",
-         "stock_edit": "Modifica magazzino",
-         "product": "Prodotto",
-         "product_list": "Elenco prodotti",
-         "product_add": "Aggiungi prodotto",
-         "product_edit": "Modifica prodotto",
-         "service": "Servizio",
-         "service_list": "Elenco servizi",
-         "spare-parts": "Parti di ricambio",
-         "spare_part_list": "Elenco parti di ricambio",
          "branch_user_list": "Elenco utenti filiale",
          "audit_log_list": "Elenco log audit",
          "branch_role_list": "Elenco ruoli filiale",
@@ -699,92 +481,6 @@
       "security": "Sicurezza",
       "owner_of": "Proprietario · {name}",
       "owner_above": "Usa questa filiale come proprietario di una filiale superiore ed è gestito lì."
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "Prodotto",
-            "client": "Cliente",
-            "quantity": "Quantità",
-            "bid": "ID Offerta",
-            "created_at": "Creato il",
-            "record_type": "Tipo Registro",
-            "record_status": "Stato Registro"
-         }
-      },
-      "tab": {
-         "record": "Registro",
-         "ear_device": "Dispositivo Auricolare"
-      },
-      "information": "Informazioni",
-      "financial": "Finanziario"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "Prodotto",
-               "unit_cost": "Costo unitario",
-               "quantity": "Quantità",
-               "vendor": "Fornitore",
-               "stocked_at": "Rifornito a"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "Prodotto",
-               "serial_number": "Numero di serie",
-               "unit_cost": "Costo unitario",
-               "vendor": "Fornitore",
-               "stocked_at": "Rifornito a"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "Prodotto",
-               "brand": "Marca",
-               "categories": "Categorie",
-               "created_at": "Creato il"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "Prodotto",
-               "unit_cost": "Costo unitario",
-               "quantity": "Quantità",
-               "vendor": "Fornitore",
-               "stocked_at": "Rifornito a"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "Prodotto",
-               "unit_cost": "Costo unitario",
-               "quantity": "Quantità",
-               "vendor": "Fornitore",
-               "stocked_at": "Rifornito a"
-            }
-         }
-      },
-      "information": "Informazioni",
-      "financial": "Finanziario",
-      "table": {
-         "headers": {
-            "product": "Prodotto",
-            "unit_cost": "Costo unitario",
-            "vendor": "Fornitore",
-            "stocked_at": "Rifornito il",
-            "available_quantity": "Quantità disponibile"
-         }
-      }
    },
    "form": {
       "required": "Questo campo è obbligatorio",

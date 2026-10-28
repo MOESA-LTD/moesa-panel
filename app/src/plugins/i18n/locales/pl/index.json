@@ -47,7 +47,7 @@
       "branch": "Oddział",
       "welcome": {
          "title": "Witamy",
-         "text": "Dziękujemy za zalogowanie się do aplikacji."
+         "text": "Witamy w panelu zarządzania"
       },
       "please_dont_forget_to_update_your_password": "Proszę, nie zapomnij zaktualizować swojego hasła.",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": " ",
-      "device": "Urządzenie",
-      "battery": "Bateria",
-      "spare_part": "Część zamienną",
-      "service": "Usługa",
-      "trial": "Test",
-      "sale": "Sprzedaż",
-      "assemble": "Montaż",
-      "repair": "Remont",
-      "promotion": "Promocja",
-      "cash": "Gotówka",
-      "credit_card": "Karta kredytowa",
-      "pending": "W trakcie",
-      "pending_service": "Usługa w trakcie",
-      "client_holds_service_bid": "Klient utrzymuje ofertę usługi",
-      "client_approved_service_bid": "Klient zaakceptował ofertę usługi",
-      "client_rejected_service_bid": "Klient odrzucił ofertę usługi",
-      "done": "Zakończone",
-      "approved": "Zatwierdzone",
-      "rejected": "Odrzucone",
-      "pending_client": "W trakcie klienta",
-      "biopar": "Biopar",
-      "hard": "Twardy",
-      "micro": "Mikro",
-      "full": "Pełny",
-      "half": "Połowa",
-      "supported": "Obsługiwane",
-      "prob": "Prawdopodobieństwo",
-      "pcs": "Szt.",
-      "kg": "Kg",
-      "gr": "G",
-      "lbs": "Funt",
-      "L": "L",
-      "mL": "mL",
-      "m": "M",
-      "m²": "m²",
-      "cm": "Cm",
-      "in": "Cal",
       "password": "Hasło",
       "password_confirmation": "Potwierdzenie hasła",
       "name": "Imię",
@@ -146,99 +109,29 @@
       "phone": "Telefon",
       "country": "Kraj",
       "city": "Miasto",
-      "district": "Dzielnica",
       "details": "Szczegóły",
       "remember_me": "Zapamiętaj mnie",
       "code": "Kod",
       "company": "Firma",
       "permission": "Uprawnienie",
       "role": "Rola",
-      "client_id": "Klient",
-      "nationality": "Narodowość",
-      "national_id": "Numer dowodu osobistego",
-      "birth_date": "Data urodzenia",
-      "gender": "Płeć",
-      "rear_ear_devices": "Urządzenia uszne tylnego ucha",
-      "attributes": "Atrybuty",
-      "rear_ear_device": "Urządzenie uszne tylnego ucha",
-      "type": "Typ",
-      "model": "Model",
-      "speaker_power": "Moc głośnika",
-      "side": "Strona",
-      "left": "Lewa",
-      "right": "Prawa",
-      "ventilation": "Wentylacja",
-      "speaker_size": "Rozmiar głośnika",
-      "inner_ear_devices": "Urządzenia uszne wewnętrznego ucha",
-      "inner_ear_device": "Urządzenie uszne wewnętrznego ucha",
-      "has_bluetooth": "Ma Bluetooth",
-      "has_button": "Ma przycisk",
-      "record_type": "Typ rekordu",
-      "stock_id": "Identyfikator zapasowy",
-      "device_side": "Strona urządzenia",
-      "both": "Obie",
-      "record_status": "Status rekordu",
-      "quantity": "Ilość",
-      "payment_type": "Typ płatności",
-      "currency_code": "Kod waluty",
-      "repair_fee": "Opłata za remont",
-      "bid": "Oferta",
-      "bid_discount": "Rabat oferty",
-      "tax": "Podatek",
-      "total_bid": "Łączna oferta",
-      "insurance_type": "Typ ubezpieczenia",
-      "retired": "Wypuszczony",
-      "worker": "Pracownik",
-      "insurance_contribution": "Wpłata ubezpieczeniowa",
-      "client_insurance_contribution": "Wpłata ubezpieczeniowa klienta",
-      "brand": "Marka",
-      "categories": "Kategorie",
-      "product_id": "Produkt",
-      "vendor": "Dostawca",
-      "stocked_at": "Zapisany w magazynie",
-      "barcode": "Kod kreskowy",
-      "serial_number": "Numer seryjny",
       "currency": "Waluta",
-      "unit_cost": "Koszt jednostkowy",
-      "unit_discount": "Rabat jednostkowy",
-      "unit_tax": "Podatek jednostkowy",
-      "total_cost": "Łączny koszt",
       "none": "Brak",
       "tenant": "Filial",
       "branch": "Filial",
       "user": "Użytkownik",
       "tenant_user": "Użytkownik filialy",
       "tenant_owner": "Właściciel filialy",
-      "address": "Adres",
       "role_permission": "Role i uprawnienia",
       "user_role": "Rola użytkownika",
-      "client": "Klient",
-      "product": "Produkt",
-      "product_category": "Kategoria produktu",
-      "product_categories": "Kategorie produktów",
-      "stock": "Magazyn",
-      "record": "Rekord",
-      "client_address": "Adres klienta",
       "audit_config": "Konfiguracja audytu",
       "audit_log": "Log",
-      "product_brands": "Marki produktów",
-      "stock_view": "Widok magazynu",
-      "stock_vendor": "Dostawca magazynu",
-      "stock_vendor_stat": "Statystyka dostawcy magazynu",
-      "stock_product_stat": "Statystyka produktu magazynu",
-      "client_address_view": "Widok adresu klienta",
       "audit_log_group": "Grupa logów audytu",
       "parent_id": "Rodzic",
       "user_id": "Użytkownik",
       "tenant_id": "Filiala",
       "role_id": "Rola",
       "permission_id": "Uprawnienie",
-      "unit_type": "Typ jednostki",
-      "category_id": "Kategoria",
-      "address_id": "Adres",
-      "address_tenant_id": "Adres filialy",
-      "client_national_id": "Nacionalny identyfikator klienta",
-      "client_tenant_id": "Filiala klienta",
       "correlation_id": "Korelacja",
       "request_id": "Zapytanie",
       "display_name": "Nazwa",
@@ -249,8 +142,7 @@
       "select_or_write": "Wybierz lub wpisz"
    },
    "financial": {
-      "select_currency": "Wybierz walutę",
-      "select_unit_type": "Wybierz typ jednostki"
+      "select_currency": "Wybierz walutę"
    },
    "component": {
       "branch_picker": {
@@ -283,7 +175,8 @@
       }
    },
    "common": {
-      "select": "Wybierz"
+      "select": "Wybierz",
+      "select_country": "Wybierz kraj"
    },
    "role": {
       "select_role": "Wybierz rolę",
@@ -297,9 +190,7 @@
    "router": {
       "action": {
          "open_in_window": "Otwórz w oknie",
-         "manage-addresses": "Zarządzaj adresami",
          "close": "Zamknij",
-         "manage_addresses": "Zarządzaj adresami",
          "go_back": "Cofnij",
          "go_to_profile": "Przejdź do profilu"
       },
@@ -328,15 +219,6 @@
       "resend_code": "Wyślij ponownie kod",
       "back": "Wstecz",
       "invite": "Zaproś"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "W uszach (ITE)",
-            "in_canal_(ITC)": "W kanał uszny (ITC)",
-            "completely_in_canal_(CIC)": "Całkowicie w kanał uszny (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "Ta zmiana została już cofnięta.",
@@ -502,7 +384,6 @@
          "update-profile": "Aktualizacja profilu",
          "update-password": "Zmiana hasła",
          "logout": "Wyloguj",
-         "address": "Adres",
          "edit": "Edytuj",
          "add": "Dodaj",
          "register": "Rejestracja",
@@ -516,34 +397,6 @@
          "user-general-info": "Ogólne informacje o użytkowniku",
          "branch-role": "Rola oddziału",
          "audit-logs": "Logi",
-         "client": "Klient",
-         "manage-client": "Zarządzaj klientami",
-         "client-general-info": "Ogólne informacje o klientach",
-         "client-addresses": "Adresy klientów",
-         "record": "Rekord",
-         "battery": "Bateria",
-         "device": "Urządzenie",
-         "stock": "Magazyn",
-         "product": "Produkt",
-         "service": "Usługa",
-         "spare-parts": "Zamienniki",
-         "address_list": "Lista adresów",
-         "address_edit": "Edycja adresu",
-         "address_add": "Dodawanie adresu",
-         "client_list": "Lista pacjentów",
-         "client_address_list": "Lista adresów pacjenta",
-         "record_list": "Lista wizyt",
-         "record_add": "Dodawanie wizyty",
-         "record_edit": "Edycja wizyty",
-         "battery_list": "Lista akumulatorów",
-         "device_list": "Lista urządzeń",
-         "stock_add": "Dodawanie do magazynu",
-         "stock_edit": "Edycja magazynu",
-         "product_list": "Lista produktów",
-         "product_add": "Dodawanie produktu",
-         "product_edit": "Edycja produktu",
-         "service_list": "Lista usług",
-         "spare_part_list": "Lista części zamiennej",
          "branch_user_list": "Lista użytkowników oddziału",
          "audit_log_list": "Lista logów audytowych",
          "branch_role_list": "Lista ról oddziału",
@@ -568,17 +421,9 @@
          "last_half": "W ostatniej połowie roku",
          "last_year": "W ostatnim roku",
          "total": "Łączna liczba",
-         "client": {
-            "clients": "Klienci"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "Liczba sprzedanych sztuk",
-         "total_gain": "Łączna marża",
-         "total_discount": "Łączne zniżki",
-         "total_tax": "Łączne podatki",
-         "title": "Najpopularniejsze produkty",
-         "empty": "Brak danych"
+         "branches": "Oddziały",
+         "users": "Użytkownicy",
+         "roles": "Role"
       },
       "notifications": {
          "today": "Dzisiaj",
@@ -592,31 +437,6 @@
             "updated": "aktualizacja {resource_name} przez {user_name}",
             "deleted": "usunięto {resource_name} przez {user_name}",
             "unknown": "aktywność wykryta w {resource_name} przez {user_name}"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "Łączna liczba sprzedanych sztuk",
-         "total_bid": "Łączna cena zakupu",
-         "total_discount": "Łączne zniżki",
-         "total_tax": "Łączne podatki",
-         "title": "Sprzedaż według kategorii"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "Ostatnie transakcje",
-            "see_all": "Zobacz wszystko"
-         }
-      }
-   },
-   "address": {
-      "select_country": "Wybierz kraj",
-      "table": {
-         "headers": {
-            "address_name": "Nazwa adresu",
-            "country": "Kraj",
-            "city": "Miasto",
-            "district": "Dzielnica",
-            "created_at": "Utworzono"
          }
       }
    },
@@ -644,44 +464,6 @@
       "deleted": "Usunięto",
       "readed": "Odczytano"
    },
-   "client": {
-      "select_client": "Wybierz pacjenta",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "Pacjent",
-               "address": "Adres",
-               "country": "Kraj",
-               "city": "Miasto",
-               "district": "Dzielnica",
-               "created_at": "Utworzono"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "Pacjent",
-            "nationality": "Nationalność",
-            "national_id": "Numer dowodu",
-            "birth_date": "Data urodzenia",
-            "email": "E-mail",
-            "phone": "Numer telefonu",
-            "created_at": "Utworzono"
-         }
-      },
-      "general_info": "Informacje ogólne",
-      "addresses": "Adresy",
-      "gender": {
-         "male": "Mężczyzna",
-         "female": "Kobieta"
-      }
-   },
-   "product": {
-      "select_product": "Wybierz produkt",
-      "category": {
-         "select_category": "Wybierz kategorię"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -699,92 +481,6 @@
       "security": "Bezpieczeństwo",
       "owner_of": "Właściciel · {name}",
       "owner_above": "Korzysta z tego oddziału jako właściciel oddziału nadrzędnego i jest tam zarządzany."
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "Produkt",
-            "client": "Klient",
-            "quantity": "Ilość",
-            "bid": "Oferta",
-            "created_at": "Utworzono",
-            "record_type": "Typ rekordu",
-            "record_status": "Status rekordu"
-         }
-      },
-      "tab": {
-         "record": "Rekord",
-         "ear_device": "Urządzenie słuchowe"
-      },
-      "information": "Informacje",
-      "financial": "Finanse"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "unit_cost": "Koszt jednostkowy",
-               "quantity": "Ilość",
-               "vendor": "Dostawca",
-               "stocked_at": "Zamagazynowano dnia"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "serial_number": "Numer seryjny",
-               "unit_cost": "Koszt jednostkowy",
-               "vendor": "Dostawca",
-               "stocked_at": "Zamagazynowano dnia"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "brand": "Marka",
-               "categories": "Kategorie",
-               "created_at": "Utworzono dnia"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "unit_cost": "Koszt jednostkowy",
-               "quantity": "Ilość",
-               "vendor": "Dostawca",
-               "stocked_at": "Zamagazynowano dnia"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "unit_cost": "Koszt jednostkowy",
-               "quantity": "Ilość",
-               "vendor": "Dostawca",
-               "stocked_at": "Zamagazynowano dnia"
-            }
-         }
-      },
-      "information": "Informacje",
-      "financial": "Finansowe",
-      "table": {
-         "headers": {
-            "product": "Produkt",
-            "unit_cost": "Koszt jednostkowy",
-            "vendor": "Dostawca",
-            "stocked_at": "Zamagazynowano",
-            "available_quantity": "Dostępna ilość"
-         }
-      }
    },
    "form": {
       "required": "To pole jest wymagane",

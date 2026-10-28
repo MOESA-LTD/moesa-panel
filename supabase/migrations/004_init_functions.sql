@@ -620,21 +620,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION validate_record_quantity () RETURNS TRIGGER SECURITY DEFINER LANGUAGE plpgsql
-SET
-    "search_path" = '' AS $$
-BEGIN
-    IF OLD.stock_id = NEW.stock_id AND TG_OP = 'UPDATE' THEN
-        IF NEW.quantity > OLD.quantity + (SELECT available_quantity FROM public.stock_view WHERE id = NEW.stock_id) THEN
-            RAISE EXCEPTION 'Amount cannot be greater than available quantity';
-        END IF;
-    ELSIF NOT EXISTS(SELECT 1 FROM public.record WHERE id = NEW.id) AND NEW.quantity > (SELECT available_quantity FROM public.stock_view WHERE id = NEW.stock_id) THEN
-        RAISE EXCEPTION 'Amount cannot be greater than available quantity';
-    END IF;
-   
-    RETURN NEW;
-END;$$;
-
 CREATE OR REPLACE FUNCTION private.has_table_tenant_id (p_table_name TEXT) RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER
 SET
     "search_path" = '' AS $$

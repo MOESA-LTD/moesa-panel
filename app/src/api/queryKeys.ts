@@ -18,50 +18,18 @@ export const queryKeys = {
 
 /** Views and tables whose rows are derived from a table and go stale when it changes. */
 const DERIVED: Partial<Record<TableName, TableName[]>> = {
-   client: ['client_address_view'],
-   address: ['client_address_view'],
-   client_address: ['client_address_view'],
-   product: [
-      'stock_view',
-      'product_brands',
-      'stock_product_stat',
-      'dashboard_best_selling_products',
-      'dashboard_product_category_sales_summary'
-   ],
-   product_category: ['dashboard_product_category_sales_summary'],
-   product_categories: ['dashboard_product_category_sales_summary'],
-   stock: [
-      'stock_view',
-      'stock_vendor',
-      'stock_vendor_stat',
-      'stock_product_stat',
-      'dashboard_best_selling_products'
-   ],
    subscription: ['company_subscription'],
    plan: ['company_subscription'],
-   // stock_view.available_quantity subtracts sold records.
    user: ['tenant_member'],
    tenant_user: ['tenant_member'],
-   tenant_owner: ['tenant_member'],
-   record: [
-      'stock_view',
-      'stock_vendor_stat',
-      'stock_product_stat',
-      'dashboard_best_selling_products',
-      'dashboard_product_category_sales_summary'
-   ]
+   tenant_owner: ['tenant_member']
 };
 
 /** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */
 const CASCADES: Partial<Record<TableName, TableName[]>> = {
    user: ['tenant_owner', 'tenant_user', 'user_role'],
-   address: ['client_address'],
    permission: ['role_permission'],
-   role: ['role_permission', 'user_role'],
-   client: ['client_address', 'record'],
-   product: ['product_categories', 'stock'],
-   product_category: ['product_categories'],
-   stock: ['record']
+   role: ['role_permission', 'user_role']
 };
 
 // Every authenticated write is recorded by the audit trigger.

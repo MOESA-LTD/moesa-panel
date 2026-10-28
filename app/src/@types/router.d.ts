@@ -1,7 +1,7 @@
 import type { MenuItem } from 'primevue/menuitem';
 import type { MaybeRefOrGetter } from 'vue';
 
-/** A CASL rule a route needs, e.g. `{ action: 'read', subject: 'client' }`. */
+/** A CASL rule a route needs, e.g. `{ action: 'read', subject: 'role' }`. */
 export type RoutePermission = { action: string; subject: string };
 
 declare module 'vue-router' {

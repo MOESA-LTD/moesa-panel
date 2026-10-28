@@ -1,7 +1,7 @@
 import { createAliasResolver, createMongoAbility, type MongoAbility } from '@casl/ability';
 
 /**
- * UI action names mapped to database commands: `can('read', 'client')` checks the `select`
+ * UI action names mapped to database commands: `can('read', 'role')` checks the `select`
  * permission. "modify" stands for update or delete, whichever the role has.
  */
 export const resolveAction = createAliasResolver({

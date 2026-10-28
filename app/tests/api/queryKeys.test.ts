@@ -16,17 +16,17 @@ const staleKeys = (queryClient: QueryClient) =>
 
 describe('queryKeys', () => {
    it('scopes every key by tenant and table', () => {
-      expect(queryKeys.detail(TENANT, 'client', 'c1')).toEqual([
+      expect(queryKeys.detail(TENANT, 'role', 'r1')).toEqual([
          'tenant',
          TENANT,
-         'client',
+         'role',
          'detail',
-         'c1'
+         'r1'
       ]);
-      expect(queryKeys.list(TENANT, 'client', { page: 1 }).slice(0, 4)).toEqual([
+      expect(queryKeys.list(TENANT, 'role', { page: 1 }).slice(0, 4)).toEqual([
          'tenant',
          TENANT,
-         'client',
+         'role',
          'list'
       ]);
    });
@@ -34,39 +34,36 @@ describe('queryKeys', () => {
 
 describe('affectedTables', () => {
    it('adds derived views and the audit log', () => {
-      const tables = affectedTables(['client_address']);
-      expect(tables).toContain('client_address');
-      expect(tables).toContain('client_address_view');
+      const tables = affectedTables(['tenant_user']);
+      expect(tables).toContain('tenant_user');
+      expect(tables).toContain('tenant_member');
       expect(tables).toContain('audit_log');
-      expect(tables).not.toContain('stock_view');
-   });
-
-   it('marks stock_view stale when records change', () => {
-      expect(affectedTables(['record'])).toContain('stock_view');
+      expect(tables).not.toContain('company_subscription');
    });
 
    it('follows ON DELETE CASCADE chains and their derived views', () => {
-      const tables = affectedTables(['product']);
-      expect(tables).toEqual(expect.arrayContaining(['stock', 'record', 'product_categories']));
-      expect(tables).toContain('stock_view');
+      const tables = affectedTables(['user']);
+      expect(tables).toEqual(expect.arrayContaining(['tenant_user', 'tenant_owner', 'user_role']));
+      expect(tables).toContain('tenant_member');
+      expect(affectedTables(['role'])).not.toContain('tenant_member');
    });
 });
 
 describe('invalidateTables', () => {
    it('invalidates the queries of the given tables and their derived views only', async () => {
       const queryClient = new QueryClient();
-      const clientDetail = queryKeys.detail(TENANT, 'client', 'c1');
-      const clientList = queryKeys.list(TENANT, 'client', { page: 1 });
-      const addressView = queryKeys.list(TENANT, 'client_address_view');
-      const stockList = queryKeys.list(TENANT, 'stock');
-      seed(queryClient, [clientDetail, clientList, addressView, stockList, ['unrelated']]);
+      const userDetail = queryKeys.detail(TENANT, 'user', 'u1');
+      const userList = queryKeys.list(TENANT, 'user', { page: 1 });
+      const memberView = queryKeys.list(TENANT, 'tenant_member');
+      const planList = queryKeys.list(TENANT, 'plan');
+      seed(queryClient, [userDetail, userList, memberView, planList, ['unrelated']]);
 
-      await invalidateTables(queryClient, ['client']);
+      await invalidateTables(queryClient, ['user']);
 
       expect(staleKeys(queryClient)).toEqual(
-         expect.arrayContaining([clientDetail, clientList, addressView])
+         expect.arrayContaining([userDetail, userList, memberView])
       );
-      expect(staleKeys(queryClient)).not.toContainEqual(stockList);
+      expect(staleKeys(queryClient)).not.toContainEqual(planList);
       expect(staleKeys(queryClient)).not.toContainEqual(['unrelated']);
    });
 });

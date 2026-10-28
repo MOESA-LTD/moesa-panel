@@ -18,20 +18,20 @@ beforeEach(() => (calls.length = 0));
 
 describe('saveRow', () => {
    it('updates an existing row without touching its tenant', async () => {
-      await saveRow('client', { id: 'c1', display_name: 'Ada', tenant_id: 'another-tenant' });
+      await saveRow('role', { id: 'r1', display_name: 'Ada', tenant_id: 'another-tenant' });
 
       expect(calls.slice(0, 2)).toEqual([
          { method: 'update', args: [{ display_name: 'Ada' }] },
-         { method: 'eq', args: ['id', 'c1'] }
+         { method: 'eq', args: ['id', 'r1'] }
       ]);
    });
 
    it('inserts a new row, leaving the tenant to the request unless it names one', async () => {
-      await saveRow('client', { id: null, display_name: 'Ada' });
+      await saveRow('role', { id: null, display_name: 'Ada' });
       expect(calls[0]).toEqual({ method: 'insert', args: [{ display_name: 'Ada' }] });
 
       calls.length = 0;
-      await saveRow('client', { display_name: 'Ada', tenant_id: 't2' });
+      await saveRow('role', { display_name: 'Ada', tenant_id: 't2' });
       expect(calls[0]).toEqual({
          method: 'insert',
          args: [{ display_name: 'Ada', tenant_id: 't2' }]
@@ -39,7 +39,7 @@ describe('saveRow', () => {
    });
 
    it('returns the saved row with the requested columns', async () => {
-      await expect(saveRow('stock', { id: 's1' }, 'id')).resolves.toEqual({ id: 'saved' });
+      await expect(saveRow('role', { id: 'r1' }, 'id')).resolves.toEqual({ id: 'saved' });
       expect(calls).toContainEqual({ method: 'select', args: ['id'] });
    });
 });

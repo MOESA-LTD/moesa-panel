@@ -102,43 +102,6 @@
    },
    "fields": {
       "": "",
-      "device": "",
-      "battery": "",
-      "spare_part": "",
-      "service": "",
-      "sale": "",
-      "trial": "",
-      "assemble": "",
-      "repair": "",
-      "promotion": "",
-      "cash": "",
-      "credit_card": "",
-      "pending": "",
-      "pending_service": "",
-      "client_holds_service_bid": "",
-      "client_approved_service_bid": "",
-      "client_rejected_service_bid": "",
-      "done": "",
-      "approved": "",
-      "rejected": "",
-      "pending_client": "",
-      "biopar": "",
-      "hard": "",
-      "micro": "",
-      "full": "",
-      "half": "",
-      "supported": "",
-      "prob": "",
-      "pcs": "",
-      "kg": "",
-      "gr": "",
-      "lbs": "",
-      "L": "",
-      "mL": "",
-      "m": "",
-      "m²": "",
-      "cm": "",
-      "in": "",
       "password": "",
       "password_confirmation": "",
       "name": "",
@@ -146,64 +109,14 @@
       "phone": "",
       "country": "",
       "city": "",
-      "district": "",
       "details": "",
       "remember_me": "",
       "code": "",
       "company": "",
       "permission": "",
       "role": "",
-      "client_id": "",
-      "nationality": "",
-      "national_id": "",
-      "birth_date": "",
-      "gender": "",
-      "record_type": "",
-      "rear_ear_devices": "",
-      "attributes": "",
-      "rear_ear_device": "",
-      "type": "",
-      "model": "",
-      "speaker_power": "",
-      "side": "",
-      "left": "",
-      "right": "",
-      "ventilation": "",
-      "speaker_size": "",
-      "inner_ear_devices": "",
-      "inner_ear_device": "",
-      "has_bluetooth": "",
-      "has_button": "",
-      "stock_id": "",
-      "device_side": "",
-      "both": "",
-      "record_status": "",
-      "quantity": "",
-      "payment_type": "",
-      "currency_code": "",
-      "repair_fee": "",
-      "bid": "",
-      "bid_discount": "",
-      "tax": "",
-      "total_bid": "",
-      "insurance_type": "",
-      "retired": "",
-      "worker": "",
       "none": "",
-      "insurance_contribution": "",
-      "client_insurance_contribution": "",
-      "brand": "",
-      "categories": "",
-      "product_id": "",
-      "vendor": "",
-      "stocked_at": "",
-      "barcode": "",
-      "serial_number": "",
       "currency": "",
-      "unit_cost": "",
-      "unit_discount": "",
-      "unit_tax": "",
-      "total_cost": "",
       "user": ""
    },
    "audit_log": {
@@ -238,17 +151,9 @@
          "last_half": "",
          "last_year": "",
          "total": "",
-         "client": {
-            "clients": ""
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "",
-         "total_gain": "",
-         "total_discount": "",
-         "total_tax": "",
-         "title": "",
-         "empty": ""
+         "branches": "",
+         "users": "",
+         "roles": ""
       },
       "notifications": {
          "today": "",
@@ -257,77 +162,13 @@
          "older": "",
          "system": "",
          "title": ""
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "",
-         "total_bid": "",
-         "total_discount": "",
-         "total_tax": "",
-         "title": ""
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "",
-            "see_all": ""
-         }
-      }
-   },
-   "client": {
-      "select_client": "",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "",
-               "address": "",
-               "country": "",
-               "city": "",
-               "district": "",
-               "created_at": ""
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "",
-            "nationality": "",
-            "national_id": "",
-            "birth_date": "",
-            "email": "",
-            "phone": "",
-            "created_at": ""
-         }
-      },
-      "general_info": "",
-      "addresses": "",
-      "gender": {
-         "male": "",
-         "female": ""
-      }
-   },
-   "product": {
-      "select_product": "",
-      "category": {
-         "select_category": ""
       }
    },
    "input": {
       "select_or_write": ""
    },
-   "address": {
-      "select_country": "",
-      "table": {
-         "headers": {
-            "address_name": "",
-            "country": "",
-            "city": "",
-            "district": "",
-            "created_at": ""
-         }
-      }
-   },
    "financial": {
-      "select_currency": "",
-      "select_unit_type": ""
+      "select_currency": ""
    },
    "component": {
       "branch_picker": {
@@ -354,7 +195,8 @@
       }
    },
    "common": {
-      "select": ""
+      "select": "",
+      "select_country": ""
    },
    "role": {
       "select_role": "",
@@ -368,10 +210,8 @@
    "router": {
       "action": {
          "open_in_window": "",
-         "manage-addresses": "",
          "close": "",
          "go_to_profile": "",
-         "manage_addresses": "",
          "go_back": ""
       },
       "error_occured": "",
@@ -399,15 +239,6 @@
       "resend_code": "",
       "back": "",
       "invite": ""
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "",
-            "in_canal_(ITC)": "",
-            "completely_in_canal_(CIC)": ""
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "",
@@ -545,10 +376,6 @@
          "update-profile": "",
          "update-password": "",
          "logout": "",
-         "address": "",
-         "address_list": "",
-         "address_edit": "",
-         "address_add": "",
          "register": "",
          "login": "",
          "enter-auth-otp-code": "",
@@ -561,31 +388,6 @@
          "add": "",
          "edit": "",
          "audit-logs": "",
-         "client": "",
-         "client_list": "",
-         "manage-client": "",
-         "client-general-info": "",
-         "client-addresses": "",
-         "client_address_list": "",
-         "record": "",
-         "record_list": "",
-         "record_add": "",
-         "record_edit": "",
-         "battery": "",
-         "battery_list": "",
-         "device": "",
-         "device_list": "",
-         "stock": "",
-         "stock_add": "",
-         "stock_edit": "",
-         "product": "",
-         "product_list": "",
-         "product_add": "",
-         "product_edit": "",
-         "service": "",
-         "service_list": "",
-         "spare-parts": "",
-         "spare_part_list": "",
          "branch_user_list": "",
          "audit_log_list": "",
          "branch_role_list": "",
@@ -647,92 +449,6 @@
       "security": "",
       "owner_of": "",
       "owner_above": ""
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "",
-            "client": "",
-            "quantity": "",
-            "bid": "",
-            "created_at": "",
-            "record_type": "",
-            "record_status": ""
-         }
-      },
-      "tab": {
-         "record": "",
-         "ear_device": ""
-      },
-      "information": "",
-      "financial": ""
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "",
-               "unit_cost": "",
-               "quantity": "",
-               "vendor": "",
-               "stocked_at": ""
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "",
-               "serial_number": "",
-               "unit_cost": "",
-               "vendor": "",
-               "stocked_at": ""
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "",
-               "brand": "",
-               "categories": "",
-               "created_at": ""
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "",
-               "unit_cost": "",
-               "quantity": "",
-               "vendor": "",
-               "stocked_at": ""
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "",
-               "unit_cost": "",
-               "quantity": "",
-               "vendor": "",
-               "stocked_at": ""
-            }
-         }
-      },
-      "information": "",
-      "financial": "",
-      "table": {
-         "headers": {
-            "product": "",
-            "unit_cost": "",
-            "vendor": "",
-            "stocked_at": "",
-            "available_quantity": ""
-         }
-      }
    },
    "form": {
       "required": "",

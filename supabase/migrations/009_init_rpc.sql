@@ -7,44 +7,6 @@
 -- Link tables are synced by writing only the links that changed, so the audit log shows what was
 -- added or removed.
 
--- A product and its categories.
-CREATE OR REPLACE FUNCTION public.save_product (product_data JSONB, category_ids UUID[] DEFAULT '{}') RETURNS UUID LANGUAGE plpgsql SECURITY INVOKER
-SET
-    search_path = '' AS $$
-DECLARE
-    saved_id UUID := (product_data ->> 'id')::UUID;
-BEGIN
-    IF saved_id IS NULL THEN
-        INSERT INTO public.product (tenant_id, display_name, brand, details)
-        VALUES ((product_data ->> 'tenant_id')::UUID, product_data ->> 'display_name', product_data ->> 'brand', product_data ->> 'details')
-        RETURNING id INTO saved_id;
-    ELSE
-        UPDATE public.product
-        SET display_name = product_data ->> 'display_name', brand = product_data ->> 'brand', details = product_data ->> 'details'
-        WHERE id = saved_id;
-
-        IF NOT FOUND THEN
-            -- PostgREST's own error format, so the client gets a 404 rather than a 500.
-            RAISE SQLSTATE 'PGRST' USING
-                MESSAGE = json_build_object('code', 'P0002', 'message', 'product not found')::TEXT,
-                DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
-        END IF;
-    END IF;
-
-    DELETE FROM public.product_categories
-    WHERE product_id = saved_id AND NOT (category_id = ANY (category_ids));
-
-    INSERT INTO public.product_categories (product_id, category_id)
-    SELECT saved_id, item.id
-    FROM unnest(category_ids) AS item (id)
-    WHERE NOT EXISTS (
-        SELECT 1 FROM public.product_categories pc WHERE pc.product_id = saved_id AND pc.category_id = item.id
-    );
-
-    RETURN saved_id;
-END;
-$$;
-
 -- A role and its permissions.
 CREATE OR REPLACE FUNCTION public.save_role (role_data JSONB, permission_ids UUID[] DEFAULT '{}') RETURNS UUID LANGUAGE plpgsql SECURITY INVOKER
 SET
@@ -78,24 +40,6 @@ BEGIN
     );
 
     RETURN saved_id;
-END;
-$$;
-
--- The addresses linked to a client.
-CREATE OR REPLACE FUNCTION public.set_client_addresses (client_id UUID, address_ids UUID[] DEFAULT '{}') RETURNS VOID LANGUAGE plpgsql SECURITY INVOKER
-SET
-    search_path = '' AS $$
-BEGIN
-    DELETE FROM public.client_address ca
-    WHERE ca.client_id = set_client_addresses.client_id AND NOT (ca.address_id = ANY (address_ids));
-
-    INSERT INTO public.client_address (client_id, address_id)
-    SELECT set_client_addresses.client_id, item.id
-    FROM unnest(address_ids) AS item (id)
-    WHERE NOT EXISTS (
-        SELECT 1 FROM public.client_address ca
-        WHERE ca.client_id = set_client_addresses.client_id AND ca.address_id = item.id
-    );
 END;
 $$;
 

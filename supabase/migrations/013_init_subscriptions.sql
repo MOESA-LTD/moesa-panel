@@ -305,12 +305,11 @@ BEGIN
 END;
 $$;
 
--- Reference plans (re-runnable: existing plans are kept). Pro is the default, with a trial. Records
--- are made of stock (the pages need both), so every plan with records has stock too.
+-- Reference plans (re-runnable: existing plans are kept). Pro is the default, with a trial.
 INSERT INTO
    public.plan (display_name, description, trial_days, is_default, position)
 VALUES
-   ('Basic', 'Clients, records, products and stock for a single location.', 0, FALSE, 10),
+   ('Basic', 'Users and roles for a single location.', 0, FALSE, 10),
    ('Pro', 'Basic with the change history, for a few branches.', 14, TRUE, 20),
    ('Enterprise', 'Every module, without limits.', 0, FALSE, 30)
 ON CONFLICT (display_name) DO NOTHING;
@@ -323,22 +322,7 @@ SELECT
 FROM
    (
       VALUES
-         ('Basic', 'client'),
-         ('Basic', 'address'),
-         ('Basic', 'record'),
-         ('Basic', 'product'),
-         ('Basic', 'stock'),
-         ('Pro', 'client'),
-         ('Pro', 'address'),
-         ('Pro', 'record'),
-         ('Pro', 'product'),
-         ('Pro', 'stock'),
          ('Pro', 'audit_log'),
-         ('Enterprise', 'client'),
-         ('Enterprise', 'address'),
-         ('Enterprise', 'record'),
-         ('Enterprise', 'product'),
-         ('Enterprise', 'stock'),
          ('Enterprise', 'audit_log')
    ) AS pm (plan_name, module_id)
    JOIN public.plan p ON p.display_name = pm.plan_name

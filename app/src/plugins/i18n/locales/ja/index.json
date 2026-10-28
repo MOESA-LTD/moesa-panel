@@ -47,7 +47,7 @@
       "branch": "支店",
       "welcome": {
          "title": "ようこそ",
-         "text": "ご来院ありがとうございます。"
+         "text": "管理パネルへようこそ"
       },
       "please_dont_forget_to_update_your_password": "パスワードを更新することを忘れないでください。",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": " ",
-      "device": "機器",
-      "battery": "バッテリー",
-      "spare_part": "部品",
-      "service": "サービス",
-      "trial": "試用",
-      "sale": "販売",
-      "assemble": "組立",
-      "repair": "修理",
-      "promotion": "プロモーション",
-      "cash": "現金",
-      "credit_card": "クレジットカード",
-      "pending": "保留中",
-      "pending_service": "サービス保留中",
-      "client_holds_service_bid": "顧客がサービス入札を保留中",
-      "client_approved_service_bid": "顧客がサービス入札を承認しました",
-      "client_rejected_service_bid": "顧客がサービス入札を拒否しました",
-      "done": "完了",
-      "approved": "承認",
-      "rejected": "拒否",
-      "pending_client": "顧客待機中",
-      "biopar": "バイオパル",
-      "hard": "ハード",
-      "micro": "マイクロ",
-      "full": "フル",
-      "half": "ハーフ",
-      "supported": "サポート",
-      "prob": "確率",
-      "pcs": "個",
-      "kg": "キログラム",
-      "gr": "グラム",
-      "lbs": "ポンド",
-      "L": "リットル",
-      "mL": "ミリリットル",
-      "m": "メートル",
-      "m²": "平方メートル",
-      "cm": "センチメートル",
-      "in": "インチ",
       "password": "パスワード",
       "password_confirmation": "パスワードの確認",
       "name": "名前",
@@ -146,99 +109,29 @@
       "phone": "電話番号",
       "country": "国",
       "city": "市",
-      "district": "区",
       "details": "詳細",
       "remember_me": "ログイン情報を保存",
       "code": "コード",
       "company": "会社",
       "permission": "権限",
       "role": "ロール",
-      "client_id": "クライアント",
-      "nationality": "国籍",
-      "national_id": "国籍ID",
-      "birth_date": "生年月日",
-      "gender": "性別",
-      "rear_ear_devices": "後耳機器",
-      "attributes": "属性",
-      "rear_ear_device": "後耳機器",
-      "type": "タイプ",
-      "model": "モデル",
-      "speaker_power": "スピーカー出力",
-      "side": "側",
-      "left": "左",
-      "right": "右",
-      "ventilation": "通気",
-      "speaker_size": "スピーカー寸法",
-      "inner_ear_devices": "内耳機器",
-      "inner_ear_device": "内耳機器",
-      "has_bluetooth": "Bluetoothを搭載",
-      "has_button": "ボタンを搭載",
-      "record_type": "記録タイプ",
-      "stock_id": "在庫ID",
-      "device_side": "機器側",
-      "both": "両方",
-      "record_status": "記録状態",
-      "quantity": "数量",
-      "payment_type": "支払いタイプ",
-      "currency_code": "通貨コード",
-      "repair_fee": "修理料金",
-      "bid": "入札",
-      "bid_discount": "入札割引",
-      "tax": "税",
-      "total_bid": "合計入札",
-      "insurance_type": "保険タイプ",
-      "retired": "退職",
-      "worker": "従業員",
-      "insurance_contribution": "保険料",
-      "client_insurance_contribution": "クライアント保険料",
-      "brand": "ブランド",
-      "categories": "カテゴリ",
-      "product_id": "製品",
-      "vendor": "ベンダー",
-      "stocked_at": "在庫日",
-      "barcode": "バーコード",
-      "serial_number": "シリアル番号",
       "currency": "通貨",
-      "unit_cost": "単価",
-      "unit_discount": "単価割引",
-      "unit_tax": "単価税",
-      "total_cost": "合計コスト",
       "none": "なし",
       "tenant": "テナント",
       "branch": "支店",
       "user": "ユーザー",
       "tenant_user": "テナントユーザー",
       "tenant_owner": "テナント所有者",
-      "address": "住所",
       "role_permission": "ロール・パーミッション",
       "user_role": "ユーザー・ロール",
-      "client": "クライアント",
-      "product": "製品",
-      "product_category": "製品カテゴリ",
-      "product_categories": "製品カテゴリ",
-      "stock": "在庫",
-      "record": "記録",
-      "client_address": "クライアント住所",
       "audit_config": "監査設定",
       "audit_log": "ログ",
-      "product_brands": "製品ブランド",
-      "stock_view": "在庫ビュー",
-      "stock_vendor": "在庫ベンダー",
-      "stock_vendor_stat": "在庫ベンダー統計",
-      "stock_product_stat": "在庫製品統計",
-      "client_address_view": "クライアント住所ビュー",
       "audit_log_group": "ロググループ",
       "parent_id": "親",
       "user_id": "ユーザー",
       "tenant_id": "テナント",
       "role_id": "ロール",
       "permission_id": "パーミッション",
-      "unit_type": "単位タイプ",
-      "category_id": "カテゴリ",
-      "address_id": "住所",
-      "address_tenant_id": "住所テナント",
-      "client_national_id": "クライアント国家",
-      "client_tenant_id": "クライアントテナント",
       "correlation_id": "相関",
       "request_id": "リクエスト",
       "display_name": "表示名",
@@ -249,8 +142,7 @@
       "select_or_write": "選択または入力してください"
    },
    "financial": {
-      "select_currency": "通貨を選択",
-      "select_unit_type": "単位タイプを選択"
+      "select_currency": "通貨を選択"
    },
    "component": {
       "branch_picker": {
@@ -283,7 +175,8 @@
       }
    },
    "common": {
-      "select": "選択"
+      "select": "選択",
+      "select_country": "国を選択"
    },
    "role": {
       "select_role": "役割を選択してください",
@@ -297,9 +190,7 @@
    "router": {
       "action": {
          "open_in_window": "新しいウィンドウで開く",
-         "manage-addresses": "住所を管理する",
          "close": "閉じる",
-         "manage_addresses": "住所を管理する",
          "go_back": "戻る",
          "go_to_profile": "プロフィールへ移動"
       },
@@ -328,15 +219,6 @@
       "resend_code": "コードを再送信",
       "back": "戻る",
       "invite": "招待"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "耳内型（ITE）",
-            "in_canal_(ITC)": "耳道内型（ITC）",
-            "completely_in_canal_(CIC)": "完全耳道内型（CIC）"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "この変更はすでに元に戻されています。",
@@ -502,7 +384,6 @@
          "update-profile": "プロフィールの更新",
          "update-password": "パスワードの更新",
          "logout": "ログアウト",
-         "address": "住所",
          "edit": "編集",
          "add": "追加",
          "register": "登録",
@@ -516,34 +397,6 @@
          "user-general-info": "ユーザーの一般情報",
          "branch-role": "支店ロール",
          "audit-logs": "ログ",
-         "client": "クライアント",
-         "manage-client": "クライアント管理",
-         "client-general-info": "クライアントの一般情報",
-         "client-addresses": "クライアントの住所",
-         "record": "記録",
-         "battery": "バッテリー",
-         "device": "デバイス",
-         "stock": "在庫",
-         "product": "製品",
-         "service": "サービス",
-         "spare-parts": "消耗品",
-         "address_list": "住所一覧",
-         "address_edit": "住所編集",
-         "address_add": "住所追加",
-         "client_list": "患者一覧",
-         "client_address_list": "患者住所一覧",
-         "record_list": "記録一覧",
-         "record_add": "記録追加",
-         "record_edit": "記録編集",
-         "battery_list": "バッテリー一覧",
-         "device_list": "機器一覧",
-         "stock_add": "在庫追加",
-         "stock_edit": "在庫編集",
-         "product_list": "製品一覧",
-         "product_add": "製品追加",
-         "product_edit": "製品編集",
-         "service_list": "サービス一覧",
-         "spare_part_list": "消耗品一覧",
          "branch_user_list": "支店ユーザー一覧",
          "audit_log_list": "監査ログ一覧",
          "branch_role_list": "支店ロール一覧",
@@ -568,17 +421,9 @@
          "last_half": "半期",
          "last_year": "前年",
          "total": "合計",
-         "client": {
-            "clients": "顧客"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "販売数量",
-         "total_gain": "総利益",
-         "total_discount": "総割引",
-         "total_tax": "総税額",
-         "title": "売上トップ製品",
-         "empty": "データがありません"
+         "branches": "支店",
+         "users": "ユーザー",
+         "roles": "ロール"
       },
       "notifications": {
          "today": "今日",
@@ -592,31 +437,6 @@
             "updated": "a {resource_name} updated by {user_name}",
             "deleted": "a {resource_name} deleted by {user_name}",
             "unknown": "activity detected in {resource_name} by {user_name}"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "総販売数量",
-         "total_bid": "総取引額",
-         "total_discount": "総割引",
-         "total_tax": "総税額",
-         "title": "カテゴリ別売上"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "最近の売上",
-            "see_all": "すべて見る"
-         }
-      }
-   },
-   "address": {
-      "select_country": "国を選択",
-      "table": {
-         "headers": {
-            "address_name": "住所名",
-            "country": "国",
-            "city": "市",
-            "district": "区",
-            "created_at": "作成日時"
          }
       }
    },
@@ -644,44 +464,6 @@
       "deleted": "削除されました",
       "readed": "読み込まれました"
    },
-   "client": {
-      "select_client": "クライアントを選択",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "クライアント",
-               "address": "住所",
-               "country": "国",
-               "city": "市",
-               "district": "区",
-               "created_at": "作成日時"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "クライアント",
-            "nationality": "国籍",
-            "national_id": "国番号",
-            "birth_date": "生年月日",
-            "email": "メールアドレス",
-            "phone": "電話番号",
-            "created_at": "作成日時"
-         }
-      },
-      "general_info": "一般情報",
-      "addresses": "住所",
-      "gender": {
-         "male": "男性",
-         "female": "女性"
-      }
-   },
-   "product": {
-      "select_product": "製品を選択してください",
-      "category": {
-         "select_category": "カテゴリを選択してください"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -699,92 +481,6 @@
       "security": "セキュリティ",
       "owner_of": "オーナー · {name}",
       "owner_above": "上位の支店のオーナーとしてこの支店を利用しており、そちらで管理されます。"
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "製品",
-            "client": "顧客",
-            "quantity": "数量",
-            "bid": "入札ID",
-            "created_at": "作成日時",
-            "record_type": "記録タイプ",
-            "record_status": "記録ステータス"
-         }
-      },
-      "tab": {
-         "record": "記録",
-         "ear_device": "耳装置"
-      },
-      "information": "情報",
-      "financial": "財務"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "製品",
-               "unit_cost": "単価",
-               "quantity": "数量",
-               "vendor": "販売元",
-               "stocked_at": "在庫場所"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "製品",
-               "serial_number": "シリアル番号",
-               "unit_cost": "単価",
-               "vendor": "販売元",
-               "stocked_at": "在庫日"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "製品",
-               "brand": "ブランド",
-               "categories": "カテゴリ",
-               "created_at": "作成日"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "製品",
-               "unit_cost": "単価",
-               "quantity": "数量",
-               "vendor": "販売元",
-               "stocked_at": "在庫場所"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "製品",
-               "unit_cost": "単価",
-               "quantity": "数量",
-               "vendor": "販売元",
-               "stocked_at": "在庫場所"
-            }
-         }
-      },
-      "information": "情報",
-      "financial": "財務",
-      "table": {
-         "headers": {
-            "product": "製品",
-            "unit_cost": "単価",
-            "vendor": "販売元",
-            "stocked_at": "在庫場所",
-            "available_quantity": "在庫数"
-         }
-      }
    },
    "form": {
       "required": "この項目は必須です",

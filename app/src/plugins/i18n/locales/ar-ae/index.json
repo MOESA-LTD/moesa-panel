@@ -47,7 +47,7 @@
       "branch": "فرع",
       "welcome": {
          "title": "مرحبا",
-         "text": "مرحبا بكم في تطبيق CRM لمساعدي السمع"
+         "text": "مرحبًا بك في لوحة الإدارة"
       },
       "please_dont_forget_to_update_your_password": "الرجاء عدم نسيان تحديث كلمة المرور الخاصة بك",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": "",
-      "device": "الجهاز",
-      "battery": "البطارية",
-      "spare_part": "الكمية المُستعارة",
-      "service": "الخدمة",
-      "sale": "المبيعات",
-      "trial": "التجربة",
-      "assemble": "التركيب",
-      "repair": "الصيانة",
-      "promotion": "العرض",
-      "cash": "النقدي",
-      "credit_card": "البطاقة الائتمانية",
-      "pending": "المعلقة",
-      "pending_service": "الخدمة المعلقة",
-      "client_holds_service_bid": "العميل ينتظر عرض الخدمة",
-      "client_approved_service_bid": "العميل وافق على عرض الخدمة",
-      "client_rejected_service_bid": "العميل رفض عرض الخدمة",
-      "done": "المرتبطة",
-      "approved": "الموافق عليها",
-      "rejected": "المُرفوضة",
-      "pending_client": "المعلقة على العميل",
-      "biopar": "بيوبار",
-      "hard": "صلب",
-      "micro": "ميكرو",
-      "full": "كامل",
-      "half": "نصف",
-      "supported": "المدعومة",
-      "prob": "الاحتمال",
-      "pcs": "القطع",
-      "kg": "الكيلوغرام",
-      "gr": "الغرام",
-      "lbs": "الرطل",
-      "L": "اللتر",
-      "mL": "المليليتر",
-      "m": "المتر",
-      "m²": "المتر المربع",
-      "cm": "السنتيمتر",
-      "in": "البوصة",
       "password": "كلمة المرور",
       "password_confirmation": "تأكيد كلمة المرور",
       "name": "الاسم",
@@ -146,99 +109,29 @@
       "phone": "رقم الهاتف",
       "country": "الدولة",
       "city": "المدينة",
-      "district": "المنطقة",
       "details": "التفاصيل",
       "remember_me": "تذكّرني",
       "code": "الكود",
       "company": "الشركة",
       "permission": "الإذن",
       "role": "الدور",
-      "client_id": "العميل",
-      "nationality": "الجنسية",
-      "national_id": "الهوية الوطنية",
-      "birth_date": "تاريخ الميلاد",
-      "gender": "الجنس",
-      "record_type": "نوع السجل",
-      "rear_ear_devices": "الجهاز في الأذن الخلفية",
-      "attributes": "الخصائص",
-      "rear_ear_device": "الجهاز في الأذن الخلفية",
-      "type": "النوع",
-      "model": "النموذج",
-      "speaker_power": "قوة المتكلم",
-      "side": "الجانب",
-      "left": "اليسار",
-      "right": "اليمين",
-      "ventilation": "التهوية",
-      "speaker_size": "حجم المتكلم",
-      "inner_ear_devices": "الجهاز في الأذن الداخلية",
-      "inner_ear_device": "الجهاز في الأذن الداخلية",
-      "has_bluetooth": "يحتوي على بلوتوث",
-      "has_button": "يحتوي على زر",
-      "stock_id": "المخزون",
-      "device_side": "جانب الجهاز",
-      "both": "الكلي",
-      "record_status": "حالة السجل",
-      "quantity": "الكمية",
-      "payment_type": "نوع الدفع",
-      "currency_code": "رمز العملة",
-      "repair_fee": "رسوم الصيانة",
-      "bid": "العرض",
-      "bid_discount": "خصم العرض",
-      "tax": "الضريبة",
-      "total_bid": "العرض الإجمالي",
-      "insurance_type": "نوع التأمين",
-      "retired": "الخريج",
-      "worker": "العامل",
       "none": "لا شيء",
-      "insurance_contribution": "المساهمة في التأمين",
-      "client_insurance_contribution": "مساهمة العميل في التأمين",
-      "brand": "العلامة التجارية",
-      "categories": "التصنيفات",
-      "product_id": "المنتج",
-      "vendor": "المورّد",
-      "stocked_at": "المخزون",
-      "barcode": "الباركود",
-      "serial_number": "رقم التسلسل",
       "currency": "العملة",
-      "unit_cost": "تكلفة الوحدة",
-      "unit_discount": "خصم الوحدة",
-      "unit_tax": "ضريبة الوحدة",
-      "total_cost": "الكلفة الإجمالية",
       "user": "المستخدم",
       "tenant": "الفرع",
       "branch": "الفرع",
       "tenant_user": "مستخدم الفرع",
       "tenant_owner": "المالك",
-      "address": "العنوان",
       "role_permission": "الدور والإذن",
       "user_role": "دور المستخدم",
-      "client": "العميل",
-      "product": "المنتج",
-      "product_category": "تصنيف المنتج",
-      "product_categories": "تصنيفات المنتج",
-      "stock": "المخزون",
-      "record": "السجل",
-      "client_address": "عنوان العميل",
       "audit_config": "التكوين المراجعة",
       "audit_log": "السجل",
-      "product_brands": "علامات تجارية المنتج",
-      "stock_view": "عرض المخزون",
-      "stock_vendor": "المورّد في المخزون",
-      "stock_vendor_stat": "إحصائيات المورّد في المخزون",
-      "stock_product_stat": "إحصائيات المنتج في المخزون",
-      "client_address_view": "عرض عنوان العميل",
       "audit_log_group": "مجموعة سجل المراجعة",
       "parent_id": "الوالد",
       "user_id": "المستخدم",
       "tenant_id": "الفرع",
       "role_id": "الدور",
       "permission_id": "الإذن",
-      "unit_type": "نوع الوحدة",
-      "category_id": "التصنيف",
-      "address_id": "العنوان",
-      "address_tenant_id": "عنوان الفرع",
-      "client_national_id": "رقم هوية العميل",
-      "client_tenant_id": "رقم فرع العميل",
       "correlation_id": "الارتباط",
       "request_id": "الطلب",
       "display_name": "الاسم",
@@ -277,17 +170,9 @@
          "last_half": "النصف الماضي",
          "last_year": "السنة الماضية",
          "total": "الإجمالي",
-         "client": {
-            "clients": "العملاء"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "كمية المبيعات",
-         "total_gain": "الإجمالي الربح",
-         "total_discount": "الخصم الإجمالي",
-         "total_tax": "الضريبة الإجمالية",
-         "title": "المنتجات الأكثر مبيعًا",
-         "empty": "لا توجد منتجات"
+         "branches": "الفروع",
+         "users": "المستخدمون",
+         "roles": "الأدوار"
       },
       "notifications": {
          "today": "اليوم",
@@ -302,77 +187,13 @@
             "deleted": "تم حذف {resource_name} بواسطة {user_name}",
             "unknown": "تم اكتشاف نشاط في {resource_name} بواسطة {user_name}"
          }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "الكمية الإجمالية المباعة",
-         "total_bid": "العرض الإجمالي",
-         "total_discount": "الخصم الإجمالي",
-         "total_tax": "الضريبة الإجمالية",
-         "title": "مبيعات حسب الفئة"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "المبيعات الأخيرة",
-            "see_all": "عرض الكل"
-         }
-      }
-   },
-   "client": {
-      "select_client": "اختر العميل",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "العميل",
-               "address": "العنوان",
-               "country": "الدولة",
-               "city": "المدينة",
-               "district": "المنطقة",
-               "created_at": "تم الإنشاء في"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "العميل",
-            "nationality": "الجنسية",
-            "national_id": "رقم الهوية",
-            "birth_date": "تاريخ الميلاد",
-            "email": "البريد الإلكتروني",
-            "phone": "رقم الهاتف",
-            "created_at": "تم الإنشاء في"
-         }
-      },
-      "general_info": "معلومات عامة",
-      "addresses": "العناوين",
-      "gender": {
-         "male": "ذكر",
-         "female": "أنثى"
-      }
-   },
-   "product": {
-      "select_product": "اختر المنتج",
-      "category": {
-         "select_category": "اختر الفئة"
       }
    },
    "input": {
       "select_or_write": "اختر أو اكتب"
    },
-   "address": {
-      "select_country": "اختر الدولة",
-      "table": {
-         "headers": {
-            "address_name": "اسم العنوان",
-            "country": "الدولة",
-            "city": "المدينة",
-            "district": "المنطقة",
-            "created_at": "تم الإنشاء في"
-         }
-      }
-   },
    "financial": {
-      "select_currency": "اختر العملة",
-      "select_unit_type": "اختر نوع الوحدة"
+      "select_currency": "اختر العملة"
    },
    "component": {
       "branch_picker": {
@@ -405,7 +226,8 @@
       }
    },
    "common": {
-      "select": "اختر"
+      "select": "اختر",
+      "select_country": "اختر الدولة"
    },
    "role": {
       "select_role": "اختر الدور",
@@ -419,10 +241,8 @@
    "router": {
       "action": {
          "open_in_window": "فتح في نافذة",
-         "manage-addresses": "إدارة العناوين",
          "close": "إغلاق",
          "go_to_profile": "الانتقال إلى الملف الشخصي",
-         "manage_addresses": "إدارة العناوين",
          "go_back": "العودة"
       },
       "error_occured": "حدث خطأ",
@@ -450,15 +270,6 @@
       "resend_code": "إعادة إرسال الشفرة",
       "back": "العودة",
       "invite": "دعوة"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "النموذج (ITE)",
-            "in_canal_(ITC)": "النموذج (ITC)",
-            "completely_in_canal_(CIC)": "النموذج (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "تم التراجع عن هذا التغيير بالفعل.",
@@ -596,10 +407,6 @@
          "update-profile": "تحديث الملف الشخصي",
          "update-password": "تحديث كلمة المرور",
          "logout": "تسجيل الخروج",
-         "address": "العنوان",
-         "address_list": "قائمة العناوين",
-         "address_edit": "تعديل العنوان",
-         "address_add": "إضافة عنوان",
          "register": "التسجيل",
          "login": "تسجيل الدخول",
          "enter-auth-otp-code": "أدخل رمز التحقق OTP",
@@ -613,31 +420,6 @@
          "add": "إضافة",
          "edit": "تعديل",
          "audit-logs": "سجلات المراجعة",
-         "client": "العميل",
-         "client_list": "قائمة العملاء",
-         "manage-client": "إدارة العميل",
-         "client-general-info": "معلومات العميل العامة",
-         "client-addresses": "عناوين العميل",
-         "client_address_list": "قائمة عناوين العميل",
-         "record": "السجل",
-         "record_list": "قائمة السجلات",
-         "record_add": "إضافة سجل",
-         "record_edit": "تعديل السجل",
-         "battery": "البطارية",
-         "battery_list": "قائمة البطاريات",
-         "device": "الجهاز",
-         "device_list": "قائمة الأجهزة",
-         "stock": "المخزون",
-         "stock_add": "إضافة مخزون",
-         "stock_edit": "تعديل المخزون",
-         "product": "المنتج",
-         "product_list": "قائمة المنتجات",
-         "product_add": "إضافة منتج",
-         "product_edit": "تعديل المنتج",
-         "service": "الخدمة",
-         "service_list": "قائمة الخدمات",
-         "spare-parts": "القطع الغيار",
-         "spare_part_list": "قائمة قطع الغيار",
          "branch_user_list": "قائمة مستخدمي الفرع",
          "audit_log_list": "قائمة سجلات المراجعة",
          "branch_role_list": "قائمة أدوار الفرع",
@@ -699,92 +481,6 @@
       "security": "الأمان",
       "owner_of": "المالك · {name}",
       "owner_above": "يستخدم هذا الفرع بصفته مالك فرع أعلى، ويُدار هناك."
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "المنتج",
-            "client": "العميل",
-            "quantity": "الكمية",
-            "bid": "العرض",
-            "created_at": "تم الإنشاء في",
-            "record_type": "نوع السجل",
-            "record_status": "حالة السجل"
-         }
-      },
-      "tab": {
-         "record": "السجل",
-         "ear_device": "جهاز الأذن"
-      },
-      "information": "المعلومات",
-      "financial": "المالية"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "المنتج",
-               "unit_cost": "تكلفة الوحدة",
-               "quantity": "الكمية",
-               "vendor": "المورِّد",
-               "stocked_at": "مستودع في"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "المنتج",
-               "serial_number": "رقم السريال",
-               "unit_cost": "تكلفة الوحدة",
-               "vendor": "المورِّد",
-               "stocked_at": "مستودع في"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "المنتج",
-               "brand": "العلامة التجارية",
-               "categories": "التصنيفات",
-               "created_at": "تم الإنشاء في"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "المنتج",
-               "unit_cost": "تكلفة الوحدة",
-               "quantity": "الكمية",
-               "vendor": "المورِّد",
-               "stocked_at": "مستودع في"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "المنتج",
-               "unit_cost": "تكلفة الوحدة",
-               "quantity": "الكمية",
-               "vendor": "المورِّد",
-               "stocked_at": "مستودع في"
-            }
-         }
-      },
-      "information": "معلومات",
-      "financial": "مالية",
-      "table": {
-         "headers": {
-            "product": "المنتج",
-            "unit_cost": "سعر الوحدة",
-            "vendor": "المورِّد",
-            "stocked_at": "مستودع",
-            "available_quantity": "الكمية المتاحة"
-         }
-      }
    },
    "form": {
       "required": "هذا الحقل مطلوب",

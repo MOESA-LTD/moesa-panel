@@ -13,7 +13,7 @@ const plan = (overrides: Partial<PlanWithTerms> = {}): PlanWithTerms => ({
    is_active: true,
    position: 20,
    created_at: null,
-   plan_module: [{ module_id: 'stock' }, { module_id: 'client' }],
+   plan_module: [{ module_id: 'audit_log' }],
    plan_limit: [{ limit_key: 'max_branches', value: 3 }],
    ...overrides
 });
@@ -21,7 +21,7 @@ const plan = (overrides: Partial<PlanWithTerms> = {}): PlanWithTerms => ({
 describe('plan form', () => {
    it('reads modules and limits, a missing limit as unlimited', () => {
       const values = toPlanFormValues(plan());
-      expect(values.modules).toEqual(['stock', 'client']);
+      expect(values.modules).toEqual(['audit_log']);
       expect(values.max_branches).toBe(3);
       expect(values.max_users).toBeNull();
    });
@@ -34,7 +34,7 @@ describe('plan form', () => {
 
    it('sends the modules and every limit, unlimited ones as null', () => {
       const payload = toPlanPayload(planSchema.parse(toPlanFormValues(plan({ description: '' }))));
-      expect(payload.moduleIds).toEqual(['stock', 'client']);
+      expect(payload.moduleIds).toEqual(['audit_log']);
       expect(payload.limits).toEqual({ max_branches: 3, max_users: null });
       expect(payload.plan).not.toHaveProperty('modules');
       expect(payload.plan.description).toBeNull();

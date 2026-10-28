@@ -47,8 +47,7 @@
       "select_or_write": "Seçin veya Yazın"
    },
    "financial": {
-      "select_currency": "Para Birimi Seçin",
-      "select_unit_type": "Birim Türünü Seçin"
+      "select_currency": "Para Birimi Seçin"
    },
    "component": {
       "branch_picker": {
@@ -81,7 +80,8 @@
       }
    },
    "common": {
-      "select": "Seç"
+      "select": "Seç",
+      "select_country": "Ülke Seçin"
    },
    "role": {
       "select_role": "Rola seçin",
@@ -95,9 +95,7 @@
    "router": {
       "action": {
          "open_in_window": "Yeni Pencerede Aç",
-         "manage-addresses": "Adresleri Yönet",
          "close": "Kapat",
-         "manage_addresses": "Adresleri Yönet",
          "go_back": "Geri Dön",
          "go_to_profile": "Profil'e Git"
       },
@@ -126,15 +124,6 @@
       "resend_code": "Kodu Tekrar Gönder",
       "back": "Geri",
       "invite": "Davet Et"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "Kulakta (ITE)",
-            "in_canal_(ITC)": "Kanal İçinde (ITC)",
-            "completely_in_canal_(CIC)": "Tamamen Kanal İçinde (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "Bu değişiklik zaten geri alınmış.",
@@ -300,7 +289,6 @@
          "update-profile": "Profil Güncelle",
          "update-password": "Şifre Güncelle",
          "logout": "Çıkış Yap",
-         "address": "Adres",
          "edit": "Düzenle",
          "add": "Ekle",
          "register": "Kayıt Ol",
@@ -314,34 +302,6 @@
          "user-general-info": "Kullanıcı Genel Bilgileri",
          "branch-role": "Şube Rolü",
          "audit-logs": "Günlükler",
-         "client": "Müşteri",
-         "manage-client": "Müşteri Yönetimi",
-         "client-general-info": "Müşteri Genel Bilgileri",
-         "client-addresses": "Müşteri Adresleri",
-         "record": "Kayıt",
-         "battery": "Batarya",
-         "device": "Cihaz",
-         "stock": "Stok",
-         "product": "Ürün",
-         "service": "Hizmet",
-         "spare-parts": "Yedek Parça",
-         "address_list": "Adres Listesi",
-         "address_edit": "Adres Düzenle",
-         "address_add": "Adres Ekle",
-         "client_list": "Müşteri Listesi",
-         "client_address_list": "Müşteri Adres Listesi",
-         "record_list": "Kayıt Listesi",
-         "record_add": "Kayıt Ekle",
-         "record_edit": "Kayıt Düzenle",
-         "battery_list": "Batarya Listesi",
-         "device_list": "Cihaz Listesi",
-         "stock_add": "Stok Ekle",
-         "stock_edit": "Stok Düzenle",
-         "product_list": "Ürün Listesi",
-         "product_add": "Ürün Ekle",
-         "product_edit": "Ürün Düzenle",
-         "service_list": "Hizmet Listesi",
-         "spare_part_list": "Yedek Parça Listesi",
          "branch_user_list": "Şube Kullanıcı Listesi",
          "audit_log_list": "Denetim Günlüğü Listesi",
          "branch_role_list": "Şube Rol Listesi",
@@ -360,43 +320,6 @@
    },
    "fields": {
       "": "Boş",
-      "device": "Cihaz",
-      "battery": "Batarya",
-      "spare_part": "Yedek Parça",
-      "service": "Servis",
-      "trial": "Deneme",
-      "sale": "Satış",
-      "assemble": "Montaj",
-      "repair": "Onarım",
-      "promotion": "Promosyon",
-      "cash": "Nakit",
-      "credit_card": "Kredi Kartı",
-      "pending": "Beklemede",
-      "pending_service": "Bekleyen Servis",
-      "client_holds_service_bid": "Müşteri Servis Teklifini Bekliyor",
-      "client_approved_service_bid": "Müşteri Servis Teklifini Onayladı",
-      "client_rejected_service_bid": "Müşteri Servis Teklifini Reddedi",
-      "done": "Tamamlandı",
-      "approved": "Onaylandı",
-      "rejected": "Reddedildi",
-      "pending_client": "Müşteriye Beklemede",
-      "biopar": "Biopar",
-      "hard": "Sert",
-      "micro": "Mikro",
-      "full": "Tam",
-      "half": "Yarı",
-      "supported": "Destekleniyor",
-      "prob": "Olabilir",
-      "pcs": "Adet",
-      "kg": "Kg",
-      "gr": "Gr",
-      "lbs": "Lb",
-      "L": "Litre",
-      "mL": "Mililitre",
-      "m": "Metre",
-      "m²": "Metrekare",
-      "cm": "Santimetre",
-      "in": "İnç",
       "password": "Şifre",
       "password_confirmation": "Şifre Onayı",
       "name": "Ad",
@@ -404,99 +327,29 @@
       "phone": "Telefon",
       "country": "Ülke",
       "city": "Şehir",
-      "district": "İlçe",
       "details": "Detaylar",
       "remember_me": "Beni Hatırla",
       "code": "Kod",
       "company": "Şirket",
       "permission": "İzin",
       "role": "Rol",
-      "client_id": "Müşteri",
-      "nationality": "Uyruk",
-      "national_id": "Vatandaşlık Numarası",
-      "birth_date": "Doğum Tarihi",
-      "gender": "Cinsiyet",
-      "rear_ear_devices": "Arka Kulak Cihazları",
-      "attributes": "Özellikler",
-      "rear_ear_device": "Arka Kulak Cihazı",
-      "type": "Tip",
-      "model": "Model",
-      "speaker_power": "Hoparlör Gücü",
-      "side": "Yan",
-      "left": "Sol",
-      "right": "Sağ",
-      "ventilation": "Ventilasyon",
-      "speaker_size": "Hoparlör Boyutu",
-      "inner_ear_devices": "İç Kulak Cihazları",
-      "inner_ear_device": "İç Kulak Cihazı",
-      "has_bluetooth": "Bluetooth Var mı?",
-      "has_button": "Düğme Var mı?",
-      "record_type": "Kayıt Tipi",
-      "stock_id": "Stok",
-      "device_side": "Cihaz Yanı",
-      "both": "Her iki",
-      "record_status": "Kayıt Durumu",
-      "quantity": "Miktar",
-      "payment_type": "Ödeme Türü",
-      "currency_code": "Para Birimi Kodu",
-      "repair_fee": "Onarım Ücreti",
-      "bid": "Teklif",
-      "bid_discount": "Teklif İndirimi",
-      "tax": "KDV",
-      "total_bid": "Toplam Teklif",
-      "insurance_type": "Sigorta Türü",
-      "retired": "Emekli",
-      "worker": "Çalışan",
-      "insurance_contribution": "Sigorta Katkısı",
-      "client_insurance_contribution": "Müşteri Sigorta Katkısı",
-      "brand": "Marka",
-      "categories": "Kategoriler",
-      "product_id": "Ürün",
-      "vendor": "Tedarikçi",
-      "stocked_at": "Stok Tarihi",
-      "barcode": "Barkod",
-      "serial_number": "Seri Numarası",
       "currency": "Para Birimi",
-      "unit_cost": "Birim Fiyatı",
-      "unit_discount": "Birim İndirimi",
-      "unit_tax": "Birim KDV",
-      "total_cost": "Toplam Fiyat",
       "none": "Hiçbiri",
       "tenant": "Şube",
       "branch": "Şube",
       "user": "Kullanıcı",
       "tenant_user": "Şube kullanıcısı",
       "tenant_owner": "Şube sahibi",
-      "address": "Adres",
       "role_permission": "Rol izni",
       "user_role": "Kullanıcı rolü",
-      "client": "Müşteri",
-      "product": "Ürün",
-      "product_category": "Ürün kategorisi",
-      "product_categories": "Ürün kategorileri",
-      "stock": "Stok",
-      "record": "Kayıt",
-      "client_address": "Müşteri adresi",
       "audit_config": "Audit yapılandırması",
       "audit_log": "Log",
-      "product_brands": "Ürün markaları",
-      "stock_view": "Stok görünümü",
-      "stock_vendor": "Stok satıcısı",
-      "stock_vendor_stat": "Stok satıcısı istatistiği",
-      "stock_product_stat": "Stok ürün istatistiği",
-      "client_address_view": "Müşteri adresi görünümü",
       "audit_log_group": "Audit log grubu",
       "parent_id": "Parent",
       "user_id": "Kullanıcı",
       "tenant_id": "Şube",
       "role_id": "Rol",
       "permission_id": "İzni",
-      "unit_type": "Birim türü",
-      "category_id": "Kategori",
-      "address_id": "Adres",
-      "address_tenant_id": "Adres şubesine ait",
-      "client_national_id": "Müşteri kimlik numarası",
-      "client_tenant_id": "Müşteri şubesine ait",
       "correlation_id": "Correlation",
       "request_id": "Request",
       "display_name": "İsim",
@@ -511,17 +364,9 @@
          "last_half": "Geçen Yarı Yıl",
          "last_year": "Geçen Yıl",
          "total": "Toplam",
-         "client": {
-            "clients": "Müşteriler"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "Satılan Miktar",
-         "total_gain": "Toplam Kazanç",
-         "total_discount": "Toplam İndirim",
-         "total_tax": "Toplam KDV",
-         "title": "En Çok Satılan Ürünler",
-         "empty": "Veri Yok"
+         "branches": "Şubeler",
+         "users": "Kullanıcılar",
+         "roles": "Roller"
       },
       "notifications": {
          "today": "Bugün",
@@ -535,31 +380,6 @@
             "updated": "{resource_name} {user_name} tarafından güncellendi",
             "deleted": "{resource_name} {user_name} tarafından silindi",
             "unknown": "{resource_name} tarafından {user_name} tarafından etkinlik algılandı"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "Toplam Satılan Miktar",
-         "total_bid": "Toplam Tutar",
-         "total_discount": "Toplam İndirim",
-         "total_tax": "Toplam KDV",
-         "title": "Kategoriye Göre Satışlar"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "Son Satışlar",
-            "see_all": "Tümünü Gör"
-         }
-      }
-   },
-   "address": {
-      "select_country": "Ülke Seçin",
-      "table": {
-         "headers": {
-            "address_name": "Adres Adı",
-            "country": "Ülke",
-            "city": "Şehir",
-            "district": "İlçe",
-            "created_at": "Oluşturulma Tarihi"
          }
       }
    },
@@ -587,44 +407,6 @@
       "deleted": "Silindi",
       "readed": "Okundu"
    },
-   "client": {
-      "select_client": "Müşteri Seç",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "Müşteri",
-               "address": "Adres",
-               "country": "Ülke",
-               "city": "Şehir",
-               "district": "İlçe",
-               "created_at": "Oluşturulma Tarihi"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "Müşteri",
-            "nationality": "Uyruk",
-            "national_id": "Milli Kimlik",
-            "birth_date": "Doğum Tarihi",
-            "email": "E-posta",
-            "phone": "Telefon",
-            "created_at": "Oluşturulma Tarihi"
-         }
-      },
-      "general_info": "Genel Bilgi",
-      "addresses": "Adresler",
-      "gender": {
-         "male": "Erkek",
-         "female": "Kadın"
-      }
-   },
-   "product": {
-      "select_product": "Ürün Seçin",
-      "category": {
-         "select_category": "Kategori Seçin"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -643,97 +425,11 @@
       "owner_of": "Sahip · {name}",
       "owner_above": "Bu şubeyi üstündeki bir şubenin sahibi olarak kullanıyor; orada yönetilir."
    },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "Ürün",
-            "client": "Müşteri",
-            "quantity": "Adet",
-            "bid": "Teklif",
-            "created_at": "Oluşturulma Tarihi",
-            "record_type": "Kayıt Türü",
-            "record_status": "Kayıt Durumu"
-         }
-      },
-      "tab": {
-         "record": "Kayıt",
-         "ear_device": "Kulağa Takılan Cihaz"
-      },
-      "information": "Bilgi",
-      "financial": "Finansal"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "Ürün",
-               "unit_cost": "Birim Fiyatı",
-               "quantity": "Miktar",
-               "vendor": "Tedarikçi",
-               "stocked_at": "Stok Tarihi"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "Ürün",
-               "serial_number": "Seri Numarası",
-               "unit_cost": "Birim Fiyatı",
-               "vendor": "Tedarikçi",
-               "stocked_at": "Stok Tarihi"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "Ürün",
-               "brand": "Marka",
-               "categories": "Kategoriler",
-               "created_at": "Oluşturulma Tarihi"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "Ürün",
-               "unit_cost": "Birim Fiyatı",
-               "quantity": "Miktar",
-               "vendor": "Tedarikçi",
-               "stocked_at": "Stok Tarihi"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "Ürün",
-               "unit_cost": "Birim Fiyatı",
-               "quantity": "Miktar",
-               "vendor": "Tedarikçi",
-               "stocked_at": "Stok Tarihi"
-            }
-         }
-      },
-      "information": "Bilgi",
-      "financial": "Finans",
-      "table": {
-         "headers": {
-            "product": "Ürün",
-            "unit_cost": "Birim Fiyatı",
-            "vendor": "Tedarikçi",
-            "stocked_at": "Stok Tarihi",
-            "available_quantity": "Mevcut Miktar"
-         }
-      }
-   },
    "auth": {
       "branch": "Şube",
       "welcome": {
          "title": "Hoş geldiniz",
-         "text": "Kulaklık CRM Uygulamasına Hoş Geldiniz"
+         "text": "Yönetim paneline hoş geldiniz"
       },
       "please_dont_forget_to_update_your_password": "Lütfen şifrenizi güncellemeyi unutmayınız",
       "confirm": {

@@ -47,7 +47,7 @@
       "branch": "Branch",
       "welcome": {
          "title": "Welcome",
-         "text": "Welcome to the Hearing Aid CRM Application"
+         "text": "Welcome to the management panel"
       },
       "please_dont_forget_to_update_your_password": "Please do not forget to update your password",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": "Please select an option",
-      "device": "Device",
-      "battery": "Battery",
-      "spare_part": "Spare Part",
-      "service": "Service",
-      "trial": "Trial",
-      "sale": "Sale",
-      "assemble": "Assembly",
-      "repair": "Repair",
-      "promotion": "Promotion",
-      "cash": "Cash",
-      "credit_card": "Credit Card",
-      "pending": "Pending",
-      "pending_service": "Pending Service",
-      "client_holds_service_bid": "Client Holds Service Bid",
-      "client_approved_service_bid": "Client Approved Service Bid",
-      "client_rejected_service_bid": "Client Rejected Service Bid",
-      "done": "Completed",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "pending_client": "Pending Client Approval",
-      "biopar": "Biopar",
-      "hard": "Hard",
-      "micro": "Micro",
-      "full": "Full",
-      "half": "Half",
-      "supported": "Supported",
-      "prob": "Probability",
-      "pcs": "Pieces",
-      "kg": "Kilograms",
-      "gr": "Grams",
-      "lbs": "Pounds",
-      "L": "Liters",
-      "mL": "Milliliters",
-      "m": "Meters",
-      "m²": "Square Meters",
-      "cm": "Centimeters",
-      "in": "Inches",
       "password": "Password",
       "password_confirmation": "Password Confirmation",
       "name": "Name",
@@ -146,99 +109,29 @@
       "phone": "Phone",
       "country": "Country",
       "city": "City",
-      "district": "District",
       "details": "Details",
       "remember_me": "Remember Me",
       "code": "Code",
       "company": "Company",
       "permission": "Permission",
       "role": "Role",
-      "client_id": "Client",
-      "nationality": "Nationality",
-      "national_id": "National ID",
-      "birth_date": "Birth Date",
-      "gender": "Gender",
-      "rear_ear_devices": "Rear Ear Devices",
-      "attributes": "Attributes",
-      "rear_ear_device": "Rear Ear Device",
-      "type": "Type",
-      "model": "Model",
-      "speaker_power": "Speaker Power",
-      "side": "Side",
-      "left": "Left",
-      "right": "Right",
-      "ventilation": "Ventilation",
-      "speaker_size": "Speaker Size",
-      "inner_ear_devices": "Inner Ear Devices",
-      "inner_ear_device": "Inner Ear Device",
-      "has_bluetooth": "Bluetooth Enabled",
-      "has_button": "Button Enabled",
-      "record_type": "Record Type",
-      "stock_id": "Stock",
-      "device_side": "Device Side",
-      "both": "Both",
-      "record_status": "Record Status",
-      "quantity": "Quantity",
-      "payment_type": "Payment Type",
-      "currency_code": "Currency Code",
-      "repair_fee": "Repair Fee",
-      "bid": "Bid",
-      "bid_discount": "Bid Discount",
-      "tax": "Tax",
-      "total_bid": "Total Bid",
-      "insurance_type": "Insurance Type",
-      "retired": "Retired",
-      "worker": "Worker",
-      "insurance_contribution": "Insurance Contribution",
-      "client_insurance_contribution": "Client Insurance Contribution",
-      "brand": "Brand",
-      "categories": "Categories",
-      "product_id": "Product",
-      "vendor": "Vendor",
-      "stocked_at": "Stocked At",
-      "barcode": "Barcode",
-      "serial_number": "Serial Number",
       "currency": "Currency",
-      "unit_cost": "Unit Cost",
-      "unit_discount": "Unit Discount",
-      "unit_tax": "Unit Tax",
-      "total_cost": "Total Cost",
       "none": "None",
       "tenant": "Branch",
       "branch": "Branch",
       "user": "User",
       "tenant_user": "Branch User",
       "tenant_owner": "Branch Owner",
-      "address": "Address",
       "role_permission": "Role Permission",
       "user_role": "User Role",
-      "client": "Client",
-      "product": "Product",
-      "product_category": "Product Category",
-      "product_categories": "Product Categories",
-      "stock": "Stock",
-      "record": "Record",
-      "client_address": "Client Address",
       "audit_config": "Audit Config",
       "audit_log": "Log",
-      "product_brands": "Product Brands",
-      "stock_view": "Stock View",
-      "stock_vendor": "Stock Vendor",
-      "stock_vendor_stat": "Stock Vendor Stat",
-      "stock_product_stat": "Stock Product Stat",
-      "client_address_view": "Client Address View",
       "audit_log_group": "Audit Log Group",
       "parent_id": "Parent",
       "user_id": "User",
       "tenant_id": "Tenant",
       "role_id": "Role",
       "permission_id": "Permission",
-      "unit_type": "Unit Type",
-      "category_id": "Category",
-      "address_id": "Address",
-      "address_tenant_id": "Address Tenant",
-      "client_national_id": "Client National",
-      "client_tenant_id": "Client Tenant",
       "correlation_id": "Correlation",
       "request_id": "Request",
       "display_name": "Name",
@@ -249,8 +142,7 @@
       "select_or_write": "Select or Write"
    },
    "financial": {
-      "select_currency": "Select Currency",
-      "select_unit_type": "Select Unit Type"
+      "select_currency": "Select Currency"
    },
    "component": {
       "branch_picker": {
@@ -283,7 +175,8 @@
       }
    },
    "common": {
-      "select": "Select"
+      "select": "Select",
+      "select_country": "Select Country"
    },
    "role": {
       "select_role": "Select Role",
@@ -297,9 +190,7 @@
    "router": {
       "action": {
          "open_in_window": "Open in New Window",
-         "manage-addresses": "Manage Addresses",
          "close": "Close",
-         "manage_addresses": "Manage Addresses",
          "go_back": "Go Back",
          "go_to_profile": "Go to Profile"
       },
@@ -328,15 +219,6 @@
       "resend_code": "Resend Code",
       "back": "Back",
       "invite": "Invite"
-   },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "In-the-Ear (ITE)",
-            "in_canal_(ITC)": "In-the-Canal (ITC)",
-            "completely_in_canal_(CIC)": "Completely-in-Canal (CIC)"
-         }
-      }
    },
    "errors": {
       "audit_already_reverted": "This change has already been reverted.",
@@ -502,7 +384,6 @@
          "update-profile": "Update Profile",
          "update-password": "Update Password",
          "logout": "Logout",
-         "address": "Address",
          "edit": "Edit",
          "add": "Add",
          "register": "Register",
@@ -516,34 +397,6 @@
          "user-general-info": "User General Information",
          "branch-role": "Branch Role",
          "audit-logs": "Logs",
-         "client": "Client",
-         "manage-client": "Manage Client",
-         "client-general-info": "Client General Information",
-         "client-addresses": "Client Addresses",
-         "record": "Record",
-         "battery": "Battery",
-         "device": "Device",
-         "stock": "Stock",
-         "product": "Product",
-         "service": "Service",
-         "spare-parts": "Spare Parts",
-         "address_list": "Address List",
-         "address_edit": "Edit Address",
-         "address_add": "Add Address",
-         "client_list": "Client List",
-         "client_address_list": "Client Addresses",
-         "record_list": "Record List",
-         "record_add": "Add Record",
-         "record_edit": "Edit Record",
-         "battery_list": "Battery List",
-         "device_list": "Device List",
-         "stock_add": "Add Stock",
-         "stock_edit": "Edit Stock",
-         "product_list": "Product List",
-         "product_add": "Add Product",
-         "product_edit": "Edit Product",
-         "service_list": "Service List",
-         "spare_part_list": "Spare Part List",
          "branch_user_list": "Branch User List",
          "audit_log_list": "Audit Log List",
          "branch_role_list": "Branch Role List",
@@ -568,17 +421,9 @@
          "last_half": "Last Half",
          "last_year": "Last Year",
          "total": "Total",
-         "client": {
-            "clients": "Clients"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "Sold Quantity",
-         "total_gain": "Total Gain",
-         "total_discount": "Total Discount",
-         "total_tax": "Total Tax",
-         "title": "Best Selling Products",
-         "empty": "No products found"
+         "branches": "Branches",
+         "users": "Users",
+         "roles": "Roles"
       },
       "notifications": {
          "today": "Today",
@@ -592,31 +437,6 @@
             "updated": "a {resource_name} updated by {user_name}",
             "deleted": "a {resource_name} deleted by {user_name}",
             "unknown": "activity detected in {resource_name} by {user_name}"
-         }
-      },
-      "sales_by_category": {
-         "total_quantity_sold": "Total Quantity Sold",
-         "total_bid": "Total Bid",
-         "total_discount": "Total Discount",
-         "total_tax": "Total Tax",
-         "title": "Sales by Category"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "Recent Sales",
-            "see_all": "See All"
-         }
-      }
-   },
-   "address": {
-      "select_country": "Select Country",
-      "table": {
-         "headers": {
-            "address_name": "Address Name",
-            "country": "Country",
-            "city": "City",
-            "district": "District",
-            "created_at": "Created At"
          }
       }
    },
@@ -644,44 +464,6 @@
       "deleted": "Deleted",
       "readed": "Readed"
    },
-   "client": {
-      "select_client": "Select Client",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "Client",
-               "address": "Address",
-               "country": "Country",
-               "city": "City",
-               "district": "District",
-               "created_at": "Created At"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "Client",
-            "nationality": "Nationality",
-            "national_id": "National ID",
-            "birth_date": "Birth Date",
-            "email": "Email",
-            "phone": "Phone",
-            "created_at": "Created At"
-         }
-      },
-      "general_info": "General Information",
-      "addresses": "Addresses",
-      "gender": {
-         "male": "Male",
-         "female": "Female"
-      }
-   },
-   "product": {
-      "select_product": "Select Product",
-      "category": {
-         "select_category": "Select Category"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -699,92 +481,6 @@
       "security": "Security",
       "owner_of": "Owner · {name}",
       "owner_above": "Uses this branch as the owner of a branch above it, and is managed there."
-   },
-   "record": {
-      "table": {
-         "headers": {
-            "product": "Product",
-            "client": "Client",
-            "quantity": "Quantity",
-            "bid": "Bid",
-            "created_at": "Created At",
-            "record_type": "Record Type",
-            "record_status": "Record Status"
-         }
-      },
-      "tab": {
-         "record": "Record",
-         "ear_device": "Ear Device"
-      },
-      "information": "Information",
-      "financial": "Financial"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "Product",
-               "unit_cost": "Unit Cost",
-               "quantity": "Quantity",
-               "vendor": "Vendor",
-               "stocked_at": "Stocked At"
-            }
-         }
-      },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "Product",
-               "serial_number": "Serial Number",
-               "unit_cost": "Unit Cost",
-               "vendor": "Vendor",
-               "stocked_at": "Stocked At"
-            }
-         }
-      },
-      "product": {
-         "table": {
-            "headers": {
-               "product": "Product",
-               "brand": "Brand",
-               "categories": "Categories",
-               "created_at": "Created At"
-            }
-         }
-      },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "Product",
-               "unit_cost": "Unit Cost",
-               "quantity": "Quantity",
-               "vendor": "Vendor",
-               "stocked_at": "Stocked At"
-            }
-         }
-      },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "Product",
-               "unit_cost": "Unit Cost",
-               "quantity": "Quantity",
-               "vendor": "Vendor",
-               "stocked_at": "Stocked At"
-            }
-         }
-      },
-      "information": "Information",
-      "financial": "Financial",
-      "table": {
-         "headers": {
-            "product": "Product",
-            "unit_cost": "Unit Cost",
-            "vendor": "Vendor",
-            "stocked_at": "Stocked At",
-            "available_quantity": "Available Quantity"
-         }
-      }
    },
    "form": {
       "required": "This field is required",

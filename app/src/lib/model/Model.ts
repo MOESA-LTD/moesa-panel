@@ -13,10 +13,10 @@
  * re-initialised after the constructor and wipe the copied value.
  *
  * @example
- * export interface ClientModel extends Omit<ClientDto, 'address'> {}
- * export class ClientModel extends Model<ClientDto> {
+ * export interface PersonModel extends Omit<PersonDto, 'address'> {}
+ * export class PersonModel extends Model<PersonDto> {
  *    declare address?: AddressModel[];
- *    constructor(dto: ClientDto) {
+ *    constructor(dto: PersonDto) {
  *       super(dto);
  *       this.address = toModel(AddressModel, dto.address);
  *    }
