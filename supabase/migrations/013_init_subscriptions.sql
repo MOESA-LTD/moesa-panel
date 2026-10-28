@@ -516,3 +516,114 @@ $$;
 
 CREATE OR REPLACE TRIGGER check_user_limit BEFORE INSERT ON public.tenant_user FOR EACH ROW
 EXECUTE FUNCTION private.check_user_limit ();
+
+-- The super admin's panel.
+
+-- A plan with its modules and limits, in one transaction (the policies allow it to the super admin
+-- only). `limits` maps a limit to its value; a limit left out or null is unlimited. Making a plan
+-- the default takes it from the previous default.
+CREATE OR REPLACE FUNCTION public.save_plan (plan_data JSONB, module_ids TEXT[] DEFAULT '{}', limits JSONB DEFAULT '{}') RETURNS UUID LANGUAGE plpgsql SECURITY INVOKER
+SET
+   search_path = '' AS $$
+DECLARE
+    saved_id UUID := (plan_data ->> 'id')::UUID;
+    make_default BOOLEAN := coalesce((plan_data ->> 'is_default')::BOOLEAN, FALSE);
+BEGIN
+    IF make_default THEN
+        UPDATE public.plan p SET is_default = FALSE WHERE p.is_default AND p.id IS DISTINCT FROM saved_id;
+    END IF;
+
+    IF saved_id IS NULL THEN
+        INSERT INTO public.plan (display_name, description, price, currency, billing_period, trial_days, is_default, is_active, position)
+        VALUES (
+            plan_data ->> 'display_name',
+            plan_data ->> 'description',
+            (plan_data ->> 'price')::NUMERIC,
+            plan_data ->> 'currency',
+            plan_data ->> 'billing_period',
+            coalesce((plan_data ->> 'trial_days')::INT, 0),
+            make_default,
+            coalesce((plan_data ->> 'is_active')::BOOLEAN, TRUE),
+            coalesce((plan_data ->> 'position')::INT, 0)
+        )
+        RETURNING id INTO saved_id;
+    ELSE
+        UPDATE public.plan p SET
+            display_name = plan_data ->> 'display_name',
+            description = plan_data ->> 'description',
+            price = (plan_data ->> 'price')::NUMERIC,
+            currency = plan_data ->> 'currency',
+            billing_period = plan_data ->> 'billing_period',
+            trial_days = coalesce((plan_data ->> 'trial_days')::INT, 0),
+            is_default = make_default,
+            is_active = coalesce((plan_data ->> 'is_active')::BOOLEAN, TRUE),
+            position = coalesce((plan_data ->> 'position')::INT, 0)
+        WHERE p.id = saved_id;
+
+        IF NOT FOUND THEN
+            RAISE SQLSTATE 'PGRST' USING
+                MESSAGE = json_build_object('code', 'P0002', 'message', 'plan_not_found')::TEXT,
+                DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
+        END IF;
+    END IF;
+
+    DELETE FROM public.plan_module pm WHERE pm.plan_id = saved_id AND NOT (pm.module_id = ANY (module_ids));
+    INSERT INTO public.plan_module (plan_id, module_id)
+    SELECT saved_id, item.id FROM unnest(module_ids) AS item (id)
+    ON CONFLICT DO NOTHING;
+
+    DELETE FROM public.plan_limit pl
+    WHERE pl.plan_id = saved_id AND (limits -> pl.limit_key IS NULL OR jsonb_typeof(limits -> pl.limit_key) = 'null');
+    INSERT INTO public.plan_limit (plan_id, limit_key, value)
+    SELECT saved_id, item.key, item.value::INT
+    FROM jsonb_each_text(limits) AS item
+    WHERE item.value IS NOT NULL
+    ON CONFLICT (plan_id, limit_key) DO UPDATE SET value = EXCLUDED.value;
+
+    RETURN saved_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.save_plan (JSONB, TEXT[], JSONB) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.save_plan (JSONB, TEXT[], JSONB) TO authenticated;
+
+-- Every company with the subscription in force, its plan and its usage, for the super admin (no
+-- rows for anyone else).
+CREATE OR REPLACE VIEW public.company_subscription
+WITH
+   (security_invoker = TRUE) AS
+SELECT
+   t.id,
+   t.display_name,
+   t.email,
+   t.created_at,
+   s.id AS subscription_id,
+   s.plan_id,
+   p.display_name AS plan_name,
+   CASE
+      WHEN s.id IS NULL THEN 'none'
+      ELSE public.status (s)
+   END AS status,
+   s.starts_at,
+   s.ends_at,
+   s.canceled_at,
+   s.is_trial,
+   u.branches,
+   u.users
+FROM
+   public.tenant t
+   CROSS JOIN LATERAL private.entitlements (ARRAY[t.id]) e
+   LEFT JOIN public.subscription s ON s.id = e.subscription_id
+   LEFT JOIN public.plan p ON p.id = e.plan_id
+   CROSS JOIN LATERAL private.company_usage (t.id) u
+WHERE
+   t.parent_id IS NULL
+   AND (
+      SELECT
+         private.check_super_admin ()
+   );
+
+REVOKE ALL ON public.company_subscription FROM anon;
+
+GRANT SELECT ON public.company_subscription TO authenticated;

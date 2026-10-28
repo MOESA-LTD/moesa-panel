@@ -39,6 +39,15 @@ export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to) => 
       throw Object.assign(new AuthSessionMissingError(), { status: 401 });
    }
 
+   if (to.matched.some((record) => record.meta.superAdmin) && !authStore.isSuperAdmin) {
+      throw new CustomAuthError(
+         i18n.t('errors.insufficient_permission'),
+         i18n.t('errors.AuthInvalidCredentialsError'),
+         403,
+         undefined
+      );
+   }
+
    // A page of a module outside the company's plan shows what it would take instead.
    const lockedModule = to.matched
       .flatMap((record) => record.meta.requiredPermissions ?? [])

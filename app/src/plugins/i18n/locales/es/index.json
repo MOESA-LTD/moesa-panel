@@ -151,7 +151,13 @@
          "branch_tree_list": "Lista de sucursales",
          "branch_tree_add": "Nueva sucursal",
          "subscription": "Suscripción",
-         "module_locked": "Módulo bloqueado"
+         "module_locked": "Módulo bloqueado",
+         "admin": "Administración",
+         "admin_subscriptions": "Suscripciones",
+         "admin_subscription_list": "Lista de suscripciones",
+         "admin_subscription_manage": "Gestionar suscripción",
+         "admin_plans": "Planes",
+         "admin_plan_list": "Lista de planes"
       }
    },
    "auth": {
@@ -832,6 +838,49 @@
          "see_subscription": "Ver la suscripción",
          "menu": "No está en su plan",
          "permission": "No está en su plan: no tiene efecto hasta que lo esté."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Precio",
+         "trial_days": "Días de prueba",
+         "state": "Estado",
+         "position": "Orden",
+         "default": "Predeterminado",
+         "active": "Ofrecido",
+         "inactive": "No ofrecido",
+         "period": {
+            "month": "mes",
+            "year": "año"
+         },
+         "description": "Descripción",
+         "pricing": "Precios",
+         "billing_period": "Periodo de facturación",
+         "unlimited": "Ilimitado",
+         "core_hint": "{modules} se incluyen en todos los planes.",
+         "offer": "Oferta",
+         "active_hint": "Ofrecido (un plan inactivo se mantiene en las empresas que lo tienen)",
+         "default_hint": "Plan predeterminado de las empresas nuevas (con los días de prueba)"
+      },
+      "subscription": {
+         "company": "Empresa",
+         "plan": "Plan",
+         "status": "Estado",
+         "manage": "Gestionar",
+         "usage": "Uso",
+         "extend_month": "Ampliar 1 mes",
+         "extend_year": "Ampliar 1 año",
+         "remove_end": "Quitar la fecha de fin",
+         "cancel": "Cancelar suscripción",
+         "cancel_question": "¿Cancelar la suscripción de {company}? La empresa pasa a solo lectura de inmediato.",
+         "resume": "Deshacer la cancelación",
+         "start": "Iniciar una suscripción",
+         "is_trial": "Prueba",
+         "note": "Nota",
+         "start_hint": "La nueva suscripción se guarda con el historial y rige desde su inicio (la última iniciada es la vigente).",
+         "history": "Historial",
+         "ends_after_start": "El fin debe ser posterior al inicio.",
+         "replaced": "Reemplazada"
       }
    }
 }

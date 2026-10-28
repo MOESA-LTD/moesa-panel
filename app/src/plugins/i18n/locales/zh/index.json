@@ -544,7 +544,13 @@
          "branch_tree_list": "分店列表",
          "branch_tree_add": "新分店",
          "subscription": "订阅",
-         "module_locked": "已锁定的模块"
+         "module_locked": "已锁定的模块",
+         "admin": "管理",
+         "admin_subscriptions": "订阅",
+         "admin_subscription_list": "订阅列表",
+         "admin_subscription_manage": "管理订阅",
+         "admin_plans": "套餐",
+         "admin_plan_list": "套餐列表"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "查看订阅",
          "menu": "不在您的套餐中",
          "permission": "不在您的套餐中：加入套餐前不会生效。"
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "价格",
+         "trial_days": "试用天数",
+         "state": "状态",
+         "position": "排序",
+         "default": "默认",
+         "active": "在售",
+         "inactive": "停售",
+         "period": {
+            "month": "月",
+            "year": "年"
+         },
+         "description": "描述",
+         "pricing": "定价",
+         "billing_period": "计费周期",
+         "unlimited": "不限",
+         "core_hint": "所有套餐均包含{modules}。",
+         "offer": "销售",
+         "active_hint": "在售（停售的套餐仍保留在使用它的公司）",
+         "default_hint": "新公司的默认套餐（含试用天数）"
+      },
+      "subscription": {
+         "company": "公司",
+         "plan": "套餐",
+         "status": "状态",
+         "manage": "管理",
+         "usage": "使用情况",
+         "extend_month": "延长 1 个月",
+         "extend_year": "延长 1 年",
+         "remove_end": "取消结束日期",
+         "cancel": "取消订阅",
+         "cancel_question": "取消 {company} 的订阅？公司将立即变为只读。",
+         "resume": "撤销取消",
+         "start": "开始订阅",
+         "is_trial": "试用",
+         "note": "备注",
+         "start_hint": "新订阅与历史记录一起保存，并从开始时间起生效（以最近开始的为准）。",
+         "history": "历史",
+         "ends_after_start": "结束时间必须晚于开始时间。",
+         "replaced": "已替换"
       }
    }
 }

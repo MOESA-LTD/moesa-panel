@@ -342,7 +342,13 @@
          "branch_tree_list": "Şube Listesi",
          "branch_tree_add": "Yeni Şube",
          "subscription": "Abonelik",
-         "module_locked": "Kilitli modül"
+         "module_locked": "Kilitli modül",
+         "admin": "Yönetim",
+         "admin_subscriptions": "Abonelikler",
+         "admin_subscription_list": "Abonelik Listesi",
+         "admin_subscription_manage": "Aboneliği Yönet",
+         "admin_plans": "Planlar",
+         "admin_plan_list": "Plan Listesi"
       }
    },
    "fields": {
@@ -832,6 +838,49 @@
          "see_subscription": "Aboneliği görüntüle",
          "menu": "Planınızda yok",
          "permission": "Planınızda yok: plana eklenene kadar etkisi olmaz."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Fiyat",
+         "trial_days": "Deneme günü",
+         "state": "Durum",
+         "position": "Sıra",
+         "default": "Varsayılan",
+         "active": "Sunuluyor",
+         "inactive": "Sunulmuyor",
+         "period": {
+            "month": "ay",
+            "year": "yıl"
+         },
+         "description": "Açıklama",
+         "pricing": "Fiyatlandırma",
+         "billing_period": "Faturalama dönemi",
+         "unlimited": "Sınırsız",
+         "core_hint": "{modules} her planda bulunur.",
+         "offer": "Sunum",
+         "active_hint": "Sunuluyor (pasif plan, üzerindeki firmalarda kalmaya devam eder)",
+         "default_hint": "Yeni firmaların varsayılan planı (deneme günleriyle)"
+      },
+      "subscription": {
+         "company": "Firma",
+         "plan": "Plan",
+         "status": "Durum",
+         "manage": "Yönet",
+         "usage": "Kullanım",
+         "extend_month": "1 ay uzat",
+         "extend_year": "1 yıl uzat",
+         "remove_end": "Bitiş tarihini kaldır",
+         "cancel": "Aboneliği iptal et",
+         "cancel_question": "{company} aboneliği iptal edilsin mi? Firma hemen salt okunur olur.",
+         "resume": "İptali geri al",
+         "start": "Abonelik başlat",
+         "is_trial": "Deneme",
+         "note": "Not",
+         "start_hint": "Yeni abonelik geçmişle birlikte saklanır ve başlangıcından itibaren geçerli olur (en son başlayan geçerlidir).",
+         "history": "Geçmiş",
+         "ends_after_start": "Bitiş, başlangıçtan sonra olmalı.",
+         "replaced": "Değiştirildi"
       }
    }
 }

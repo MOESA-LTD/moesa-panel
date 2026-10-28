@@ -638,7 +638,13 @@
          "branch_tree_list": "Elenco filiali",
          "branch_tree_add": "Nuova filiale",
          "subscription": "Abbonamento",
-         "module_locked": "Modulo bloccato"
+         "module_locked": "Modulo bloccato",
+         "admin": "Amministrazione",
+         "admin_subscriptions": "Abbonamenti",
+         "admin_subscription_list": "Elenco abbonamenti",
+         "admin_subscription_manage": "Gestisci abbonamento",
+         "admin_plans": "Piani",
+         "admin_plan_list": "Elenco piani"
       }
    },
    "account": {
@@ -832,6 +838,49 @@
          "see_subscription": "Vedi l'abbonamento",
          "menu": "Non nel tuo piano",
          "permission": "Non nel tuo piano: non ha effetto finché non lo è."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Prezzo",
+         "trial_days": "Giorni di prova",
+         "state": "Stato",
+         "position": "Ordine",
+         "default": "Predefinito",
+         "active": "Offerto",
+         "inactive": "Non offerto",
+         "period": {
+            "month": "mese",
+            "year": "anno"
+         },
+         "description": "Descrizione",
+         "pricing": "Prezzi",
+         "billing_period": "Periodo di fatturazione",
+         "unlimited": "Illimitato",
+         "core_hint": "{modules} sono inclusi in ogni piano.",
+         "offer": "Offerta",
+         "active_hint": "Offerto (un piano inattivo resta alle aziende che lo hanno)",
+         "default_hint": "Piano predefinito delle nuove aziende (con i giorni di prova)"
+      },
+      "subscription": {
+         "company": "Azienda",
+         "plan": "Piano",
+         "status": "Stato",
+         "manage": "Gestisci",
+         "usage": "Utilizzo",
+         "extend_month": "Prolunga di 1 mese",
+         "extend_year": "Prolunga di 1 anno",
+         "remove_end": "Rimuovi la data di fine",
+         "cancel": "Annulla abbonamento",
+         "cancel_question": "Annullare l'abbonamento di {company}? L'azienda passa subito in sola lettura.",
+         "resume": "Revoca l'annullamento",
+         "start": "Avvia un abbonamento",
+         "is_trial": "Prova",
+         "note": "Nota",
+         "start_hint": "Il nuovo abbonamento è conservato nello storico ed è valido dal suo inizio (vale l'ultimo iniziato).",
+         "history": "Storico",
+         "ends_after_start": "La fine deve essere successiva all'inizio.",
+         "replaced": "Sostituito"
       }
    }
 }

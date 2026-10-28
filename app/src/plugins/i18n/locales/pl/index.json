@@ -544,7 +544,13 @@
          "branch_tree_list": "Lista oddziałów",
          "branch_tree_add": "Nowy oddział",
          "subscription": "Subskrypcja",
-         "module_locked": "Zablokowany moduł"
+         "module_locked": "Zablokowany moduł",
+         "admin": "Administracja",
+         "admin_subscriptions": "Subskrypcje",
+         "admin_subscription_list": "Lista subskrypcji",
+         "admin_subscription_manage": "Zarządzaj subskrypcją",
+         "admin_plans": "Plany",
+         "admin_plan_list": "Lista planów"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "Zobacz subskrypcję",
          "menu": "Nie w Twoim planie",
          "permission": "Nie w Twoim planie: nie działa, dopóki nie zostanie dodany."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Cena",
+         "trial_days": "Dni próbne",
+         "state": "Stan",
+         "position": "Kolejność",
+         "default": "Domyślny",
+         "active": "Oferowany",
+         "inactive": "Nieoferowany",
+         "period": {
+            "month": "miesiąc",
+            "year": "rok"
+         },
+         "description": "Opis",
+         "pricing": "Cennik",
+         "billing_period": "Okres rozliczeniowy",
+         "unlimited": "Bez limitu",
+         "core_hint": "{modules} są w każdym planie.",
+         "offer": "Oferta",
+         "active_hint": "Oferowany (nieaktywny plan zostaje u firm, które go mają)",
+         "default_hint": "Domyślny plan nowych firm (z dniami próbnymi)"
+      },
+      "subscription": {
+         "company": "Firma",
+         "plan": "Plan",
+         "status": "Status",
+         "manage": "Zarządzaj",
+         "usage": "Wykorzystanie",
+         "extend_month": "Przedłuż o 1 miesiąc",
+         "extend_year": "Przedłuż o 1 rok",
+         "remove_end": "Usuń datę końca",
+         "cancel": "Anuluj subskrypcję",
+         "cancel_question": "Anulować subskrypcję firmy {company}? Firma od razu przejdzie w tryb tylko do odczytu.",
+         "resume": "Cofnij anulowanie",
+         "start": "Rozpocznij subskrypcję",
+         "is_trial": "Okres próbny",
+         "note": "Notatka",
+         "start_hint": "Nowa subskrypcja zostaje zapisana w historii i obowiązuje od początku (obowiązuje ostatnio rozpoczęta).",
+         "history": "Historia",
+         "ends_after_start": "Koniec musi być po początku.",
+         "replaced": "Zastąpiona"
       }
    }
 }

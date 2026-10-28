@@ -586,7 +586,13 @@
          "branch_tree_list": "",
          "branch_tree_add": "",
          "subscription": "",
-         "module_locked": ""
+         "module_locked": "",
+         "admin": "",
+         "admin_subscriptions": "",
+         "admin_subscription_list": "",
+         "admin_subscription_manage": "",
+         "admin_plans": "",
+         "admin_plan_list": ""
       }
    },
    "account": {
@@ -775,6 +781,49 @@
          "see_subscription": "",
          "menu": "",
          "permission": ""
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "",
+         "trial_days": "",
+         "state": "",
+         "position": "",
+         "default": "",
+         "active": "",
+         "inactive": "",
+         "period": {
+            "month": "",
+            "year": ""
+         },
+         "description": "",
+         "pricing": "",
+         "billing_period": "",
+         "unlimited": "",
+         "core_hint": "",
+         "offer": "",
+         "active_hint": "",
+         "default_hint": ""
+      },
+      "subscription": {
+         "company": "",
+         "plan": "",
+         "status": "",
+         "manage": "",
+         "usage": "",
+         "extend_month": "",
+         "extend_year": "",
+         "remove_end": "",
+         "cancel": "",
+         "cancel_question": "",
+         "resume": "",
+         "start": "",
+         "is_trial": "",
+         "note": "",
+         "start_hint": "",
+         "history": "",
+         "ends_after_start": "",
+         "replaced": ""
       }
    }
 }

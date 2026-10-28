@@ -638,7 +638,13 @@
          "branch_tree_list": "قائمة الفروع",
          "branch_tree_add": "فرع جديد",
          "subscription": "الاشتراك",
-         "module_locked": "وحدة مقفلة"
+         "module_locked": "وحدة مقفلة",
+         "admin": "الإدارة",
+         "admin_subscriptions": "الاشتراكات",
+         "admin_subscription_list": "قائمة الاشتراكات",
+         "admin_subscription_manage": "إدارة الاشتراك",
+         "admin_plans": "الخطط",
+         "admin_plan_list": "قائمة الخطط"
       }
    },
    "account": {
@@ -832,6 +838,49 @@
          "see_subscription": "عرض الاشتراك",
          "menu": "غير مشمول في خطتك",
          "permission": "غير مشمول في خطتك: لا أثر له حتى يُضاف."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "السعر",
+         "trial_days": "أيام التجربة",
+         "state": "الحالة",
+         "position": "الترتيب",
+         "default": "افتراضية",
+         "active": "معروضة",
+         "inactive": "غير معروضة",
+         "period": {
+            "month": "شهر",
+            "year": "سنة"
+         },
+         "description": "الوصف",
+         "pricing": "التسعير",
+         "billing_period": "فترة الفوترة",
+         "unlimited": "غير محدود",
+         "core_hint": "{modules} مشمولة في كل الخطط.",
+         "offer": "العرض",
+         "active_hint": "معروضة (تبقى الخطة غير النشطة لدى الشركات المشتركة بها)",
+         "default_hint": "الخطة الافتراضية للشركات الجديدة (مع أيام التجربة)"
+      },
+      "subscription": {
+         "company": "الشركة",
+         "plan": "الخطة",
+         "status": "الحالة",
+         "manage": "إدارة",
+         "usage": "الاستخدام",
+         "extend_month": "تمديد شهر",
+         "extend_year": "تمديد سنة",
+         "remove_end": "إزالة تاريخ الانتهاء",
+         "cancel": "إلغاء الاشتراك",
+         "cancel_question": "هل تريد إلغاء اشتراك {company}؟ ستصبح الشركة للقراءة فقط فورًا.",
+         "resume": "التراجع عن الإلغاء",
+         "start": "بدء اشتراك",
+         "is_trial": "تجريبي",
+         "note": "ملاحظة",
+         "start_hint": "يُحفظ الاشتراك الجديد مع السجل ويسري من بدايته (الأحدث بدءًا هو السائد).",
+         "history": "السجل",
+         "ends_after_start": "يجب أن تكون النهاية بعد البداية.",
+         "replaced": "مستبدل"
       }
    }
 }

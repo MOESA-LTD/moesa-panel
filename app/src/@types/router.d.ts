@@ -13,6 +13,8 @@ declare module 'vue-router' {
       index?: number;
       layout?: 'dashboard';
       requiresAuth?: boolean;
+      /** Only for the super admin (the plans and subscriptions panel). */
+      superAdmin?: boolean;
       /** All of them are needed to enter the route; menus hide the route without them. */
       requiredPermissions?: RoutePermission[];
       /** Overrides the permission-based menu visibility. */

@@ -544,7 +544,13 @@
          "branch_tree_list": "Filialliste",
          "branch_tree_add": "Neue Filiale",
          "subscription": "Abonnement",
-         "module_locked": "Gesperrtes Modul"
+         "module_locked": "Gesperrtes Modul",
+         "admin": "Verwaltung",
+         "admin_subscriptions": "Abonnements",
+         "admin_subscription_list": "Abonnementliste",
+         "admin_subscription_manage": "Abonnement verwalten",
+         "admin_plans": "Tarife",
+         "admin_plan_list": "Tarifliste"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "Abonnement ansehen",
          "menu": "Nicht in Ihrem Tarif",
          "permission": "Nicht in Ihrem Tarif: ohne Wirkung, bis es enthalten ist."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Preis",
+         "trial_days": "Testtage",
+         "state": "Status",
+         "position": "Reihenfolge",
+         "default": "Standard",
+         "active": "Angeboten",
+         "inactive": "Nicht angeboten",
+         "period": {
+            "month": "Monat",
+            "year": "Jahr"
+         },
+         "description": "Beschreibung",
+         "pricing": "Preisgestaltung",
+         "billing_period": "Abrechnungszeitraum",
+         "unlimited": "Unbegrenzt",
+         "core_hint": "{modules} sind in jedem Tarif enthalten.",
+         "offer": "Angebot",
+         "active_hint": "Angeboten (ein inaktiver Tarif bleibt bei den Unternehmen, die ihn haben)",
+         "default_hint": "Standardtarif neuer Unternehmen (mit den Testtagen)"
+      },
+      "subscription": {
+         "company": "Unternehmen",
+         "plan": "Tarif",
+         "status": "Status",
+         "manage": "Verwalten",
+         "usage": "Nutzung",
+         "extend_month": "Um 1 Monat verlängern",
+         "extend_year": "Um 1 Jahr verlängern",
+         "remove_end": "Enddatum entfernen",
+         "cancel": "Abonnement kündigen",
+         "cancel_question": "Abonnement von {company} kündigen? Das Unternehmen ist sofort schreibgeschützt.",
+         "resume": "Kündigung zurücknehmen",
+         "start": "Abonnement starten",
+         "is_trial": "Testphase",
+         "note": "Notiz",
+         "start_hint": "Das neue Abonnement wird mit dem Verlauf gespeichert und gilt ab seinem Beginn (das zuletzt begonnene gilt).",
+         "history": "Verlauf",
+         "ends_after_start": "Das Ende muss nach dem Beginn liegen.",
+         "replaced": "Ersetzt"
       }
    }
 }

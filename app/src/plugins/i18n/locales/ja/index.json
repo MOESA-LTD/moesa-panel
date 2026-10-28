@@ -544,7 +544,13 @@
          "branch_tree_list": "支店一覧",
          "branch_tree_add": "新しい支店",
          "subscription": "サブスクリプション",
-         "module_locked": "ロックされたモジュール"
+         "module_locked": "ロックされたモジュール",
+         "admin": "管理",
+         "admin_subscriptions": "サブスクリプション",
+         "admin_subscription_list": "サブスクリプション一覧",
+         "admin_subscription_manage": "サブスクリプション管理",
+         "admin_plans": "プラン",
+         "admin_plan_list": "プラン一覧"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "サブスクリプションを見る",
          "menu": "プランに含まれていません",
          "permission": "プランに含まれていません。含まれるまで効果はありません。"
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "価格",
+         "trial_days": "トライアル日数",
+         "state": "状態",
+         "position": "表示順",
+         "default": "デフォルト",
+         "active": "提供中",
+         "inactive": "提供停止",
+         "period": {
+            "month": "月",
+            "year": "年"
+         },
+         "description": "説明",
+         "pricing": "料金",
+         "billing_period": "請求期間",
+         "unlimited": "無制限",
+         "core_hint": "{modules}はすべてのプランに含まれます。",
+         "offer": "提供",
+         "active_hint": "提供中（停止したプランも利用中の会社には残ります）",
+         "default_hint": "新しい会社のデフォルトプラン（トライアル日数付き）"
+      },
+      "subscription": {
+         "company": "会社",
+         "plan": "プラン",
+         "status": "状態",
+         "manage": "管理",
+         "usage": "利用状況",
+         "extend_month": "1か月延長",
+         "extend_year": "1年延長",
+         "remove_end": "終了日を削除",
+         "cancel": "サブスクリプションをキャンセル",
+         "cancel_question": "{company}のサブスクリプションをキャンセルしますか？会社はすぐに読み取り専用になります。",
+         "resume": "キャンセルを取り消す",
+         "start": "サブスクリプションを開始",
+         "is_trial": "トライアル",
+         "note": "メモ",
+         "start_hint": "新しいサブスクリプションは履歴とともに保存され、開始日から有効になります（最後に開始したものが有効）。",
+         "history": "履歴",
+         "ends_after_start": "終了日は開始日より後にしてください。",
+         "replaced": "置き換え済み"
       }
    }
 }

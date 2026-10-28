@@ -544,7 +544,13 @@
          "branch_tree_list": "지점 목록",
          "branch_tree_add": "새 지점",
          "subscription": "구독",
-         "module_locked": "잠긴 모듈"
+         "module_locked": "잠긴 모듈",
+         "admin": "관리",
+         "admin_subscriptions": "구독",
+         "admin_subscription_list": "구독 목록",
+         "admin_subscription_manage": "구독 관리",
+         "admin_plans": "요금제",
+         "admin_plan_list": "요금제 목록"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "구독 보기",
          "menu": "요금제에 포함되지 않음",
          "permission": "요금제에 포함되지 않음: 포함될 때까지 효과가 없습니다."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "가격",
+         "trial_days": "체험 일수",
+         "state": "상태",
+         "position": "순서",
+         "default": "기본",
+         "active": "제공 중",
+         "inactive": "제공 안 함",
+         "period": {
+            "month": "월",
+            "year": "년"
+         },
+         "description": "설명",
+         "pricing": "가격 책정",
+         "billing_period": "청구 주기",
+         "unlimited": "무제한",
+         "core_hint": "{modules}은(는) 모든 요금제에 포함됩니다.",
+         "offer": "제공",
+         "active_hint": "제공 중 (비활성 요금제도 사용 중인 회사에는 유지됩니다)",
+         "default_hint": "새 회사의 기본 요금제 (체험 일수 포함)"
+      },
+      "subscription": {
+         "company": "회사",
+         "plan": "요금제",
+         "status": "상태",
+         "manage": "관리",
+         "usage": "사용량",
+         "extend_month": "1개월 연장",
+         "extend_year": "1년 연장",
+         "remove_end": "종료일 제거",
+         "cancel": "구독 취소",
+         "cancel_question": "{company}의 구독을 취소할까요? 회사는 즉시 읽기 전용이 됩니다.",
+         "resume": "취소 철회",
+         "start": "구독 시작",
+         "is_trial": "체험",
+         "note": "메모",
+         "start_hint": "새 구독은 이력과 함께 저장되며 시작일부터 적용됩니다 (가장 최근에 시작한 구독이 적용).",
+         "history": "이력",
+         "ends_after_start": "종료일은 시작일 이후여야 합니다.",
+         "replaced": "대체됨"
       }
    }
 }

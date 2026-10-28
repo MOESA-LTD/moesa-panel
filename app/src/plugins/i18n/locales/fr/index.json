@@ -544,7 +544,13 @@
          "branch_tree_list": "Liste des agences",
          "branch_tree_add": "Nouvelle agence",
          "subscription": "Abonnement",
-         "module_locked": "Module verrouillé"
+         "module_locked": "Module verrouillé",
+         "admin": "Administration",
+         "admin_subscriptions": "Abonnements",
+         "admin_subscription_list": "Liste des abonnements",
+         "admin_subscription_manage": "Gérer l'abonnement",
+         "admin_plans": "Formules",
+         "admin_plan_list": "Liste des formules"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "Voir l'abonnement",
          "menu": "Pas dans votre formule",
          "permission": "Pas dans votre formule : sans effet tant qu'il n'y est pas."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Prix",
+         "trial_days": "Jours d'essai",
+         "state": "État",
+         "position": "Ordre",
+         "default": "Par défaut",
+         "active": "Proposée",
+         "inactive": "Non proposée",
+         "period": {
+            "month": "mois",
+            "year": "an"
+         },
+         "description": "Description",
+         "pricing": "Tarification",
+         "billing_period": "Période de facturation",
+         "unlimited": "Illimité",
+         "core_hint": "{modules} sont inclus dans toutes les formules.",
+         "offer": "Offre",
+         "active_hint": "Proposée (une formule inactive reste chez les entreprises qui l'ont)",
+         "default_hint": "Formule par défaut des nouvelles entreprises (avec les jours d'essai)"
+      },
+      "subscription": {
+         "company": "Entreprise",
+         "plan": "Formule",
+         "status": "Statut",
+         "manage": "Gérer",
+         "usage": "Utilisation",
+         "extend_month": "Prolonger d'1 mois",
+         "extend_year": "Prolonger d'1 an",
+         "remove_end": "Supprimer la date de fin",
+         "cancel": "Résilier l'abonnement",
+         "cancel_question": "Résilier l'abonnement de {company} ? L'entreprise passe immédiatement en lecture seule.",
+         "resume": "Annuler la résiliation",
+         "start": "Démarrer un abonnement",
+         "is_trial": "Essai",
+         "note": "Note",
+         "start_hint": "Le nouvel abonnement est conservé avec l'historique et s'applique dès son début (le dernier commencé prévaut).",
+         "history": "Historique",
+         "ends_after_start": "La fin doit être après le début.",
+         "replaced": "Remplacé"
       }
    }
 }

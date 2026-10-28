@@ -544,7 +544,13 @@
          "branch_tree_list": "Branch List",
          "branch_tree_add": "New Branch",
          "subscription": "Subscription",
-         "module_locked": "Locked module"
+         "module_locked": "Locked module",
+         "admin": "Administration",
+         "admin_subscriptions": "Subscriptions",
+         "admin_subscription_list": "Subscription List",
+         "admin_subscription_manage": "Manage Subscription",
+         "admin_plans": "Plans",
+         "admin_plan_list": "Plan List"
       }
    },
    "dashboard": {
@@ -832,6 +838,49 @@
          "see_subscription": "See the subscription",
          "menu": "Not in your plan",
          "permission": "Not in your plan: it has no effect until it is."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Price",
+         "trial_days": "Trial days",
+         "state": "State",
+         "position": "Order",
+         "default": "Default",
+         "active": "Offered",
+         "inactive": "Not offered",
+         "period": {
+            "month": "month",
+            "year": "year"
+         },
+         "description": "Description",
+         "pricing": "Pricing",
+         "billing_period": "Billing period",
+         "unlimited": "Unlimited",
+         "core_hint": "{modules} come with every plan.",
+         "offer": "Offering",
+         "active_hint": "Offered (an inactive plan stays with the companies on it)",
+         "default_hint": "Default plan of new companies (with the trial days)"
+      },
+      "subscription": {
+         "company": "Company",
+         "plan": "Plan",
+         "status": "Status",
+         "manage": "Manage",
+         "usage": "Usage",
+         "extend_month": "Extend 1 month",
+         "extend_year": "Extend 1 year",
+         "remove_end": "Remove the end date",
+         "cancel": "Cancel subscription",
+         "cancel_question": "Cancel the subscription of {company}? The company becomes read-only right away.",
+         "resume": "Undo cancellation",
+         "start": "Start a subscription",
+         "is_trial": "Trial",
+         "note": "Note",
+         "start_hint": "The new subscription is kept with the history and is in force from its start (the latest one started wins).",
+         "history": "History",
+         "ends_after_start": "The end must be after the start.",
+         "replaced": "Replaced"
       }
    }
 }
