@@ -292,6 +292,27 @@ export type Database = {
           },
         ]
       }
+      module: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_core: boolean
+          position: number
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          is_core?: boolean
+          position?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_core?: boolean
+          position?: number
+        }
+        Relationships: []
+      }
       permission: {
         Row: {
           bypass: boolean | null
@@ -335,7 +356,119 @@ export type Database = {
           resource_name?: string
           throws_error?: boolean | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "permission_group_name_fkey"
+            columns: ["group_name"]
+            isOneToOne: false
+            referencedRelation: "module"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan: {
+        Row: {
+          billing_period: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          position: number
+          price: number | null
+          trial_days: number
+        }
+        Insert: {
+          billing_period?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          position?: number
+          price?: number | null
+          trial_days?: number
+        }
+        Update: {
+          billing_period?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          position?: number
+          price?: number | null
+          trial_days?: number
+        }
         Relationships: []
+      }
+      plan_limit: {
+        Row: {
+          created_at: string | null
+          limit_key: string
+          plan_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          limit_key: string
+          plan_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          limit_key?: string
+          plan_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_limit_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_module: {
+        Row: {
+          created_at: string | null
+          module_id: string
+          plan_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          module_id: string
+          plan_id: string
+        }
+        Update: {
+          created_at?: string | null
+          module_id?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_module_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "module"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_module_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product: {
         Row: {
@@ -712,6 +845,68 @@ export type Database = {
           },
           {
             foreignKeyName: "stock_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription: {
+        Row: {
+          canceled_at: string | null
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_trial: boolean
+          note: string | null
+          plan_id: string
+          starts_at: string
+          tenant_id: string
+          status: string | null
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_trial?: boolean
+          note?: string | null
+          plan_id: string
+          starts_at?: string
+          tenant_id: string
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_trial?: boolean
+          note?: string | null
+          plan_id?: string
+          starts_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
@@ -1211,6 +1406,12 @@ export type Database = {
           role_ids?: string[]
         }
         Returns: undefined
+      }
+      status: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
       }
       throw_rls_policy_error: {
         Args: {

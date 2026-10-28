@@ -1,6 +1,22 @@
 -- Reference data the application needs to run, as opposed to the demo data in seed.sql.
 -- Safe to run again: existing rows are kept.
 
+-- Modules, which the permissions below belong to. Core modules come with every plan: the users,
+-- roles and branches of a company (how many branches is a limit of the plan).
+INSERT INTO
+    public.module (id, is_core, position)
+VALUES
+    ('branch', TRUE, 10),
+    ('user', TRUE, 20),
+    ('role', TRUE, 30),
+    ('client', FALSE, 40),
+    ('address', FALSE, 50),
+    ('record', FALSE, 60),
+    ('product', FALSE, 70),
+    ('stock', FALSE, 80),
+    ('audit_log', FALSE, 90)
+ON CONFLICT (id) DO NOTHING;
+
 -- Permissions. Inserting a permission creates its RLS policies (see private.manage_policies).
 INSERT INTO
     public.permission (resource_name, group_name, command, kind, bypass, throws_error, resource_condition)

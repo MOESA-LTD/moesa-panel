@@ -109,6 +109,19 @@ BEGIN
         FROM jsonb_array_elements(changed) r
         JOIN public.tenant_user tu ON tu.tenant_id = (r ->> 'id')::UUID
         WHERE TG_TABLE_NAME = 'tenant'
+        UNION
+        -- subscription: the users of the company (see 013_init_subscriptions.sql)...
+        SELECT cu.user_id
+        FROM jsonb_array_elements(changed) r
+        CROSS JOIN LATERAL private.company_users((r ->> 'tenant_id')::UUID) cu (user_id)
+        WHERE TG_TABLE_NAME = 'subscription'
+        UNION
+        -- ...plan_module, plan_limit: those of every company on the plan.
+        SELECT cu.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.subscription s ON s.plan_id = (r ->> 'plan_id')::UUID
+        CROSS JOIN LATERAL private.company_users(s.tenant_id) cu (user_id)
+        WHERE TG_TABLE_NAME IN ('plan_module', 'plan_limit')
     ) affected
     WHERE affected.user_id IS NOT NULL;
 

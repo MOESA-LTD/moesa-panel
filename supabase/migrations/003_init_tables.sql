@@ -70,11 +70,20 @@ CREATE INDEX IF NOT EXISTS idx_address_display_name ON public.address (display_n
 
 CREATE INDEX IF NOT EXISTS idx_address_created_at ON public.address (created_at);
 
+-- Modules: the parts of the app that plans are made of. Each permission belongs to one
+-- (permission.group_name); core modules come with every plan (see 013_init_subscriptions.sql).
+CREATE TABLE IF NOT EXISTS public.module (
+   id TEXT PRIMARY KEY CHECK (id ~ '^[a-z_]+$'),
+   is_core BOOLEAN NOT NULL DEFAULT FALSE,
+   position INT NOT NULL DEFAULT 0,
+   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- App Permissions
 CREATE TABLE IF NOT EXISTS public.permission (
    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
    resource_name valid_permission_resource NOT NULL,
-   group_name TEXT DEFAULT NULL,
+   group_name TEXT DEFAULT NULL REFERENCES public.module (id) ON UPDATE CASCADE,
    command type_permission_command NOT NULL,
    kind type_permission_kind NOT NULL,
    condition TEXT,

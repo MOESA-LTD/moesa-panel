@@ -1,0 +1,363 @@
+-- Subscriptions: a company (a top-level tenant) subscribes to a plan, and its branches share it.
+-- A plan is a set of modules (public.module, which permissions belong to) with limits; the users
+-- of a company use only the permissions of its plan's modules and of the core modules
+-- (private.tenants_permitting, private.permissions). Once the subscription ends or is canceled the
+-- company is read-only: only reads are left. Subscriptions are managed by the super admin.
+
+-- Plans
+CREATE TABLE IF NOT EXISTS public.plan (
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   display_name TEXT NOT NULL UNIQUE,
+   description TEXT,
+   price NUMERIC(12, 2) CHECK (price >= 0),
+   currency valid_currency_code,
+   billing_period TEXT CHECK (billing_period IN ('month', 'year')),
+   -- A new company starts on the default plan, for trial_days as a trial (0: no end).
+   trial_days INT NOT NULL DEFAULT 0 CHECK (trial_days >= 0),
+   is_default BOOLEAN NOT NULL DEFAULT FALSE,
+   -- Inactive plans are kept for the companies on them, but no longer offered.
+   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+   position INT NOT NULL DEFAULT 0,
+   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_plan_is_default ON public.plan (is_default)
+WHERE
+   is_default;
+
+-- The modules of a plan, besides the core modules every plan has.
+CREATE TABLE IF NOT EXISTS public.plan_module (
+   plan_id UUID NOT NULL REFERENCES public.plan (id) ON DELETE CASCADE,
+   module_id TEXT NOT NULL REFERENCES public.module (id) ON DELETE CASCADE ON UPDATE CASCADE,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY (plan_id, module_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_module_module_id ON public.plan_module (module_id);
+
+-- The limits of a plan, counted over the whole company; a limit without a row is unlimited.
+-- max_branches: tenants below the company; max_users: distinct members of the company's tenants.
+CREATE TABLE IF NOT EXISTS public.plan_limit (
+   plan_id UUID NOT NULL REFERENCES public.plan (id) ON DELETE CASCADE,
+   limit_key TEXT NOT NULL CHECK (limit_key IN ('max_branches', 'max_users')),
+   value INT NOT NULL CHECK (value >= 0),
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   PRIMARY KEY (plan_id, limit_key)
+);
+
+-- Subscriptions of a company, kept as its history. The one in force is the latest that has
+-- started; it ends at ends_at (NULL: no end) or when canceled. A payment provider would add its
+-- own ids here.
+CREATE TABLE IF NOT EXISTS public.subscription (
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   tenant_id UUID NOT NULL REFERENCES public.tenant (id) ON DELETE CASCADE,
+   plan_id UUID NOT NULL REFERENCES public.plan (id) ON DELETE RESTRICT,
+   starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+   ends_at TIMESTAMPTZ,
+   canceled_at TIMESTAMPTZ,
+   is_trial BOOLEAN NOT NULL DEFAULT FALSE,
+   note TEXT,
+   created_by UUID DEFAULT auth.uid () REFERENCES public.user (id) ON DELETE SET NULL,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
+   CONSTRAINT subscription_ends_after_start CHECK (ends_at IS NULL OR ends_at > starts_at)
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscription_tenant_id ON public.subscription (tenant_id, starts_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_subscription_plan_id ON public.subscription (plan_id);
+
+-- Only a company subscribes; its branches use its subscription.
+CREATE OR REPLACE FUNCTION private.check_subscription_company () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.tenant t WHERE t.id = NEW.tenant_id AND t.parent_id IS NOT NULL) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'subscription_company_only')::TEXT,
+            DETAIL = json_build_object('status', 422, 'headers', json_build_object())::TEXT;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER check_subscription_company BEFORE INSERT
+OR
+UPDATE OF tenant_id ON public.subscription FOR EACH ROW
+EXECUTE FUNCTION private.check_subscription_company ();
+
+-- Where a subscription stands (a computed field): scheduled, trialing, active, expired or canceled.
+CREATE OR REPLACE FUNCTION public.status (public.subscription) RETURNS TEXT LANGUAGE sql STABLE
+SET
+   search_path = '' AS $$
+    SELECT CASE
+        WHEN $1.starts_at > now() THEN 'scheduled'
+        WHEN $1.canceled_at <= now() THEN 'canceled'
+        WHEN $1.ends_at <= now() THEN 'expired'
+        WHEN $1.is_trial THEN 'trialing'
+        ELSE 'active'
+    END
+$$;
+
+-- What the plan of each of `tenant_ids` allows: the company above it (or itself), the
+-- subscription in force and its plan, the modules (the core ones and the plan's) and whether it
+-- may be written to. Without a subscription: the core modules, read-only.
+CREATE OR REPLACE FUNCTION private.entitlements (tenant_ids UUID[]) RETURNS TABLE (
+   tenant_id UUID,
+   company_id UUID,
+   subscription_id UUID,
+   plan_id UUID,
+   modules TEXT[],
+   writable BOOLEAN
+) LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY
+    -- UNION (not UNION ALL) also stops at a cycle, should one ever get in.
+    WITH RECURSIVE up (origin, id, parent_id) AS (
+        SELECT t.id, t.id, t.parent_id FROM public.tenant t WHERE t.id = ANY (tenant_ids)
+        UNION
+        SELECT up.origin, t.id, t.parent_id FROM public.tenant t JOIN up ON t.id = up.parent_id
+    )
+    SELECT
+        up.origin,
+        up.id,
+        s.id,
+        s.plan_id,
+        ARRAY(
+            SELECT m.id FROM public.module m WHERE m.is_core
+            UNION
+            SELECT pm.module_id FROM public.plan_module pm WHERE pm.plan_id = s.plan_id
+        ),
+        coalesce(
+            s.id IS NOT NULL
+            AND (s.ends_at IS NULL OR s.ends_at > now())
+            AND (s.canceled_at IS NULL OR s.canceled_at > now()),
+            FALSE
+        )
+    FROM up
+    LEFT JOIN LATERAL (
+        SELECT * FROM public.subscription sub
+        WHERE sub.tenant_id = up.id AND sub.starts_at <= now()
+        ORDER BY sub.starts_at DESC, sub.created_at DESC
+        LIMIT 1
+    ) s ON TRUE
+    WHERE up.parent_id IS NULL;
+END;
+$$;
+
+-- Of `tenants`, those whose plan allows the permission: its module is in the plan, and a write
+-- only while the subscription is in force.
+CREATE OR REPLACE FUNCTION private.tenants_entitled (tenants UUID[], p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    module_id TEXT;
+BEGIN
+    SELECT p.group_name INTO module_id
+    FROM public.permission p
+    WHERE p.resource_name = p_resource_name AND p.command = p_command::public.type_permission_command;
+
+    RETURN ARRAY(
+        SELECT e.tenant_id FROM private.entitlements(tenants) e
+        WHERE (module_id IS NULL OR module_id = ANY (e.modules))
+          AND (p_command = 'select' OR e.writable)
+    );
+END;
+$$;
+
+-- The members and owners of a company's tenants: whom a change of its subscription concerns.
+CREATE OR REPLACE FUNCTION private.company_users (company_id UUID) RETURNS SETOF UUID LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN QUERY
+    WITH RECURSIVE tree (id) AS (
+        SELECT company_users.company_id
+        UNION
+        SELECT t.id FROM public.tenant t JOIN tree ON t.parent_id = tree.id
+    )
+    SELECT tu.user_id FROM public.tenant_user tu WHERE tu.tenant_id IN (SELECT tree.id FROM tree)
+    UNION
+    SELECT o.user_id FROM public.tenant_owner o WHERE o.tenant_id IN (SELECT tree.id FROM tree);
+END;
+$$;
+
+-- A new company starts on the default plan (as a trial when the plan has trial days).
+CREATE OR REPLACE FUNCTION private.subscribe_new_company () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    INSERT INTO public.subscription (tenant_id, plan_id, is_trial, ends_at, created_by)
+    SELECT
+        NEW.id,
+        p.id,
+        p.trial_days > 0,
+        CASE WHEN p.trial_days > 0 THEN now() + make_interval(days => p.trial_days) END,
+        NULL
+    FROM public.plan p
+    WHERE p.is_default;
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER subscribe_new_company
+AFTER INSERT ON public.tenant FOR EACH ROW WHEN (NEW.parent_id IS NULL)
+EXECUTE FUNCTION private.subscribe_new_company ();
+
+-- Plans and modules are read by everyone signed in (the app shows what a module needs) and
+-- written by the super admin only; a subscription is read by the company's owners too.
+REVOKE ALL ON public.module, public.plan, public.plan_module, public.plan_limit, public.subscription FROM anon;
+
+ALTER TABLE public.module ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.plan ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.plan_module ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.plan_limit ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.subscription ENABLE ROW LEVEL SECURITY;
+
+DO $$
+DECLARE
+    target TEXT;
+BEGIN
+    FOREACH target IN ARRAY ARRAY['module', 'plan', 'plan_module', 'plan_limit'] LOOP
+        EXECUTE format('DROP POLICY IF EXISTS read_%1$s ON public.%1$I', target);
+        EXECUTE format('CREATE POLICY read_%1$s ON public.%1$I FOR SELECT TO authenticated USING (TRUE)', target);
+        EXECUTE format('DROP POLICY IF EXISTS manage_%1$s ON public.%1$I', target);
+        EXECUTE format(
+            'CREATE POLICY manage_%1$s ON public.%1$I FOR ALL TO authenticated USING ((SELECT private.check_super_admin())) WITH CHECK ((SELECT private.check_super_admin()))',
+            target
+        );
+    END LOOP;
+END;
+$$;
+
+DROP POLICY IF EXISTS read_subscription ON public.subscription;
+
+CREATE POLICY read_subscription ON public.subscription FOR
+SELECT
+   TO authenticated USING (
+      (
+         SELECT
+            private.check_super_admin ()
+      )
+      OR tenant_id = ANY (
+         (
+            SELECT
+               private.owned_tenants (auth.uid ())
+         )::UUID[]
+      )
+   );
+
+DROP POLICY IF EXISTS manage_subscription ON public.subscription;
+
+CREATE POLICY manage_subscription ON public.subscription FOR ALL TO authenticated USING (
+   (
+      SELECT
+         private.check_super_admin ()
+   )
+)
+WITH
+   CHECK (
+      (
+         SELECT
+            private.check_super_admin ()
+      )
+   );
+
+REVOKE ALL ON FUNCTION public.status (public.subscription) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.status (public.subscription) TO authenticated;
+
+-- A change of a subscription, or of the modules or limits of a plan, changes what the users of
+-- the companies concerned may do (see private.notify_access_changed).
+DO $$
+DECLARE
+    target TEXT;
+BEGIN
+    FOREACH target IN ARRAY ARRAY['subscription', 'plan_module', 'plan_limit'] LOOP
+        EXECUTE format('CREATE OR REPLACE TRIGGER notify_access_insert AFTER INSERT ON public.%I REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()', target);
+        EXECUTE format('CREATE OR REPLACE TRIGGER notify_access_update AFTER UPDATE ON public.%I REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()', target);
+        EXECUTE format('CREATE OR REPLACE TRIGGER notify_access_delete AFTER DELETE ON public.%I REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()', target);
+    END LOOP;
+END;
+$$;
+
+-- Reference plans (re-runnable: existing plans are kept). Pro is the default, with a trial.
+INSERT INTO
+   public.plan (display_name, description, trial_days, is_default, position)
+VALUES
+   ('Basic', 'Clients, addresses, records and products for a single location.', 0, FALSE, 10),
+   ('Pro', 'Basic with stock and the change history, for a few branches.', 14, TRUE, 20),
+   ('Enterprise', 'Every module, without limits.', 0, FALSE, 30)
+ON CONFLICT (display_name) DO NOTHING;
+
+INSERT INTO
+   public.plan_module (plan_id, module_id)
+SELECT
+   p.id,
+   pm.module_id
+FROM
+   (
+      VALUES
+         ('Basic', 'client'),
+         ('Basic', 'address'),
+         ('Basic', 'record'),
+         ('Basic', 'product'),
+         ('Pro', 'client'),
+         ('Pro', 'address'),
+         ('Pro', 'record'),
+         ('Pro', 'product'),
+         ('Pro', 'stock'),
+         ('Pro', 'audit_log'),
+         ('Enterprise', 'client'),
+         ('Enterprise', 'address'),
+         ('Enterprise', 'record'),
+         ('Enterprise', 'product'),
+         ('Enterprise', 'stock'),
+         ('Enterprise', 'audit_log')
+   ) AS pm (plan_name, module_id)
+   JOIN public.plan p ON p.display_name = pm.plan_name
+ON CONFLICT DO NOTHING;
+
+INSERT INTO
+   public.plan_limit (plan_id, limit_key, value)
+SELECT
+   p.id,
+   pl.limit_key,
+   pl.value
+FROM
+   (
+      VALUES
+         ('Basic', 'max_branches', 0),
+         ('Basic', 'max_users', 3),
+         ('Pro', 'max_branches', 3),
+         ('Pro', 'max_users', 15)
+   ) AS pl (plan_name, limit_key, value)
+   JOIN public.plan p ON p.display_name = pl.plan_name
+ON CONFLICT DO NOTHING;
+
+-- Companies from before subscriptions keep working: on the default plan, without an end.
+INSERT INTO
+   public.subscription (tenant_id, plan_id, created_by)
+SELECT
+   t.id,
+   p.id,
+   NULL
+FROM
+   public.tenant t
+   JOIN public.plan p ON p.is_default
+WHERE
+   t.parent_id IS NULL
+   AND NOT EXISTS (
+      SELECT
+         1
+      FROM
+         public.subscription s
+      WHERE
+         s.tenant_id = t.id
+   );

@@ -425,8 +425,29 @@ END;
 $$;
 
 -- Of `tenants`, those where `user_id` has the permission: through their roles in that tenant, or
--- through owning it (the built-in owner role's permissions). The one rule for policies and the app.
+-- through owning it (the built-in owner role's permissions), and only where the company's plan
+-- allows it (private.entitlements). The one rule for policies and the app.
 CREATE OR REPLACE FUNCTION private.tenants_permitting (user_id UUID, tenants UUID[], p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+DECLARE
+    permitted UUID[];
+BEGIN
+    IF private.check_super_admin(user_id) THEN
+        RETURN coalesce(tenants, '{}');
+    END IF;
+
+    permitted := private.tenants_granting(user_id, tenants, p_resource_name, p_command);
+    IF cardinality(permitted) = 0 THEN
+        RETURN permitted;
+    END IF;
+    RETURN private.tenants_entitled(permitted, p_resource_name, p_command);
+END;
+$$;
+
+-- Of `tenants`, those where `user_id` holds the permission through roles or ownership, whatever
+-- the plan.
+CREATE OR REPLACE FUNCTION private.tenants_granting (user_id UUID, tenants UUID[], p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
 DECLARE
@@ -437,9 +458,6 @@ BEGIN
     IF user_id IS NULL OR cardinality(tenants) IS NULL OR cardinality(tenants) = 0 THEN
         RETURN '{}';
     END IF;
-    IF private.check_super_admin(user_id) THEN
-        RETURN tenants;
-    END IF;
 
     -- Two narrow lookups rather than one query with an OR, which plans poorly.
     by_role := ARRAY(
@@ -448,7 +466,7 @@ BEGIN
         JOIN public.role r ON r.id = ur.role_id
         JOIN public.role_permission rp ON rp.role_id = r.id
         JOIN public.permission p ON p.id = rp.permission_id
-        WHERE ur.user_id = tenants_permitting.user_id
+        WHERE ur.user_id = tenants_granting.user_id
           AND r.tenant_id = ANY (tenants)
           AND p.resource_name = p_resource_name AND p.command = cmd
     );
@@ -468,7 +486,7 @@ BEGIN
     RETURN ARRAY(
         SELECT id FROM unnest(by_role) AS id
         UNION
-        SELECT id FROM unnest(tenants) AS id WHERE id = ANY (private.owned_tenants(tenants_permitting.user_id))
+        SELECT id FROM unnest(tenants) AS id WHERE id = ANY (private.owned_tenants(tenants_granting.user_id))
     );
 END;
 $$;
@@ -498,6 +516,7 @@ END;
 $$;
 
 -- The permissions `user_id` has in `tenant_id` (the same rules as tenants_permitting), for the app.
+-- Those of modules outside the company's plan are left out, and only reads once it is read-only.
 CREATE OR REPLACE FUNCTION private.permissions (user_id UUID, tenant_id UUID) RETURNS TABLE (resource_name TEXT, command TEXT) LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
@@ -512,13 +531,18 @@ BEGIN
     FROM public.permission p
     JOIN public.role_permission rp ON rp.permission_id = p.id
     JOIN public.role r ON r.id = rp.role_id
+    CROSS JOIN private.entitlements(ARRAY[permissions.tenant_id]) e
     WHERE (
-        r.tenant_id = permissions.tenant_id
-        AND EXISTS (SELECT 1 FROM public.user_role ur WHERE ur.role_id = r.id AND ur.user_id = permissions.user_id)
-    ) OR (
-        r.tenant_id IS NULL AND r.display_name = 'owner'
-        AND permissions.tenant_id = ANY (private.owned_tenants(permissions.user_id))
-    );
+        (
+            r.tenant_id = permissions.tenant_id
+            AND EXISTS (SELECT 1 FROM public.user_role ur WHERE ur.role_id = r.id AND ur.user_id = permissions.user_id)
+        ) OR (
+            r.tenant_id IS NULL AND r.display_name = 'owner'
+            AND permissions.tenant_id = ANY (private.owned_tenants(permissions.user_id))
+        )
+    )
+    AND (p.group_name IS NULL OR p.group_name = ANY (e.modules))
+    AND (p.command = 'select' OR e.writable);
 END;
 $$;
 
