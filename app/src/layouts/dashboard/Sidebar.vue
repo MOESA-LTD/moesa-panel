@@ -86,6 +86,11 @@ onUnmounted(() => {
                      v-if="item.label"
                      v-text="item.label"
                   />
+                  <span
+                     v-if="item.locked"
+                     class="pi pi-lock ms-auto text-muted-color"
+                     v-tooltip.right="$t('subscription.locked.menu')"
+                  />
                </button>
             </CustomLink>
             <div

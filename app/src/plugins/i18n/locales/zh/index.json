@@ -538,7 +538,9 @@
          "branch_role_list": "分支角色列表",
          "branch-tree": "分店",
          "branch_tree_list": "分店列表",
-         "branch_tree_add": "新分店"
+         "branch_tree_add": "新分店",
+         "subscription": "订阅",
+         "module_locked": "已锁定的模块"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "所有者",
       "add_branch": "在其下开设分店",
       "opened_under": "将在 {name} 下开设。"
+   },
+   "subscription": {
+      "no_plan": "无套餐",
+      "starts_at": "开始日期",
+      "ends_at": "结束日期",
+      "no_end": "无期限",
+      "days_left": "剩余 {days} 天",
+      "read_only": "订阅未生效：数据可以查看但不能修改。",
+      "change_hint": "如需更换套餐或延长订阅，请联系管理员。",
+      "limits": "限额",
+      "limit": {
+         "max_branches": "分店",
+         "max_users": "用户"
+      },
+      "unlimited_usage": "{used}（不限）",
+      "modules": "模块",
+      "core_module": "所有套餐均含",
+      "status": {
+         "none": "无订阅",
+         "scheduled": "已计划",
+         "trialing": "试用",
+         "active": "有效",
+         "expired": "已过期",
+         "canceled": "已取消"
+      },
+      "banner": {
+         "read_only": "订阅：{status}。续订前数据为只读。",
+         "trial_ends": "试用期将在 {days} 天后结束。",
+         "ends": "订阅将在 {days} 天后结束。"
+      },
+      "locked": {
+         "title": "您的套餐不包含{module}",
+         "text": "此模块不在贵公司的套餐中。请升级套餐后使用。",
+         "in_plans": "包含于：",
+         "see_subscription": "查看订阅",
+         "menu": "不在您的套餐中",
+         "permission": "不在您的套餐中：加入套餐前不会生效。"
+      }
    }
 }

@@ -14,6 +14,8 @@ export interface NavigationItem extends MenuItem {
    index: number;
    /** `meta.contextMenuItems`, resolved (it may be a ref or getter). */
    contextMenuItems: MenuItem[];
+   /** The module outside the plan the entry needs: it is shown locked, without its children. */
+   locked?: string;
    items?: NavigationItem[];
 }
 
@@ -22,6 +24,8 @@ type Node = { route: RouteRecordNormalized; items: Record<string, Node> };
 type BuildOptions = {
    can: (action: string, subject: string) => boolean;
    t: (key: string) => string;
+   /** The module outside the plan a permission subject belongs to, if any. */
+   lockedModule?: (subject: string) => string | null;
 };
 
 /**
@@ -31,8 +35,13 @@ type BuildOptions = {
  * - Visibility: `meta.visible` if set, else whether every `meta.requiredPermissions` is granted,
  *   else whether it has visible children; nested entries without either are visible.
  * - Hidden children are left out; hidden top-level entries are kept with `visible: false`.
+ * - Locked: an entry without `meta.visible` that needs a module outside the plan is shown (locked),
+ *   without its children, whatever the permissions (the plan, not the role, keeps it closed).
  */
-export function buildMenu(records: readonly RouteRecordNormalized[], { can, t }: BuildOptions) {
+export function buildMenu(
+   records: readonly RouteRecordNormalized[],
+   { can, t, lockedModule }: BuildOptions
+) {
    const root: Record<string, Node> = {};
 
    // Shorter paths first, so a segment belongs to the route that owns it. Aliases repeat a route.
@@ -56,12 +65,21 @@ export function buildMenu(records: readonly RouteRecordNormalized[], { can, t }:
          .map(([segment, { route, items }]) => {
             const { meta, name } = route;
             const index = meta.index ?? ++previous;
-            const children = toItems(items, true, index).filter((child) => child.visible);
+            const locked =
+               meta.visible === undefined
+                  ? meta.requiredPermissions
+                       ?.map(({ subject }) => lockedModule?.(subject))
+                       .find(Boolean)
+                  : undefined;
+            const children = locked
+               ? []
+               : toItems(items, true, index).filter((child) => child.visible);
 
             const visible =
-               toValue(meta.visible) ??
-               meta.requiredPermissions?.every(({ action, subject }) => can(action, subject)) ??
-               (children.length > 0 || nested);
+               !!locked ||
+               (toValue(meta.visible) ??
+                  meta.requiredPermissions?.every(({ action, subject }) => can(action, subject)) ??
+                  (children.length > 0 || nested));
 
             return {
                key: String(name ?? route.path),
@@ -71,7 +89,8 @@ export function buildMenu(records: readonly RouteRecordNormalized[], { can, t }:
                visible,
                route: { ...route, replace: meta.replace },
                index,
-               contextMenuItems: toValue(meta.contextMenuItems) ?? [],
+               contextMenuItems: locked ? [] : (toValue(meta.contextMenuItems) ?? []),
+               ...(locked && { locked }),
                ...(children.length > 0 && { items: children })
             };
          })

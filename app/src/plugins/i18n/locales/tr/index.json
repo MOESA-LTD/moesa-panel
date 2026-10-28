@@ -336,7 +336,9 @@
          "branch_role_list": "Şube Rol Listesi",
          "branch-tree": "Şubeler",
          "branch_tree_list": "Şube Listesi",
-         "branch_tree_add": "Yeni Şube"
+         "branch_tree_add": "Yeni Şube",
+         "subscription": "Abonelik",
+         "module_locked": "Kilitli modül"
       }
    },
    "fields": {
@@ -789,5 +791,43 @@
       "owner": "Sahip",
       "add_branch": "Altına şube aç",
       "opened_under": "{name} altına açılacak."
+   },
+   "subscription": {
+      "no_plan": "Plan yok",
+      "starts_at": "Başlangıç",
+      "ends_at": "Bitiş",
+      "no_end": "Süresiz",
+      "days_left": "{days} gün kaldı",
+      "read_only": "Abonelik geçerli değil: veriler görüntülenebilir ama değiştirilemez.",
+      "change_hint": "Planı değiştirmek veya aboneliği uzatmak için yöneticiyle iletişime geçin.",
+      "limits": "Limitler",
+      "limit": {
+         "max_branches": "Şubeler",
+         "max_users": "Kullanıcılar"
+      },
+      "unlimited_usage": "{used} (sınırsız)",
+      "modules": "Modüller",
+      "core_module": "Her planda",
+      "status": {
+         "none": "Abonelik yok",
+         "scheduled": "Planlandı",
+         "trialing": "Deneme",
+         "active": "Aktif",
+         "expired": "Süresi doldu",
+         "canceled": "İptal edildi"
+      },
+      "banner": {
+         "read_only": "Abonelik: {status}. Yenilenene kadar veriler salt okunur.",
+         "trial_ends": "Deneme süresi {days} gün içinde bitiyor.",
+         "ends": "Abonelik {days} gün içinde bitiyor."
+      },
+      "locked": {
+         "title": "{module} planınızda yok",
+         "text": "Bu modül firmanızın planına dahil değil. Kullanmak için planı yükseltin.",
+         "in_plans": "Dahil olduğu planlar:",
+         "see_subscription": "Aboneliği görüntüle",
+         "menu": "Planınızda yok",
+         "permission": "Planınızda yok: plana eklenene kadar etkisi olmaz."
+      }
    }
 }

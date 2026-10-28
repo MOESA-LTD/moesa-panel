@@ -538,7 +538,9 @@
          "branch_role_list": "Liste des rôles de la branche",
          "branch-tree": "Agences",
          "branch_tree_list": "Liste des agences",
-         "branch_tree_add": "Nouvelle agence"
+         "branch_tree_add": "Nouvelle agence",
+         "subscription": "Abonnement",
+         "module_locked": "Module verrouillé"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "Propriétaire",
       "add_branch": "Ouvrir une agence en dessous",
       "opened_under": "Sera ouverte sous {name}."
+   },
+   "subscription": {
+      "no_plan": "Aucune formule",
+      "starts_at": "Début",
+      "ends_at": "Fin",
+      "no_end": "Sans date de fin",
+      "days_left": "{days} jour restant | {days} jours restants",
+      "read_only": "L'abonnement n'est pas en vigueur : les données sont consultables mais non modifiables.",
+      "change_hint": "Pour changer de formule ou prolonger l'abonnement, contactez l'administrateur.",
+      "limits": "Limites",
+      "limit": {
+         "max_branches": "Agences",
+         "max_users": "Utilisateurs"
+      },
+      "unlimited_usage": "{used} (illimité)",
+      "modules": "Modules",
+      "core_module": "Dans toutes les formules",
+      "status": {
+         "none": "Aucun abonnement",
+         "scheduled": "Planifié",
+         "trialing": "Essai",
+         "active": "Actif",
+         "expired": "Expiré",
+         "canceled": "Résilié"
+      },
+      "banner": {
+         "read_only": "Abonnement : {status}. Les données sont en lecture seule jusqu'au renouvellement.",
+         "trial_ends": "L'essai se termine dans {days} jour. | L'essai se termine dans {days} jours.",
+         "ends": "L'abonnement se termine dans {days} jour. | L'abonnement se termine dans {days} jours."
+      },
+      "locked": {
+         "title": "{module} n'est pas dans votre formule",
+         "text": "Ce module ne fait pas partie de la formule de votre entreprise. Changez de formule pour l'utiliser.",
+         "in_plans": "Inclus dans :",
+         "see_subscription": "Voir l'abonnement",
+         "menu": "Pas dans votre formule",
+         "permission": "Pas dans votre formule : sans effet tant qu'il n'y est pas."
+      }
    }
 }

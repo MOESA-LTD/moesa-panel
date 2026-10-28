@@ -149,7 +149,9 @@
          "branch_role_list": "Lista de roles de sucursal",
          "branch-tree": "Sucursales",
          "branch_tree_list": "Lista de sucursales",
-         "branch_tree_add": "Nueva sucursal"
+         "branch_tree_add": "Nueva sucursal",
+         "subscription": "Suscripción",
+         "module_locked": "Módulo bloqueado"
       }
    },
    "auth": {
@@ -789,5 +791,43 @@
       "owner": "Propietario",
       "add_branch": "Abrir una sucursal debajo",
       "opened_under": "Se abrirá bajo {name}."
+   },
+   "subscription": {
+      "no_plan": "Sin plan",
+      "starts_at": "Inicio",
+      "ends_at": "Fin",
+      "no_end": "Sin fecha de fin",
+      "days_left": "Queda {days} día | Quedan {days} días",
+      "read_only": "La suscripción no está vigente: los datos se pueden ver pero no modificar.",
+      "change_hint": "Para cambiar el plan o ampliar la suscripción, contacte con el administrador.",
+      "limits": "Límites",
+      "limit": {
+         "max_branches": "Sucursales",
+         "max_users": "Usuarios"
+      },
+      "unlimited_usage": "{used} (ilimitado)",
+      "modules": "Módulos",
+      "core_module": "En todos los planes",
+      "status": {
+         "none": "Sin suscripción",
+         "scheduled": "Programada",
+         "trialing": "Prueba",
+         "active": "Activa",
+         "expired": "Vencida",
+         "canceled": "Cancelada"
+      },
+      "banner": {
+         "read_only": "Suscripción: {status}. Los datos son de solo lectura hasta que se renueve.",
+         "trial_ends": "La prueba termina en {days} día. | La prueba termina en {days} días.",
+         "ends": "La suscripción termina en {days} día. | La suscripción termina en {days} días."
+      },
+      "locked": {
+         "title": "{module} no está en su plan",
+         "text": "Este módulo no forma parte del plan de su empresa. Mejore el plan para usarlo.",
+         "in_plans": "Incluido en:",
+         "see_subscription": "Ver la suscripción",
+         "menu": "No está en su plan",
+         "permission": "No está en su plan: no tiene efecto hasta que lo esté."
+      }
    }
 }

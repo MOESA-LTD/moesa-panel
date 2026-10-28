@@ -538,7 +538,9 @@
          "branch_role_list": "Lista ról oddziału",
          "branch-tree": "Oddziały",
          "branch_tree_list": "Lista oddziałów",
-         "branch_tree_add": "Nowy oddział"
+         "branch_tree_add": "Nowy oddział",
+         "subscription": "Subskrypcja",
+         "module_locked": "Zablokowany moduł"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "Właściciel",
       "add_branch": "Otwórz oddział pod nim",
       "opened_under": "Zostanie otwarty pod {name}."
+   },
+   "subscription": {
+      "no_plan": "Brak planu",
+      "starts_at": "Początek",
+      "ends_at": "Koniec",
+      "no_end": "Bezterminowo",
+      "days_left": "Pozostało dni: {days}",
+      "read_only": "Subskrypcja nie obowiązuje: dane można przeglądać, ale nie zmieniać.",
+      "change_hint": "Aby zmienić plan lub przedłużyć subskrypcję, skontaktuj się z administratorem.",
+      "limits": "Limity",
+      "limit": {
+         "max_branches": "Oddziały",
+         "max_users": "Użytkownicy"
+      },
+      "unlimited_usage": "{used} (bez limitu)",
+      "modules": "Moduły",
+      "core_module": "W każdym planie",
+      "status": {
+         "none": "Brak subskrypcji",
+         "scheduled": "Zaplanowana",
+         "trialing": "Okres próbny",
+         "active": "Aktywna",
+         "expired": "Wygasła",
+         "canceled": "Anulowana"
+      },
+      "banner": {
+         "read_only": "Subskrypcja: {status}. Do czasu odnowienia dane są tylko do odczytu.",
+         "trial_ends": "Okres próbny kończy się za {days} dni.",
+         "ends": "Subskrypcja kończy się za {days} dni."
+      },
+      "locked": {
+         "title": "{module} nie jest w Twoim planie",
+         "text": "Ten moduł nie należy do planu Twojej firmy. Zmień plan, aby z niego korzystać.",
+         "in_plans": "Dostępny w:",
+         "see_subscription": "Zobacz subskrypcję",
+         "menu": "Nie w Twoim planie",
+         "permission": "Nie w Twoim planie: nie działa, dopóki nie zostanie dodany."
+      }
    }
 }

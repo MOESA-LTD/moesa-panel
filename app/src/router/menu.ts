@@ -1,4 +1,5 @@
 import router from '@/router';
+import { useAuthStore } from '@/store/auth';
 import { ability } from '@plugins/casl';
 import i18n from '@plugins/i18n';
 import { createSharedComposable } from '@vueuse/core';
@@ -9,10 +10,12 @@ export type { NavigationItem };
 
 /** The app's menu, built once and shared; follows the language and the user's permissions. */
 export const useNavigationMenu = createSharedComposable(() => {
+   const authStore = useAuthStore();
    const menu = computed(() =>
       buildMenu(router.getRoutes(), {
          can: (action, subject) => ability.can(action, subject),
-         t: (key) => i18n.t(key)
+         t: (key) => i18n.t(key),
+         lockedModule: authStore.lockedModule
       })
    );
 

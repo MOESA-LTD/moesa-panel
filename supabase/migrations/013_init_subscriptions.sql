@@ -287,12 +287,13 @@ BEGIN
 END;
 $$;
 
--- Reference plans (re-runnable: existing plans are kept). Pro is the default, with a trial.
+-- Reference plans (re-runnable: existing plans are kept). Pro is the default, with a trial. Records
+-- are made of stock (the pages need both), so every plan with records has stock too.
 INSERT INTO
    public.plan (display_name, description, trial_days, is_default, position)
 VALUES
-   ('Basic', 'Clients, addresses, records and products for a single location.', 0, FALSE, 10),
-   ('Pro', 'Basic with stock and the change history, for a few branches.', 14, TRUE, 20),
+   ('Basic', 'Clients, records, products and stock for a single location.', 0, FALSE, 10),
+   ('Pro', 'Basic with the change history, for a few branches.', 14, TRUE, 20),
    ('Enterprise', 'Every module, without limits.', 0, FALSE, 30)
 ON CONFLICT (display_name) DO NOTHING;
 
@@ -308,6 +309,7 @@ FROM
          ('Basic', 'address'),
          ('Basic', 'record'),
          ('Basic', 'product'),
+         ('Basic', 'stock'),
          ('Pro', 'client'),
          ('Pro', 'address'),
          ('Pro', 'record'),
@@ -361,3 +363,68 @@ WHERE
       WHERE
          s.tenant_id = t.id
    );
+
+-- How much of its plan's limits a company uses: its branches (the tenants below it) and its users
+-- (the distinct members of its tenants).
+CREATE OR REPLACE FUNCTION private.company_usage (company_id UUID) RETURNS TABLE (branches INT, users INT) LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY
+    WITH RECURSIVE tree (id) AS (
+        SELECT company_usage.company_id
+        UNION
+        SELECT t.id FROM public.tenant t JOIN tree ON t.parent_id = tree.id
+    )
+    SELECT
+        (SELECT count(*)::INT - 1 FROM tree),
+        (SELECT count(DISTINCT tu.user_id)::INT FROM public.tenant_user tu WHERE tu.tenant_id IN (SELECT tree.id FROM tree));
+END;
+$$;
+
+-- The subscription of a tenant's company as the app shows it (public.my_access): the plan, where
+-- the subscription stands, the modules and whether the company may write, the resources of the
+-- modules outside the plan by their module (as the app's permission subjects: their pages are
+-- shown locked), and the limits with their usage.
+CREATE OR REPLACE FUNCTION private.subscription_summary (tenant_id UUID) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    e RECORD;
+    s public.subscription;
+    usage RECORD;
+BEGIN
+    IF tenant_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT * INTO e FROM private.entitlements(ARRAY[subscription_summary.tenant_id]);
+    SELECT * INTO s FROM public.subscription sub WHERE sub.id = e.subscription_id;
+    SELECT * INTO usage FROM private.company_usage(e.company_id);
+
+    RETURN jsonb_build_object(
+        'company_id', e.company_id,
+        'plan', (SELECT jsonb_build_object('id', p.id, 'display_name', p.display_name) FROM public.plan p WHERE p.id = e.plan_id),
+        'status', CASE WHEN s.id IS NULL THEN 'none' ELSE public.status(s) END,
+        'starts_at', s.starts_at,
+        'ends_at', coalesce(least(s.ends_at, s.canceled_at), s.ends_at, s.canceled_at),
+        'writable', e.writable,
+        'modules', to_jsonb(e.modules),
+        'locked', coalesce(
+            (SELECT jsonb_object_agg(locked.subject, locked.module_id)
+             FROM (
+                SELECT DISTINCT split_part(p.resource_name, '.', 2) AS subject, p.group_name AS module_id
+                FROM public.permission p
+                WHERE p.group_name IS NOT NULL AND NOT p.group_name = ANY (e.modules)
+             ) locked),
+            '{}'::JSONB
+        ),
+        'limits', coalesce(
+            (SELECT jsonb_object_agg(pl.limit_key, pl.value) FROM public.plan_limit pl WHERE pl.plan_id = e.plan_id),
+            '{}'::JSONB
+        ),
+        'usage', jsonb_build_object('branches', usage.branches, 'users', usage.users)
+    );
+END;
+$$;

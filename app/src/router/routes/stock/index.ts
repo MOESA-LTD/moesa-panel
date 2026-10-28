@@ -9,15 +9,11 @@ const routes: RouteRecordRaw[] = [
    {
       name: 'stock',
       path: 'stock',
+      // Its pages belong to two modules (stock, product) and each needs its own permission, so
+      // with one of them outside the plan the other is still reached.
       meta: {
          label: 'route.label.stock',
-         icon: 'pi pi-warehouse',
-         requiredPermissions: [
-            {
-               action: 'select',
-               subject: 'stock'
-            }
-         ]
+         icon: 'pi pi-warehouse'
       },
       components: {
          default: () => import('@/views/pages/stock/Index.vue'),
@@ -30,7 +26,8 @@ const routes: RouteRecordRaw[] = [
             props: true,
             meta: {
                label: 'route.label.stock_add',
-               visible: false
+               visible: false,
+               requiredPermissions: [{ action: 'select', subject: 'stock' }]
             },
             components: {
                default: () => import('@/views/pages/stock/Upsert.vue'),
@@ -43,7 +40,8 @@ const routes: RouteRecordRaw[] = [
             props: true,
             meta: {
                label: 'route.label.stock_edit',
-               visible: false
+               visible: false,
+               requiredPermissions: [{ action: 'select', subject: 'stock' }]
             },
             components: {
                default: () => import('@/views/pages/stock/Upsert.vue'),

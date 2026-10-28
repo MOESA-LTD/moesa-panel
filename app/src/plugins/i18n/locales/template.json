@@ -580,7 +580,9 @@
          "branch_role_list": "",
          "branch-tree": "",
          "branch_tree_list": "",
-         "branch_tree_add": ""
+         "branch_tree_add": "",
+         "subscription": "",
+         "module_locked": ""
       }
    },
    "account": {
@@ -732,5 +734,43 @@
       "owner": "",
       "add_branch": "",
       "opened_under": ""
+   },
+   "subscription": {
+      "no_plan": "",
+      "starts_at": "",
+      "ends_at": "",
+      "no_end": "",
+      "days_left": "",
+      "read_only": "",
+      "change_hint": "",
+      "limits": "",
+      "limit": {
+         "max_branches": "",
+         "max_users": ""
+      },
+      "unlimited_usage": "",
+      "modules": "",
+      "core_module": "",
+      "status": {
+         "none": "",
+         "scheduled": "",
+         "trialing": "",
+         "active": "",
+         "expired": "",
+         "canceled": ""
+      },
+      "banner": {
+         "read_only": "",
+         "trial_ends": "",
+         "ends": ""
+      },
+      "locked": {
+         "title": "",
+         "text": "",
+         "in_plans": "",
+         "see_subscription": "",
+         "menu": "",
+         "permission": ""
+      }
    }
 }

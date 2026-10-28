@@ -538,7 +538,9 @@
          "branch_role_list": "Rollenliste",
          "branch-tree": "Filialen",
          "branch_tree_list": "Filialliste",
-         "branch_tree_add": "Neue Filiale"
+         "branch_tree_add": "Neue Filiale",
+         "subscription": "Abonnement",
+         "module_locked": "Gesperrtes Modul"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "Inhaber",
       "add_branch": "Filiale darunter eröffnen",
       "opened_under": "Wird unter {name} eröffnet."
+   },
+   "subscription": {
+      "no_plan": "Kein Tarif",
+      "starts_at": "Beginn",
+      "ends_at": "Ende",
+      "no_end": "Unbefristet",
+      "days_left": "Noch {days} Tag | Noch {days} Tage",
+      "read_only": "Das Abonnement ist nicht aktiv: Die Daten können angesehen, aber nicht geändert werden.",
+      "change_hint": "Wenden Sie sich an den Administrator, um den Tarif zu ändern oder das Abonnement zu verlängern.",
+      "limits": "Limits",
+      "limit": {
+         "max_branches": "Filialen",
+         "max_users": "Benutzer"
+      },
+      "unlimited_usage": "{used} (unbegrenzt)",
+      "modules": "Module",
+      "core_module": "In jedem Tarif",
+      "status": {
+         "none": "Kein Abonnement",
+         "scheduled": "Geplant",
+         "trialing": "Testphase",
+         "active": "Aktiv",
+         "expired": "Abgelaufen",
+         "canceled": "Gekündigt"
+      },
+      "banner": {
+         "read_only": "Abonnement: {status}. Bis zur Verlängerung sind die Daten schreibgeschützt.",
+         "trial_ends": "Die Testphase endet in {days} Tag. | Die Testphase endet in {days} Tagen.",
+         "ends": "Das Abonnement endet in {days} Tag. | Das Abonnement endet in {days} Tagen."
+      },
+      "locked": {
+         "title": "{module} ist nicht in Ihrem Tarif",
+         "text": "Dieses Modul gehört nicht zum Tarif Ihres Unternehmens. Wechseln Sie den Tarif, um es zu nutzen.",
+         "in_plans": "Enthalten in:",
+         "see_subscription": "Abonnement ansehen",
+         "menu": "Nicht in Ihrem Tarif",
+         "permission": "Nicht in Ihrem Tarif: ohne Wirkung, bis es enthalten ist."
+      }
    }
 }

@@ -632,7 +632,9 @@
          "branch_role_list": "Elenco ruoli filiale",
          "branch-tree": "Filiali",
          "branch_tree_list": "Elenco filiali",
-         "branch_tree_add": "Nuova filiale"
+         "branch_tree_add": "Nuova filiale",
+         "subscription": "Abbonamento",
+         "module_locked": "Modulo bloccato"
       }
    },
    "account": {
@@ -789,5 +791,43 @@
       "owner": "Proprietario",
       "add_branch": "Apri una filiale sotto",
       "opened_under": "Verrà aperta sotto {name}."
+   },
+   "subscription": {
+      "no_plan": "Nessun piano",
+      "starts_at": "Inizio",
+      "ends_at": "Fine",
+      "no_end": "Senza scadenza",
+      "days_left": "Manca {days} giorno | Mancano {days} giorni",
+      "read_only": "L'abbonamento non è attivo: i dati si possono consultare ma non modificare.",
+      "change_hint": "Per cambiare piano o prolungare l'abbonamento, contatta l'amministratore.",
+      "limits": "Limiti",
+      "limit": {
+         "max_branches": "Filiali",
+         "max_users": "Utenti"
+      },
+      "unlimited_usage": "{used} (illimitato)",
+      "modules": "Moduli",
+      "core_module": "In ogni piano",
+      "status": {
+         "none": "Nessun abbonamento",
+         "scheduled": "Programmato",
+         "trialing": "Prova",
+         "active": "Attivo",
+         "expired": "Scaduto",
+         "canceled": "Annullato"
+      },
+      "banner": {
+         "read_only": "Abbonamento: {status}. I dati sono in sola lettura fino al rinnovo.",
+         "trial_ends": "La prova termina tra {days} giorno. | La prova termina tra {days} giorni.",
+         "ends": "L'abbonamento termina tra {days} giorno. | L'abbonamento termina tra {days} giorni."
+      },
+      "locked": {
+         "title": "{module} non è nel tuo piano",
+         "text": "Questo modulo non fa parte del piano della tua azienda. Passa a un piano superiore per usarlo.",
+         "in_plans": "Incluso in:",
+         "see_subscription": "Vedi l'abbonamento",
+         "menu": "Non nel tuo piano",
+         "permission": "Non nel tuo piano: non ha effetto finché non lo è."
+      }
    }
 }

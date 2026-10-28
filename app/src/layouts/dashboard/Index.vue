@@ -61,6 +61,7 @@ const containerClass = computed(() => {
                </div>
             </RouterView>
 
+            <SubscriptionBanner v-if="isSignedIn" />
             <CustomRouteView :key="currentTenant?.display_name" />
 
             <RouterView v-slot="{ Component }" name="page-footer">

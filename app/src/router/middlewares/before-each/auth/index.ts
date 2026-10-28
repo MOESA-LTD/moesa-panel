@@ -39,6 +39,13 @@ export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to) => 
       throw Object.assign(new AuthSessionMissingError(), { status: 401 });
    }
 
+   // A page of a module outside the company's plan shows what it would take instead.
+   const lockedModule = to.matched
+      .flatMap((record) => record.meta.requiredPermissions ?? [])
+      .map(({ subject }) => authStore.lockedModule(subject))
+      .find(Boolean);
+   if (lockedModule) return { name: 'module-locked', params: { module: lockedModule } };
+
    if (meta.requiredPermissions?.some(({ action, subject }) => ability.cannot(action, subject))) {
       throw new CustomAuthError(
          i18n.t('errors.insufficient_permission'),

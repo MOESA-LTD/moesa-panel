@@ -632,7 +632,9 @@
          "branch_role_list": "قائمة أدوار الفرع",
          "branch-tree": "الفروع",
          "branch_tree_list": "قائمة الفروع",
-         "branch_tree_add": "فرع جديد"
+         "branch_tree_add": "فرع جديد",
+         "subscription": "الاشتراك",
+         "module_locked": "وحدة مقفلة"
       }
    },
    "account": {
@@ -789,5 +791,43 @@
       "owner": "المالك",
       "add_branch": "فتح فرع تابع له",
       "opened_under": "سيُفتح تحت {name}."
+   },
+   "subscription": {
+      "no_plan": "لا توجد خطة",
+      "starts_at": "البداية",
+      "ends_at": "النهاية",
+      "no_end": "بدون تاريخ انتهاء",
+      "days_left": "متبقٍ {days} يوم",
+      "read_only": "الاشتراك غير سارٍ: يمكن عرض البيانات دون تعديلها.",
+      "change_hint": "لتغيير الخطة أو تمديد الاشتراك، تواصل مع المسؤول.",
+      "limits": "الحدود",
+      "limit": {
+         "max_branches": "الفروع",
+         "max_users": "المستخدمون"
+      },
+      "unlimited_usage": "{used} (غير محدود)",
+      "modules": "الوحدات",
+      "core_module": "ضمن كل الخطط",
+      "status": {
+         "none": "لا يوجد اشتراك",
+         "scheduled": "مجدول",
+         "trialing": "تجريبي",
+         "active": "نشط",
+         "expired": "منتهٍ",
+         "canceled": "ملغى"
+      },
+      "banner": {
+         "read_only": "الاشتراك: {status}. البيانات للقراءة فقط حتى التجديد.",
+         "trial_ends": "تنتهي الفترة التجريبية خلال {days} يوم.",
+         "ends": "ينتهي الاشتراك خلال {days} يوم."
+      },
+      "locked": {
+         "title": "{module} غير مشمول في خطتك",
+         "text": "هذه الوحدة ليست ضمن خطة شركتك. قم بترقية الخطة لاستخدامها.",
+         "in_plans": "مشمولة في:",
+         "see_subscription": "عرض الاشتراك",
+         "menu": "غير مشمول في خطتك",
+         "permission": "غير مشمول في خطتك: لا أثر له حتى يُضاف."
+      }
    }
 }

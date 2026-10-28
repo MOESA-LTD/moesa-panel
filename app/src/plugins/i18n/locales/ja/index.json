@@ -538,7 +538,9 @@
          "branch_role_list": "支店ロール一覧",
          "branch-tree": "支店",
          "branch_tree_list": "支店一覧",
-         "branch_tree_add": "新しい支店"
+         "branch_tree_add": "新しい支店",
+         "subscription": "サブスクリプション",
+         "module_locked": "ロックされたモジュール"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "オーナー",
       "add_branch": "この下に支店を開設",
       "opened_under": "{name} の下に開設されます。"
+   },
+   "subscription": {
+      "no_plan": "プランなし",
+      "starts_at": "開始日",
+      "ends_at": "終了日",
+      "no_end": "期限なし",
+      "days_left": "残り{days}日",
+      "read_only": "サブスクリプションが有効ではありません。データの閲覧はできますが、変更はできません。",
+      "change_hint": "プランの変更やサブスクリプションの延長は管理者にお問い合わせください。",
+      "limits": "上限",
+      "limit": {
+         "max_branches": "支店",
+         "max_users": "ユーザー"
+      },
+      "unlimited_usage": "{used}（無制限）",
+      "modules": "モジュール",
+      "core_module": "全プランに含まれる",
+      "status": {
+         "none": "サブスクリプションなし",
+         "scheduled": "予定",
+         "trialing": "トライアル",
+         "active": "有効",
+         "expired": "期限切れ",
+         "canceled": "キャンセル済み"
+      },
+      "banner": {
+         "read_only": "サブスクリプション: {status}。更新されるまでデータは読み取り専用です。",
+         "trial_ends": "トライアルはあと{days}日で終了します。",
+         "ends": "サブスクリプションはあと{days}日で終了します。"
+      },
+      "locked": {
+         "title": "{module}はご利用のプランに含まれていません",
+         "text": "このモジュールは会社のプランに含まれていません。利用するにはプランをアップグレードしてください。",
+         "in_plans": "含まれるプラン:",
+         "see_subscription": "サブスクリプションを見る",
+         "menu": "プランに含まれていません",
+         "permission": "プランに含まれていません。含まれるまで効果はありません。"
+      }
    }
 }

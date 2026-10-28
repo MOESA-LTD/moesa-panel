@@ -1,6 +1,6 @@
 // app/src/store/auth/index.ts
 
-import { fetchAccess, type Access, type Tenant } from '@/api/access';
+import { fetchAccess, type Access, type SubscriptionSummary, type Tenant } from '@/api/access';
 import { clearDialogs } from '@/components/layout/route-dialog/session';
 import { clearDrafts } from '@/lib/form/drafts';
 import { supabase } from '@/lib/supabase';
@@ -98,6 +98,22 @@ export const useAuthStore = defineStore('auth', () => {
     */
    const canIn = (tenantId: string | null | undefined, action: string, subject: string) =>
       ((tenantId && tenantAbilities.value.get(tenantId)) || ability).can(action, subject);
+
+   // Subscription
+
+   const isSuperAdmin = computed(() => !!access.value?.is_super_admin);
+
+   /** The subscription of the active tenant's company; its plan limits what the user may do. */
+   const subscription = computed<SubscriptionSummary | null>(
+      () => access.value?.subscription ?? null
+   );
+
+   /**
+    * The module outside the company's plan that a permission subject belongs to, if it is one:
+    * pages needing it are shown locked. Nothing is locked for the super admin.
+    */
+   const lockedModule = (subject: string): string | null =>
+      isSuperAdmin.value ? null : (subscription.value?.locked[subject] ?? null);
 
    // The newest load wins; an older one finishing later is dropped.
    let latestLoad = 0;
@@ -262,6 +278,9 @@ export const useAuthStore = defineStore('auth', () => {
       accessReady,
       ability,
       canIn,
+      isSuperAdmin,
+      subscription,
+      lockedModule,
       loginWithPassword,
       logout,
       initialized

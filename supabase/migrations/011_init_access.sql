@@ -5,7 +5,8 @@
 -- The user's tenants as a tree (parent_id), each with the permissions the user has in it and
 -- whether they own it, and the active tenant. The active tenant is `requested` when the user may
 -- use it, else the one of the request (x-tenant-id header or the token's current tenant), else the
--- first of their tenants. `permissions` repeats the active tenant's.
+-- first of their tenants. `permissions` repeats the active tenant's, and `subscription` is that of
+-- the active tenant's company (private.subscription_summary, 013_init_subscriptions.sql).
 CREATE OR REPLACE FUNCTION public.my_access (requested UUID DEFAULT NULL) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
    search_path = '' AS $$
@@ -51,7 +52,9 @@ BEGIN
         'permissions', coalesce(
             (SELECT t -> 'permissions' FROM jsonb_array_elements(tenants) t WHERE (t ->> 'id')::UUID = tenant),
             '[]'::JSONB
-        )
+        ),
+        'subscription', private.subscription_summary(tenant),
+        'is_super_admin', private.check_super_admin(uid)
     );
 END;
 $$;

@@ -31,6 +31,13 @@ const columns = computed(() => [
 
 const permissionKinds = ['read', 'create', 'modify'];
 
+// Permissions of modules outside the company's plan can be given, but have no effect until then.
+const authStore = useAuthStore();
+const isLocked = (group) =>
+   !authStore.isSuperAdmin &&
+   !!authStore.subscription &&
+   !authStore.subscription.modules.includes(group);
+
 const { data: permissionRows, suspense } = useLookup('permission', {
    select: 'id,resource_name,group_name,kind'
 });
@@ -102,11 +109,18 @@ const tableProps = computed(() => ({
          </FormField>
       </template>
       <template #display_name_body="{ data, field }">
-         {{
-            $te(`fields.${_get(data, field)}`)
-               ? $t(`fields.${_get(data, field)}`)
-               : _get(data, field)
-         }}
+         <span class="inline-flex items-center gap-2">
+            {{
+               $te(`fields.${_get(data, field)}`)
+                  ? $t(`fields.${_get(data, field)}`)
+                  : _get(data, field)
+            }}
+            <i
+               v-if="isLocked(_get(data, field))"
+               class="pi pi-lock text-muted-color"
+               v-tooltip="$t('subscription.locked.permission')"
+            />
+         </span>
       </template>
       <template
          v-for="(kind, i) in permissionKinds"

@@ -148,4 +148,25 @@ describe('buildMenu', () => {
       const [item] = build([record('/login', 'login', { visible: false, replace: true })]);
       expect(item.route.replace).toBe(true);
    });
+   it('shows an entry of a module outside the plan locked, without its children', () => {
+      const menu = buildMenu(
+         [
+            record('/stock', 'stock', read('stock')),
+            record('/stock/list', 'stock-list', read('stock')),
+            record('/stock/add', 'stock-add', { visible: false, ...read('stock') }),
+            record('/client', 'client', read('client'))
+         ],
+         {
+            can: () => false,
+            t: (key) => key,
+            lockedModule: (subject) => (subject === 'stock' ? 'stock' : null)
+         }
+      );
+
+      expect(menu.map(({ name, visible, locked }) => [name, visible, locked])).toEqual([
+         ['stock', true, 'stock'],
+         ['client', false, undefined]
+      ]);
+      expect(menu[0]!.items).toBeUndefined();
+   });
 });

@@ -538,7 +538,9 @@
          "branch_role_list": "지점 역할 목록",
          "branch-tree": "지점",
          "branch_tree_list": "지점 목록",
-         "branch_tree_add": "새 지점"
+         "branch_tree_add": "새 지점",
+         "subscription": "구독",
+         "module_locked": "잠긴 모듈"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "소유자",
       "add_branch": "아래에 지점 열기",
       "opened_under": "{name} 아래에 열립니다."
+   },
+   "subscription": {
+      "no_plan": "요금제 없음",
+      "starts_at": "시작일",
+      "ends_at": "종료일",
+      "no_end": "기한 없음",
+      "days_left": "{days}일 남음",
+      "read_only": "구독이 유효하지 않습니다. 데이터를 볼 수는 있지만 변경할 수 없습니다.",
+      "change_hint": "요금제를 변경하거나 구독을 연장하려면 관리자에게 문의하세요.",
+      "limits": "한도",
+      "limit": {
+         "max_branches": "지점",
+         "max_users": "사용자"
+      },
+      "unlimited_usage": "{used} (무제한)",
+      "modules": "모듈",
+      "core_module": "모든 요금제 포함",
+      "status": {
+         "none": "구독 없음",
+         "scheduled": "예정",
+         "trialing": "체험",
+         "active": "활성",
+         "expired": "만료",
+         "canceled": "취소됨"
+      },
+      "banner": {
+         "read_only": "구독: {status}. 갱신될 때까지 데이터는 읽기 전용입니다.",
+         "trial_ends": "체험 기간이 {days}일 후 종료됩니다.",
+         "ends": "구독이 {days}일 후 종료됩니다."
+      },
+      "locked": {
+         "title": "{module}은(는) 요금제에 포함되어 있지 않습니다",
+         "text": "이 모듈은 회사 요금제에 포함되어 있지 않습니다. 사용하려면 요금제를 업그레이드하세요.",
+         "in_plans": "포함된 요금제:",
+         "see_subscription": "구독 보기",
+         "menu": "요금제에 포함되지 않음",
+         "permission": "요금제에 포함되지 않음: 포함될 때까지 효과가 없습니다."
+      }
    }
 }

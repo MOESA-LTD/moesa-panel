@@ -10,6 +10,7 @@ import branchRoutes from '@/router/routes/branch';
 import clientRoutes from '@/router/routes/client';
 import recordRoutes from '@/router/routes/record';
 import stockRoutes from '@/router/routes/stock';
+import subscriptionRoutes from '@/router/routes/subscription';
 
 const router = createRouter({
    history: createWebHistory(),
@@ -56,7 +57,8 @@ const router = createRouter({
                         ...clientRoutes,
                         ...stockRoutes,
                         ...accountRoutes,
-                        ...recordRoutes
+                        ...recordRoutes,
+                        ...subscriptionRoutes
                      ]
                   },
                   ...authRoutes,

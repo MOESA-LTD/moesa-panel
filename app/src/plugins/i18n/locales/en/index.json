@@ -538,7 +538,9 @@
          "branch_role_list": "Branch Role List",
          "branch-tree": "Branches",
          "branch_tree_list": "Branch List",
-         "branch_tree_add": "New Branch"
+         "branch_tree_add": "New Branch",
+         "subscription": "Subscription",
+         "module_locked": "Locked module"
       }
    },
    "dashboard": {
@@ -789,5 +791,43 @@
       "owner": "Owner",
       "add_branch": "Add a branch under it",
       "opened_under": "Opened under {name}."
+   },
+   "subscription": {
+      "no_plan": "No plan",
+      "starts_at": "Started",
+      "ends_at": "Ends",
+      "no_end": "No end date",
+      "days_left": "{days} day left | {days} days left",
+      "read_only": "The subscription is not in force: the data can be viewed but not changed.",
+      "change_hint": "To change the plan or extend the subscription, contact the administrator.",
+      "limits": "Limits",
+      "limit": {
+         "max_branches": "Branches",
+         "max_users": "Users"
+      },
+      "unlimited_usage": "{used} (unlimited)",
+      "modules": "Modules",
+      "core_module": "In every plan",
+      "status": {
+         "none": "No subscription",
+         "scheduled": "Scheduled",
+         "trialing": "Trial",
+         "active": "Active",
+         "expired": "Expired",
+         "canceled": "Canceled"
+      },
+      "banner": {
+         "read_only": "Subscription: {status}. The data is read-only until it is renewed.",
+         "trial_ends": "The trial ends in {days} day. | The trial ends in {days} days.",
+         "ends": "The subscription ends in {days} day. | The subscription ends in {days} days."
+      },
+      "locked": {
+         "title": "{module} is not in your plan",
+         "text": "This module is not part of your company's plan. Upgrade the plan to use it.",
+         "in_plans": "Included in:",
+         "see_subscription": "See the subscription",
+         "menu": "Not in your plan",
+         "permission": "Not in your plan: it has no effect until it is."
+      }
    }
 }
