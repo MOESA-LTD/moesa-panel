@@ -454,7 +454,14 @@
       "subscription_read_only": "サブスクリプションが有効ではありません。更新されるまで変更できません。",
       "plan_limit_branches": "プランの支店数の上限に達しました。さらに開設するにはプランをアップグレードしてください。",
       "plan_limit_users": "プランのユーザー数の上限に達しました。さらに追加するにはプランをアップグレードしてください。",
-      "subscription_company_only": "サブスクリプションを持てるのは会社（最上位の支店）のみです。"
+      "subscription_company_only": "サブスクリプションを持てるのは会社（最上位の支店）のみです。",
+      "user_exists_elsewhere": "このメールアドレスのアカウントは貴社の外部に既に存在するため、ここには追加できません。",
+      "user_not_allowed": "このアカウントはここでは管理できません。オーナー、管理者、または他社で使用されているアカウントです。",
+      "cannot_delete_owner": "オーナーを支店から削除することはできません。",
+      "request_rejected": "リクエストは拒否されました。",
+      "branch_move_forbidden": "支店を別の支店の下に移動することはできません。",
+      "plan_default_required": "デフォルトプランが必要です。代わりに別のプランをデフォルトにしてください。",
+      "plan_default_inactive": "デフォルトプランは提供中である必要があります。"
    },
    "account": {
       "profile": {

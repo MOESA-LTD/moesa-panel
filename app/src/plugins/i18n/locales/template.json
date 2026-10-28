@@ -525,7 +525,14 @@
       "subscription_read_only": "",
       "plan_limit_branches": "",
       "plan_limit_users": "",
-      "subscription_company_only": ""
+      "subscription_company_only": "",
+      "user_exists_elsewhere": "",
+      "user_not_allowed": "",
+      "cannot_delete_owner": "",
+      "request_rejected": "",
+      "branch_move_forbidden": "",
+      "plan_default_required": "",
+      "plan_default_inactive": ""
    },
    "route": {
       "label": {

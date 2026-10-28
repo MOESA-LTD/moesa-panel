@@ -454,7 +454,14 @@
       "subscription_read_only": "L'abonnement n'est pas en vigueur : aucune modification avant son renouvellement.",
       "plan_limit_branches": "La limite d'agences de la formule est atteinte. Changez de formule pour en ouvrir d'autres.",
       "plan_limit_users": "La limite d'utilisateurs de la formule est atteinte. Changez de formule pour en ajouter.",
-      "subscription_company_only": "Seule une entreprise (agence de premier niveau) peut avoir un abonnement."
+      "subscription_company_only": "Seule une entreprise (agence de premier niveau) peut avoir un abonnement.",
+      "user_exists_elsewhere": "Un compte avec cet e-mail existe déjà en dehors de votre entreprise ; il ne peut pas être ajouté ici.",
+      "user_not_allowed": "Ce compte ne peut pas être géré ici : c'est un propriétaire, un administrateur, ou il est utilisé par une autre entreprise.",
+      "cannot_delete_owner": "Un propriétaire ne peut pas être retiré de l'agence.",
+      "request_rejected": "La demande a été refusée.",
+      "branch_move_forbidden": "Une agence ne peut pas être déplacée sous une autre.",
+      "plan_default_required": "Il faut une formule par défaut : définissez plutôt une autre formule par défaut.",
+      "plan_default_inactive": "La formule par défaut doit être proposée."
    },
    "account": {
       "profile": {

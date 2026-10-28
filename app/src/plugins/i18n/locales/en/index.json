@@ -454,7 +454,14 @@
       "subscription_read_only": "The subscription is not in force: changes are not possible until it is renewed.",
       "plan_limit_branches": "The plan's branch limit is reached. Upgrade the plan to open more branches.",
       "plan_limit_users": "The plan's user limit is reached. Upgrade the plan to add more users.",
-      "subscription_company_only": "Only a company (a top-level branch) can have a subscription."
+      "subscription_company_only": "Only a company (a top-level branch) can have a subscription.",
+      "user_exists_elsewhere": "An account with this email already exists outside your company, so it cannot be added here.",
+      "user_not_allowed": "This account cannot be managed here: it is an owner, an administrator, or used by another company.",
+      "cannot_delete_owner": "An owner cannot be removed from the branch.",
+      "request_rejected": "The request was rejected.",
+      "branch_move_forbidden": "A branch cannot be moved under another tenant.",
+      "plan_default_required": "There must be a default plan: make another plan the default instead.",
+      "plan_default_inactive": "The default plan must be offered."
    },
    "account": {
       "profile": {

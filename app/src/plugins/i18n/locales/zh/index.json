@@ -454,7 +454,14 @@
       "subscription_read_only": "订阅未生效：续订前无法进行更改。",
       "plan_limit_branches": "已达到套餐的分店上限。请升级套餐以开设更多分店。",
       "plan_limit_users": "已达到套餐的用户上限。请升级套餐以添加更多用户。",
-      "subscription_company_only": "只有公司（最上级分店）才能订阅。"
+      "subscription_company_only": "只有公司（最上级分店）才能订阅。",
+      "user_exists_elsewhere": "使用此邮箱的账户已存在于您的公司之外，因此无法在此添加。",
+      "user_not_allowed": "无法在此管理该账户：它是所有者、管理员，或被其他公司使用。",
+      "cannot_delete_owner": "无法将所有者从分店中移除。",
+      "request_rejected": "请求被拒绝。",
+      "branch_move_forbidden": "分店不能移动到其他分店之下。",
+      "plan_default_required": "必须有一个默认套餐：请改为将其他套餐设为默认。",
+      "plan_default_inactive": "默认套餐必须在售。"
    },
    "account": {
       "profile": {

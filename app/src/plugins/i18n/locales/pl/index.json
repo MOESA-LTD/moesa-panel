@@ -454,7 +454,14 @@
       "subscription_read_only": "Subskrypcja nie obowiązuje: zmiany nie są możliwe do czasu odnowienia.",
       "plan_limit_branches": "Osiągnięto limit oddziałów planu. Zmień plan, aby otworzyć kolejne.",
       "plan_limit_users": "Osiągnięto limit użytkowników planu. Zmień plan, aby dodać kolejnych.",
-      "subscription_company_only": "Subskrypcję może mieć tylko firma (oddział najwyższego poziomu)."
+      "subscription_company_only": "Subskrypcję może mieć tylko firma (oddział najwyższego poziomu).",
+      "user_exists_elsewhere": "Konto z tym adresem e-mail istnieje już poza Twoją firmą, więc nie można go tu dodać.",
+      "user_not_allowed": "Tym kontem nie można tu zarządzać: należy do właściciela, administratora lub jest używane przez inną firmę.",
+      "cannot_delete_owner": "Nie można usunąć właściciela z oddziału.",
+      "request_rejected": "Żądanie zostało odrzucone.",
+      "branch_move_forbidden": "Oddziału nie można przenieść pod inny.",
+      "plan_default_required": "Musi istnieć plan domyślny: zamiast tego ustaw inny plan jako domyślny.",
+      "plan_default_inactive": "Plan domyślny musi być oferowany."
    },
    "account": {
       "profile": {

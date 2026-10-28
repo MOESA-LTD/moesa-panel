@@ -426,7 +426,14 @@
       "subscription_read_only": "La suscripción no está vigente: no se pueden hacer cambios hasta que se renueve.",
       "plan_limit_branches": "Se alcanzó el límite de sucursales del plan. Mejore el plan para abrir más.",
       "plan_limit_users": "Se alcanzó el límite de usuarios del plan. Mejore el plan para añadir más.",
-      "subscription_company_only": "Solo una empresa (una sucursal de nivel superior) puede tener suscripción."
+      "subscription_company_only": "Solo una empresa (una sucursal de nivel superior) puede tener suscripción.",
+      "user_exists_elsewhere": "Ya existe una cuenta con este correo fuera de su empresa, por lo que no se puede añadir aquí.",
+      "user_not_allowed": "Esta cuenta no se puede gestionar aquí: es un propietario, un administrador o la usa otra empresa.",
+      "cannot_delete_owner": "No se puede quitar a un propietario de la sucursal.",
+      "request_rejected": "La solicitud fue rechazada.",
+      "branch_move_forbidden": "Una sucursal no se puede mover bajo otra.",
+      "plan_default_required": "Debe haber un plan predeterminado: haga predeterminado otro plan en su lugar.",
+      "plan_default_inactive": "El plan predeterminado debe estar ofrecido."
    },
    "account": {
       "profile": {

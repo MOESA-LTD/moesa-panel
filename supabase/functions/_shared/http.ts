@@ -23,6 +23,9 @@ const PG_ERROR_STATUS: Record<string, number> = {
    '42501': 403 // insufficient_privilege (RLS)
 };
 
+/** The form of the app's error keys (errors.* in the locales), e.g. subscription_read_only. */
+const ERROR_KEY = /^[a-z0-9_]+$/;
+
 /** Maps an error to a response without leaking internals; unknown errors are logged and returned as 500. */
 export const errorResponse = (error: unknown) => {
    if (error instanceof HttpError) {
@@ -41,9 +44,13 @@ export const errorResponse = (error: unknown) => {
 
    const { code, status } = (error ?? {}) as { code?: string; status?: number };
 
-   // Raised on purpose by the database, with a reason of its own (e.g. plan_limit_users).
+   // Raised on purpose by the database. Only the app's own reasons (keys such as plan_limit_users)
+   // are passed on; any other message may carry internals, so it is logged instead.
    if (code === 'P0001') {
-      return json({ message: (error as Error).message, code }, 403);
+      const { message } = error as Error;
+      if (ERROR_KEY.test(message)) return json({ message, code }, 403);
+      console.error(error);
+      return json({ message: 'request_rejected', code }, 403);
    }
 
    if (code && PG_ERROR_STATUS[code]) {

@@ -1,7 +1,7 @@
 import { forTenant } from '@/api/formTenant';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
-import { email, optional, phone, requiredText } from '@/lib/form/fields';
+import { email, requiredText } from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -32,11 +32,13 @@ export const isOwnerAbove = (user: UserAccess) => user.tenant_id === null;
 const tenantHeaders = (tenantId?: string | null) =>
    tenantId ? { 'x-tenant-id': tenantId, 'x-tenant-ids': tenantId } : undefined;
 
-/** Attributes the `user` edge function accepts; see supabase/functions/user. */
+/**
+ * Attributes the `user` edge function accepts; see supabase/functions/user. The email is only sent
+ * to invite a member: sign-in details (email, phone, password) are each user's own to change, in
+ * their account settings.
+ */
 export type UserAttributes = {
-   email: string;
-   phone?: string | null;
-   password?: string | null;
+   email?: string;
    user_metadata: { display_name: string };
 };
 
@@ -132,9 +134,6 @@ export function useRemoveUser() {
 export const userSchema = z.object({
    id: z.string().optional(),
    email: email(),
-   phone: optional(phone()),
-   // Only sent when a new password is typed.
-   password: optional(z.string().min(6)),
    user_metadata: z.looseObject({ display_name: requiredText() }),
    role: z.array(z.looseObject({ id: z.string() })),
    tenant_id: z.string().nullish()
@@ -145,8 +144,6 @@ export type UserFormValues = z.input<typeof userSchema>;
 export const toUserFormValues = (user?: Partial<UserWithRoles> | null): UserFormValues => ({
    id: user?.id ?? undefined,
    email: user?.email ?? '',
-   phone: user?.phone ?? '',
-   password: '',
    user_metadata: { display_name: '', ...((user?.user_metadata as object) ?? {}) },
    role: user?.role ?? [],
    tenant_id: user?.tenant_id
@@ -155,8 +152,6 @@ export const toUserFormValues = (user?: Partial<UserWithRoles> | null): UserForm
 export const toUserPayload = ({
    id,
    email,
-   phone,
-   password,
    user_metadata,
    role,
    tenant_id
@@ -164,9 +159,8 @@ export const toUserPayload = ({
    id,
    tenantId: tenant_id,
    attributes: {
-      email,
-      phone,
-      password,
+      // A member's email is shown, not changed; it only says whom to invite.
+      ...(id ? {} : { email }),
       user_metadata: { display_name: user_metadata.display_name }
    },
    // Roles are assigned to existing members only (the role picker is shown after inviting).

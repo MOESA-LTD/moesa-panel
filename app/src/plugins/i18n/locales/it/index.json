@@ -576,7 +576,14 @@
       "subscription_read_only": "L'abbonamento non è attivo: non si possono apportare modifiche fino al rinnovo.",
       "plan_limit_branches": "Raggiunto il limite di filiali del piano. Passa a un piano superiore per aprirne altre.",
       "plan_limit_users": "Raggiunto il limite di utenti del piano. Passa a un piano superiore per aggiungerne altri.",
-      "subscription_company_only": "Solo un'azienda (una filiale di primo livello) può avere un abbonamento."
+      "subscription_company_only": "Solo un'azienda (una filiale di primo livello) può avere un abbonamento.",
+      "user_exists_elsewhere": "Esiste già un account con questa email al di fuori della tua azienda, quindi non può essere aggiunto qui.",
+      "user_not_allowed": "Questo account non può essere gestito qui: è un proprietario, un amministratore o è usato da un'altra azienda.",
+      "cannot_delete_owner": "Un proprietario non può essere rimosso dalla filiale.",
+      "request_rejected": "La richiesta è stata rifiutata.",
+      "branch_move_forbidden": "Una filiale non può essere spostata sotto un'altra.",
+      "plan_default_required": "Deve esserci un piano predefinito: rendi predefinito un altro piano.",
+      "plan_default_inactive": "Il piano predefinito deve essere offerto."
    },
    "route": {
       "label": {

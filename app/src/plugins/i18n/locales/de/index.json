@@ -454,7 +454,14 @@
       "subscription_read_only": "Das Abonnement ist nicht aktiv: Änderungen sind erst nach der Verlängerung möglich.",
       "plan_limit_branches": "Das Filiallimit des Tarifs ist erreicht. Wechseln Sie den Tarif, um weitere Filialen zu eröffnen.",
       "plan_limit_users": "Das Benutzerlimit des Tarifs ist erreicht. Wechseln Sie den Tarif, um weitere Benutzer hinzuzufügen.",
-      "subscription_company_only": "Nur ein Unternehmen (eine oberste Filiale) kann ein Abonnement haben."
+      "subscription_company_only": "Nur ein Unternehmen (eine oberste Filiale) kann ein Abonnement haben.",
+      "user_exists_elsewhere": "Ein Konto mit dieser E-Mail-Adresse existiert bereits außerhalb Ihres Unternehmens und kann hier nicht hinzugefügt werden.",
+      "user_not_allowed": "Dieses Konto kann hier nicht verwaltet werden: Es ist ein Inhaber, ein Administrator oder wird von einem anderen Unternehmen genutzt.",
+      "cannot_delete_owner": "Ein Inhaber kann nicht aus der Filiale entfernt werden.",
+      "request_rejected": "Die Anfrage wurde abgelehnt.",
+      "branch_move_forbidden": "Eine Filiale kann nicht unter eine andere verschoben werden.",
+      "plan_default_required": "Es muss einen Standardtarif geben: Machen Sie stattdessen einen anderen Tarif zum Standard.",
+      "plan_default_inactive": "Der Standardtarif muss angeboten werden."
    },
    "account": {
       "profile": {

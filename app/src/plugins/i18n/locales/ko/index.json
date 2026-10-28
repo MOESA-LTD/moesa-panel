@@ -454,7 +454,14 @@
       "subscription_read_only": "구독이 유효하지 않습니다. 갱신될 때까지 변경할 수 없습니다.",
       "plan_limit_branches": "요금제의 지점 한도에 도달했습니다. 더 열려면 요금제를 업그레이드하세요.",
       "plan_limit_users": "요금제의 사용자 한도에 도달했습니다. 더 추가하려면 요금제를 업그레이드하세요.",
-      "subscription_company_only": "회사(최상위 지점)만 구독할 수 있습니다."
+      "subscription_company_only": "회사(최상위 지점)만 구독할 수 있습니다.",
+      "user_exists_elsewhere": "이 이메일을 사용하는 계정이 회사 외부에 이미 있어 여기에 추가할 수 없습니다.",
+      "user_not_allowed": "이 계정은 여기에서 관리할 수 없습니다: 소유자, 관리자이거나 다른 회사에서 사용 중입니다.",
+      "cannot_delete_owner": "소유자는 지점에서 제거할 수 없습니다.",
+      "request_rejected": "요청이 거부되었습니다.",
+      "branch_move_forbidden": "지점을 다른 지점 아래로 옮길 수 없습니다.",
+      "plan_default_required": "기본 요금제가 있어야 합니다. 대신 다른 요금제를 기본으로 지정하세요.",
+      "plan_default_inactive": "기본 요금제는 제공 중이어야 합니다."
    },
    "account": {
       "profile": {

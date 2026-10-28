@@ -87,48 +87,28 @@ const metadata = computed(
          >
             <InputText v-bind="slotProps" v-model="values.user_metadata.display_name" />
          </FormField>
-         <FormField fluid v-slot="slotProps" :label="$t('fields.email')" :error="errors.email">
-            <InputText v-bind="slotProps" autocomplete="username" v-model="values.email" />
-         </FormField>
+         <!-- Whom to invite; a member's sign-in details are theirs to change (account settings). -->
          <FormField
-            v-if="values.id"
             fluid
             v-slot="slotProps"
-            :label="$t('fields.phone')"
-            :error="errors.phone"
+            :label="$t('fields.email')"
+            :error="errors.email"
+            :readonly="!!values.id"
          >
-            <PhoneInput v-bind="slotProps" autocomplete="off" v-model="values.phone" />
+            <InputText
+               v-bind="slotProps"
+               autocomplete="username"
+               :readonly="!!values.id"
+               v-model="values.email"
+            />
          </FormField>
       </FormBox>
-      <FormBox :legend="$t('user.security')" v-if="values.id">
-         <FormField
-            v-if="$can('read', 'role') && $can('modify', 'user_role')"
-            fluid
-            v-slot="slotProps"
-            :label="$t('fields.role')"
-            :error="errors.role"
-         >
+      <FormBox
+         :legend="$t('user.security')"
+         v-if="values.id && $can('read', 'role') && $can('modify', 'user_role')"
+      >
+         <FormField fluid v-slot="slotProps" :label="$t('fields.role')" :error="errors.role">
             <SelectUserRole v-bind="slotProps" v-model="values.role" option-value="" />
-         </FormField>
-         <FormField
-            fluid
-            v-slot="slotProps"
-            :label="$t('fields.password')"
-            :error="errors.password"
-         >
-            <Password
-               :pt="{
-                  pcInputText: {
-                     root: {
-                        autocomplete: 'new-password'
-                     }
-                  }
-               }"
-               v-bind="slotProps"
-               :toggle-mask="true"
-               :feedback="false"
-               v-model="values.password"
-            />
          </FormField>
       </FormBox>
    </FormBox>
