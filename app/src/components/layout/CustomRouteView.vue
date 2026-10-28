@@ -66,7 +66,15 @@ const onPending = () => setStatus('pending');
          :key="routeComponent?.name || routeComponent?.type"
       >
          <template v-if="isLoading">
-            <component v-if="Component" :is="Component" />
+            <!-- Its own boundary: a skeleton that loads data itself (often the page itself) would
+                 otherwise join the page's boundary, and once removed it was still mounted when its
+                 data came, as a copy that no longer updated. -->
+            <Suspense v-if="Component">
+               <component :is="Component" />
+               <template #fallback>
+                  <Skeleton class="route_view__skeleton" />
+               </template>
+            </Suspense>
             <Skeleton v-else class="route_view__skeleton" />
          </template>
       </RouterView>

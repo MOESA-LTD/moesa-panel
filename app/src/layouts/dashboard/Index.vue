@@ -27,7 +27,7 @@ const containerClass = computed(() => {
             <header
                v-if="Component"
                class="layout-topbar"
-               :key="currentTenant?.display_name + scopeTenants.length"
+               :key="`${currentTenant?.id}:${scopeTenants.length}`"
             >
                <Suspense>
                   <component :is="Component" />
@@ -46,7 +46,7 @@ const containerClass = computed(() => {
                <aside
                   v-if="Component"
                   class="layout-sidebar"
-                  :key="currentTenant?.display_name + scopeTenants.length"
+                  :key="`${currentTenant?.id}:${scopeTenants.length}`"
                >
                   <span class="empty:hidden p-4" id="sidebar-start" />
                   <Suspense>
@@ -59,7 +59,7 @@ const containerClass = computed(() => {
             <RouterView v-slot="{ Component }" name="page-header">
                <div
                   v-if="Component"
-                  :key="currentTenant?.display_name + scopeTenants.length"
+                  :key="`${currentTenant?.id}:${scopeTenants.length}`"
                   class="card p-4 mb-4 flex justify-center lg:justify-between gap-2 sticky top-0 shadow-md z-10"
                >
                   <Suspense>
@@ -70,7 +70,7 @@ const containerClass = computed(() => {
             </RouterView>
 
             <SubscriptionBanner v-if="isSignedIn" />
-            <CustomRouteView :key="currentTenant?.display_name + scopeTenants.length" />
+            <CustomRouteView :key="`${currentTenant?.id}:${scopeTenants.length}`" />
 
             <RouterView v-slot="{ Component }" name="page-footer">
                <div v-if="Component" class="p-4">
