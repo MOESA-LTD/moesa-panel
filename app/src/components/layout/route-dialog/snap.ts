@@ -74,3 +74,43 @@ export const SNAP_BOXES: Record<SnapZone, SnapBox> = {
    'bottom-left': { left: '0px', top: HALF_H, width: HALF_W, height: HALF_H },
    'bottom-right': { left: HALF_W, top: HALF_H, width: HALF_W, height: HALF_H }
 };
+
+/** How a dialog can be told to open (`?dialogFrame=`): filling the viewport, or one snap zone. */
+export type DialogFrame = 'maximized' | SnapZone;
+
+export const isDialogFrame = (value: unknown): value is DialogFrame =>
+   value === 'maximized' || SNAP_ZONES.includes(value as SnapZone);
+
+/** The inline style of a dialog filling the viewport. */
+export const MAXIMIZED_STYLE = {
+   position: 'fixed',
+   margin: '0',
+   left: '0',
+   top: '0',
+   width: '100vw',
+   height: '100vh',
+   minWidth: '0',
+   maxWidth: '100vw',
+   maxHeight: '100vh'
+} as const;
+
+/** The inline style of a dialog filling `zone`. */
+export const snapStyle = (zone: SnapZone) =>
+   ({
+      position: 'fixed',
+      margin: '0',
+      minWidth: '0',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      ...SNAP_BOXES[zone]
+   }) as const;
+
+/** The style and window state a dialog opens with for `frame`. */
+export function frameStyle(frame: DialogFrame) {
+   const el = document.createElement('div');
+   Object.assign(el.style, frame === 'maximized' ? MAXIMIZED_STYLE : snapStyle(frame));
+   return {
+      style: el.style.cssText,
+      state: frame === 'maximized' ? ('maximized' as const) : ('snapped' as const)
+   };
+}

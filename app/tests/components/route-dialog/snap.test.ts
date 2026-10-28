@@ -1,4 +1,6 @@
 import {
+   frameStyle,
+   isDialogFrame,
    SNAP_CORNER,
    SNAP_EDGE,
    SNAP_HINT_REACH,
@@ -41,5 +43,30 @@ describe('snapZoneAt', () => {
       expect(snapZoneAt(SNAP_HINT_REACH, 400, W, H, SNAP_HINT_REACH)).toBe('left');
       expect(snapZoneAt(500, H - 50, W, H, SNAP_HINT_REACH)).toBe('bottom');
       expect(snapZoneAt(500, 400, W, H, SNAP_HINT_REACH)).toBeNull();
+   });
+});
+
+describe('dialog frame from the query', () => {
+   it('accepts maximized and the snap zones only', () => {
+      expect(isDialogFrame('maximized')).toBe(true);
+      expect(isDialogFrame('top-right')).toBe(true);
+      expect(isDialogFrame('center')).toBe(false);
+      expect(isDialogFrame(['left'])).toBe(false);
+      expect(isDialogFrame(undefined)).toBe(false);
+   });
+
+   it('opens maximized over the whole viewport', () => {
+      const { style, state } = frameStyle('maximized');
+      expect(state).toBe('maximized');
+      expect(style).toContain('width: 100vw');
+      expect(style).toContain('height: 100vh');
+   });
+
+   it('opens snapped to the zone', () => {
+      const { style, state } = frameStyle('right');
+      expect(state).toBe('snapped');
+      expect(style).toContain('left: 50vw');
+      expect(style).toContain('width: 50vw');
+      expect(style).toContain('height: 100vh');
    });
 });

@@ -1,10 +1,11 @@
 import { onBeforeUnmount, readonly, ref } from 'vue';
 import {
+   MAXIMIZED_STYLE,
    SNAP_BOXES,
    SNAP_HINT_REACH,
    SNAP_ZONES,
+   snapStyle,
    snapZoneAt,
-   type SnapBox,
    type SnapZone
 } from './snap';
 
@@ -182,14 +183,7 @@ export function useDialogFrame(
    /** Fills `zone`; the box it had before the drag is kept to return to. */
    function snap(el: HTMLElement, zone: SnapZone, before: string) {
       normalStyle = before;
-      Object.assign(el.style, {
-         position: 'fixed',
-         margin: '0',
-         minWidth: '0',
-         maxWidth: '100vw',
-         maxHeight: '100vh',
-         ...SNAP_BOXES[zone]
-      } satisfies Partial<CSSStyleDeclaration> & SnapBox);
+      Object.assign(el.style, snapStyle(zone));
       state.value = 'snapped';
    }
 
@@ -307,17 +301,7 @@ export function useDialogFrame(
       normalStyle = el.style.cssText;
 
       if (next === 'maximized') {
-         Object.assign(el.style, {
-            position: 'fixed',
-            margin: '0',
-            left: '0',
-            top: '0',
-            width: '100vw',
-            height: '100vh',
-            minWidth: '0',
-            maxWidth: '100vw',
-            maxHeight: '100vh'
-         });
+         Object.assign(el.style, MAXIMIZED_STYLE);
       } else {
          // The header alone, where the dialog is; the component hides the body.
          pin(el);

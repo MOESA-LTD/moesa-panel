@@ -5,7 +5,9 @@ import type { NavigationGuardWithThis, RouteLocationRaw } from 'vue-router';
 
 /**
  * A route opened with `?showDialog=<position>` renders its page in a dialog over the current page
- * instead of navigating to it (see RouteDialog).
+ * instead of navigating to it (see RouteDialog). `&dialogFrame=maximized` opens it filling the
+ * viewport, `&dialogFrame=<snap zone>` (left, right, top, bottom, top-left, ...) filling that half
+ * or quarter (see openRouteDialog).
  */
 export const dialogBeforeEach: NavigationGuardWithThis<undefined> = async (to, from) => {
    if (to.name == 'logout') return;

@@ -4,19 +4,27 @@ import type { useDialog } from 'primevue';
 import { h } from 'vue';
 import type { RouteLocationNormalized } from 'vue-router';
 import RouteDialog from './RouteDialog.vue';
-import { markOnScreen, rememberDialog, takeReopening } from './session';
+import { markOnScreen, rememberDialog, takeReopening, type SavedRouteDialog } from './session';
+import { frameStyle, isDialogFrame } from './snap';
 
 /**
  * Opens `route`'s page in a RouteDialog; DynamicDialog only provides the mask and the box. The
  * dialog is remembered for the tab so a reload reopens it, with its position, size and state when
  * it is being reopened.
+ *
+ * `?dialogFrame=maximized` opens it filling the viewport, and `?dialogFrame=<snap zone>` (left,
+ * top-right, ...) filling that half or quarter; restoring gives it its normal box at `position`.
+ * A dialog being reopened keeps the frame it had.
  */
 export function openRouteDialog(
    dialogs: ReturnType<typeof useDialog>,
    route: RouteLocationNormalized,
    position: DialogPosition
 ) {
-   const saved = takeReopening(route.fullPath);
+   const frame = route.query.dialogFrame;
+   const saved: Partial<SavedRouteDialog> | undefined =
+      takeReopening(route.fullPath) ??
+      (isDialogFrame(frame) ? { ...frameStyle(frame), normalStyle: '' } : undefined);
    const id = saved?.id ?? crypto.randomUUID();
    // Only pages of the signed-in user are reopened; auth pages (login, ...) are not.
    const authStore = useAuthStore();
