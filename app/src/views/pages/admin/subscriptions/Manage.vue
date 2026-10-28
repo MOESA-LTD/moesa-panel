@@ -131,22 +131,25 @@ const historySeverity = (row: SubscriptionRow) =>
             </dd>
          </dl>
          <div v-if="current" class="flex flex-wrap gap-2">
-            <Button
-               size="small"
-               outlined
-               icon="pi pi-calendar-plus"
-               :label="$t('admin.subscription.extend_month')"
-               :loading="updating"
-               @click="extend(1)"
-            />
-            <Button
-               size="small"
-               outlined
-               icon="pi pi-calendar-plus"
-               :label="$t('admin.subscription.extend_year')"
-               :loading="updating"
-               @click="extend(12)"
-            />
+            <!-- Without an end there is nothing to extend (it would set one, ending it sooner). -->
+            <template v-if="current.ends_at">
+               <Button
+                  size="small"
+                  outlined
+                  icon="pi pi-calendar-plus"
+                  :label="$t('admin.subscription.extend_month')"
+                  :loading="updating"
+                  @click="extend(1)"
+               />
+               <Button
+                  size="small"
+                  outlined
+                  icon="pi pi-calendar-plus"
+                  :label="$t('admin.subscription.extend_year')"
+                  :loading="updating"
+                  @click="extend(12)"
+               />
+            </template>
             <Button
                v-if="current.ends_at"
                size="small"

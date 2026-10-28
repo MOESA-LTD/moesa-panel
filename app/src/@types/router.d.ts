@@ -17,6 +17,8 @@ declare module 'vue-router' {
       superAdmin?: boolean;
       /** All of them are needed to enter the route; menus hide the route without them. */
       requiredPermissions?: RoutePermission[];
+      /** One of them is needed to enter the route (e.g. a section of pages of several modules). */
+      anyPermission?: RoutePermission[];
       /** Overrides the permission-based menu visibility. */
       visible?: MaybeRefOrGetter<boolean>;
       /** Menu links replace the current history entry. */

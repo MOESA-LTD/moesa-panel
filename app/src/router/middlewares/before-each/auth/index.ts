@@ -55,7 +55,11 @@ export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to) => 
       .find(Boolean);
    if (lockedModule) return { name: 'module-locked', params: { module: lockedModule } };
 
-   if (meta.requiredPermissions?.some(({ action, subject }) => ability.cannot(action, subject))) {
+   if (
+      meta.requiredPermissions?.some(({ action, subject }) => ability.cannot(action, subject)) ||
+      (meta.anyPermission &&
+         !meta.anyPermission.some(({ action, subject }) => ability.can(action, subject)))
+   ) {
       throw new CustomAuthError(
          i18n.t('errors.insufficient_permission'),
          i18n.t('errors.AuthInvalidCredentialsError'),

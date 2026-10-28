@@ -13,7 +13,11 @@ const routes: RouteRecordRaw[] = [
       // with one of them outside the plan the other is still reached.
       meta: {
          label: 'route.label.stock',
-         icon: 'pi pi-warehouse'
+         icon: 'pi pi-warehouse',
+         anyPermission: [
+            { action: 'select', subject: 'stock' },
+            { action: 'select', subject: 'product' }
+         ]
       },
       components: {
          default: () => import('@/views/pages/stock/Index.vue'),
