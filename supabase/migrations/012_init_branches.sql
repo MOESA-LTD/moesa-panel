@@ -33,6 +33,36 @@ OR
 UPDATE OF parent_id ON public.tenant FOR EACH ROW
 EXECUTE FUNCTION private.prevent_tenant_cycle ();
 
+-- Branches are opened (create_branch) and removed (delete_branch), never moved: ownership, the
+-- owners' permissions and the plan all follow the tree, so moving a tenant would hand it, with its
+-- branches, to another company. The API writes a tenant's details only; the tree and the identity
+-- of a tenant are not theirs to change. (A column REVOKE does not undo a table-level GRANT, which
+-- Supabase gives by default, so the table's UPDATE is taken and given back for those columns.)
+REVOKE UPDATE ON public.tenant FROM anon, authenticated;
+
+GRANT UPDATE (display_name, email, phone) ON public.tenant TO authenticated;
+
+-- Should the grants ever be widened: only the super admin moves a tenant through the API (the
+-- service role and migrations are not signed-in users and are not stopped).
+CREATE OR REPLACE FUNCTION private.prevent_tenant_move () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF NEW.parent_id IS DISTINCT FROM OLD.parent_id
+       AND coalesce(auth.role(), '') IN ('authenticated', 'anon')
+       AND NOT private.check_super_admin() THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_move_forbidden')::TEXT,
+            DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER prevent_tenant_move BEFORE
+UPDATE OF parent_id ON public.tenant FOR EACH ROW
+EXECUTE FUNCTION private.prevent_tenant_move ();
+
 -- Opens a branch under `parent_id`; only its owners (including owners of the tenants above) may.
 -- The branch's owners are the parent's, through the tree; others are invited to it.
 CREATE OR REPLACE FUNCTION public.create_branch (parent_id UUID, branch JSONB) RETURNS public.tenant LANGUAGE plpgsql SECURITY DEFINER

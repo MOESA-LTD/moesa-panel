@@ -198,7 +198,9 @@ BEGIN
 END;
 $$;
 
--- A new company starts on the default plan (as a trial when the plan has trial days).
+-- A new company starts on the default plan (as a trial when the plan has trial days). Without a
+-- default (save_plan keeps one, but a plan may be removed), on the first active plan: a company
+-- without a subscription is read-only and could not even be given its owner.
 CREATE OR REPLACE FUNCTION private.subscribe_new_company () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -211,7 +213,9 @@ BEGIN
         CASE WHEN p.trial_days > 0 THEN now() + make_interval(days => p.trial_days) END,
         NULL
     FROM public.plan p
-    WHERE p.is_default;
+    WHERE p.is_default OR p.is_active
+    ORDER BY p.is_default DESC, p.position, p.created_at
+    LIMIT 1;
     RETURN NULL;
 END;
 $$;
@@ -440,10 +444,26 @@ BEGIN
 END;
 $$;
 
+-- Serializes the changes a company's limits count (its branches and members) until the
+-- transaction ends.
+CREATE OR REPLACE FUNCTION private.lock_company (company_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF lock_company.company_id IS NOT NULL THEN
+        PERFORM pg_advisory_xact_lock(hashtext('company:' || lock_company.company_id::TEXT));
+    END IF;
+END;
+$$;
+
 -- Whether the company of `tenant_id` may take a change: its subscription is in force (else
 -- subscription_read_only) and, for something a limit counts, `adding` more stays within it (else
 -- plan_limit_branches, plan_limit_users). Raises the reason; the super admin is not limited.
-CREATE OR REPLACE FUNCTION private.check_plan_allows (tenant_id UUID, limit_key TEXT DEFAULT NULL, adding INT DEFAULT 1) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER STABLE
+--
+-- Counting for a limit holds the company's lock (private.lock_company) until the transaction
+-- ends, so two requests cannot both take the last place. VOLATILE: a STABLE function would count
+-- with the snapshot from before it waited for the lock and miss what the other request added.
+CREATE OR REPLACE FUNCTION private.check_plan_allows (tenant_id UUID, limit_key TEXT DEFAULT NULL, adding INT DEFAULT 1) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER VOLATILE
 SET
    search_path = '' AS $$
 DECLARE
@@ -472,6 +492,7 @@ BEGIN
         RETURN;
     END IF;
 
+    PERFORM private.lock_company(e.company_id);
     SELECT * INTO usage FROM private.company_usage(e.company_id);
     used := CASE check_plan_allows.limit_key WHEN 'max_branches' THEN usage.branches ELSE usage.users END;
     IF used + adding > allowed THEN
@@ -496,39 +517,69 @@ CREATE OR REPLACE TRIGGER check_branch_limit BEFORE INSERT ON public.tenant FOR 
 EXECUTE FUNCTION private.check_branch_limit ();
 
 -- A member is added only within the plan's users; one already in another of the company's
--- tenants is not counted again.
+-- tenants is not counted again. A membership is not re-pointed through the API (deleted and
+-- added instead, see below); should one be, the user or tenant it gets is counted the same way.
+-- Under the company's lock, so the member looked up is not being added at the same time.
 CREATE OR REPLACE FUNCTION private.check_user_limit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
 DECLARE
     company UUID := (SELECT e.company_id FROM private.entitlements(ARRAY[NEW.tenant_id]) e);
+    counted BOOLEAN;
 BEGIN
-    PERFORM private.check_plan_allows(
-        NEW.tenant_id,
-        CASE WHEN EXISTS (
-            SELECT 1 FROM public.tenant_user tu
-            WHERE tu.user_id = NEW.user_id AND tu.tenant_id = ANY (private.company_tenants(company))
-        ) THEN NULL ELSE 'max_users' END
+    PERFORM private.lock_company(company);
+    -- On an update the row still holds its old user and tenant: kept within the company, the
+    -- same user is found and not counted again; a new user is counted.
+    counted := EXISTS (
+        SELECT 1 FROM public.tenant_user tu
+        WHERE tu.user_id = NEW.user_id AND tu.tenant_id = ANY (private.company_tenants(company))
     );
+    PERFORM private.check_plan_allows(NEW.tenant_id, CASE WHEN counted THEN NULL ELSE 'max_users' END);
     RETURN NEW;
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER check_user_limit BEFORE INSERT ON public.tenant_user FOR EACH ROW
+CREATE OR REPLACE TRIGGER check_user_limit BEFORE INSERT
+OR
+UPDATE OF user_id, tenant_id ON public.tenant_user FOR EACH ROW
 EXECUTE FUNCTION private.check_user_limit ();
+
+-- A membership is a user in a tenant: it is added and removed, never re-pointed to another user
+-- or tenant (which would also slip past the count above). A column REVOKE does not undo the
+-- table-level GRANT Supabase gives by default, so the table's UPDATE is taken whole; no column of
+-- a membership is the API's to change.
+REVOKE UPDATE ON public.tenant_user FROM anon, authenticated;
 
 -- The super admin's panel.
 
 -- A plan with its modules and limits, in one transaction (the policies allow it to the super admin
 -- only). `limits` maps a limit to its value; a limit left out or null is unlimited. Making a plan
 -- the default takes it from the previous default.
+--
+-- There is always an active default plan, which new companies start on: the default is not
+-- unset (plan_default_required; another plan is made the default instead) nor made inactive
+-- (plan_default_inactive).
 CREATE OR REPLACE FUNCTION public.save_plan (plan_data JSONB, module_ids TEXT[] DEFAULT '{}', limits JSONB DEFAULT '{}') RETURNS UUID LANGUAGE plpgsql SECURITY INVOKER
 SET
    search_path = '' AS $$
 DECLARE
     saved_id UUID := (plan_data ->> 'id')::UUID;
     make_default BOOLEAN := coalesce((plan_data ->> 'is_default')::BOOLEAN, FALSE);
+    make_active BOOLEAN := coalesce((plan_data ->> 'is_active')::BOOLEAN, TRUE);
 BEGIN
+    IF make_default AND NOT make_active THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'plan_default_inactive')::TEXT,
+            DETAIL = json_build_object('status', 422, 'headers', json_build_object())::TEXT;
+    END IF;
+
+    IF NOT make_default AND saved_id IS NOT NULL
+       AND EXISTS (SELECT 1 FROM public.plan p WHERE p.id = saved_id AND p.is_default) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'plan_default_required')::TEXT,
+            DETAIL = json_build_object('status', 422, 'headers', json_build_object())::TEXT;
+    END IF;
+
     IF make_default THEN
         UPDATE public.plan p SET is_default = FALSE WHERE p.is_default AND p.id IS DISTINCT FROM saved_id;
     END IF;
@@ -543,7 +594,7 @@ BEGIN
             plan_data ->> 'billing_period',
             coalesce((plan_data ->> 'trial_days')::INT, 0),
             make_default,
-            coalesce((plan_data ->> 'is_active')::BOOLEAN, TRUE),
+            make_active,
             coalesce((plan_data ->> 'position')::INT, 0)
         )
         RETURNING id INTO saved_id;
@@ -556,7 +607,7 @@ BEGIN
             billing_period = plan_data ->> 'billing_period',
             trial_days = coalesce((plan_data ->> 'trial_days')::INT, 0),
             is_default = make_default,
-            is_active = coalesce((plan_data ->> 'is_active')::BOOLEAN, TRUE),
+            is_active = make_active,
             position = coalesce((plan_data ->> 'position')::INT, 0)
         WHERE p.id = saved_id;
 

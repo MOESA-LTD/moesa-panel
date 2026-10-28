@@ -157,6 +157,14 @@ BEGIN
             permission_check := format(
                 'tenant_id = ANY ((SELECT private.permitted_tenants(%L, %L))::UUID[])', target_resource, command
             );
+        -- A tenant row is its own tenant: it is written only by those with the permission in that
+        -- tenant, not in the active one (else a member of a tenant with the permission elsewhere
+        -- could change it). Reads keep the active tenant's check, so the branch of the rows read
+        -- can be embedded.
+        ELSIF target_resource = 'public.tenant' AND command <> 'select' THEN
+            permission_check := format(
+                'id = ANY ((SELECT private.permitted_tenants(%L, %L))::UUID[])', target_resource, command
+            );
         ELSE
             permission_check := format('(SELECT private.check_permission(%L, %L))', target_resource, command);
         END IF;
@@ -290,6 +298,20 @@ BEGIN
     );
 END;
 $$;
+
+-- Whether another user is a super admin, for edge functions acting with the service role (e.g. so
+-- a super admin is not managed as a company's user). Not for signed-in users.
+CREATE OR REPLACE FUNCTION public.is_super_admin (user_id UUID) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    RETURN private.check_super_admin(is_super_admin.user_id);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.is_super_admin (UUID) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.is_super_admin (UUID) TO service_role;
 
 -- The tenants `user_id` owns: those in tenant_owner and every branch below them.
 CREATE OR REPLACE FUNCTION private.owned_tenants (user_id UUID) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
