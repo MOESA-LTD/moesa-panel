@@ -482,28 +482,55 @@ export type Database = {
       }
       tenant: {
         Row: {
+          address: string | null
+          city: string | null
+          country: string | null
           created_at: string | null
           display_name: string
+          district: string | null
           email: string | null
           id: string
+          legal_name: string | null
+          logo_path: string | null
           parent_id: string | null
           phone: string | null
+          tax_number: string | null
+          tax_office: string | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string | null
           display_name: string
+          district?: string | null
           email?: string | null
           id?: string
+          legal_name?: string | null
+          logo_path?: string | null
           parent_id?: string | null
           phone?: string | null
+          tax_number?: string | null
+          tax_office?: string | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string | null
           display_name?: string
+          district?: string | null
           email?: string | null
           id?: string
+          legal_name?: string | null
+          logo_path?: string | null
           parent_id?: string | null
           phone?: string | null
+          tax_number?: string | null
+          tax_office?: string | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -764,12 +791,21 @@ export type Database = {
           branch: Json
         }
         Returns: {
+          address: string | null
+          city: string | null
+          country: string | null
           created_at: string | null
           display_name: string
+          district: string | null
           email: string | null
           id: string
+          legal_name: string | null
+          logo_path: string | null
           parent_id: string | null
           phone: string | null
+          tax_number: string | null
+          tax_office: string | null
+          website: string | null
         }
       }
       delete_branch: {
@@ -808,12 +844,21 @@ export type Database = {
           company: Json
         }
         Returns: {
+          address: string | null
+          city: string | null
+          country: string | null
           created_at: string | null
           display_name: string
+          district: string | null
           email: string | null
           id: string
+          legal_name: string | null
+          logo_path: string | null
           parent_id: string | null
           phone: string | null
+          tax_number: string | null
+          tax_office: string | null
+          website: string | null
         }
       }
       revert_audit_transaction: {

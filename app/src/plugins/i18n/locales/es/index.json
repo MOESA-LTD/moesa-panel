@@ -372,7 +372,11 @@
       "request_rejected": "La solicitud fue rechazada.",
       "branch_move_forbidden": "Una sucursal no se puede mover bajo otra.",
       "plan_default_required": "Debe haber un plan predeterminado: haga predeterminado otro plan en su lugar.",
-      "plan_default_inactive": "El plan predeterminado debe estar ofrecido."
+      "plan_default_inactive": "El plan predeterminado debe estar ofrecido.",
+      "invalid_website": "Introduzca una dirección web válida.",
+      "invalid_tax_number": "Use solo letras, dígitos, espacios y guiones (máximo 32).",
+      "logo_type": "El logotipo debe ser una imagen PNG, JPEG o WebP.",
+      "logo_size": "El logotipo debe ocupar como máximo 1 MB."
    },
    "account": {
       "profile": {
@@ -438,7 +442,14 @@
       "request_id": "Solicitud",
       "display_name": "Nombre",
       "id": "ID",
-      "created_at": "Creado en"
+      "created_at": "Creado en",
+      "website": "Sitio web",
+      "legal_name": "Razón social",
+      "tax_office": "Oficina tributaria",
+      "tax_number": "Número fiscal",
+      "address": "Dirección",
+      "district": "Distrito",
+      "address_details": "Calle y número"
    },
    "audit_log": {
       "no_changes_detected": "No se detectaron cambios",
@@ -496,7 +507,8 @@
          "restored": "Se restauraron sus cambios sin guardar.",
          "stale": "Este registro cambió desde que empezó a editarlo; al guardar se sobrescribirán esos cambios.",
          "discard": "Descartar"
-      }
+      },
+      "too_long": "Como máximo {max} caracteres."
    },
    "branch_tree": {
       "hint": "Sus sucursales y las que dependen de ellas. Los propietarios de una sucursal abren y eliminan las sucursales que dependen de ella; solo se puede eliminar una sucursal sin sucursales propias.",
@@ -585,5 +597,17 @@
          "ends_after_start": "El fin debe ser posterior al inicio.",
          "replaced": "Reemplazada"
       }
+   },
+   "branch_profile": {
+      "general": "General",
+      "tax": "Datos fiscales",
+      "company": "Empresa",
+      "plan": "Plan",
+      "sub_branches": "Sucursales inferiores",
+      "created_at": "Apertura",
+      "upload_logo": "Subir logotipo",
+      "change_logo": "Cambiar logotipo",
+      "remove_logo": "Quitar logotipo",
+      "logo_hint": "PNG, JPEG o WebP, hasta 1 MB."
    }
 }

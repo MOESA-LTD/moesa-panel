@@ -32,6 +32,18 @@ BEGIN
     SELECT coalesce(jsonb_agg(jsonb_build_object(
         'id', t.id,
         'display_name', t.display_name,
+        -- Its own logo, else the nearest tenant's above it (branches show the company's), also
+        -- when the user may not use that tenant.
+        'logo_path', (
+            WITH RECURSIVE up (id, parent_id, logo_path, depth) AS (
+                SELECT t.id, t.parent_id, t.logo_path, 0
+                UNION ALL
+                SELECT p.id, p.parent_id, p.logo_path, up.depth + 1
+                FROM public.tenant p JOIN up ON p.id = up.parent_id
+                WHERE up.logo_path IS NULL AND up.depth < 32
+            )
+            SELECT up.logo_path FROM up WHERE up.logo_path IS NOT NULL LIMIT 1
+        ),
         -- Only a parent the user may use; otherwise the branch is a root for them.
         'parent_id', CASE WHEN t.parent_id = ANY (allowed) THEN t.parent_id END,
         'owned', t.id = ANY (owned),

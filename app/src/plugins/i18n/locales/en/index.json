@@ -136,7 +136,14 @@
       "request_id": "Request",
       "display_name": "Name",
       "id": "ID",
-      "created_at": "Created At"
+      "created_at": "Created At",
+      "website": "Website",
+      "legal_name": "Legal name",
+      "tax_office": "Tax office",
+      "tax_number": "Tax number",
+      "address": "Address",
+      "district": "District",
+      "address_details": "Street address"
    },
    "input": {
       "select_or_write": "Select or Write"
@@ -343,7 +350,11 @@
       "request_rejected": "The request was rejected.",
       "branch_move_forbidden": "A branch cannot be moved under another tenant.",
       "plan_default_required": "There must be a default plan: make another plan the default instead.",
-      "plan_default_inactive": "The default plan must be offered."
+      "plan_default_inactive": "The default plan must be offered.",
+      "invalid_website": "Enter a valid web address.",
+      "invalid_tax_number": "Use only letters, digits, spaces and dashes (at most 32).",
+      "logo_type": "The logo must be a PNG, JPEG or WebP image.",
+      "logo_size": "The logo must be at most 1 MB."
    },
    "account": {
       "profile": {
@@ -496,7 +507,8 @@
          "restored": "Your unsaved changes were restored.",
          "stale": "This record has changed since you started editing; saving will overwrite those changes.",
          "discard": "Discard"
-      }
+      },
+      "too_long": "At most {max} characters."
    },
    "branch_tree": {
       "hint": "Your branches and the branches below them. Owners of a branch open and remove the branches under it; only a branch without branches of its own can be removed.",
@@ -585,5 +597,17 @@
          "ends_after_start": "The end must be after the start.",
          "replaced": "Replaced"
       }
+   },
+   "branch_profile": {
+      "general": "General",
+      "tax": "Tax details",
+      "company": "Company",
+      "plan": "Plan",
+      "sub_branches": "Branches below",
+      "created_at": "Opened",
+      "upload_logo": "Upload logo",
+      "change_logo": "Change logo",
+      "remove_logo": "Remove logo",
+      "logo_hint": "PNG, JPEG or WebP, up to 1 MB."
    }
 }

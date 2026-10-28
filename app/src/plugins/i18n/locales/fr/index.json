@@ -136,7 +136,14 @@
       "request_id": "Demande",
       "display_name": "Nom d'affichage",
       "id": "ID",
-      "created_at": "Créé à"
+      "created_at": "Créé à",
+      "website": "Site web",
+      "legal_name": "Raison sociale",
+      "tax_office": "Centre des impôts",
+      "tax_number": "Numéro fiscal",
+      "address": "Adresse",
+      "district": "Quartier",
+      "address_details": "Rue et numéro"
    },
    "input": {
       "select_or_write": "Sélectionnez ou entrez manuellement"
@@ -343,7 +350,11 @@
       "request_rejected": "La demande a été refusée.",
       "branch_move_forbidden": "Une agence ne peut pas être déplacée sous une autre.",
       "plan_default_required": "Il faut une formule par défaut : définissez plutôt une autre formule par défaut.",
-      "plan_default_inactive": "La formule par défaut doit être proposée."
+      "plan_default_inactive": "La formule par défaut doit être proposée.",
+      "invalid_website": "Saisissez une adresse web valide.",
+      "invalid_tax_number": "Uniquement des lettres, chiffres, espaces et tirets (32 au plus).",
+      "logo_type": "Le logo doit être une image PNG, JPEG ou WebP.",
+      "logo_size": "Le logo ne doit pas dépasser 1 Mo."
    },
    "account": {
       "profile": {
@@ -496,7 +507,8 @@
          "restored": "Vos modifications non enregistrées ont été restaurées.",
          "stale": "Cet enregistrement a changé depuis le début de votre modification ; enregistrer écrasera ces changements.",
          "discard": "Abandonner"
-      }
+      },
+      "too_long": "{max} caractères au plus."
    },
    "branch_tree": {
       "hint": "Vos agences et celles qui en dépendent. Les propriétaires d'une agence ouvrent et suppriment les agences qui en dépendent ; seule une agence sans agences peut être supprimée.",
@@ -585,5 +597,17 @@
          "ends_after_start": "La fin doit être après le début.",
          "replaced": "Remplacé"
       }
+   },
+   "branch_profile": {
+      "general": "Général",
+      "tax": "Informations fiscales",
+      "company": "Entreprise",
+      "plan": "Formule",
+      "sub_branches": "Agences en dessous",
+      "created_at": "Ouverture",
+      "upload_logo": "Importer un logo",
+      "change_logo": "Changer le logo",
+      "remove_logo": "Supprimer le logo",
+      "logo_hint": "PNG, JPEG ou WebP, 1 Mo maximum."
    }
 }

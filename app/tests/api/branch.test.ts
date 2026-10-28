@@ -1,5 +1,11 @@
 import type { Tenant } from '@/api/access';
-import { toBranchTree, type BranchNode } from '@/api/branch';
+import {
+   branchSchema,
+   toBranchFormValues,
+   toBranchPayload,
+   toBranchTree,
+   type BranchNode
+} from '@/api/branch';
 import { describe, expect, it } from 'vitest';
 
 const tenant = (id: string, parent_id: string | null, owned = false): Tenant => ({
@@ -47,5 +53,38 @@ describe('toBranchTree', () => {
       expect(find(tree, 'a')!.data).toMatchObject({ canAddBranch: true, canDelete: false });
       expect(find(tree, 'a1')!.data).toMatchObject({ canAddBranch: true, canDelete: true });
       expect(find(tree, 'invited')!.data).toMatchObject({ canAddBranch: false, canDelete: false });
+   });
+});
+
+describe('branch profile form', () => {
+   const parse = (values: Partial<ReturnType<typeof toBranchFormValues>>) =>
+      branchSchema.safeParse({ ...toBranchFormValues({ display_name: 'Atlas' }), ...values });
+
+   it('starts every field empty and sends empty ones as null', () => {
+      const values = toBranchFormValues({ id: 't1', display_name: 'Atlas', city: 'İzmir' });
+      expect(values.website).toBe('');
+      const payload = toBranchPayload(branchSchema.parse(values));
+      expect(payload).toMatchObject({ id: 't1', display_name: 'Atlas', city: 'İzmir' });
+      expect(payload.website).toBeNull();
+      expect(payload.tax_number).toBeNull();
+      expect(payload).not.toHaveProperty('logo_path');
+   });
+
+   it('adds https:// to a web address typed without it', () => {
+      const result = parse({ website: 'atlas.example.com' });
+      expect(result.success && result.data.website).toBe('https://atlas.example.com');
+      expect(parse({ website: 'http://atlas.example.com/tr' }).success).toBe(true);
+   });
+
+   it('refuses an invalid web address or tax number', () => {
+      expect(parse({ website: 'not a site' }).success).toBe(false);
+      expect(parse({ website: 'javascript:alert(1)' }).success).toBe(false);
+      expect(parse({ tax_number: '123/456' }).success).toBe(false);
+      expect(parse({ tax_number: 'TR 123-456' }).success).toBe(true);
+   });
+
+   it('limits the length of free text', () => {
+      expect(parse({ address: 'x'.repeat(501) }).success).toBe(false);
+      expect(parse({ address: 'x'.repeat(500) }).success).toBe(true);
    });
 });

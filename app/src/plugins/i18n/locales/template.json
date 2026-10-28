@@ -117,7 +117,14 @@
       "role": "",
       "none": "",
       "currency": "",
-      "user": ""
+      "user": "",
+      "website": "",
+      "legal_name": "",
+      "tax_office": "",
+      "tax_number": "",
+      "address": "",
+      "district": "",
+      "address_details": ""
    },
    "audit_log": {
       "no_changes_detected": "",
@@ -363,7 +370,11 @@
       "request_rejected": "",
       "branch_move_forbidden": "",
       "plan_default_required": "",
-      "plan_default_inactive": ""
+      "plan_default_inactive": "",
+      "invalid_website": "",
+      "invalid_tax_number": "",
+      "logo_type": "",
+      "logo_size": ""
    },
    "route": {
       "label": {
@@ -459,7 +470,8 @@
          "header": "",
          "message": ""
       },
-      "passwords_do_not_match": ""
+      "passwords_do_not_match": "",
+      "too_long": ""
    },
    "branch_tree": {
       "hint": "",
@@ -548,5 +560,17 @@
          "ends_after_start": "",
          "replaced": ""
       }
+   },
+   "branch_profile": {
+      "general": "",
+      "tax": "",
+      "company": "",
+      "plan": "",
+      "sub_branches": "",
+      "created_at": "",
+      "upload_logo": "",
+      "change_logo": "",
+      "remove_logo": "",
+      "logo_hint": ""
    }
 }

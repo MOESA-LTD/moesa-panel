@@ -40,7 +40,20 @@ EXECUTE FUNCTION private.prevent_tenant_cycle ();
 -- Supabase gives by default, so the table's UPDATE is taken and given back for those columns.)
 REVOKE UPDATE ON public.tenant FROM anon, authenticated;
 
-GRANT UPDATE (display_name, email, phone) ON public.tenant TO authenticated;
+GRANT UPDATE (
+   display_name,
+   email,
+   phone,
+   website,
+   legal_name,
+   tax_office,
+   tax_number,
+   country,
+   city,
+   district,
+   address,
+   logo_path
+) ON public.tenant TO authenticated;
 
 -- Should the grants ever be widened: only the super admin moves a tenant through the API (the
 -- service role and migrations are not signed-in users and are not stopped).
@@ -77,11 +90,23 @@ BEGIN
             DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
     END IF;
 
-    INSERT INTO public.tenant (display_name, email, phone, parent_id)
+    -- Its details, as a tenant may change them; the logo is uploaded once the branch exists.
+    INSERT INTO public.tenant (
+        display_name, email, phone, website, legal_name, tax_office, tax_number, country, city,
+        district, address, parent_id
+    )
     VALUES (
         branch ->> 'display_name',
         nullif(branch ->> 'email', ''),
         nullif(branch ->> 'phone', ''),
+        nullif(branch ->> 'website', ''),
+        nullif(branch ->> 'legal_name', ''),
+        nullif(branch ->> 'tax_office', ''),
+        nullif(branch ->> 'tax_number', ''),
+        nullif(branch ->> 'country', ''),
+        nullif(branch ->> 'city', ''),
+        nullif(branch ->> 'district', ''),
+        nullif(branch ->> 'address', ''),
         create_branch.parent_id
     )
     RETURNING * INTO created;

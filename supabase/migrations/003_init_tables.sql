@@ -6,6 +6,17 @@ CREATE TABLE IF NOT EXISTS public.tenant (
    email TEXT UNIQUE,
    created_at TIMESTAMPTZ DEFAULT NOW(),
    parent_id UUID REFERENCES public.tenant (id) ON DELETE CASCADE,
+   -- Profile: the web site, who invoices are made out to, and where the tenant is.
+   website TEXT CHECK (website ~* '^https?://[^\s]+$' AND length(website) <= 255),
+   legal_name TEXT CHECK (length(legal_name) <= 255),
+   tax_office TEXT CHECK (length(tax_office) <= 100),
+   tax_number TEXT CHECK (tax_number ~ '^[A-Za-z0-9 -]{1,32}$'),
+   country TEXT CHECK (length(country) <= 100),
+   city TEXT CHECK (length(city) <= 100),
+   district TEXT CHECK (length(district) <= 100),
+   address TEXT CHECK (length(address) <= 500),
+   -- The logo in the tenant-logo bucket, always in the tenant's own folder (see 014_init_storage.sql).
+   logo_path TEXT CHECK (logo_path LIKE id::TEXT || '/%'),
    CONSTRAINT unique_tenant_display_name UNIQUE (id, display_name)
 );
 

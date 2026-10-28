@@ -136,7 +136,14 @@
       "request_id": "请求",
       "display_name": "显示名称",
       "id": "ID",
-      "created_at": "创建时间"
+      "created_at": "创建时间",
+      "website": "网站",
+      "legal_name": "法定名称",
+      "tax_office": "税务机关",
+      "tax_number": "税号",
+      "address": "地址",
+      "district": "区",
+      "address_details": "详细地址"
    },
    "input": {
       "select_or_write": "请选择或填写"
@@ -343,7 +350,11 @@
       "request_rejected": "请求被拒绝。",
       "branch_move_forbidden": "分店不能移动到其他分店之下。",
       "plan_default_required": "必须有一个默认套餐：请改为将其他套餐设为默认。",
-      "plan_default_inactive": "默认套餐必须在售。"
+      "plan_default_inactive": "默认套餐必须在售。",
+      "invalid_website": "请输入有效的网址。",
+      "invalid_tax_number": "仅限字母、数字、空格和连字符（最多 32 个）。",
+      "logo_type": "标志必须是 PNG、JPEG 或 WebP 图片。",
+      "logo_size": "标志不能超过 1 MB。"
    },
    "account": {
       "profile": {
@@ -496,7 +507,8 @@
          "restored": "已恢复未保存的更改。",
          "stale": "您开始编辑后此记录已被更改；保存将覆盖这些更改。",
          "discard": "放弃"
-      }
+      },
+      "too_long": "最多 {max} 个字符。"
    },
    "branch_tree": {
       "hint": "您的分店及其下属分店。分店所有者可在其下开设和删除分店；只有没有下属分店的分店才能删除。",
@@ -585,5 +597,17 @@
          "ends_after_start": "结束时间必须晚于开始时间。",
          "replaced": "已替换"
       }
+   },
+   "branch_profile": {
+      "general": "基本信息",
+      "tax": "税务信息",
+      "company": "公司",
+      "plan": "套餐",
+      "sub_branches": "下属分店",
+      "created_at": "开设日期",
+      "upload_logo": "上传标志",
+      "change_logo": "更换标志",
+      "remove_logo": "移除标志",
+      "logo_hint": "PNG、JPEG 或 WebP，最大 1 MB。"
    }
 }

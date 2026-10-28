@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Tenant } from '@/api/access';
+import { logoUrl } from '@/api/branch';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import type { TreeNode } from 'primevue/treenode';
 
@@ -8,7 +9,8 @@ import type { TreeNode } from 'primevue/treenode';
  * one, where new rows go (the star). Shown only to users with more than one tenant.
  */
 const authStore = useAuthStore();
-const { branches, currentTenant, scopeTenants } = storeToRefs(authStore);
+const { branches, currentTenant, currentLogoPath, scopeTenants } = storeToRefs(authStore);
+const logo = computed(() => logoUrl(currentLogoPath.value));
 const { t } = useI18n();
 
 /** The user's tenants as a tree; a tenant whose parent they cannot use is a root for them. */
@@ -74,7 +76,8 @@ function makeActive(tenant: Tenant) {
    >
       <template #value>
          <span class="branch_picker__value">
-            <span :class="PrimeIcons.SITEMAP" class="branch_picker__icon" />
+            <img v-if="logo" :src="logo" alt="" class="branch_picker__logo" />
+            <span v-else :class="PrimeIcons.SITEMAP" class="branch_picker__icon" />
             <span v-text="t('component.branch_picker.label')" class="branch_picker__label" />
             <!-- Small screens: the icon and how many branches are shown. -->
             <span class="branch_picker__active">
@@ -102,6 +105,12 @@ function makeActive(tenant: Tenant) {
       <template #option="{ node, selected }">
          <span class="branch_picker__option">
             <Checkbox :modelValue="selected" binary readonly :tabindex="-1" />
+            <img
+               v-if="node.data.logo_path"
+               :src="logoUrl(node.data.logo_path) ?? undefined"
+               alt=""
+               class="branch_picker__logo"
+            />
             <span v-text="node.label" class="branch_picker__name" />
             <Button
                :icon="isActive(node.key) ? PrimeIcons.STAR_FILL : PrimeIcons.STAR"
@@ -124,6 +133,10 @@ function makeActive(tenant: Tenant) {
 </template>
 
 <style lang="scss">
+.branch_picker__logo {
+   @apply size-5 shrink-0 rounded-sm object-contain;
+}
+
 .branch_picker {
    @apply max-w-80 max-sm:max-w-none;
 

@@ -58,6 +58,12 @@ export const useAuthStore = defineStore('auth', () => {
       () => branches.value.find(({ id }) => id === access.value?.tenant_id) ?? null
    );
 
+   /**
+    * The logo to show for the active tenant: its own, else the nearest one above (my_access
+    * resolves it). A path in the tenant-logo bucket (see logoUrl).
+    */
+   const currentLogoPath = computed(() => currentTenant.value?.logo_path ?? null);
+
    // The tenants read together (x-tenant-ids), kept per user in this browser.
    const savedScopes = useStorage<Record<string, string[]>>('tenant-scope', {}, localStorage);
    const selectedTenantIds = computed<string[]>({
@@ -270,6 +276,7 @@ export const useAuthStore = defineStore('auth', () => {
       isSignedIn,
       branches,
       currentTenant,
+      currentLogoPath,
       scopeTenants,
       tenantKey,
       changeCurrentTenant,

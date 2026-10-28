@@ -248,7 +248,11 @@
       "request_rejected": "İstek reddedildi.",
       "branch_move_forbidden": "Bir şube başka bir şubenin altına taşınamaz.",
       "plan_default_required": "Bir varsayılan plan olmalı: bunun yerine başka bir planı varsayılan yapın.",
-      "plan_default_inactive": "Varsayılan plan sunuluyor olmalı."
+      "plan_default_inactive": "Varsayılan plan sunuluyor olmalı.",
+      "invalid_website": "Geçerli bir web adresi girin.",
+      "invalid_tax_number": "Yalnızca harf, rakam, boşluk ve tire kullanın (en fazla 32).",
+      "logo_type": "Logo PNG, JPEG veya WebP olmalı.",
+      "logo_size": "Logo en fazla 1 MB olmalı."
    },
    "account": {
       "profile": {
@@ -354,7 +358,14 @@
       "request_id": "Request",
       "display_name": "İsim",
       "id": "ID",
-      "created_at": "Oluşturulma tarihi"
+      "created_at": "Oluşturulma tarihi",
+      "website": "Web sitesi",
+      "legal_name": "Ticari unvan",
+      "tax_office": "Vergi dairesi",
+      "tax_number": "Vergi numarası",
+      "address": "Adres",
+      "district": "İlçe",
+      "address_details": "Açık adres"
    },
    "dashboard": {
       "statistics": {
@@ -496,7 +507,8 @@
          "restored": "Kaydedilmemiş değişiklikleriniz geri yüklendi.",
          "stale": "Bu kayıt siz düzenlemeye başladıktan sonra değişti; kaydederseniz o değişikliklerin üzerine yazılır.",
          "discard": "Taslağı at"
-      }
+      },
+      "too_long": "En fazla {max} karakter."
    },
    "branch_tree": {
       "hint": "Şubeleriniz ve altlarındaki şubeler. Bir şubenin sahipleri altına şube açar ve siler; yalnızca alt şubesi olmayan bir şube silinebilir.",
@@ -585,5 +597,17 @@
          "ends_after_start": "Bitiş, başlangıçtan sonra olmalı.",
          "replaced": "Değiştirildi"
       }
+   },
+   "branch_profile": {
+      "general": "Genel",
+      "tax": "Vergi bilgileri",
+      "company": "Şirket",
+      "plan": "Plan",
+      "sub_branches": "Alt şubeler",
+      "created_at": "Açılış",
+      "upload_logo": "Logo yükle",
+      "change_logo": "Logoyu değiştir",
+      "remove_logo": "Logoyu kaldır",
+      "logo_hint": "PNG, JPEG veya WebP, en fazla 1 MB."
    }
 }

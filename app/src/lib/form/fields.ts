@@ -26,6 +26,21 @@ export const email = () =>
       .min(1)
       .pipe(z.email({ error: () => i18n.t('errors.invalid_email') }));
 
+/** A web address; one typed without a scheme gets https://. */
+export const website = () =>
+   z
+      .string()
+      .trim()
+      .min(1)
+      .transform((value) => (/^https?:\/\//i.test(value) ? value : `https://${value}`))
+      .pipe(
+         z.url({
+            protocol: /^https?$/,
+            hostname: z.regexes.domain,
+            error: () => i18n.t('errors.invalid_website')
+         })
+      );
+
 export const phone = () =>
    z.string().refine((value) => isValidPhoneNumber(value), {
       error: () => i18n.t('errors.invalid_phone')

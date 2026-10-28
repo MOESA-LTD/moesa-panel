@@ -136,7 +136,14 @@
       "request_id": "リクエスト",
       "display_name": "表示名",
       "id": "ID",
-      "created_at": "作成日時"
+      "created_at": "作成日時",
+      "website": "ウェブサイト",
+      "legal_name": "正式名称",
+      "tax_office": "税務署",
+      "tax_number": "税番号",
+      "address": "住所",
+      "district": "地区",
+      "address_details": "番地"
    },
    "input": {
       "select_or_write": "選択または入力してください"
@@ -343,7 +350,11 @@
       "request_rejected": "リクエストは拒否されました。",
       "branch_move_forbidden": "支店を別の支店の下に移動することはできません。",
       "plan_default_required": "デフォルトプランが必要です。代わりに別のプランをデフォルトにしてください。",
-      "plan_default_inactive": "デフォルトプランは提供中である必要があります。"
+      "plan_default_inactive": "デフォルトプランは提供中である必要があります。",
+      "invalid_website": "有効なウェブアドレスを入力してください。",
+      "invalid_tax_number": "英数字、スペース、ハイフンのみ（32 文字まで）。",
+      "logo_type": "ロゴは PNG、JPEG、WebP 画像にしてください。",
+      "logo_size": "ロゴは 1 MB 以下にしてください。"
    },
    "account": {
       "profile": {
@@ -496,7 +507,8 @@
          "restored": "保存されていない変更を復元しました。",
          "stale": "編集を始めた後にこのレコードが変更されました。保存するとその変更は上書きされます。",
          "discard": "破棄"
-      }
+      },
+      "too_long": "{max} 文字以内。"
    },
    "branch_tree": {
       "hint": "あなたの支店とその下の支店です。支店のオーナーはその下に支店を開設・削除できます。削除できるのは下位の支店がない支店のみです。",
@@ -585,5 +597,17 @@
          "ends_after_start": "終了日は開始日より後にしてください。",
          "replaced": "置き換え済み"
       }
+   },
+   "branch_profile": {
+      "general": "基本情報",
+      "tax": "税務情報",
+      "company": "会社",
+      "plan": "プラン",
+      "sub_branches": "配下の支店",
+      "created_at": "開設日",
+      "upload_logo": "ロゴをアップロード",
+      "change_logo": "ロゴを変更",
+      "remove_logo": "ロゴを削除",
+      "logo_hint": "PNG、JPEG、WebP（1 MB まで）。"
    }
 }

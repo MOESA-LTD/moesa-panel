@@ -136,7 +136,14 @@
       "request_id": "Richiesta",
       "display_name": "Nome visualizzato",
       "id": "ID",
-      "created_at": "Creato il"
+      "created_at": "Creato il",
+      "website": "Sito web",
+      "legal_name": "Ragione sociale",
+      "tax_office": "Ufficio delle imposte",
+      "tax_number": "Partita IVA",
+      "address": "Indirizzo",
+      "district": "Quartiere",
+      "address_details": "Via e numero civico"
    },
    "audit_log": {
       "no_changes_detected": "Nessuna modifica rilevata",
@@ -394,7 +401,11 @@
       "request_rejected": "La richiesta è stata rifiutata.",
       "branch_move_forbidden": "Una filiale non può essere spostata sotto un'altra.",
       "plan_default_required": "Deve esserci un piano predefinito: rendi predefinito un altro piano.",
-      "plan_default_inactive": "Il piano predefinito deve essere offerto."
+      "plan_default_inactive": "Il piano predefinito deve essere offerto.",
+      "invalid_website": "Inserisci un indirizzo web valido.",
+      "invalid_tax_number": "Usa solo lettere, cifre, spazi e trattini (massimo 32).",
+      "logo_type": "Il logo deve essere un'immagine PNG, JPEG o WebP.",
+      "logo_size": "Il logo deve essere al massimo di 1 MB."
    },
    "route": {
       "label": {
@@ -496,7 +507,8 @@
          "restored": "Le modifiche non salvate sono state ripristinate.",
          "stale": "Questo record è cambiato da quando hai iniziato a modificarlo; salvando sovrascriverai quelle modifiche.",
          "discard": "Scarta"
-      }
+      },
+      "too_long": "Al massimo {max} caratteri."
    },
    "branch_tree": {
       "hint": "Le tue filiali e quelle sottostanti. I proprietari di una filiale aprono e rimuovono le filiali sottostanti; si può rimuovere solo una filiale senza filiali proprie.",
@@ -585,5 +597,17 @@
          "ends_after_start": "La fine deve essere successiva all'inizio.",
          "replaced": "Sostituito"
       }
+   },
+   "branch_profile": {
+      "general": "Generale",
+      "tax": "Dati fiscali",
+      "company": "Azienda",
+      "plan": "Piano",
+      "sub_branches": "Filiali sottostanti",
+      "created_at": "Apertura",
+      "upload_logo": "Carica logo",
+      "change_logo": "Cambia logo",
+      "remove_logo": "Rimuovi logo",
+      "logo_hint": "PNG, JPEG o WebP, fino a 1 MB."
    }
 }

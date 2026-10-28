@@ -136,7 +136,14 @@
       "request_id": "Anfrage",
       "display_name": "Name",
       "id": "ID",
-      "created_at": "Erstellt am"
+      "created_at": "Erstellt am",
+      "website": "Website",
+      "legal_name": "Firmenname",
+      "tax_office": "Finanzamt",
+      "tax_number": "Steuernummer",
+      "address": "Adresse",
+      "district": "Bezirk",
+      "address_details": "Straße und Hausnummer"
    },
    "input": {
       "select_or_write": "Auswählen oder eingeben"
@@ -343,7 +350,11 @@
       "request_rejected": "Die Anfrage wurde abgelehnt.",
       "branch_move_forbidden": "Eine Filiale kann nicht unter eine andere verschoben werden.",
       "plan_default_required": "Es muss einen Standardtarif geben: Machen Sie stattdessen einen anderen Tarif zum Standard.",
-      "plan_default_inactive": "Der Standardtarif muss angeboten werden."
+      "plan_default_inactive": "Der Standardtarif muss angeboten werden.",
+      "invalid_website": "Geben Sie eine gültige Webadresse ein.",
+      "invalid_tax_number": "Nur Buchstaben, Ziffern, Leerzeichen und Bindestriche (höchstens 32).",
+      "logo_type": "Das Logo muss ein PNG-, JPEG- oder WebP-Bild sein.",
+      "logo_size": "Das Logo darf höchstens 1 MB groß sein."
    },
    "account": {
       "profile": {
@@ -496,7 +507,8 @@
          "restored": "Ihre nicht gespeicherten Änderungen wurden wiederhergestellt.",
          "stale": "Dieser Datensatz wurde seit Beginn Ihrer Bearbeitung geändert; beim Speichern werden diese Änderungen überschrieben.",
          "discard": "Verwerfen"
-      }
+      },
+      "too_long": "Höchstens {max} Zeichen."
    },
    "branch_tree": {
       "hint": "Ihre Filialen und die Filialen darunter. Die Inhaber einer Filiale eröffnen und entfernen die Filialen darunter; nur eine Filiale ohne eigene Filialen kann entfernt werden.",
@@ -585,5 +597,17 @@
          "ends_after_start": "Das Ende muss nach dem Beginn liegen.",
          "replaced": "Ersetzt"
       }
+   },
+   "branch_profile": {
+      "general": "Allgemein",
+      "tax": "Steuerangaben",
+      "company": "Unternehmen",
+      "plan": "Tarif",
+      "sub_branches": "Filialen darunter",
+      "created_at": "Eröffnet",
+      "upload_logo": "Logo hochladen",
+      "change_logo": "Logo ändern",
+      "remove_logo": "Logo entfernen",
+      "logo_hint": "PNG, JPEG oder WebP, bis 1 MB."
    }
 }

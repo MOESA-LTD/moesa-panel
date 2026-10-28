@@ -1,8 +1,10 @@
 <script setup>
+import { logoUrl } from '@/api/branch';
 import BranchPicker from '@/components/service-components/branch-picker/BranchPicker.vue';
 import { useSidebar } from '@/composables/useSidebar';
 
-const { isSignedIn } = storeToRefs(useAuthStore());
+const { isSignedIn, currentLogoPath, currentTenant } = storeToRefs(useAuthStore());
+const logo = computed(() => (isSignedIn.value ? logoUrl(currentLogoPath.value) : null));
 const appConfigurator = ref();
 const sidebar = useSidebar();
 
@@ -28,6 +30,13 @@ const version = import.meta.env.PACKAGE_VERSION;
             v-if="isSignedIn"
          />
          <router-link to="/" class="layout-topbar-logo">
+            <!-- The company's own logo, when it has one (see the branch profile). -->
+            <img
+               v-if="logo"
+               :src="logo"
+               :alt="currentTenant?.display_name"
+               class="h-10 max-w-32 object-contain"
+            />
             <span class="flex flex-col">
                <span class="font-mono text-primary text-3xl" v-text="'EchoChart'" />
                <small v-if="version" class="text-xs text-muted-color" v-text="`v${version}`" />

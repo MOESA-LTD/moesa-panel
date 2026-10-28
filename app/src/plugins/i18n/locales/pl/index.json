@@ -136,7 +136,14 @@
       "request_id": "Zapytanie",
       "display_name": "Nazwa",
       "id": "ID",
-      "created_at": "Utworzono"
+      "created_at": "Utworzono",
+      "website": "Strona internetowa",
+      "legal_name": "Nazwa prawna",
+      "tax_office": "Urząd skarbowy",
+      "tax_number": "NIP",
+      "address": "Adres",
+      "district": "Dzielnica",
+      "address_details": "Ulica i numer"
    },
    "input": {
       "select_or_write": "Wybierz lub wpisz"
@@ -343,7 +350,11 @@
       "request_rejected": "Żądanie zostało odrzucone.",
       "branch_move_forbidden": "Oddziału nie można przenieść pod inny.",
       "plan_default_required": "Musi istnieć plan domyślny: zamiast tego ustaw inny plan jako domyślny.",
-      "plan_default_inactive": "Plan domyślny musi być oferowany."
+      "plan_default_inactive": "Plan domyślny musi być oferowany.",
+      "invalid_website": "Wpisz prawidłowy adres strony.",
+      "invalid_tax_number": "Tylko litery, cyfry, spacje i myślniki (maksymalnie 32).",
+      "logo_type": "Logo musi być obrazem PNG, JPEG lub WebP.",
+      "logo_size": "Logo może mieć najwyżej 1 MB."
    },
    "account": {
       "profile": {
@@ -496,7 +507,8 @@
          "restored": "Przywrócono niezapisane zmiany.",
          "stale": "Ten rekord zmienił się od rozpoczęcia edycji; zapisanie nadpisze te zmiany.",
          "discard": "Odrzuć"
-      }
+      },
+      "too_long": "Najwyżej {max} znaków."
    },
    "branch_tree": {
       "hint": "Twoje oddziały i oddziały pod nimi. Właściciele oddziału otwierają i usuwają oddziały pod nim; usunąć można tylko oddział bez własnych oddziałów.",
@@ -585,5 +597,17 @@
          "ends_after_start": "Koniec musi być po początku.",
          "replaced": "Zastąpiona"
       }
+   },
+   "branch_profile": {
+      "general": "Ogólne",
+      "tax": "Dane podatkowe",
+      "company": "Firma",
+      "plan": "Plan",
+      "sub_branches": "Oddziały poniżej",
+      "created_at": "Otwarcie",
+      "upload_logo": "Prześlij logo",
+      "change_logo": "Zmień logo",
+      "remove_logo": "Usuń logo",
+      "logo_hint": "PNG, JPEG lub WebP, do 1 MB."
    }
 }
