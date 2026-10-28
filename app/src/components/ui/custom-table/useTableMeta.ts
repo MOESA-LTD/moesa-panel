@@ -48,6 +48,23 @@ export const decodeRouteMeta = (value?: string | null): Record<string, TableMeta
    }
 };
 
+/**
+ * Drops filters and sorts a stored or shared state names but the table no longer has (saved by an
+ * older version of the page), so they are not sent as columns that do not exist.
+ */
+export const pruneStaleState = (
+   state: TableMetaState,
+   filters: Record<string, any> | undefined,
+   columns: SortableColumn[] = []
+) => {
+   if (filters && state.filters) state.filters = _pick(state.filters, Object.keys(filters));
+   if (state.multiSortMeta && columns.length) {
+      const sortable = new Set(columns.flatMap(({ field, sortField }) => [field, sortField]));
+      state.multiSortMeta = state.multiSortMeta.filter(({ field }) => sortable.has(field));
+   }
+   return state;
+};
+
 const SHARED_KEYS = ['filters', 'first', 'rows', 'multiSortMeta'] as const;
 
 export type UseTableMetaOptions = {
@@ -87,9 +104,14 @@ export function useTableMeta(options: UseTableMetaOptions) {
       stateStorage === 'local' ? useLocalStorage : useSessionStorage
    )(metaStateKey, initialValue, { mergeDefaults: true, writeDefaults: true });
 
+   // Pruned before merging: the merge writes into the parent's filters.
+   pruneStaleState(meta.value, options.filters, options.columns);
    meta.value.filters = _merge(options.filters, meta.value.filters);
 
-   _merge(meta.value, _get(routeMeta.value, metaStateKey, {}));
+   _merge(
+      meta.value,
+      pruneStaleState(_get(routeMeta.value, metaStateKey, {}), options.filters, options.columns)
+   );
 
    /** Stores a page/sort event and, for page tables, mirrors the state into the URL. */
    const onMeta = async (event: TableMetaState = meta.value) => {

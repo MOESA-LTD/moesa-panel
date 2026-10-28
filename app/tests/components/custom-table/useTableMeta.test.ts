@@ -2,7 +2,9 @@ import {
    decodeRouteMeta,
    encodeRouteMeta,
    initialSortMeta,
-   resolveStateStorage
+   pruneStaleState,
+   resolveStateStorage,
+   type TableMetaState
 } from '@/components/ui/custom-table/useTableMeta';
 import { describe, expect, it } from 'vitest';
 
@@ -43,5 +45,38 @@ describe('route meta', () => {
    it('ignores a missing or malformed parameter', () => {
       expect(decodeRouteMeta(undefined)).toEqual({});
       expect(decodeRouteMeta('not-a-valid-payload')).toEqual({});
+   });
+});
+
+describe('pruneStaleState', () => {
+   const columns = [{ field: 'table_name' }, { field: 'branch', sortField: 'branch.display_name' }];
+
+   it('drops filters and sorts of columns the table no longer has', () => {
+      const state = pruneStaleState(
+         {
+            filters: {
+               global: { value: 'x', matchMode: 'contains' },
+               table_name: { value: null, matchMode: 'in' },
+               old_data: { value: null, matchMode: 'in' }
+            },
+            multiSortMeta: [
+               { field: 'old_data', order: 1 },
+               { field: 'branch.display_name', order: -1 }
+            ]
+         } as TableMetaState,
+         { global: {}, table_name: {} },
+         columns
+      );
+
+      expect(Object.keys(state.filters ?? {})).toEqual(['global', 'table_name']);
+      expect(state.multiSortMeta).toEqual([{ field: 'branch.display_name', order: -1 }]);
+   });
+
+   it('keeps the state as is when the table declares no filters or columns', () => {
+      const state = {
+         filters: { a: { value: null, matchMode: 'in' } },
+         multiSortMeta: [{ field: 'a', order: 1 }]
+      } as TableMetaState;
+      expect(pruneStaleState(structuredClone(state), undefined, [])).toEqual(state);
    });
 });
