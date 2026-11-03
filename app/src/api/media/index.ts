@@ -307,12 +307,14 @@ export function useDeleteMedia() {
    return useMediaMutation(
       async ({ media }: { media: Pick<MediaRow, 'id' | 'storage_path' | 'thumbnail_path'> }) => {
          await supabase.from('media').delete().eq('id', media.id).throwOnError();
-         // The row is gone; an object left behind is unreachable, so a failure here is not shown.
-         await supabase.storage
+         // The row is gone; an object left behind is unreachable, so a failure here is not shown,
+         // only logged.
+         const { error } = await supabase.storage
             .from(MEDIA_BUCKET)
             .remove(
                [media.storage_path, media.thumbnail_path].filter((path): path is string => !!path)
             );
+         if (error) console.warn('Media file left in storage', media.id, error);
       },
       ['media']
    );

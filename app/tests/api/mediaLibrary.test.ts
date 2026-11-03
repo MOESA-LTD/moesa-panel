@@ -11,6 +11,7 @@ const calls = (filters: MediaLibraryFilters) => {
       or(filters: string): Builder;
       in(column: string, values: readonly unknown[]): Builder;
       contains(column: string, value: readonly unknown[]): Builder;
+      is(column: string, value: null): Builder;
    }
    const builder: Builder = new Proxy({} as Builder, {
       get:
@@ -30,6 +31,16 @@ describe('applyMediaLibraryFilters', () => {
       expect(calls({ customerId: 'c1', includeShared: true })).toEqual([
          ['or', 'customer_id.eq.c1,customer_id.is.null']
       ]);
+   });
+
+   it('offers only the shared files to a record of no customer', () => {
+      // The database refuses linking a customer's file to a record of no customer.
+      expect(calls({ customerId: null, includeShared: true })).toEqual([
+         ['is', 'customer_id', null]
+      ]);
+      expect(calls({ includeShared: true })).toEqual([['is', 'customer_id', null]]);
+      // Without includeShared (the library page), no customer means every file.
+      expect(calls({ customerId: null })).toEqual([]);
    });
 
    it('filters by tenant, so a record is offered only files of its own tenant', () => {
@@ -66,7 +77,6 @@ describe('applyMediaLibraryFilters', () => {
       expect(
          calls({
             customerId: null,
-            includeShared: true,
             kind: [],
             linkedType: null,
             entityId: 'p1'

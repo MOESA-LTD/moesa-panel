@@ -35,12 +35,16 @@ const BULK_ROLES = ['gallery', 'evidence_photo', 'attachment'] as const;
 type BulkRole = (typeof BULK_ROLES)[number];
 
 const authStore = useAuthStore();
-// Changing a record's files needs the right to change the record (see 025), and to link.
-const canEdit = computed(
-   () =>
-      authStore.canIn(props.tenantId, 'update', props.entityType) &&
-      authStore.canIn(props.tenantId, 'create', 'media_link')
-);
+// Changing a record's files needs the right to change the record (see 025), then the right for
+// each action, all in the record's tenant: linking, uploading (a new file), setting a link's role
+// (the primary star too), unlinking.
+const can = (action: string, subject: string) => authStore.canIn(props.tenantId, action, subject);
+const canChangeRecord = computed(() => can('update', props.entityType));
+const canEdit = computed(() => canChangeRecord.value && can('create', 'media_link'));
+const canUpload = computed(() => canEdit.value && can('create', 'media'));
+const canSetRole = computed(() => canChangeRecord.value && can('update', 'media_link'));
+const canUnlink = computed(() => canChangeRecord.value && can('delete', 'media_link'));
+const canSelect = computed(() => canSetRole.value || canUnlink.value);
 
 const { data } = useEntityMedia(
    () => props.entityType,
@@ -137,18 +141,20 @@ const download = (row: EntityMediaLink) =>
       </header>
 
       <MediaDropzone
-         v-if="canEdit"
+         v-if="canUpload"
          :customerId="customerId ?? null"
          :tenantId
          @uploaded="onUploaded"
       />
 
-      <div v-if="canEdit && links.length" data-bulk-bar class="flex flex-wrap items-center gap-2">
+      <div v-if="canSelect && links.length" data-bulk-bar class="flex flex-wrap items-center gap-2">
          <span class="text-sm text-surface-500">
             {{ $t('ops.media.selected', { count: selectedIds.length }) }}
          </span>
          <SelectEnum
+            v-if="canSetRole"
             v-model="bulkRole"
+            data-action="set-role"
             :values="BULK_ROLES"
             i18nPrefix="ops.media.role"
             :placeholder="$t('ops.media.set_role')"
@@ -156,6 +162,7 @@ const download = (row: EntityMediaLink) =>
             @update:modelValue="applyRole"
          />
          <Button
+            v-if="canUnlink"
             data-action="unlink"
             severity="danger"
             variant="outlined"
@@ -177,7 +184,7 @@ const download = (row: EntityMediaLink) =>
             class="relative flex flex-col gap-2 rounded border border-surface-200 p-2 dark:border-surface-700"
          >
             <Checkbox
-               v-if="canEdit"
+               v-if="canSelect"
                v-model="selected"
                :value="row.id"
                class="absolute left-3 top-3 z-10"
@@ -221,7 +228,7 @@ const download = (row: EntityMediaLink) =>
                   :aria-label="$t('ops.media.primary')"
                />
                <Button
-                  v-else-if="canEdit && isImage(row)"
+                  v-else-if="canSetRole && isImage(row)"
                   data-action="set-primary"
                   :icon="PrimeIcons.STAR"
                   variant="text"

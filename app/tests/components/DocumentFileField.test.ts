@@ -1,6 +1,8 @@
 import type { MediaRow } from '@/api/media';
+import { applyMediaLibraryFilters, type MediaLibraryFilters } from '@/api/media/library';
 import MediaDropzone from '@/components/service-components/media/MediaDropzone.vue';
 import MediaPickerDialog from '@/components/service-components/media/MediaPickerDialog.vue';
+import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import DocumentFileLink from '@/components/service-components/entity-documents/DocumentFileLink.vue';
 import DocumentFileField from '@/views/pages/ops/document/DocumentFileField.vue';
@@ -12,7 +14,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({
    files: {} as Record<string, unknown>,
    open: vi.fn(),
-   download: vi.fn()
+   download: vi.fn(),
+   libraryFilters: (() => ({})) as () => MediaLibraryFilters
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
@@ -47,23 +50,49 @@ vi.mock('@/components/service-components/media/MediaDropzone.vue', async () => {
       })
    };
 });
-vi.mock('@/components/service-components/media/MediaPickerDialog.vue', async () => {
-   const { defineComponent, h } = await import('vue');
+// The picker is the real one, over a stand-in library recording the filters it is given.
+vi.mock('@/api/media/library', async (importOriginal) => {
+   const { ref, toValue } = await import('vue');
    return {
-      default: defineComponent({
-         name: 'MediaPickerDialog',
-         props: {
-            customerId: null,
-            tenantId: null,
-            multiple: Boolean,
-            kinds: null,
-            visible: Boolean
-         },
-         emits: ['picked', 'update:visible'],
-         setup: () => () => h('div')
+      ...(await importOriginal<typeof import('@/api/media/library')>()),
+      useMediaLibrary: (filters: () => MediaLibraryFilters) => {
+         api.libraryFilters = () => toValue(filters);
+         return {
+            data: ref({ pages: [[]] }),
+            hasNextPage: ref(false),
+            isFetching: ref(false),
+            fetchNextPage: vi.fn()
+         };
+      }
+   };
+});
+vi.mock('@/store/auth', async () => {
+   const { ability } = await import('@/plugins/casl');
+   return {
+      useAuthStore: () => ({
+         canIn: (_tenantId: string | null, action: string, subject: string) =>
+            ability.can(action, subject)
       })
    };
 });
+
+/** The query the picker's filters make, as [method, ...args] calls. */
+const libraryQuery = () => {
+   const recorded: unknown[][] = [];
+   const builder: Parameters<typeof applyMediaLibraryFilters>[0] = new Proxy(
+      {} as Parameters<typeof applyMediaLibraryFilters>[0],
+      {
+         get:
+            (_, method: string) =>
+            (...args: unknown[]) => {
+               recorded.push([method, ...args]);
+               return builder;
+            }
+      }
+   );
+   applyMediaLibraryFilters(builder, api.libraryFilters());
+   return recorded;
+};
 
 const file = (id: string) =>
    ({ id, file_name: `${id}.pdf`, storage_path: `t-doc/${id}/${id}.pdf` }) as MediaRow;
@@ -86,6 +115,7 @@ const mountField = (props: {
 describe('DocumentFileField', () => {
    beforeAll(() => i18n.setLocaleMessage('en', en));
    beforeEach(() => {
+      ability.update([{ action: 'manage', subject: 'all' }]);
       api.files = { m1: file('m1'), m2: file('m2') };
       api.open.mockReset().mockResolvedValue(undefined);
       api.download.mockReset().mockResolvedValue(undefined);
@@ -112,6 +142,40 @@ describe('DocumentFileField', () => {
       const wrapper = mountField({ mediaId: null });
       expect(wrapper.getComponent(MediaDropzone).props('customerId')).toBeNull();
       expect(wrapper.getComponent(MediaPickerDialog).props('customerId')).toBeNull();
+      // The library is asked for the files of no customer, those the database lets it cite.
+      expect(libraryQuery()).toEqual([
+         ['eq', 'tenant_id', 't-doc'],
+         ['is', 'customer_id', null]
+      ]);
+   });
+
+   it("offers the customer's and the shared files to a record of a customer", () => {
+      mountField({ mediaId: null, customerId: 'c1' });
+      expect(libraryQuery()).toEqual([
+         ['eq', 'tenant_id', 't-doc'],
+         ['or', 'customer_id.eq.c1,customer_id.is.null']
+      ]);
+   });
+
+   it('offers an upload only with the right to create files', () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         { action: 'insert', subject: 'media', inverted: true }
+      ]);
+      const wrapper = mountField({ mediaId: null, customerId: 'c1' });
+      expect(wrapper.findComponent(MediaDropzone).exists()).toBe(false);
+      expect(wrapper.find('[data-action="pick-from-library"]').exists()).toBe(true);
+   });
+
+   it('offers the library only with the right to read files', () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         { action: 'select', subject: 'media', inverted: true }
+      ]);
+      const wrapper = mountField({ mediaId: null, customerId: 'c1' });
+      expect(wrapper.find('[data-action="pick-from-library"]').exists()).toBe(false);
+      expect(wrapper.findComponent(MediaPickerDialog).exists()).toBe(false);
+      expect(wrapper.findComponent(MediaDropzone).exists()).toBe(true);
    });
 
    it('takes an uploaded or picked file', async () => {

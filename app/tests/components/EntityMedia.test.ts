@@ -8,7 +8,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import PrimeVue from 'primevue/config';
 import FileUpload from 'primevue/fileupload';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ref } from 'vue';
+import { ref, toValue, type MaybeRefOrGetter } from 'vue';
 
 // The media hooks are stand-ins; the helpers (default roles, kinds, thumb paths) are the real ones.
 const api = vi.hoisted(() => ({
@@ -21,7 +21,8 @@ const api = vi.hoisted(() => ({
    open: vi.fn(),
    download: vi.fn(),
    library: [] as unknown[],
-   libraryFilters: undefined as unknown
+   libraryFilters: undefined as unknown,
+   libraryOptions: undefined as { enabled?: unknown } | undefined
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
@@ -60,8 +61,9 @@ vi.mock('@/api/media/signedUrls', async () => {
 vi.mock('@/api/media/library', async () => {
    const { toValue } = await import('vue');
    return {
-      useMediaLibrary: (filters: () => unknown) => {
+      useMediaLibrary: (filters: () => unknown, options?: { enabled?: unknown }) => {
          api.libraryFilters = toValue(filters);
+         api.libraryOptions = options;
          return {
             data: ref({ pages: [api.library] }),
             hasNextPage: ref(false),
@@ -89,6 +91,11 @@ const link = (id: string, role: MediaRole, file: MediaRow, position = 0) =>
    ({ id, role, position, media_id: file.id, media: file }) as unknown as EntityMediaLink;
 
 const allowAll = () => [{ action: 'manage', subject: 'all' }];
+/** Everything but one action on one subject. */
+const allowAllBut = (action: string, subject: string) => [
+   ...allowAll(),
+   { action, subject, inverted: true }
+];
 /** Everything but updating products, which is half of "modify". */
 const withoutProductUpdate = () => [
    ...allowAll(),
@@ -228,6 +235,37 @@ describe('EntityMedia', () => {
       expect(cards(wrapper)[0].find('.pi-star-fill').exists()).toBe(true);
    });
 
+   it('offers no upload without the right to create files, but still links from the library', () => {
+      ability.update(allowAllBut('insert', 'media'));
+      api.links = [link('l-gallery', 'gallery', media('side'))];
+      const wrapper = mountMedia();
+
+      expect(wrapper.findComponent(FileUpload).exists()).toBe(false);
+      expect(wrapper.find('[data-action="link-from-library"]').exists()).toBe(true);
+      expect(wrapper.find('[data-action="unlink"]').exists()).toBe(true);
+   });
+
+   it('offers no unlink without the right to delete links, but still sets roles', () => {
+      ability.update(allowAllBut('delete', 'media_link'));
+      api.links = [link('l-gallery', 'gallery', media('side'))];
+      const wrapper = mountMedia();
+
+      expect(wrapper.find('[data-bulk-bar]').exists()).toBe(true);
+      expect(wrapper.find('[data-action="unlink"]').exists()).toBe(false);
+      expect(wrapper.find('[data-action="set-primary"]').exists()).toBe(true);
+      expect(wrapper.findComponent(FileUpload).exists()).toBe(true);
+   });
+
+   it('offers neither roles nor the star without the right to update links', () => {
+      ability.update(allowAllBut('update', 'media_link'));
+      api.links = [link('l-gallery', 'gallery', media('side'))];
+      const wrapper = mountMedia();
+
+      expect(wrapper.find('[data-action="set-primary"]').exists()).toBe(false);
+      expect(wrapper.find('[data-action="set-role"]').exists()).toBe(false);
+      expect(wrapper.find('[data-action="unlink"]').exists()).toBe(true);
+   });
+
    it("links an image uploaded to a product without files as its primary image, in the record's tenant", async () => {
       const uploaded = media('new');
       api.upload.mockResolvedValue(uploaded);
@@ -351,5 +389,17 @@ describe('MediaPickerDialog', () => {
 
       expect(wrapper.emitted('picked')?.[0]?.[0]).toEqual([api.library[2], api.library[0]]);
       expect(wrapper.emitted('update:visible')?.[0]).toEqual([false]);
+   });
+
+   it('queries the library only while open', async () => {
+      const wrapper = mount(MediaPickerDialog, {
+         props: { visible: false },
+         global: { plugins: [i18NPlugin, PrimeVue], stubs: { Dialog: DialogStub } }
+      });
+      const enabled = () => toValue(api.libraryOptions?.enabled as MaybeRefOrGetter<boolean>);
+
+      expect(enabled()).toBe(false);
+      await wrapper.setProps({ visible: true });
+      expect(enabled()).toBe(true);
    });
 });

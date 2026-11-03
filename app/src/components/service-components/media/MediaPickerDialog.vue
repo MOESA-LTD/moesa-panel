@@ -21,12 +21,16 @@ const props = withDefaults(
 const visible = defineModel<boolean>('visible', { default: false });
 const emit = defineEmits<{ picked: [media: MediaLibraryRow[]] }>();
 
-const library = useMediaLibrary(() => ({
-   tenantId: props.tenantId,
-   customerId: props.customerId,
-   includeShared: true,
-   kind: props.kinds
-}));
+// Queried only while open: a card holding the picker loads no library until it is used.
+const library = useMediaLibrary(
+   () => ({
+      tenantId: props.tenantId,
+      customerId: props.customerId,
+      includeShared: true,
+      kind: props.kinds
+   }),
+   { enabled: () => visible.value }
+);
 
 const rows = computed(() => {
    const excluded = new Set(props.excludeIds);

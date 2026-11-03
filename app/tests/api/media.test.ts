@@ -9,12 +9,16 @@ import {
    thumbPath,
    toMediaFormValues,
    toMediaPayload,
+   useDeleteMedia,
    validateMediaFile,
    type MediaRow
 } from '@/api/media';
 import { MediaFileError, uploadMedia } from '@/api/media/upload';
 import i18n from '@plugins/i18n';
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
+import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent, h } from 'vue';
 
 const LIMIT = 26214400;
 
@@ -23,6 +27,7 @@ const mock = vi.hoisted(() => ({
    upload: vi.fn(),
    remove: vi.fn(),
    insert: vi.fn(),
+   delete: vi.fn(),
    insertResult: { data: null as unknown, error: null as unknown }
 }));
 
@@ -33,7 +38,12 @@ vi.mock('@/lib/supabase', () => ({
          insert: (row: unknown) => {
             mock.insert(row);
             return { select: () => ({ single: () => Promise.resolve(mock.insertResult) }) };
-         }
+         },
+         delete: () => ({
+            eq: (column: string, value: unknown) => ({
+               throwOnError: () => Promise.resolve(mock.delete(column, value))
+            })
+         })
       })
    }
 }));
@@ -42,6 +52,7 @@ beforeEach(() => {
    mock.upload.mockReset().mockResolvedValue({ data: {}, error: null });
    mock.remove.mockReset().mockResolvedValue({ data: [], error: null });
    mock.insert.mockReset();
+   mock.delete.mockReset().mockReturnValue({ data: null, error: null });
    mock.insertResult = { data: { id: 'saved' }, error: null };
 });
 
@@ -338,5 +349,39 @@ describe('mediaSchema', () => {
          tags: ['mop'],
          customer_id: 'c1'
       });
+   });
+});
+
+describe('useDeleteMedia', () => {
+   const mountDelete = () => {
+      let remove!: ReturnType<typeof useDeleteMedia>;
+      mount(
+         defineComponent({
+            setup() {
+               remove = useDeleteMedia();
+               return () => h('div');
+            }
+         }),
+         { global: { plugins: [[VueQueryPlugin, { queryClient: new QueryClient() }]] } }
+      );
+      return remove;
+   };
+   const file = { id: 'm1', storage_path: 't1/m1/a.png', thumbnail_path: null };
+
+   it('deletes the row, then its objects', async () => {
+      await mountDelete().mutateAsync({ media: file });
+
+      expect(mock.delete).toHaveBeenCalledWith('id', 'm1');
+      expect(mock.remove).toHaveBeenCalledWith(['t1/m1/a.png']);
+   });
+
+   it('logs, without failing, an object storage refuses to remove', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const refused = new Error('denied');
+      mock.remove.mockResolvedValue({ data: null, error: refused });
+
+      await expect(mountDelete().mutateAsync({ media: file })).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalledWith('Media file left in storage', 'm1', refused);
+      warn.mockRestore();
    });
 });

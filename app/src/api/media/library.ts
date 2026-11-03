@@ -10,7 +10,10 @@ export type MediaLibraryFilters = {
    /** One tenant's files, e.g. those a record of that tenant can link (a link shares its file's). */
    tenantId?: string | null;
    customerId?: string | null;
-   /** With customerId, also the files of no customer (shared by every customer). */
+   /**
+    * A picker's filter: with customerId, also the files of no customer (shared by every customer);
+    * without one, only those (a record of no customer cannot link a customer's file).
+    */
    includeShared?: boolean;
    /** Empty: every kind. */
    kind?: MediaKind[] | null;
@@ -26,6 +29,7 @@ type FilterBuilder<Q> = {
    or(filters: string): Q;
    in(column: string, values: readonly unknown[]): Q;
    contains(column: string, value: readonly unknown[]): Q;
+   is(column: string, value: null): Q;
 };
 
 /** Adds the library's filters to a query of media_library; empty ones add nothing. */
@@ -39,6 +43,7 @@ export function applyMediaLibraryFilters<Q extends FilterBuilder<Q>>(
       q = includeShared
          ? q.or(`customer_id.eq.${customerId},customer_id.is.null`)
          : q.eq('customer_id', customerId);
+   else if (includeShared) q = q.is('customer_id', null);
    if (kind?.length) q = q.in('kind', kind);
    if (tag) q = q.contains('tags', [tag]);
    if (linkedType === 'none') q = q.eq('link_count', 0).eq('document_count', 0);
@@ -52,7 +57,10 @@ export function applyMediaLibraryFilters<Q extends FilterBuilder<Q>>(
 export const MEDIA_PAGE_SIZE = 48;
 
 /** The library's files, newest first, a page at a time. */
-export function useMediaLibrary(filters: MaybeRefOrGetter<MediaLibraryFilters>) {
+export function useMediaLibrary(
+   filters: MaybeRefOrGetter<MediaLibraryFilters>,
+   { enabled = true }: { enabled?: MaybeRefOrGetter<boolean> } = {}
+) {
    const tenantId = useTenantKey();
 
    return useInfiniteQuery({
@@ -71,7 +79,8 @@ export function useMediaLibrary(filters: MaybeRefOrGetter<MediaLibraryFilters>) 
       },
       initialPageParam: 0,
       getNextPageParam: (lastPage, pages) =>
-         lastPage.length === MEDIA_PAGE_SIZE ? pages.length : undefined
+         lastPage.length === MEDIA_PAGE_SIZE ? pages.length : undefined,
+      enabled: computed(() => toValue(enabled))
    });
 }
 
