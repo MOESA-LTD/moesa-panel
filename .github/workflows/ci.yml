@@ -53,3 +53,17 @@ jobs:
 
             - run: deno task check
             - run: deno task test
+
+    database:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: 2.9.6
+
+            # Migrations and seed.sql run on start. Auth and Storage stay up: the seed writes
+            # auth.users/identities and the migrations write storage.buckets.
+            - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+            - run: supabase test db
