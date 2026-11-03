@@ -91,9 +91,10 @@ describe('documentSchema', () => {
       ]);
    });
 
-   it('rejects an approved document without signature, stamp, official e-mail and date', () => {
+   it('rejects an approved spec sheet without signature, stamp, official e-mail and date', () => {
       const result = documentSchema.safeParse(
          formValues({
+            type: 'spec_sheet',
             status: 'approved',
             is_signed: false,
             is_stamped: false,
@@ -111,9 +112,24 @@ describe('documentSchema', () => {
       ]);
    });
 
-   it('accepts an approved document that is signed, stamped, sent and dated', () => {
+   it('accepts an approved gate approval without the flags', () => {
       const result = documentSchema.safeParse(
          formValues({
+            type: 'gate_approval',
+            status: 'approved',
+            is_signed: false,
+            is_stamped: false,
+            sent_from_official_email: false,
+            issued_on: null
+         })
+      );
+      expect(result.success).toBe(true);
+   });
+
+   it('accepts an approved spec sheet that is signed, stamped, sent and dated', () => {
+      const result = documentSchema.safeParse(
+         formValues({
+            type: 'spec_sheet',
             status: 'approved',
             is_signed: true,
             is_stamped: true,

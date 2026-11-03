@@ -105,11 +105,12 @@ export const documentSchema = z
       sent_from_official_email: z.boolean(),
       notes: optional(z.string())
    })
-   // Mirrors the database rule (document_signed_requires), so it shows before saving: approved
-   // is signed and more, so it needs the same.
+   // Mirrors the database rule (document_signed_requires), so it shows before saving: a signed
+   // document, and an approved spec sheet (the product's evidence), need every flag and a date.
    .superRefine((document, ctx) => {
       if (
-         (document.status === 'signed' || document.status === 'approved') &&
+         (document.status === 'signed' ||
+            (document.status === 'approved' && document.type === 'spec_sheet')) &&
          !(
             document.is_signed &&
             document.is_stamped &&

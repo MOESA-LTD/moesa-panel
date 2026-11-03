@@ -254,7 +254,7 @@
       "logo_type": "Logo PNG, JPEG veya WebP olmalı.",
       "logo_size": "Logo en fazla 1 MB olmalı.",
       "document_version_exists": "Belgenin bu sürümü zaten var",
-      "document_signed_incomplete": "İmzalı veya onaylı belge imzalı, kaşeli, resmi e-postadan gönderilmiş ve tarihli olmalı",
+      "document_signed_incomplete": "İmzalı belge veya onaylı spesifikasyon imzalı, kaşeli, resmi e-postadan gönderilmiş ve tarihli olmalı",
       "document_entity_missing": "Belgenin ait olduğu kayıt bulunamadı",
       "invalid_gtin": "Geçerli bir GTIN girin: kontrol hanesi doğru 8, 12, 13 veya 14 hane",
       "gtin_in_use": "Bu GTIN başka bir aktif üründe kullanılıyor",

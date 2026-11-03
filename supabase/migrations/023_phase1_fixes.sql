@@ -1,9 +1,9 @@
 -- Phase 1 fixes (final review): rules the business tables still lacked.
 --
--- document               An approved document is a signed one and more (approved ⊇ signed): it
---                        needs the same signature, stamp, official e-mail and date
---                        (private.document_signed_requires), so an unsigned spec sheet no longer
---                        counts as product evidence. A superseded document stays superseded, and
+-- document               An approved spec sheet needs the signature, stamp, official e-mail and
+--                        date a signed document does (private.document_signed_requires), so an
+--                        unsigned spec sheet no longer counts as product evidence; other approved
+--                        documents (a gate approval is an e-mail or e-signature record) do not. A superseded document stays superseded, and
 --                        what a document is (its record, type, version and tenant) never changes
 --                        (private.document_transition).
 -- project                A closed customer gets no new projects (private.project_set_code).
@@ -15,8 +15,8 @@
 --                        (public.product_evidence), so the list can filter on a signed spec sheet.
 --
 -- Each rule is a check_violation whose message is the rule's code:
---   document_signed_incomplete    a signed or approved document lacks signature, stamp, official
---                                 e-mail or date
+--   document_signed_incomplete    a signed document, or an approved spec sheet, lacks signature,
+--                                 stamp, official e-mail or date
 --   document_superseded_sticky    a superseded document cannot get another status
 --   document_identity_immutable   a document's entity_type, entity_id, type, version or tenant
 --                                 changed
@@ -24,12 +24,13 @@
 --   customer_contract_restricted  a contract term changed by a caller without the update
 --                                 permission on settings in the customer's tenant
 
--- Signed or approved means signed, stamped, sent from the official e-mail and dated.
+-- Signed means signed, stamped, sent from the official e-mail and dated; so does an approved spec
+-- sheet, the product's evidence.
 CREATE OR REPLACE FUNCTION private.document_signed_requires () RETURNS TRIGGER LANGUAGE plpgsql
 SET
    search_path = '' AS $$
 BEGIN
-    IF NEW.status IN ('signed', 'approved')
+    IF (NEW.status = 'signed' OR (NEW.status = 'approved' AND NEW.type = 'spec_sheet'))
        AND NOT (NEW.is_signed AND NEW.is_stamped AND NEW.sent_from_official_email AND NEW.issued_on IS NOT NULL) THEN
         RAISE EXCEPTION 'document_signed_incomplete' USING ERRCODE = 'check_violation';
     END IF;

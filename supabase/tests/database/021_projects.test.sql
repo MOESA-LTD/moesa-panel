@@ -59,11 +59,9 @@ FROM (VALUES ('g1', '00000000-0000-4000-8000-000000000214'::UUID, 'G1'::public.g
 
 -- The customer's written approvals, one approval-like document of the wrong type, and the
 -- product's signed spec sheet (added later).
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url,
-                             is_signed, is_stamped, sent_from_official_email, issued_on)
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 SELECT x.id, current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'project_gate',
-       current_setting('test.' || x.gate)::UUID, x.type, 'approved', 'https://example.test/' || x.gate || '.pdf',
-       TRUE, TRUE, TRUE, current_date
+       current_setting('test.' || x.gate)::UUID, x.type, 'approved', 'https://example.test/' || x.gate || '.pdf'
 FROM (VALUES ('00000000-0000-4000-8000-000000000216'::UUID, 'g1', 'gate_approval'::public.document_type),
              ('00000000-0000-4000-8000-000000000217', 'g2', 'gate_approval'),
              ('00000000-0000-4000-8000-000000000221', 'g3', 'gate_approval'),
@@ -402,11 +400,9 @@ UPDATE public.project SET status = 'active' WHERE id = '00000000-0000-4000-8000-
 UPDATE public.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000215' AND blocks_gate;
 
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url,
-                             is_signed, is_stamped, sent_from_official_email, issued_on)
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 SELECT x.id, current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'project_gate',
-       current_setting('test.' || x.gate)::UUID, 'gate_approval', 'approved', 'https://example.test/' || x.gate || '.pdf',
-       TRUE, TRUE, TRUE, current_date
+       current_setting('test.' || x.gate)::UUID, 'gate_approval', 'approved', 'https://example.test/' || x.gate || '.pdf'
 FROM (VALUES ('00000000-0000-4000-8000-000000000227'::UUID, 'c1'),
              ('00000000-0000-4000-8000-000000000228', 'c2')) AS x (id, gate);
 

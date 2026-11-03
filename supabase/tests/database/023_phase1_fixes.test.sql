@@ -1,12 +1,12 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
--- The Phase 1 fixes on the MOESA demo company of seed.sql: approved documents need signatures,
+-- The Phase 1 fixes on the MOESA demo company of seed.sql: approved spec sheets need signatures,
 -- superseded ones stay superseded and documents keep their identity; closed customers get no
 -- projects; only management changes contract terms; the product list's evidence view. What it
 -- writes is rolled back.
 BEGIN;
 
-SELECT plan(13);
+SELECT plan(14);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 SELECT set_config('test.tho', (SELECT c.id FROM public.customer c
@@ -44,6 +44,16 @@ SELECT throws_ok(
     '23514',
     'document_signed_incomplete',
     'an approved spec sheet without signature, stamp, official e-mail and date is rejected'
+);
+
+-- Other approved documents (a gate approval is an e-mail or e-signature record) need no flags.
+SELECT lives_ok(
+    $$
+        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, status, url)
+        VALUES (current_setting('test.tenant_id')::UUID, current_setting('test.tho')::UUID, 'customer',
+                current_setting('test.tho')::UUID, 'gate_approval', 'approved', 'https://example.test/tho-ok.pdf')
+    $$,
+    'an approved gate approval without signature flags is accepted'
 );
 
 SELECT is(

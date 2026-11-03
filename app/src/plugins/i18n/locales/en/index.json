@@ -371,7 +371,7 @@
       "logo_type": "The logo must be a PNG, JPEG or WebP image.",
       "logo_size": "The logo must be at most 1 MB.",
       "document_version_exists": "This version of the document already exists",
-      "document_signed_incomplete": "A signed or approved document must be signed, stamped, sent from the official e-mail and dated",
+      "document_signed_incomplete": "A signed document or approved spec sheet must be signed, stamped, sent from the official e-mail and dated",
       "document_entity_missing": "The record this document belongs to was not found",
       "invalid_gtin": "Enter a valid GTIN: 8, 12, 13 or 14 digits with a correct check digit",
       "gtin_in_use": "This GTIN is already used by another active product",
