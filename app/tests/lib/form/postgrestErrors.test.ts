@@ -60,4 +60,39 @@ describe('mapPostgrestError', () => {
       ).toBeNull();
       expect(mapPostgrestError(new Error('boom'), FIELDS)).toBeNull();
    });
+   it('maps the errors the document table raises by name', () => {
+      const fields = ['entity_type', 'entity_id', 'type', 'version', 'status', 'url'];
+
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "unique_document_version"',
+               details:
+                  'Key (tenant_id, entity_type, entity_id, type, version)=(t, product, p, pi, 1) already exists.'
+            },
+            fields
+         )
+      ).toEqual({ version: i18n.t('errors.document_version_exists') });
+
+      expect(
+         mapPostgrestError({ code: '23514', message: 'document_signed_incomplete' }, fields)
+      ).toEqual({ status: i18n.t('errors.document_signed_incomplete') });
+
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "document" violates check constraint "document_has_file"'
+            },
+            fields
+         )
+      ).toEqual({ url: i18n.t('form.required') });
+
+      // Left to the error toast.
+      expect(
+         mapPostgrestError({ code: '23503', message: 'document_entity_missing' }, fields)
+      ).toBeNull();
+   });
 });

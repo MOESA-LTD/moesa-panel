@@ -252,7 +252,10 @@
       "invalid_website": "Geçerli bir web adresi girin.",
       "invalid_tax_number": "Yalnızca harf, rakam, boşluk ve tire kullanın (en fazla 32).",
       "logo_type": "Logo PNG, JPEG veya WebP olmalı.",
-      "logo_size": "Logo en fazla 1 MB olmalı."
+      "logo_size": "Logo en fazla 1 MB olmalı.",
+      "document_version_exists": "Belgenin bu sürümü zaten var",
+      "document_signed_incomplete": "İmzalı belge imzalı, kaşeli, resmi e-postadan gönderilmiş ve tarihli olmalı",
+      "document_entity_missing": "Belgenin ait olduğu kayıt bulunamadı"
    },
    "account": {
       "profile": {
@@ -321,7 +324,9 @@
          "admin_plans": "Planlar",
          "admin_plan_list": "Plan Listesi",
          "ops": "Operasyon",
-         "ops_setting": "Ayarlar"
+         "ops_setting": "Ayarlar",
+         "ops_document_add": "Belge ekle",
+         "ops_document_edit": "Belgeyi düzenle"
       }
    },
    "fields": {
@@ -631,6 +636,61 @@
       },
       "customer_filter": {
          "all": "Tüm müşteriler"
+      },
+      "document": {
+         "title": "Belgeler",
+         "open_link": "Bağlantıyı aç",
+         "fields": {
+            "type": "Tür",
+            "version": "Sürüm",
+            "issued_on": "Tarih",
+            "status": "Durum",
+            "file_name": "Dosya adı",
+            "url": "Bağlantı (Drive)",
+            "is_signed": "İmzalı",
+            "is_stamped": "Kaşeli",
+            "sent_from_official_email": "Resmi e-postadan gönderildi",
+            "notes": "Notlar"
+         },
+         "type": {
+            "spec_sheet": "Teknik şartname",
+            "tech_pack": "Teknik paket",
+            "sample_report": "Numune raporu",
+            "pi": "Proforma fatura (PI)",
+            "po": "Satın alma siparişi (PO)",
+            "psi_report": "Sevkiyat öncesi denetim raporu",
+            "test_report": "Test raporu",
+            "sds": "Güvenlik bilgi formu (SDS)",
+            "doc_of_conformity": "Uygunluk beyanı",
+            "technical_file": "Teknik dosya",
+            "label_artwork": "Etiket tasarımı",
+            "packing_list": "Çeki listesi",
+            "commercial_invoice": "Ticari fatura",
+            "bill_of_lading": "Konşimento",
+            "customs": "Gümrük belgesi",
+            "delivery_receipt": "Teslim tutanağı",
+            "gate_approval": "Kapı onayı",
+            "change_request": "Değişiklik talebi",
+            "contract": "Sözleşme",
+            "certificate": "Sertifika",
+            "other": "Diğer"
+         },
+         "status": {
+            "draft": "Taslak",
+            "signed": "İmzalı",
+            "approved": "Onaylı",
+            "superseded": "Eski"
+         },
+         "entity": {
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "product": "Ürün",
+            "project": "Proje",
+            "project_gate": "Proje kapısı",
+            "purchase_order": "Satın alma siparişi",
+            "shipment": "Sevkiyat",
+            "incident": "Olay"
+         }
       }
    }
 }

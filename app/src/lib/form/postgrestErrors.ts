@@ -16,11 +16,37 @@ const constraintColumns = (message: string | undefined, fields: string[]) => {
 };
 
 /**
+ * Errors named by their constraint or raised message, and the one field and message they belong to.
+ * Checked before the generic mapping, which would e.g. mark every column of a unique key.
+ */
+const NAMED_ERRORS: { code: string; name: string; field: string; message: string }[] = [
+   {
+      code: '23505',
+      name: 'unique_document_version',
+      field: 'version',
+      message: 'errors.document_version_exists'
+   },
+   {
+      code: '23514',
+      name: 'document_signed_incomplete',
+      field: 'status',
+      message: 'errors.document_signed_incomplete'
+   },
+   { code: '23514', name: 'document_has_file', field: 'url', message: 'form.required' }
+];
+
+/**
  * Maps a database error to messages for the form fields it concerns, so e.g. a duplicate national
  * id shows under that field instead of as a generic toast. Returns null when no field matches.
  */
 export function mapPostgrestError(error: unknown, fields: string[]): Record<string, string> | null {
    const { code, message, details } = (error ?? {}) as PostgrestLikeError;
+
+   const named = NAMED_ERRORS.find(
+      (entry) =>
+         entry.code === code && message?.includes(entry.name) && fields.includes(entry.field)
+   );
+   if (named) return { [named.field]: i18n.t(named.message) };
 
    let columns: string[] = [];
    let text: string;

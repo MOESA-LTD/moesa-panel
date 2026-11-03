@@ -13,5 +13,6 @@ export const fieldRoutes: FieldRoutes = {
    user_id: { name: 'branch-user-manage' },
    user: { name: 'branch-user-manage' },
    tenant_user: { name: 'branch-user-manage', field: 'user_id' },
-   tenant_owner: { name: 'branch-user-manage', field: 'user_id' }
+   tenant_owner: { name: 'branch-user-manage', field: 'user_id' },
+   document: { name: 'ops-document-edit' }
 };
