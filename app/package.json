@@ -2,6 +2,7 @@
    "name": "moesa-panel-app",
    "version": "1.5.3-alpha.1",
    "type": "module",
+   "packageManager": "pnpm@10.33.0",
    "scripts": {
       "dev": "pnpm dev:supabase-types && pnpm dev:vue",
       "dev:vue": "vite --host",
