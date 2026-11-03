@@ -1160,6 +1160,20 @@ export type Database = {
             foreignKeyName: "project_gate_project_fkey"
             columns: ["project_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "project"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -1212,6 +1226,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_evidence"
             referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "project_product_project_fkey"
@@ -1286,6 +1314,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_task_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_task_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "project_task_project_fkey"
@@ -1915,6 +1957,46 @@ export type Database = {
           },
         ]
       }
+      dashboard_gate_pending: {
+        Row: {
+          customer_code: string | null
+          customer_id: string | null
+          gate_code: Database["public"]["Enums"]["gate_code"] | null
+          gate_id: string | null
+          needs_customer_approval: boolean | null
+          needs_management: boolean | null
+          owner_role: string | null
+          position: number | null
+          project_code: string | null
+          project_display_name: string | null
+          project_id: string | null
+          tenant_id: string | null
+          waiting_days: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_notification_feed: {
         Row: {
           activity: string | null
@@ -1941,6 +2023,80 @@ export type Database = {
           },
           {
             foreignKeyName: "audit_transaction_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_product_evidence: {
+        Row: {
+          active_sku_count: number | null
+          compliance_complete_count: number | null
+          customer_code: string | null
+          customer_id: string | null
+          signed_spec_count: number | null
+          tenant_id: string | null
+          unsigned_sku_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_task_due: {
+        Row: {
+          blocks_gate: boolean | null
+          customer_code: string | null
+          customer_id: string | null
+          days_left: number | null
+          display_name: string | null
+          due_on: string | null
+          overdue: boolean | null
+          phase: Database["public"]["Enums"]["project_phase"] | null
+          project_code: string | null
+          project_id: string | null
+          role: string | null
+          task_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"

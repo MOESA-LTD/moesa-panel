@@ -459,6 +459,21 @@
             "deleted": "{resource_name} {user_name} tarafından silindi",
             "unknown": "{resource_name} tarafından {user_name} tarafından etkinlik algılandı"
          }
+      },
+      "ops": {
+         "none": "Yok",
+         "gates_team": "Bekleyen kapılar",
+         "gates_management": "Yönetim aksiyonu",
+         "gates_customer": "Müşteri onayı bekleyen",
+         "tasks_overdue": "Geciken görevler",
+         "tasks_due_soon": "5 gün içinde dolacak görevler",
+         "unsigned_skus": "İmzalı spec'i olmayan aktif SKU'lar",
+         "incomplete_compliance": "Uyumu eksik SKU'lar",
+         "waiting_days": "{days} gün",
+         "days_left": "{days} gün kaldı",
+         "due_today": "Bugün doluyor",
+         "days_overdue": "{days} gün gecikti",
+         "open_product_list": "Ürün listesini aç"
       }
    },
    "audit_log": {

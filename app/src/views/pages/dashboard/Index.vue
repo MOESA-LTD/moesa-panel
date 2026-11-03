@@ -1,10 +1,81 @@
 <script setup lang="ts">
+import {
+   groupGates,
+   splitTasks,
+   useDashboardEvidence,
+   useDashboardGates,
+   useDashboardTasks,
+   type DashboardEvidenceRow,
+   type DashboardGateRow,
+   type DashboardTaskRow
+} from '@/api/dashboard';
+import CountListCard, {
+   type CountListItem
+} from '@/components/service-components/dashboard/CountListCard.vue';
 import { useDialogRef } from '@/composables/useDialogRef';
 import { fieldRoutes } from '@/constants/form/field';
+import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
 const dialogRef = useDialogRef();
+
+// --- weekly rhythm (M6): gates, tasks and product evidence ---
+
+const projectTab = (projectId: string | null, tab: 'overview' | 'tasks') => ({
+   name: 'ops-project-manage',
+   params: { id: projectId ?? '', tab },
+   query: { showDialog: DIALOG_POSITIONS.CENTER }
+});
+
+const gateItem = (row: DashboardGateRow): CountListItem => ({
+   label: [row.project_code, i18n.t(`ops.project.gate.${row.gate_code}`), row.customer_code]
+      .filter(Boolean)
+      .join(' · '),
+   meta: i18n.t('dashboard.ops.waiting_days', { days: row.waiting_days ?? 0 }),
+   to: projectTab(row.project_id, 'overview')
+});
+
+const taskMeta = ({ days_left }: DashboardTaskRow) => {
+   const days = days_left ?? 0;
+   if (days < 0) return i18n.t('dashboard.ops.days_overdue', { days: -days });
+   if (days === 0) return i18n.t('dashboard.ops.due_today');
+   return i18n.t('dashboard.ops.days_left', { days });
+};
+
+const taskItem = (row: DashboardTaskRow): CountListItem => ({
+   label: [row.project_code, row.display_name].filter(Boolean).join(' · '),
+   meta: taskMeta(row),
+   to: projectTab(row.project_id, 'tasks')
+});
+
+const { data: gateRows } = useDashboardGates();
+const { data: taskRows } = useDashboardTasks();
+const { data: evidenceRows } = useDashboardEvidence();
+
+const gates = computed(() => groupGates(gateRows.value ?? []));
+const tasks = computed(() => splitTasks(taskRows.value ?? []));
+
+/** Per customer, how many SKUs `count` finds, as rows linking to the product list (unfiltered). */
+const evidenceBox = (count: (row: DashboardEvidenceRow) => number) => {
+   const rows = (evidenceRows.value ?? [])
+      .map((row) => ({ row, n: count(row) }))
+      .filter(({ n }) => n > 0)
+      .sort((a, b) => b.n - a.n);
+   return {
+      count: _sumBy(rows, 'n'),
+      items: rows.map(({ row, n }) => ({
+         label: row.customer_code ?? '',
+         meta: String(n),
+         to: { name: 'ops-product-list' }
+      }))
+   };
+};
+
+const unsignedSkus = computed(() => evidenceBox((row) => row.unsigned_sku_count ?? 0));
+const incompleteCompliance = computed(() =>
+   evidenceBox((row) => (row.active_sku_count ?? 0) - (row.compliance_complete_count ?? 0))
+);
 
 const useDashboardNotifications = () => {
    const getTagProps = (item: Views['dashboard_notification_feed']['Row']) => {
@@ -100,6 +171,64 @@ dashboardNotifications.load();
          'p-4': !!dialogRef
       }"
    >
+      <div class="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[inherit] items-start">
+         <CountListCard
+            v-if="$can('read', 'project_gate')"
+            :title="$t('dashboard.ops.gates_team')"
+            :count="gates.team.length"
+            :items="gates.team.map(gateItem)"
+            :icon="PrimeIcons.FLAG"
+            severity="info"
+         />
+         <CountListCard
+            v-if="$can('read', 'project_gate')"
+            :title="$t('dashboard.ops.gates_management')"
+            :count="gates.management.length"
+            :items="gates.management.map(gateItem)"
+            :icon="PrimeIcons.BRIEFCASE"
+            severity="warn"
+         />
+         <CountListCard
+            v-if="$can('read', 'project_gate')"
+            :title="$t('dashboard.ops.gates_customer')"
+            :count="gates.customer.length"
+            :items="gates.customer.map(gateItem)"
+            :icon="PrimeIcons.USER"
+            severity="secondary"
+         />
+         <CountListCard
+            v-if="$can('read', 'project_task')"
+            :title="$t('dashboard.ops.tasks_overdue')"
+            :count="tasks.overdue.length"
+            :items="tasks.overdue.map(taskItem)"
+            :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
+            severity="danger"
+         />
+         <CountListCard
+            v-if="$can('read', 'project_task')"
+            :title="$t('dashboard.ops.tasks_due_soon')"
+            :count="tasks.dueSoon.length"
+            :items="tasks.dueSoon.map(taskItem)"
+            :icon="PrimeIcons.CLOCK"
+            severity="warn"
+         />
+         <CountListCard
+            v-if="$can('read', 'product')"
+            :title="$t('dashboard.ops.unsigned_skus')"
+            :count="unsignedSkus.count"
+            :items="unsignedSkus.items"
+            :icon="PrimeIcons.FILE_EDIT"
+            severity="danger"
+         />
+         <CountListCard
+            v-if="$can('read', 'product')"
+            :title="$t('dashboard.ops.incomplete_compliance')"
+            :count="incompleteCompliance.count"
+            :items="incompleteCompliance.items"
+            :icon="PrimeIcons.SHIELD"
+            severity="warn"
+         />
+      </div>
       <div class="w-full flex flex-wrap gap-[inherit]">
          <TotalRowCountCard
             v-if="$can('read', 'tenant')"
