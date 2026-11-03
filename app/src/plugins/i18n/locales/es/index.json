@@ -473,7 +473,14 @@
       "media_file_missing": "The file was not uploaded. Try again.",
       "media_type_not_allowed": "Only PNG, JPEG, WebP, PDF and MP4 files can be uploaded.",
       "media_too_large": "The file is larger than the upload limit in the settings.",
-      "media_file_immutable": "A media file cannot be replaced; upload a new one."
+      "media_file_immutable": "A media file cannot be replaced; upload a new one.",
+      "media_in_use": "The file is linked to a record or a document; unlink it first.",
+      "media_link_entity_missing": "The record to link to does not exist.",
+      "media_link_forbidden": "You may not change this record, so you cannot change its media.",
+      "media_link_identity_immutable": "A link cannot be moved to another file or record.",
+      "media_customer_mismatch": "This file belongs to another customer.",
+      "media_primary_not_image": "Only an image can be the primary image.",
+      "media_customer_locked": "The file's customer cannot change while it is linked."
    },
    "account": {
       "profile": {

@@ -697,6 +697,71 @@ export type Database = {
           },
         ]
       }
+      media_link: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["document_entity"]
+          id: string
+          media_id: string
+          position: number
+          role: Database["public"]["Enums"]["media_role"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["document_entity"]
+          id?: string
+          media_id: string
+          position?: number
+          role?: Database["public"]["Enums"]["media_role"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["document_entity"]
+          id?: string
+          media_id?: string
+          position?: number
+          role?: Database["public"]["Enums"]["media_role"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_link_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_link_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media_library"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_link_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_link_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module: {
         Row: {
           created_at: string | null
@@ -2197,6 +2262,53 @@ export type Database = {
           },
         ]
       }
+      media_library: {
+        Row: {
+          alt_text: string | null
+          created_at: string | null
+          customer_id: string | null
+          file_name: string | null
+          height: number | null
+          id: string | null
+          kind: string | null
+          link_count: number | null
+          linked_entities: string[] | null
+          linked_types: Database["public"]["Enums"]["document_entity"][] | null
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          tags: string[] | null
+          tenant_id: string | null
+          thumbnail_path: string | null
+          title: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+          width: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_evidence: {
         Row: {
           compliance_complete: boolean | null
@@ -2276,6 +2388,7 @@ export type Database = {
           pallet_type: string | null
           parent_id: string | null
           price_list_version: string | null
+          primary_image_path: string | null
           purchase_currency: string | null
           purchase_incoterm: string | null
           purchase_price: number | null
@@ -2576,6 +2689,22 @@ export type Database = {
         }
         Returns: string
       }
+      set_primary_media: {
+        Args: {
+          link_id: string
+        }
+        Returns: {
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["document_entity"]
+          id: string
+          media_id: string
+          position: number
+          role: Database["public"]["Enums"]["media_role"]
+          tenant_id: string
+          updated_at: string
+        }
+      }
       set_user_roles: {
         Args: {
           user_id: string
@@ -2648,6 +2777,7 @@ export type Database = {
         | "L_G1"
         | "L_G2"
       gate_status: "pending" | "passed" | "rolled_back"
+      media_role: "primary_image" | "gallery" | "evidence_photo" | "attachment"
       platform_access: "authorized_user" | "none"
       product_status:
         | "concept"
