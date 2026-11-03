@@ -437,6 +437,117 @@ const routes: RouteRecordRaw[] = [
             ]
          },
          {
+            path: 'products',
+            name: 'ops-product',
+            meta: {
+               label: 'route.label.ops_product',
+               icon: PrimeIcons.BOX,
+               requiredPermissions: [{ action: 'select', subject: 'product' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-product-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-product-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-product-list',
+                  meta: {
+                     label: 'route.label.ops_product_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'product' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/product/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/product/Index.vue')
+                  }
+               },
+               {
+                  // The product card: its tabs open on their own as these child routes.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-product-manage',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_product_manage',
+                     icon: PrimeIcons.BOX,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'product' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/product/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/product/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-product-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/General.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'dimensions',
+                        name: 'ops-product-manage-dimensions',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_dimensions',
+                           icon: PrimeIcons.ARROWS_ALT,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Dimensions.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Dimensions.vue')
+                        }
+                     },
+                     {
+                        path: 'cost',
+                        name: 'ops-product-manage-cost',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_cost',
+                           icon: PrimeIcons.EURO,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Cost.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Cost.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-product-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Documents.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Documents.vue')
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         {
             path: 'document/add',
             name: 'ops-document-add',
             props: { default: documentProps, skeleton: documentProps },

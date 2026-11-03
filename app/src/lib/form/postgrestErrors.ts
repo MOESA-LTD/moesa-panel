@@ -32,7 +32,14 @@ const NAMED_ERRORS: { code: string; name: string; field: string; message: string
       field: 'status',
       message: 'errors.document_signed_incomplete'
    },
-   { code: '23514', name: 'document_has_file', field: 'url', message: 'form.required' }
+   { code: '23514', name: 'document_has_file', field: 'url', message: 'form.required' },
+   { code: '23505', name: 'product_gtin_active', field: 'gtin', message: 'errors.gtin_in_use' },
+   {
+      code: '23505',
+      name: 'product_customer_id_sku_key',
+      field: 'sku',
+      message: 'errors.sku_in_use'
+   }
 ];
 
 /**

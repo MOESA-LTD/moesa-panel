@@ -22,7 +22,9 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    plan: ['company_subscription'],
    user: ['tenant_member'],
    tenant_user: ['tenant_member'],
-   tenant_owner: ['tenant_member']
+   tenant_owner: ['tenant_member'],
+   product: ['product_evidence'],
+   document: ['product_evidence']
 };
 
 /** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */

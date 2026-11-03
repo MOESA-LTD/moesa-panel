@@ -408,7 +408,10 @@
       "logo_size": "Il logo deve essere al massimo di 1 MB.",
       "document_version_exists": "This version of the document already exists",
       "document_signed_incomplete": "A signed document must be signed, stamped, sent from the official e-mail and dated",
-      "document_entity_missing": "The record this document belongs to was not found"
+      "document_entity_missing": "The record this document belongs to was not found",
+      "invalid_gtin": "Enter a valid GTIN: 8, 12, 13 or 14 digits with a correct check digit",
+      "gtin_in_use": "This GTIN is already used by another active product",
+      "sku_in_use": "This SKU already exists for the customer"
    },
    "route": {
       "label": {
@@ -476,7 +479,14 @@
          "ops_customer_platform_add": "Add platform account",
          "ops_customer_platform_edit": "Edit platform account",
          "ops_customer_brand_add": "Add brand",
-         "ops_customer_brand_edit": "Edit brand"
+         "ops_customer_brand_edit": "Edit brand",
+         "ops_product": "Products",
+         "ops_product_list": "Product list",
+         "ops_product_manage": "Product card",
+         "ops_product_general": "General",
+         "ops_product_dimensions": "Dimensions",
+         "ops_product_cost": "Cost",
+         "ops_product_documents": "Documents"
       }
    },
    "account": {
@@ -866,6 +876,91 @@
                "brand_program_status": "Brand program status",
                "gs1_prefix_owner": "GS1 prefix owner"
             }
+         }
+      },
+      "product": {
+         "title": "Products",
+         "select": "Select a product",
+         "tabs": {
+            "general": "General",
+            "dimensions": "Dimensions",
+            "cost": "Cost",
+            "documents": "Documents"
+         },
+         "sections": {
+            "identity": "Product",
+            "supplier": "Supplier",
+            "compliance": "Compliance",
+            "unit": "Unit",
+            "pack": "Pack",
+            "carton": "Carton",
+            "pallet": "Pallet",
+            "purchase": "Purchase",
+            "prices": "Prices"
+         },
+         "fields": {
+            "customer_id": "Customer",
+            "parent_id": "Parent product",
+            "sku": "SKU",
+            "display_name": "Name",
+            "variant_label": "Variant",
+            "category": "Category",
+            "brand": "Brand",
+            "gtin": "GTIN",
+            "gs1_prefix_owner": "GS1 prefix owner",
+            "supplier_id": "Supplier",
+            "supplier_product_code": "Supplier product code",
+            "manufacturer_art_no": "Manufacturer article no.",
+            "status": "Status",
+            "golden_sample_on": "Golden sample date",
+            "golden_sample_locations": "Golden sample locations",
+            "is_hazmat": "Hazardous material",
+            "compliance_status": "Compliance",
+            "eu_responsible_person": "EU responsible person",
+            "hs_code": "HS code",
+            "origin_country": "Country of origin",
+            "unit_dims_mm": "Unit dimensions (mm)",
+            "unit_net_g": "Unit net weight (g)",
+            "pack_qty": "Units per pack",
+            "pack_dims_mm": "Pack dimensions (mm)",
+            "pack_gross_g": "Pack gross weight (g)",
+            "carton_pack_qty": "Packs per carton",
+            "carton_dims_mm": "Carton dimensions (mm)",
+            "carton_net_kg": "Carton net weight (kg)",
+            "carton_gross_kg": "Carton gross weight (kg)",
+            "pallet_carton_qty": "Cartons per pallet",
+            "pallet_type": "Pallet type",
+            "lot_rule": "Lot rule",
+            "purchase_price": "Purchase price",
+            "purchase_currency": "Currency",
+            "purchase_incoterm": "Incoterm",
+            "landed_cost_eur": "Landed cost (EUR)",
+            "landed_cost_on": "Landed cost date",
+            "target_price_eur": "Target price (EUR)",
+            "moesa_price_eur": "Moesa price (EUR)",
+            "price_list_version": "Price list version",
+            "notes": "Notes",
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "spec": "Spec"
+         },
+         "spec_none": "None",
+         "status": {
+            "concept": "Concept",
+            "development": "Development",
+            "approved": "Approved",
+            "ordering": "Ordering",
+            "on_sale": "On sale",
+            "paused": "Paused",
+            "archived": "Archived"
+         },
+         "compliance_status": {
+            "none": "None",
+            "partial": "Partial",
+            "complete": "Complete"
+         },
+         "errors": {
+            "invalid_sku": "Capital letters, digits and dashes, e.g. THO-MOP40-2P"
          }
       }
    }

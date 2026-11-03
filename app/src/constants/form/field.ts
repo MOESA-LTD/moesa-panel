@@ -21,5 +21,6 @@ export const fieldRoutes: FieldRoutes = {
    customer_contact: { name: 'ops-customer-contact-edit' },
    customer_warehouse: { name: 'ops-customer-warehouse-edit' },
    customer_platform_account: { name: 'ops-customer-platform-edit' },
-   customer_brand: { name: 'ops-customer-brand-edit' }
+   customer_brand: { name: 'ops-customer-brand-edit' },
+   product: { name: 'ops-product-manage' }
 };

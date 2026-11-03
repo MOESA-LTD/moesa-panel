@@ -255,7 +255,10 @@
       "logo_size": "Logo en fazla 1 MB olmalı.",
       "document_version_exists": "Belgenin bu sürümü zaten var",
       "document_signed_incomplete": "İmzalı belge imzalı, kaşeli, resmi e-postadan gönderilmiş ve tarihli olmalı",
-      "document_entity_missing": "Belgenin ait olduğu kayıt bulunamadı"
+      "document_entity_missing": "Belgenin ait olduğu kayıt bulunamadı",
+      "invalid_gtin": "Geçerli bir GTIN girin: kontrol hanesi doğru 8, 12, 13 veya 14 hane",
+      "gtin_in_use": "Bu GTIN başka bir aktif üründe kullanılıyor",
+      "sku_in_use": "Bu SKU müşteride zaten var"
    },
    "account": {
       "profile": {
@@ -351,7 +354,14 @@
          "ops_customer_platform_add": "Platform hesabı ekle",
          "ops_customer_platform_edit": "Platform hesabını düzenle",
          "ops_customer_brand_add": "Marka ekle",
-         "ops_customer_brand_edit": "Markayı düzenle"
+         "ops_customer_brand_edit": "Markayı düzenle",
+         "ops_product": "Ürünler",
+         "ops_product_list": "Ürün listesi",
+         "ops_product_manage": "Ürün kartı",
+         "ops_product_general": "Genel",
+         "ops_product_dimensions": "Ölçüler",
+         "ops_product_cost": "Maliyet",
+         "ops_product_documents": "Belgeler"
       }
    },
    "fields": {
@@ -866,6 +876,91 @@
                "brand_program_status": "Marka programı durumu",
                "gs1_prefix_owner": "GS1 önek sahibi"
             }
+         }
+      },
+      "product": {
+         "title": "Ürünler",
+         "select": "Ürün seçin",
+         "tabs": {
+            "general": "Genel",
+            "dimensions": "Ölçüler",
+            "cost": "Maliyet",
+            "documents": "Belgeler"
+         },
+         "sections": {
+            "identity": "Ürün",
+            "supplier": "Tedarikçi",
+            "compliance": "Uyum",
+            "unit": "Birim",
+            "pack": "Paket",
+            "carton": "Koli",
+            "pallet": "Palet",
+            "purchase": "Alış",
+            "prices": "Fiyatlar"
+         },
+         "fields": {
+            "customer_id": "Müşteri",
+            "parent_id": "Ana ürün",
+            "sku": "SKU",
+            "display_name": "Ad",
+            "variant_label": "Varyant",
+            "category": "Kategori",
+            "brand": "Marka",
+            "gtin": "GTIN",
+            "gs1_prefix_owner": "GS1 önek sahibi",
+            "supplier_id": "Tedarikçi",
+            "supplier_product_code": "Tedarikçi ürün kodu",
+            "manufacturer_art_no": "Üretici artikel no",
+            "status": "Durum",
+            "golden_sample_on": "Altın numune tarihi",
+            "golden_sample_locations": "Altın numune yerleri",
+            "is_hazmat": "Tehlikeli madde",
+            "compliance_status": "Uyum",
+            "eu_responsible_person": "AB sorumlu kişi",
+            "hs_code": "GTİP kodu",
+            "origin_country": "Menşe ülke",
+            "unit_dims_mm": "Birim ölçüleri (mm)",
+            "unit_net_g": "Birim net ağırlık (g)",
+            "pack_qty": "Paketteki birim",
+            "pack_dims_mm": "Paket ölçüleri (mm)",
+            "pack_gross_g": "Paket brüt ağırlık (g)",
+            "carton_pack_qty": "Kolideki paket",
+            "carton_dims_mm": "Koli ölçüleri (mm)",
+            "carton_net_kg": "Koli net ağırlık (kg)",
+            "carton_gross_kg": "Koli brüt ağırlık (kg)",
+            "pallet_carton_qty": "Paletteki koli",
+            "pallet_type": "Palet tipi",
+            "lot_rule": "Lot kuralı",
+            "purchase_price": "Alış fiyatı",
+            "purchase_currency": "Para birimi",
+            "purchase_incoterm": "Teslim şekli (Incoterm)",
+            "landed_cost_eur": "Varış maliyeti (EUR)",
+            "landed_cost_on": "Varış maliyeti tarihi",
+            "target_price_eur": "Hedef fiyat (EUR)",
+            "moesa_price_eur": "Moesa fiyatı (EUR)",
+            "price_list_version": "Fiyat listesi sürümü",
+            "notes": "Notlar",
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "spec": "Spec"
+         },
+         "spec_none": "Yok",
+         "status": {
+            "concept": "Konsept",
+            "development": "Geliştirme",
+            "approved": "Onaylı",
+            "ordering": "Siparişte",
+            "on_sale": "Satışta",
+            "paused": "Durduruldu",
+            "archived": "Arşivlendi"
+         },
+         "compliance_status": {
+            "none": "Yok",
+            "partial": "Kısmi",
+            "complete": "Tamam"
+         },
+         "errors": {
+            "invalid_sku": "Büyük harf, rakam ve tire, ör. THO-MOP40-2P"
          }
       }
    }

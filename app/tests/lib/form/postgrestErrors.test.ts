@@ -95,4 +95,30 @@ describe('mapPostgrestError', () => {
          mapPostgrestError({ code: '23503', message: 'document_entity_missing' }, fields)
       ).toBeNull();
    });
+   it('maps the duplicate GTIN and SKU of a product to their fields', () => {
+      const fields = ['customer_id', 'sku', 'gtin', 'display_name'];
+
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "product_gtin_active"',
+               details: 'Key (gtin)=(4260696025800) already exists.'
+            },
+            fields
+         )
+      ).toEqual({ gtin: i18n.t('errors.gtin_in_use') });
+
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message:
+                  'duplicate key value violates unique constraint "product_customer_id_sku_key"',
+               details: 'Key (customer_id, sku)=(c, THO-1) already exists.'
+            },
+            fields
+         )
+      ).toEqual({ sku: i18n.t('errors.sku_in_use') });
+   });
 });
