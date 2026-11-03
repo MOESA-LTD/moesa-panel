@@ -292,7 +292,8 @@
       "updated": "Güncellendi",
       "success": "Başarılı",
       "saved": "Kaydedildi",
-      "sended": "Gönderildi"
+      "sended": "Gönderildi",
+      "error": "İşlem başarısız"
    },
    "register": {
       "stepper": {
@@ -432,7 +433,22 @@
       "tax_number": "Vergi numarası",
       "address": "Adres",
       "district": "İlçe",
-      "address_details": "Açık adres"
+      "address_details": "Açık adres",
+      "ops_setting": "Ayarlar",
+      "setting": "Ayar",
+      "document": "Belge",
+      "supplier": "Tedarikçi",
+      "supplier_contact": "Tedarikçi kişisi",
+      "customer": "Müşteri",
+      "customer_contact": "Müşteri kişisi",
+      "customer_warehouse": "Müşteri deposu",
+      "customer_platform_account": "Müşteri platform hesabı",
+      "customer_brand": "Müşteri markası",
+      "product": "Ürün",
+      "project": "Proje",
+      "project_product": "Proje ürünü",
+      "project_gate": "Proje kapısı",
+      "project_task": "Proje görevi"
    },
    "dashboard": {
       "statistics": {

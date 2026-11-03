@@ -143,7 +143,22 @@
       "tax_number": "NIP",
       "address": "Adres",
       "district": "Dzielnica",
-      "address_details": "Ulica i numer"
+      "address_details": "Ulica i numer",
+      "ops_setting": "Settings",
+      "setting": "Setting",
+      "document": "Document",
+      "supplier": "Supplier",
+      "supplier_contact": "Supplier contact",
+      "customer": "Customer",
+      "customer_contact": "Customer contact",
+      "customer_warehouse": "Customer warehouse",
+      "customer_platform_account": "Customer platform account",
+      "customer_brand": "Customer brand",
+      "product": "Product",
+      "project": "Project",
+      "project_product": "Project product",
+      "project_gate": "Project gate",
+      "project_task": "Project task"
    },
    "input": {
       "select_or_write": "Wybierz lub wpisz"
@@ -394,7 +409,8 @@
       "updated": "Zaktualizowano",
       "success": "Powodzenie",
       "saved": "Zapisano",
-      "sended": "Wysłano"
+      "sended": "Wysłano",
+      "error": "Operation Failed"
    },
    "register": {
       "stepper": {

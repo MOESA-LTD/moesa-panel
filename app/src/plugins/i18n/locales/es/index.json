@@ -478,7 +478,8 @@
       "updated": "Actualizado",
       "success": "Éxito",
       "saved": "Guardado",
-      "sended": "Enviado"
+      "sended": "Enviado",
+      "error": "Operation Failed"
    },
    "register": {
       "stepper": {
@@ -531,7 +532,22 @@
       "tax_number": "Número fiscal",
       "address": "Dirección",
       "district": "Distrito",
-      "address_details": "Calle y número"
+      "address_details": "Calle y número",
+      "ops_setting": "Settings",
+      "setting": "Setting",
+      "document": "Document",
+      "supplier": "Supplier",
+      "supplier_contact": "Supplier contact",
+      "customer": "Customer",
+      "customer_contact": "Customer contact",
+      "customer_warehouse": "Customer warehouse",
+      "customer_platform_account": "Customer platform account",
+      "customer_brand": "Customer brand",
+      "product": "Product",
+      "project": "Project",
+      "project_product": "Project product",
+      "project_gate": "Project gate",
+      "project_task": "Project task"
    },
    "audit_log": {
       "no_changes_detected": "No se detectaron cambios",
