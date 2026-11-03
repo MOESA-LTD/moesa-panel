@@ -488,7 +488,8 @@
       "media_missing": "The media file does not exist.",
       "media_already_linked": "The file is already linked to this record.",
       "media_primary_exists": "The record already has a primary image.",
-      "document_file_required": "Add a Drive link or a file."
+      "document_file_required": "Add a Drive link or a file.",
+      "MediaFileError": "File not uploaded"
    },
    "account": {
       "profile": {
@@ -1271,7 +1272,8 @@
             "tags": "Tags",
             "customer": "Customer",
             "file_name": "File"
-         }
+         },
+         "too_large": "The file is larger than the upload limit: up to {mb} MB."
       }
    },
    "glossary": {

@@ -17,10 +17,20 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 export type MediaFileErrorCode = 'media_type_not_allowed' | 'media_too_large';
 
-/** A file refused before uploading, with the message the database would give. */
+/**
+ * A file refused before uploading, with the message the database would give; one over the limit
+ * names the limit in MB. The toast titles it by `errors.MediaFileError` (see appErrorHandler).
+ */
 export class MediaFileError extends Error {
-   constructor(readonly code: MediaFileErrorCode) {
-      super(i18n.t(`errors.${code}`));
+   constructor(
+      readonly code: MediaFileErrorCode,
+      maxBytes?: number
+   ) {
+      super(
+         code === 'media_too_large' && maxBytes
+            ? i18n.t('ops.media.too_large', { mb: Math.floor(maxBytes / 1048576) })
+            : i18n.t(`errors.${code}`)
+      );
       this.name = 'MediaFileError';
    }
 }
@@ -79,7 +89,7 @@ export async function uploadMedia(
    }: { tenantId: string; customerId: string | null; maxBytes: number }
 ): Promise<MediaRow> {
    const refused = validateMediaFile(file, maxBytes);
-   if (refused) throw new MediaFileError(refused);
+   if (refused) throw new MediaFileError(refused, maxBytes);
 
    const id = crypto.randomUUID();
    const bucket = supabase.storage.from(MEDIA_BUCKET);

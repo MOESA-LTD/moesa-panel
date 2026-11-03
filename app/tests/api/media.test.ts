@@ -13,6 +13,7 @@ import {
    type MediaRow
 } from '@/api/media';
 import { MediaFileError, uploadMedia } from '@/api/media/upload';
+import i18n from '@plugins/i18n';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const LIMIT = 26214400;
@@ -254,6 +255,16 @@ describe('uploadMedia', () => {
          code: 'media_too_large'
       });
       expect(mock.upload).not.toHaveBeenCalled();
+   });
+
+   it('names the limit in MB when it refuses a file over it', async () => {
+      const big = new File([new Uint8Array(1048577)], 'big.png', { type: 'image/png' });
+
+      await expect(uploadMedia(big, { ...ctx, maxBytes: 1048576 })).rejects.toMatchObject({
+         code: 'media_too_large',
+         message: expect.stringContaining('up to 1 MB')
+      });
+      expect(i18n.te(`errors.${new MediaFileError('media_type_not_allowed').name}`)).toBe(true);
    });
 
    it('stops when the file cannot be uploaded', async () => {

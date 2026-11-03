@@ -285,6 +285,7 @@
       "media_file_missing": "Dosya yüklenmedi. Tekrar deneyin.",
       "media_type_not_allowed": "Yalnızca PNG, JPEG, WebP, PDF ve MP4 dosyaları yüklenebilir.",
       "media_too_large": "Dosya, ayarlardaki yükleme sınırından büyük.",
+      "MediaFileError": "Dosya yüklenmedi",
       "media_file_immutable": "Ortam dosyası değiştirilemez; yenisini yükleyin.",
       "media_in_use": "Dosya bir kayda ya da belgeye bağlı; önce bağlantıyı kaldırın.",
       "media_link_entity_missing": "Bağlanacak kayıt bulunamadı.",
@@ -1247,6 +1248,7 @@
             "video": "Video"
          },
          "upload_hint": "PNG, JPEG, WebP, PDF ya da MP4, en fazla {mb} MB.",
+         "too_large": "Dosya yükleme sınırından büyük: en fazla {mb} MB.",
          "set_primary": "Birincil görsel yap",
          "set_role": "Rol ata",
          "unlink": "Bağlantıyı kaldır",

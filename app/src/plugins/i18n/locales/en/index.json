@@ -404,6 +404,7 @@
       "media_file_missing": "The file was not uploaded. Try again.",
       "media_type_not_allowed": "Only PNG, JPEG, WebP, PDF and MP4 files can be uploaded.",
       "media_too_large": "The file is larger than the upload limit in the settings.",
+      "MediaFileError": "File not uploaded",
       "media_file_immutable": "A media file cannot be replaced; upload a new one.",
       "media_in_use": "The file is linked to a record or a document; unlink it first.",
       "media_link_entity_missing": "The record to link to does not exist.",
@@ -1247,6 +1248,7 @@
             "video": "Video"
          },
          "upload_hint": "PNG, JPEG, WebP, PDF or MP4, up to {mb} MB.",
+         "too_large": "The file is larger than the upload limit: up to {mb} MB.",
          "set_primary": "Make primary image",
          "set_role": "Set role",
          "unlink": "Unlink",
