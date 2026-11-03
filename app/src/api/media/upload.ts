@@ -138,8 +138,17 @@ export function useUploadMedia() {
    const tenantKey = useTenantKey();
 
    return useMutation({
-      mutationFn: async ({ file, customerId }: { file: File; customerId: string | null }) => {
-         const tenantId = authStore.currentTenant?.id;
+      mutationFn: async ({
+         file,
+         customerId,
+         tenantId: recordTenantId
+      }: {
+         file: File;
+         customerId: string | null;
+         /** The tenant of the record the file is for (its links must share it); else the active one. */
+         tenantId?: string | null;
+      }) => {
+         const tenantId = recordTenantId ?? authStore.currentTenant?.id;
          if (!tenantId) throw new Error('No active tenant');
          const maxBytes = await fetchMediaMaxBytes(queryClient, tenantKey.value);
          return uploadMedia(file, { tenantId, customerId, maxBytes });

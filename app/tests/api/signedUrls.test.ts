@@ -1,7 +1,12 @@
-import { createSignedUrlLoader } from '@/api/media/signedUrls';
-import { describe, expect, it, vi } from 'vitest';
+import { createSignedUrlLoader, openMediaFile, SIGNED_URL_SECONDS } from '@/api/media/signedUrls';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+const storage = vi.hoisted(() => ({ createSignedUrl: vi.fn() }));
+vi.mock('@/lib/supabase', () => ({
+   supabase: { storage: { from: () => ({ createSignedUrl: storage.createSignedUrl }) } }
+}));
+
+afterEach(() => vi.unstubAllGlobals());
 
 const signer = () =>
    vi.fn(async (paths: string[]) =>
@@ -51,5 +56,41 @@ describe('createSignedUrlLoader', () => {
 
       const results = await Promise.allSettled([loader.load('a'), loader.load('b')]);
       expect(results.map(({ status }) => status)).toEqual(['rejected', 'rejected']);
+   });
+});
+
+describe('openMediaFile', () => {
+   // A tab opened in the click itself, before any await, is not taken for a pop-up.
+   const stubTab = () => {
+      const tab = { opener: {} as unknown, location: { href: 'about:blank' }, close: vi.fn() };
+      const open = vi.fn(() => tab);
+      vi.stubGlobal('open', open);
+      return { tab, open };
+   };
+
+   it('opens the tab at once, then sends it to the signed download', async () => {
+      let resolve!: (value: unknown) => void;
+      storage.createSignedUrl.mockReturnValue(new Promise((r) => (resolve = r)));
+      const { tab, open } = stubTab();
+
+      const opening = openMediaFile('t/m/sheet.pdf', 'Sheet.pdf');
+      expect(open).toHaveBeenCalledOnce();
+      expect(tab.opener).toBeNull();
+      expect(tab.location.href).toBe('about:blank');
+
+      resolve({ data: { signedUrl: 'https://signed' }, error: null });
+      await opening;
+      expect(storage.createSignedUrl).toHaveBeenCalledWith('t/m/sheet.pdf', SIGNED_URL_SECONDS, {
+         download: 'Sheet.pdf'
+      });
+      expect(tab.location.href).toBe('https://signed');
+   });
+
+   it('closes the tab when the file cannot be signed', async () => {
+      storage.createSignedUrl.mockResolvedValue({ data: null, error: new Error('gone') });
+      const { tab } = stubTab();
+
+      await expect(openMediaFile('t/m/x.pdf', 'x.pdf')).rejects.toThrow('gone');
+      expect(tab.close).toHaveBeenCalledOnce();
    });
 });

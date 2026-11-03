@@ -7,6 +7,8 @@ import { useInfiniteQuery } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 
 export type MediaLibraryFilters = {
+   /** One tenant's files, e.g. those a record of that tenant can link (a link shares its file's). */
+   tenantId?: string | null;
    customerId?: string | null;
    /** With customerId, also the files of no customer (shared by every customer). */
    includeShared?: boolean;
@@ -29,9 +31,10 @@ type FilterBuilder<Q> = {
 /** Adds the library's filters to a query of media_library; empty ones add nothing. */
 export function applyMediaLibraryFilters<Q extends FilterBuilder<Q>>(
    query: Q,
-   { customerId, includeShared, kind, tag, linkedType, entityId }: MediaLibraryFilters
+   { tenantId, customerId, includeShared, kind, tag, linkedType, entityId }: MediaLibraryFilters
 ): Q {
    let q = query;
+   if (tenantId) q = q.eq('tenant_id', tenantId);
    if (customerId)
       q = includeShared
          ? q.or(`customer_id.eq.${customerId},customer_id.is.null`)

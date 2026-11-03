@@ -505,6 +505,7 @@
          "ops_customer_platforms": "Platforms",
          "ops_customer_brands": "Brands",
          "ops_customer_documents": "Documents",
+         "ops_customer_media": "Media",
          "ops_customer_contact_add": "Add contact",
          "ops_customer_contact_edit": "Edit contact",
          "ops_customer_warehouse_add": "Add warehouse",
@@ -520,6 +521,7 @@
          "ops_product_dimensions": "Dimensions",
          "ops_product_cost": "Cost",
          "ops_product_documents": "Documents",
+         "ops_product_media": "Media",
          "ops_product_import": "Import products",
          "ops_project": "Projects",
          "ops_project_list": "Project list",
@@ -874,7 +876,8 @@
             "warehouses": "Warehouses",
             "platforms": "Platforms",
             "brands": "Brands",
-            "documents": "Documents"
+            "documents": "Documents",
+            "media": "Media"
          },
          "sections": {
             "general": "Customer",
@@ -972,7 +975,8 @@
             "general": "General",
             "dimensions": "Dimensions",
             "cost": "Cost",
-            "documents": "Documents"
+            "documents": "Documents",
+            "media": "Media"
          },
          "sections": {
             "identity": "Product",
@@ -1237,7 +1241,18 @@
             "pdf": "PDF",
             "video": "Video"
          },
-         "upload_hint": "PNG, JPEG, WebP, PDF or MP4, up to {mb} MB."
+         "upload_hint": "PNG, JPEG, WebP, PDF or MP4, up to {mb} MB.",
+         "set_primary": "Make primary image",
+         "set_role": "Set role",
+         "unlink": "Unlink",
+         "selected": "{count} selected",
+         "select": "Select {name}",
+         "open": "Open file",
+         "empty": "No files yet.",
+         "empty_library": "No files in the library.",
+         "load_more": "Load more",
+         "link_count": "Link ({count})",
+         "drop_hint": "Drop files here or choose them."
       }
    }
 }

@@ -181,6 +181,20 @@ const routes: RouteRecordRaw[] = [
                            default: () => import('@/views/pages/ops/customer/tabs/Documents.vue'),
                            skeleton: () => import('@/views/pages/ops/customer/tabs/Documents.vue')
                         }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-customer-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_customer_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/customer/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/customer/tabs/Media.vue')
+                        }
                      }
                   ]
                },
@@ -542,6 +556,20 @@ const routes: RouteRecordRaw[] = [
                         components: {
                            default: () => import('@/views/pages/ops/product/tabs/Documents.vue'),
                            skeleton: () => import('@/views/pages/ops/product/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-product-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Media.vue')
                         }
                      }
                   ]

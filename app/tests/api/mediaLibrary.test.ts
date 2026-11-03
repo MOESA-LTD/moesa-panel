@@ -32,6 +32,13 @@ describe('applyMediaLibraryFilters', () => {
       ]);
    });
 
+   it('filters by tenant, so a record is offered only files of its own tenant', () => {
+      expect(calls({ tenantId: 't1', customerId: 'c1' })).toEqual([
+         ['eq', 'tenant_id', 't1'],
+         ['eq', 'customer_id', 'c1']
+      ]);
+   });
+
    it('filters by kind and tag', () => {
       expect(calls({ kind: ['image', 'pdf'], tag: 'red' })).toEqual([
          ['in', 'kind', ['image', 'pdf']],
@@ -55,7 +62,7 @@ describe('applyMediaLibraryFilters', () => {
    });
 
    it('adds nothing for empty values', () => {
-      expect(calls({ tag: '', kind: null })).toEqual([]);
+      expect(calls({ tag: '', kind: null, tenantId: null })).toEqual([]);
       expect(
          calls({
             customerId: null,

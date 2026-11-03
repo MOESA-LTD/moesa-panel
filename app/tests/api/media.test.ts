@@ -2,6 +2,7 @@ import {
    defaultLinkRole,
    defaultLinkRoles,
    mediaKind,
+   mediaLinkRows,
    mediaPath,
    safeFileName,
    thumbPath,
@@ -120,6 +121,41 @@ describe('defaultLinkRole', () => {
          'attachment'
       ]);
       expect(defaultLinkRoles(['image', 'image'], 'product', true)).toEqual(['gallery', 'gallery']);
+   });
+});
+
+describe('mediaLinkRows', () => {
+   it("numbers the links from the start, in the record's tenant", () => {
+      const rows = mediaLinkRows(
+         {
+            entityType: 'product',
+            entityId: 'p1',
+            tenantId: 'branch',
+            links: [
+               { mediaId: 'm1', role: 'primary_image' },
+               { mediaId: 'm2', role: 'gallery' }
+            ]
+         },
+         3
+      );
+      expect(rows).toEqual([
+         {
+            tenant_id: 'branch',
+            media_id: 'm1',
+            entity_type: 'product',
+            entity_id: 'p1',
+            role: 'primary_image',
+            position: 3
+         },
+         {
+            tenant_id: 'branch',
+            media_id: 'm2',
+            entity_type: 'product',
+            entity_id: 'p1',
+            role: 'gallery',
+            position: 4
+         }
+      ]);
    });
 });
 

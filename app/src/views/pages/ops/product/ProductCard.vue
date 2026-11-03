@@ -4,6 +4,7 @@ import Cost from './tabs/Cost.vue';
 import Dimensions from './tabs/Dimensions.vue';
 import Documents from './tabs/Documents.vue';
 import General from './tabs/General.vue';
+import Media from './tabs/Media.vue';
 import {
    PRODUCT_CARD_TABS,
    PRODUCT_FORM,
@@ -59,6 +60,9 @@ provide(PRODUCT_FORM, { ...form, submit });
          </TabPanel>
          <TabPanel value="documents">
             <Documents v-if="id && activeTab === 'documents'" :id />
+         </TabPanel>
+         <TabPanel value="media">
+            <Media v-if="id && activeTab === 'media'" :id />
          </TabPanel>
       </TabPanels>
    </Tabs>

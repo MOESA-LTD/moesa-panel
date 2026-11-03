@@ -181,14 +181,31 @@ const useMediaMutation = <T, R>(
 export type LinkMediaInput = {
    entityType: DocumentEntity;
    entityId: string;
+   /** The record's tenant, which may be another branch shown; the active tenant by default. */
+   tenantId?: string | null;
    links: { mediaId: string; role: MediaRole }[];
 };
+
+/** The rows linking files to a record, numbered from `start`, in the record's tenant. */
+export const mediaLinkRows = (
+   { entityType, entityId, tenantId, links }: LinkMediaInput,
+   start: number
+) =>
+   links.map(({ mediaId, role }, index) => ({
+      ...(tenantId ? { tenant_id: tenantId } : {}),
+      media_id: mediaId,
+      entity_type: entityType,
+      entity_id: entityId,
+      role,
+      position: start + index
+   })) as Tables['media_link']['Insert'][];
 
 /** Links files to a record, after its last file. */
 export function useLinkMedia() {
    const authStore = useAuthStore();
 
-   return useMediaMutation(async ({ entityType, entityId, links }: LinkMediaInput) => {
+   return useMediaMutation(async (input: LinkMediaInput) => {
+      const { entityType, entityId, links } = input;
       if (!links.length) return [];
       const { data: last } = await supabase
          .from('media_link')
@@ -201,20 +218,12 @@ export function useLinkMedia() {
          .throwOnError();
       const start = (last?.position ?? -1) + 1;
 
-      // The request adds the active tenant to a single row only, so a batch names it itself.
-      const tenantId = authStore.currentTenant?.id;
+      // The request adds the active tenant to a single row only, so a batch names it itself: the
+      // record's own (a file and its links share a tenant, see 025), else the active one.
+      const tenantId = input.tenantId ?? authStore.currentTenant?.id;
       const { data } = await supabase
          .from('media_link')
-         .insert(
-            links.map(({ mediaId, role }, index) => ({
-               ...(tenantId ? { tenant_id: tenantId } : {}),
-               media_id: mediaId,
-               entity_type: entityType,
-               entity_id: entityId,
-               role,
-               position: start + index
-            })) as Tables['media_link']['Insert'][]
-         )
+         .insert(mediaLinkRows({ ...input, tenantId }, start))
          .select()
          .throwOnError();
       return (data ?? []) as MediaLinkRow[];

@@ -386,6 +386,7 @@
          "ops_customer_platforms": "Platformlar",
          "ops_customer_brands": "Markalar",
          "ops_customer_documents": "Belgeler",
+         "ops_customer_media": "Ortam",
          "ops_customer_contact_add": "Kişi ekle",
          "ops_customer_contact_edit": "Kişiyi düzenle",
          "ops_customer_warehouse_add": "Depo ekle",
@@ -401,6 +402,7 @@
          "ops_product_dimensions": "Ölçüler",
          "ops_product_cost": "Maliyet",
          "ops_product_documents": "Belgeler",
+         "ops_product_media": "Ortam",
          "ops_product_import": "Ürün içe aktar",
          "ops_project": "Projeler",
          "ops_project_list": "Proje listesi",
@@ -874,7 +876,8 @@
             "warehouses": "Depolar",
             "platforms": "Platformlar",
             "brands": "Markalar",
-            "documents": "Belgeler"
+            "documents": "Belgeler",
+            "media": "Ortam"
          },
          "sections": {
             "general": "Müşteri",
@@ -972,7 +975,8 @@
             "general": "Genel",
             "dimensions": "Ölçüler",
             "cost": "Maliyet",
-            "documents": "Belgeler"
+            "documents": "Belgeler",
+            "media": "Ortam"
          },
          "sections": {
             "identity": "Ürün",
@@ -1237,7 +1241,18 @@
             "pdf": "PDF",
             "video": "Video"
          },
-         "upload_hint": "PNG, JPEG, WebP, PDF ya da MP4, en fazla {mb} MB."
+         "upload_hint": "PNG, JPEG, WebP, PDF ya da MP4, en fazla {mb} MB.",
+         "set_primary": "Birincil görsel yap",
+         "set_role": "Rol ata",
+         "unlink": "Bağlantıyı kaldır",
+         "selected": "{count} seçili",
+         "select": "{name} seç",
+         "open": "Dosyayı aç",
+         "empty": "Henüz dosya yok.",
+         "empty_library": "Kütüphanede dosya yok.",
+         "load_more": "Daha fazla yükle",
+         "link_count": "Bağla ({count})",
+         "drop_hint": "Dosyaları buraya bırakın ya da seçin."
       }
    }
 }

@@ -99,11 +99,23 @@ export function useSignedUrl(
    return computed(() => url.value);
 }
 
-/** Opens a file in a new tab, downloaded under its own name. */
+/**
+ * Opens a file in a new tab, downloaded under its own name. The tab is opened at once, in the
+ * click, so a pop-up blocker lets it through; it goes to the file once its URL is signed.
+ */
 export async function openMediaFile(path: string, fileName: string): Promise<void> {
-   const { data, error } = await supabase.storage
-      .from(MEDIA_BUCKET)
-      .createSignedUrl(path, SIGNED_URL_SECONDS, { download: fileName });
-   if (error) throw error;
-   window.open(data.signedUrl, '_blank', 'noopener');
+   const tab = window.open('about:blank', '_blank');
+   // Opened without noopener (which would return no window), so the link is cut here instead.
+   if (tab) tab.opener = null;
+   try {
+      const { data, error } = await supabase.storage
+         .from(MEDIA_BUCKET)
+         .createSignedUrl(path, SIGNED_URL_SECONDS, { download: fileName });
+      if (error) throw error;
+      if (tab) tab.location.href = data.signedUrl;
+      else window.open(data.signedUrl, '_blank', 'noopener');
+   } catch (error) {
+      tab?.close();
+      throw error;
+   }
 }
