@@ -200,6 +200,87 @@ export type Database = {
           },
         ]
       }
+      document: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["document_entity"]
+          file_name: string | null
+          id: string
+          is_signed: boolean
+          is_stamped: boolean
+          issued_on: string | null
+          notes: string | null
+          sent_from_official_email: boolean
+          status: Database["public"]["Enums"]["document_status"]
+          storage_path: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["document_type"]
+          updated_at: string
+          url: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["document_entity"]
+          file_name?: string | null
+          id?: string
+          is_signed?: boolean
+          is_stamped?: boolean
+          issued_on?: string | null
+          notes?: string | null
+          sent_from_official_email?: boolean
+          status?: Database["public"]["Enums"]["document_status"]
+          storage_path?: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["document_type"]
+          updated_at?: string
+          url?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["document_entity"]
+          file_name?: string | null
+          id?: string
+          is_signed?: boolean
+          is_stamped?: boolean
+          issued_on?: string | null
+          notes?: string | null
+          sent_from_official_email?: boolean
+          status?: Database["public"]["Enums"]["document_status"]
+          storage_path?: string | null
+          tenant_id?: string
+          type?: Database["public"]["Enums"]["document_type"]
+          updated_at?: string
+          url?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module: {
         Row: {
           created_at: string | null
@@ -1033,6 +1114,38 @@ export type Database = {
       }
     }
     Enums: {
+      document_entity:
+        | "customer"
+        | "supplier"
+        | "product"
+        | "project"
+        | "project_gate"
+        | "purchase_order"
+        | "shipment"
+        | "incident"
+      document_status: "draft" | "signed" | "approved" | "superseded"
+      document_type:
+        | "spec_sheet"
+        | "tech_pack"
+        | "sample_report"
+        | "pi"
+        | "po"
+        | "psi_report"
+        | "test_report"
+        | "sds"
+        | "doc_of_conformity"
+        | "technical_file"
+        | "label_artwork"
+        | "packing_list"
+        | "commercial_invoice"
+        | "bill_of_lading"
+        | "customs"
+        | "delivery_receipt"
+        | "gate_approval"
+        | "change_request"
+        | "contract"
+        | "certificate"
+        | "other"
       type_permission_command: "select" | "insert" | "update" | "delete"
       type_permission_kind: "read" | "create" | "modify"
     }
