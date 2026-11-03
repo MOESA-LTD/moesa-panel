@@ -107,7 +107,9 @@
          "admin_subscription_list": "Lista de suscripciones",
          "admin_subscription_manage": "Gestionar suscripción",
          "admin_plans": "Planes",
-         "admin_plan_list": "Lista de planes"
+         "admin_plan_list": "Lista de planes",
+         "ops": "Operations",
+         "ops_setting": "Settings"
       }
    },
    "auth": {
@@ -609,5 +611,26 @@
       "change_logo": "Cambiar logotipo",
       "remove_logo": "Quitar logotipo",
       "logo_hint": "PNG, JPEG o WebP, hasta 1 MB."
+   },
+   "ops": {
+      "setting": {
+         "title": "Operation Settings",
+         "headers": {
+            "setting": "Setting",
+            "value": "Value"
+         },
+         "keys": {
+            "deposit_rate_default": "Default deposit rate (%)",
+            "safety_stock_days": "Safety stock (days)",
+            "document_request_days": "Days to request documents",
+            "s1_customer_notify_hours": "Hours to notify the customer at S1",
+            "spec_sheet_required_from": "Spec sheet required from",
+            "wip_limit_per_role": "Work-in-progress limit per role",
+            "gate_evidence_blocking": "Missing gate evidence blocks the step"
+         }
+      },
+      "customer_filter": {
+         "all": "All customers"
+      }
    }
 }

@@ -7,6 +7,7 @@ import accountRoutes from '@/router/routes/account';
 import adminRoutes from '@/router/routes/admin';
 import authRoutes from '@/router/routes/auth';
 import branchRoutes from '@/router/routes/branch';
+import opsRoutes from '@/router/routes/ops';
 import subscriptionRoutes from '@/router/routes/subscription';
 
 const router = createRouter({
@@ -50,6 +51,7 @@ const router = createRouter({
                            }
                         },
                         ...branchRoutes,
+                        ...opsRoutes,
                         ...accountRoutes,
                         ...subscriptionRoutes,
                         ...adminRoutes

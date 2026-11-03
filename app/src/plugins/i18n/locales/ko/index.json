@@ -421,7 +421,9 @@
          "admin_subscription_list": "구독 목록",
          "admin_subscription_manage": "구독 관리",
          "admin_plans": "요금제",
-         "admin_plan_list": "요금제 목록"
+         "admin_plan_list": "요금제 목록",
+         "ops": "Operations",
+         "ops_setting": "Settings"
       }
    },
    "dashboard": {
@@ -609,5 +611,26 @@
       "change_logo": "로고 변경",
       "remove_logo": "로고 삭제",
       "logo_hint": "PNG, JPEG 또는 WebP, 최대 1MB."
+   },
+   "ops": {
+      "setting": {
+         "title": "Operation Settings",
+         "headers": {
+            "setting": "Setting",
+            "value": "Value"
+         },
+         "keys": {
+            "deposit_rate_default": "Default deposit rate (%)",
+            "safety_stock_days": "Safety stock (days)",
+            "document_request_days": "Days to request documents",
+            "s1_customer_notify_hours": "Hours to notify the customer at S1",
+            "spec_sheet_required_from": "Spec sheet required from",
+            "wip_limit_per_role": "Work-in-progress limit per role",
+            "gate_evidence_blocking": "Missing gate evidence blocks the step"
+         }
+      },
+      "customer_filter": {
+         "all": "All customers"
+      }
    }
 }

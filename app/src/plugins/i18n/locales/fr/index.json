@@ -421,7 +421,9 @@
          "admin_subscription_list": "Liste des abonnements",
          "admin_subscription_manage": "Gérer l'abonnement",
          "admin_plans": "Formules",
-         "admin_plan_list": "Liste des formules"
+         "admin_plan_list": "Liste des formules",
+         "ops": "Operations",
+         "ops_setting": "Settings"
       }
    },
    "dashboard": {
@@ -609,5 +611,26 @@
       "change_logo": "Changer le logo",
       "remove_logo": "Supprimer le logo",
       "logo_hint": "PNG, JPEG ou WebP, 1 Mo maximum."
+   },
+   "ops": {
+      "setting": {
+         "title": "Operation Settings",
+         "headers": {
+            "setting": "Setting",
+            "value": "Value"
+         },
+         "keys": {
+            "deposit_rate_default": "Default deposit rate (%)",
+            "safety_stock_days": "Safety stock (days)",
+            "document_request_days": "Days to request documents",
+            "s1_customer_notify_hours": "Hours to notify the customer at S1",
+            "spec_sheet_required_from": "Spec sheet required from",
+            "wip_limit_per_role": "Work-in-progress limit per role",
+            "gate_evidence_blocking": "Missing gate evidence blocks the step"
+         }
+      },
+      "customer_filter": {
+         "all": "All customers"
+      }
    }
 }

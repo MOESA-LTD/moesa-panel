@@ -319,7 +319,9 @@
          "admin_subscription_list": "Abonelik Listesi",
          "admin_subscription_manage": "Aboneliği Yönet",
          "admin_plans": "Planlar",
-         "admin_plan_list": "Plan Listesi"
+         "admin_plan_list": "Plan Listesi",
+         "ops": "Operasyon",
+         "ops_setting": "Ayarlar"
       }
    },
    "fields": {
@@ -609,5 +611,26 @@
       "change_logo": "Logoyu değiştir",
       "remove_logo": "Logoyu kaldır",
       "logo_hint": "PNG, JPEG veya WebP, en fazla 1 MB."
+   },
+   "ops": {
+      "setting": {
+         "title": "Operasyon Ayarları",
+         "headers": {
+            "setting": "Ayar",
+            "value": "Değer"
+         },
+         "keys": {
+            "deposit_rate_default": "Varsayılan kapora oranı (%)",
+            "safety_stock_days": "Emniyet stoğu (gün)",
+            "document_request_days": "Belge talep süresi (gün)",
+            "s1_customer_notify_hours": "S1’de müşteriye bildirim süresi (saat)",
+            "spec_sheet_required_from": "Teknik şartname zorunluluk tarihi",
+            "wip_limit_per_role": "Rol başına devam eden iş sınırı",
+            "gate_evidence_blocking": "Eksik kapı kanıtı adımı engeller"
+         }
+      },
+      "customer_filter": {
+         "all": "Tüm müşteriler"
+      }
    }
 }

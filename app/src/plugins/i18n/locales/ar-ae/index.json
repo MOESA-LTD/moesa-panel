@@ -444,7 +444,9 @@
          "admin_subscription_list": "قائمة الاشتراكات",
          "admin_subscription_manage": "إدارة الاشتراك",
          "admin_plans": "الخطط",
-         "admin_plan_list": "قائمة الخطط"
+         "admin_plan_list": "قائمة الخطط",
+         "ops": "Operations",
+         "ops_setting": "Settings"
       }
    },
    "account": {
@@ -609,5 +611,26 @@
       "change_logo": "تغيير الشعار",
       "remove_logo": "إزالة الشعار",
       "logo_hint": "PNG أو JPEG أو WebP، حتى 1 ميغابايت."
+   },
+   "ops": {
+      "setting": {
+         "title": "Operation Settings",
+         "headers": {
+            "setting": "Setting",
+            "value": "Value"
+         },
+         "keys": {
+            "deposit_rate_default": "Default deposit rate (%)",
+            "safety_stock_days": "Safety stock (days)",
+            "document_request_days": "Days to request documents",
+            "s1_customer_notify_hours": "Hours to notify the customer at S1",
+            "spec_sheet_required_from": "Spec sheet required from",
+            "wip_limit_per_role": "Work-in-progress limit per role",
+            "gate_evidence_blocking": "Missing gate evidence blocks the step"
+         }
+      },
+      "customer_filter": {
+         "all": "All customers"
+      }
    }
 }
