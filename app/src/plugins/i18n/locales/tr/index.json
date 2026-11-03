@@ -972,7 +972,7 @@
             "summary": "{file}: {count} satır hazır",
             "preview": "{count} satırın ilk {shown} satırı",
             "errors_title": "Bunları dosyada düzeltip dosyayı yeniden seçin:",
-            "warnings_title": "Bu sütunlar aktarılmaz:",
+            "warnings_title": "Bunlara dikkat edin; dosya yine de aktarılabilir:",
             "row_error": "Satır {row}, {column}: {message}",
             "failed": "Hiçbir şey aktarılmadı: {count} hata",
             "done": "{inserted} ürün eklendi, {updated} ürün güncellendi",
@@ -989,7 +989,10 @@
             },
             "warnings": {
                "unknown_column": "bilinmeyen sütun, yok sayıldı",
-               "deferred_column": "Faz 2'de pazar hücresine / belgeye aktarılacak"
+               "deferred_column": "Faz 2'de pazar hücresine / belgeye aktarılacak",
+               "compliance_expired_as_partial": "\"Süresi geçmiş\", kısmi olarak aktarılır",
+               "status_depoda_as_ordering": "\"Depoda\", siparişte olarak aktarılır",
+               "status_karantina_as_paused": "\"Karantina\", durduruldu olarak aktarılır"
             }
          }
       }

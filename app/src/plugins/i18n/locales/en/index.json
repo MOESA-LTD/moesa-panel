@@ -972,7 +972,7 @@
             "summary": "{file}: {count} rows ready",
             "preview": "First {shown} of {count} rows",
             "errors_title": "Fix these in the file, then choose it again:",
-            "warnings_title": "These columns are not imported:",
+            "warnings_title": "Check these; the file can still be imported:",
             "row_error": "Row {row}, {column}: {message}",
             "failed": "Nothing was imported: {count} errors",
             "done": "{inserted} products added, {updated} updated",
@@ -989,7 +989,10 @@
             },
             "warnings": {
                "unknown_column": "unknown column, ignored",
-               "deferred_column": "will be moved to the marketplace cell / document in Phase 2"
+               "deferred_column": "will be moved to the marketplace cell / document in Phase 2",
+               "compliance_expired_as_partial": "\"Süresi geçmiş\" (expired) is imported as partial",
+               "status_depoda_as_ordering": "\"Depoda\" (in warehouse) is imported as ordering",
+               "status_karantina_as_paused": "\"Karantina\" (quarantine) is imported as paused"
             }
          }
       }

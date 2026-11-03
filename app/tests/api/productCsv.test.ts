@@ -80,7 +80,7 @@ describe('mapS10Rows', () => {
       const { rows, errors } = mapS10Rows(
          [...HEADER, 'tehlikeli_madde', 'uyum_belge_durumu', 'durum'],
          [
-            ['THO', 'THO-1', 'Mop', 'evet', 'tam', 'Satışta'],
+            ['THO', 'THO-1', 'Mop', 'evet', 'tam', 'Yayında'],
             ['THO', 'THO-2', 'Mop', 'false', 'partial', 'on_sale'],
             ['THO', 'THO-3', 'Mop', '', '', '']
          ]
@@ -99,6 +99,67 @@ describe('mapS10Rows', () => {
       ]);
       expect(mapS10Rows([...HEADER, 'durum'], [['THO', 'THO-1', 'Mop', 'maybe']]).errors).toEqual([
          { row: 1, field: 'status', code: 'invalid_value' }
+      ]);
+   });
+
+   it("reads the S10 template's own list values", () => {
+      const { rows, warnings, errors } = mapS10Rows(
+         [...HEADER, 'tehlikeli_madde', 'uyum_belge_durumu', 'durum', 'not'],
+         [
+            ['THO', 'THO-1', 'Mop', 'Yok', 'Tam', 'Yayında', ''],
+            ['THO', 'THO-2', 'Mop', 'Var (UN 1203)', 'Süresi geçmiş', 'Depoda', 'Fragile'],
+            ['THO', 'THO-3', 'Mop', 'VAR', 'EKSİK', 'Karantina', ''],
+            ['THO', 'THO-4', 'Mop', 'hayir', 'PARTIAL', 'ARCHIVED', ''],
+            ['THO', 'THO-5', 'Mop', 'Var (UN 1993)', 'yok', 'ORDERING', ''],
+            ['THO', 'THO-6', 'Mop', 'no', 'none', 'Fizibilite', ''],
+            ['THO', 'THO-7', 'Mop', '1', 'complete', 'Numune', ''],
+            ['THO', 'THO-8', 'Mop', '0', 'expired', 'Onaylı spec', ''],
+            ['THO', 'THO-9', 'Mop', 'yes', 'Tam', 'SİPARİŞTE', ''],
+            ['THO', 'THO-10', 'Mop', 'false', 'Tam', 'satistan kalkti', ''],
+            ['THO', 'THO-11', 'Mop', 'Evet', 'Tam', 'gelistirme', ''],
+            ['THO', 'THO-12', 'Mop', 'true', 'Tam', 'Arşiv', '']
+         ]
+      );
+      expect(errors).toEqual([]);
+      expect(
+         rows.map(({ is_hazmat, compliance_status, status }) => [
+            is_hazmat,
+            compliance_status,
+            status
+         ])
+      ).toEqual([
+         [false, 'complete', 'on_sale'],
+         [true, 'partial', 'ordering'],
+         [true, 'partial', 'paused'],
+         [false, 'partial', 'archived'],
+         [true, 'none', 'ordering'],
+         [false, 'none', 'concept'],
+         [true, 'complete', 'development'],
+         [false, 'partial', 'approved'],
+         [true, 'complete', 'ordering'],
+         [false, 'complete', 'paused'],
+         [true, 'complete', 'development'],
+         [true, 'complete', 'archived']
+      ]);
+      expect(rows.map(({ notes }) => notes)).toEqual([
+         null,
+         'Fragile; UN: 1203',
+         null,
+         null,
+         'UN: 1993',
+         null,
+         null,
+         null,
+         null,
+         null,
+         null,
+         null
+      ]);
+      expect(warnings).toEqual([
+         { row: 2, column: 'uyum_belge_durumu', code: 'compliance_expired_as_partial' },
+         { row: 2, column: 'durum', code: 'status_depoda_as_ordering' },
+         { row: 3, column: 'durum', code: 'status_karantina_as_paused' },
+         { row: 8, column: 'uyum_belge_durumu', code: 'compliance_expired_as_partial' }
       ]);
    });
 
@@ -212,7 +273,7 @@ describe('toS10Csv', () => {
       expect(cell(rows[0], 'urun_adi')).toBe('Mop, 40 cm');
       expect(cell(rows[0], 'tedarikci_kodu')).toBe('CN1');
       expect(cell(rows[0], 'alis_fiyati')).toBe('1.9');
-      expect(cell(rows[0], 'tehlikeli_madde')).toBe('hayır');
+      expect(cell(rows[0], 'tehlikeli_madde')).toBe('Yok');
       expect(cell(rows[1], 'parent_sku')).toBe('THO-MOP40');
       expect(DEFERRED_COLUMNS.every((column) => cell(rows[0], column) === '')).toBe(true);
    });

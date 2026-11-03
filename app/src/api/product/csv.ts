@@ -1,7 +1,5 @@
 import {
-   COMPLIANCE_STATUSES,
    PRODUCT_SKU,
-   PRODUCT_STATUSES,
    PURCHASE_CURRENCIES,
    type ComplianceStatus,
    type ProductRow,
@@ -186,7 +184,6 @@ const matching =
       pattern.test(normalize(value)) ? normalize(value) : INVALID;
 
 const upper = (value: string) => value.toUpperCase();
-const lower = (value: string) => value.toLocaleLowerCase('tr-TR');
 
 const text = () => cell((value) => value);
 
@@ -212,49 +209,103 @@ const date = () =>
          : INVALID;
    });
 
-/** One of `values`, or a synonym (lower case) of one. Empty keeps the product's own value. */
-const oneOf = <T extends string>(values: readonly T[], synonyms: Record<string, T> = {}) =>
-   cell<T>(
-      (value) => {
-         const key = lower(value);
-         return (values as readonly string[]).includes(key)
-            ? (key as T)
-            : (synonyms[key] ?? INVALID);
-      },
-      { keepWhenEmpty: true }
-   );
+/**
+ * The keys a list value is looked up by: lower case by plain and by Turkish rules (an English
+ * ARCHIVED and a Turkish SİPARİŞTE alike), Turkish letters folded to ASCII, spaces collapsed.
+ */
+const listKeys = (value: string) => [
+   ...new Set(
+      [value.toLowerCase(), value.toLocaleLowerCase('tr-TR')].map((lowered) =>
+         lowered
+            .normalize('NFD')
+            .replace(/\p{M}/gu, '')
+            .replaceAll('ı', 'i')
+            .replace(/\s+/g, ' ')
+            .trim()
+      )
+   )
+];
 
-const YES_NO: Record<string, boolean> = {
-   evet: true,
-   hayır: false,
+/** A value of a list column: looked up in `values` by its keys. */
+const listValue =
+   <T>(values: Record<string, T>): Reader<T> =>
+   (value) => {
+      const key = listKeys(value).find((candidate) => Object.hasOwn(values, candidate));
+      return key === undefined ? INVALID : values[key];
+   };
+
+/** A list column (empty keeps the product's own value). */
+const list = <T>(values: Record<string, T>) => cell(listValue(values), { keepWhenEmpty: true });
+
+// The S10 template's lists ("Yok / Var (UN no)", "Tam / Eksik / Süresi geçmiş", the statuses
+// from Fizibilite to Karantina) and the panel's own values, keyed as listKeys folds them.
+const HAZMAT: Record<string, boolean> = {
+   yok: false,
    hayir: false,
-   yes: true,
-   no: false,
-   true: true,
    false: false,
+   '0': false,
+   no: false,
+   var: true,
+   evet: true,
+   true: true,
    '1': true,
-   '0': false
+   yes: true
 };
 
-const STATUS_SYNONYMS: Record<string, ProductStatus> = {
-   konsept: 'concept',
-   geliştirme: 'development',
-   onaylı: 'approved',
-   onaylandı: 'approved',
-   sipariş: 'ordering',
-   siparişte: 'ordering',
-   satışta: 'on_sale',
-   durduruldu: 'paused',
-   arşiv: 'archived',
-   arşivlendi: 'archived'
+/** "Var" followed by anything, e.g. "Var (UN 1203)": hazardous, the UN number goes to the notes. */
+const readHazmat: Reader<boolean> = (value) => {
+   const known = listValue(HAZMAT)(value);
+   if (known !== INVALID) return known;
+   return listKeys(value).some((key) => key.startsWith('var')) ? true : INVALID;
 };
 
-const COMPLIANCE_SYNONYMS: Record<string, ComplianceStatus> = {
+const COMPLIANCE: Record<string, ComplianceStatus> = {
    yok: 'none',
+   none: 'none',
    eksik: 'partial',
-   kısmi: 'partial',
+   partial: 'partial',
+   'suresi gecmis': 'partial',
+   expired: 'partial',
    tam: 'complete',
-   tamam: 'complete'
+   complete: 'complete'
+};
+
+const STATUS: Record<string, ProductStatus> = {
+   fizibilite: 'concept',
+   concept: 'concept',
+   gelistirme: 'development',
+   development: 'development',
+   numune: 'development',
+   sample: 'development',
+   'onayli spec': 'approved',
+   approved: 'approved',
+   sipariste: 'ordering',
+   siparis: 'ordering',
+   ordering: 'ordering',
+   depoda: 'ordering',
+   in_warehouse: 'ordering',
+   yayinda: 'on_sale',
+   on_sale: 'on_sale',
+   'satistan kalkti': 'paused',
+   paused: 'paused',
+   karantina: 'paused',
+   quarantine: 'paused',
+   arsiv: 'archived',
+   archived: 'archived'
+};
+
+/** Template values the panel has no status for: saved as the nearest one, with a row warning. */
+const APPROXIMATED: Partial<Record<ImportField, Record<string, ImportWarningCode>>> = {
+   compliance_status: {
+      'suresi gecmis': 'compliance_expired_as_partial',
+      expired: 'compliance_expired_as_partial'
+   },
+   status: {
+      depoda: 'status_depoda_as_ordering',
+      in_warehouse: 'status_depoda_as_ordering',
+      karantina: 'status_karantina_as_paused',
+      quarantine: 'status_karantina_as_paused'
+   }
 };
 
 /** One row of the import, under the product's own column names (see public.import_products). */
@@ -273,10 +324,8 @@ export const productImportRowSchema = z.object({
    supplier_product_code: text(),
    golden_sample_on: date(),
    golden_sample_locations: text(),
-   compliance_status: oneOf(COMPLIANCE_STATUSES, COMPLIANCE_SYNONYMS),
-   is_hazmat: cell((value) => YES_NO[lower(value)] ?? INVALID, {
-      keepWhenEmpty: true
-   }),
+   compliance_status: list(COMPLIANCE),
+   is_hazmat: cell(readHazmat, { keepWhenEmpty: true }),
    eu_responsible_person: text(),
    hs_code: text(),
    origin_country: text(),
@@ -302,7 +351,7 @@ export const productImportRowSchema = z.object({
    target_price_eur: decimal(),
    moesa_price_eur: decimal(),
    price_list_version: text(),
-   status: oneOf(PRODUCT_STATUSES, STATUS_SYNONYMS),
+   status: list(STATUS),
    notes: text()
 });
 
@@ -370,11 +419,31 @@ export interface ImportError {
    sku?: string;
 }
 
-/** A column whose values are not saved: unknown to the template, or deferred to Phase 2. */
+/** What an import warning says, translated under ops.product.import.warnings. */
+export type ImportWarningCode =
+   | 'unknown_column'
+   | 'deferred_column'
+   | 'compliance_expired_as_partial'
+   | 'status_depoda_as_ordering'
+   | 'status_karantina_as_paused';
+
+/**
+ * A column whose values are not saved (unknown to the template, or deferred to Phase 2), or with
+ * `row`, a template value saved as the nearest the panel has.
+ */
 export interface ImportWarning {
    column: string;
-   code: 'unknown_column' | 'deferred_column';
+   code: ImportWarningCode;
+   row?: number;
 }
+
+/** "Var (UN 1203)" → "UN: 1203", added to the row's notes. */
+const withHazmatNote = (row: ProductImportRow, hazmat: string | undefined): ProductImportRow => {
+   const detail = row.is_hazmat ? /\((.+)\)/.exec(hazmat ?? '')?.[1]?.trim() : undefined;
+   if (!detail) return row;
+   const note = `UN: ${detail.replace(/^UN\s*:?\s*/i, '')}`;
+   return { ...row, notes: row.notes ? `${row.notes}; ${note}` : note };
+};
 
 /**
  * Maps the rows of an S10 file, its columns in any order, to the rows of public.import_products.
@@ -412,11 +481,24 @@ export function mapS10Rows(
       );
       const result = productImportRowSchema.safeParse(input);
       if (result.success) {
+         const data = withHazmatNote(result.data, input.is_hazmat);
          mapped.push(
             Object.fromEntries(
-               Object.entries(result.data).filter(([, value]) => value !== undefined)
+               Object.entries(data).filter(([, value]) => value !== undefined)
             ) as ProductImportRow
          );
+         for (const [field, approximated] of Object.entries(APPROXIMATED)) {
+            const key = listKeys(input[field] ?? '').find((candidate) =>
+               Object.hasOwn(approximated, candidate)
+            );
+            if (key !== undefined) {
+               warnings.push({
+                  row: index + 1,
+                  column: PRODUCT_TO_S10[field as ImportField],
+                  code: approximated[key]
+               });
+            }
+         }
          return;
       }
       errors.push(
@@ -443,7 +525,7 @@ export type ProductExportRow = ProductRow & {
 
 const formatCell = (value: unknown) => {
    if (value === null || value === undefined) return '';
-   if (typeof value === 'boolean') return value ? 'evet' : 'hayır';
+   if (typeof value === 'boolean') return value ? 'Var' : 'Yok';
    return String(value);
 };
 

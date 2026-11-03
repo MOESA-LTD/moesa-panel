@@ -120,8 +120,19 @@ const columnOf = (field: string) => PRODUCT_TO_S10[field as keyof typeof PRODUCT
       <Message v-if="warnings.length" severity="warn">
          <div class="font-semibold">{{ $t('ops.product.import.warnings_title') }}</div>
          <ul class="list-disc ps-5">
-            <li v-for="warning in warnings" :key="warning.column">
-               {{ warning.column }}: {{ $t(`ops.product.import.warnings.${warning.code}`) }}
+            <li v-for="(warning, index) in warnings" :key="index">
+               <template v-if="warning.row">
+                  {{
+                     $t('ops.product.import.row_error', {
+                        row: warning.row,
+                        column: warning.column,
+                        message: $t(`ops.product.import.warnings.${warning.code}`)
+                     })
+                  }}
+               </template>
+               <template v-else>
+                  {{ warning.column }}: {{ $t(`ops.product.import.warnings.${warning.code}`) }}
+               </template>
             </li>
          </ul>
       </Message>

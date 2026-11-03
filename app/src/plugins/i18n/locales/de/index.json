@@ -989,7 +989,10 @@
             },
             "warnings": {
                "unknown_column": "unknown column, ignored",
-               "deferred_column": "will be moved to the marketplace cell / document in Phase 2"
+               "deferred_column": "will be moved to the marketplace cell / document in Phase 2",
+               "compliance_expired_as_partial": "\"Süresi geçmiş\" (expired) is imported as partial",
+               "status_depoda_as_ordering": "\"Depoda\" (in warehouse) is imported as ordering",
+               "status_karantina_as_paused": "\"Karantina\" (quarantine) is imported as paused"
             }
          }
       }
