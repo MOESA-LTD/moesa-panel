@@ -486,7 +486,8 @@
          "ops_product_general": "General",
          "ops_product_dimensions": "Dimensions",
          "ops_product_cost": "Cost",
-         "ops_product_documents": "Documents"
+         "ops_product_documents": "Documents",
+         "ops_product_import": "Import products"
       }
    },
    "account": {
@@ -961,6 +962,35 @@
          },
          "errors": {
             "invalid_sku": "Capital letters, digits and dashes, e.g. THO-MOP40-2P"
+         },
+         "import": {
+            "open": "Import",
+            "export": "Export",
+            "choose": "Choose CSV file",
+            "submit": "Import",
+            "hint": "Choose a CSV file in the S10 product template (Ürün ana tablosu). Columns may come in any order; a comma or semicolon delimiter is detected. The file is imported whole or not at all.",
+            "summary": "{file}: {count} rows ready",
+            "preview": "First {shown} of {count} rows",
+            "errors_title": "Fix these in the file, then choose it again:",
+            "warnings_title": "These columns are not imported:",
+            "row_error": "Row {row}, {column}: {message}",
+            "failed": "Nothing was imported: {count} errors",
+            "done": "{inserted} products added, {updated} updated",
+            "errors": {
+               "required": "required",
+               "invalid_value": "invalid value",
+               "gtin_invalid": "invalid GTIN (check digit)",
+               "customer_unknown": "no customer with this code",
+               "supplier_unknown": "no supplier with this code",
+               "parent_unknown": "no parent product with this SKU for the customer",
+               "gtin_in_use": "GTIN already used by active product {sku}",
+               "gtin_duplicate": "GTIN appears more than once in the file",
+               "sku_duplicate": "SKU appears more than once in the file for this customer"
+            },
+            "warnings": {
+               "unknown_column": "unknown column, ignored",
+               "deferred_column": "will be moved to the marketplace cell / document in Phase 2"
+            }
          }
       }
    }

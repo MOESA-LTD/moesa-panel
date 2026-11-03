@@ -361,7 +361,8 @@
          "ops_product_general": "Genel",
          "ops_product_dimensions": "Ölçüler",
          "ops_product_cost": "Maliyet",
-         "ops_product_documents": "Belgeler"
+         "ops_product_documents": "Belgeler",
+         "ops_product_import": "Ürün içe aktar"
       }
    },
    "fields": {
@@ -961,6 +962,35 @@
          },
          "errors": {
             "invalid_sku": "Büyük harf, rakam ve tire, ör. THO-MOP40-2P"
+         },
+         "import": {
+            "open": "İçe aktar",
+            "export": "Dışa aktar",
+            "choose": "CSV dosyası seç",
+            "submit": "İçe aktar",
+            "hint": "S10 ürün şablonunda (Ürün ana tablosu) bir CSV dosyası seçin. Sütunlar herhangi bir sırada olabilir; virgül ya da noktalı virgül ayırıcı kendiliğinden anlaşılır. Dosya ya bütünüyle aktarılır ya da hiç aktarılmaz.",
+            "summary": "{file}: {count} satır hazır",
+            "preview": "{count} satırın ilk {shown} satırı",
+            "errors_title": "Bunları dosyada düzeltip dosyayı yeniden seçin:",
+            "warnings_title": "Bu sütunlar aktarılmaz:",
+            "row_error": "Satır {row}, {column}: {message}",
+            "failed": "Hiçbir şey aktarılmadı: {count} hata",
+            "done": "{inserted} ürün eklendi, {updated} ürün güncellendi",
+            "errors": {
+               "required": "zorunlu",
+               "invalid_value": "geçersiz değer",
+               "gtin_invalid": "geçersiz GTIN (kontrol hanesi)",
+               "customer_unknown": "bu kodla müşteri yok",
+               "supplier_unknown": "bu kodla tedarikçi yok",
+               "parent_unknown": "müşterinin bu SKU ile ana ürünü yok",
+               "gtin_in_use": "GTIN, aktif {sku} ürününde kullanılıyor",
+               "gtin_duplicate": "GTIN dosyada birden fazla kez geçiyor",
+               "sku_duplicate": "SKU bu müşteri için dosyada birden fazla kez geçiyor"
+            },
+            "warnings": {
+               "unknown_column": "bilinmeyen sütun, yok sayıldı",
+               "deferred_column": "Faz 2'de pazar hücresine / belgeye aktarılacak"
+            }
          }
       }
    }

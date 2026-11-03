@@ -1716,6 +1716,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      import_products: {
+        Args: {
+          rows: Json
+        }
+        Returns: Json
+      }
       is_super_admin: {
         Args: {
           user_id: string

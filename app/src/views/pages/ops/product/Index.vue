@@ -7,6 +7,9 @@ import {
 } from '@/components/service-components/resource-table/createFilters';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { useLookup } from '@/api/useLookup';
+import { toS10Csv, type ProductExportRow } from '@/api/product/csv';
+import { supabase } from '@/lib/supabase';
+import dayjs from 'dayjs';
 import { useCustomerFilter, withCustomerFilter } from '@/store/customerFilter';
 import {
    PRODUCT_STATUSES,
@@ -122,6 +125,45 @@ const rowActions: Props['rowActions'] = [
    }
 ];
 
+// Export: every product of the customer filter (all when none), as an S10 file. Read page by page,
+// as the API returns at most a page of rows per request.
+const EXPORT_PAGE = 1000;
+const exporting = ref(false);
+
+const fetchExportRows = async () => {
+   const products: ProductExportRow[] = [];
+   for (let from = 0; ; from += EXPORT_PAGE) {
+      let query = supabase
+         .from('product')
+         .select('*, customer(code), supplier(code)')
+         .order('sku')
+         .order('id')
+         .range(from, from + EXPORT_PAGE - 1);
+      if (customerFilter.customerId) query = query.eq('customer_id', customerFilter.customerId);
+      const { data } = await query.throwOnError();
+      products.push(...(data as ProductExportRow[]));
+      if (data.length < EXPORT_PAGE) return products;
+   }
+};
+
+const exportCsv = async () => {
+   exporting.value = true;
+   try {
+      // With a byte order mark, so spreadsheets read the file as UTF-8.
+      const blob = new Blob([String.fromCharCode(0xfeff), toS10Csv(await fetchExportRows())], {
+         type: 'text/csv;charset=utf-8'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `urun_ana_tablosu_${dayjs().format('YYYYMMDD')}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+   } finally {
+      exporting.value = false;
+   }
+};
+
 const dialogRef = useDialogRef();
 </script>
 <template>
@@ -139,6 +181,29 @@ const dialogRef = useDialogRef();
       <template #header>
          <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
+               <Button
+                  variant="outlined"
+                  :icon="PrimeIcons.DOWNLOAD"
+                  :label="$t('ops.product.import.export')"
+                  :loading="exporting"
+                  @click="exportCsv"
+               />
+               <CustomLink
+                  v-if="$can('create', 'product')"
+                  :to="{
+                     name: 'ops-product-import',
+                     query: { showDialog: DIALOG_POSITIONS.CENTER }
+                  }"
+               >
+                  <template #default="{ navigate }">
+                     <Button
+                        variant="outlined"
+                        :icon="PrimeIcons.UPLOAD"
+                        :label="$t('ops.product.import.open')"
+                        @click="navigate"
+                     />
+                  </template>
+               </CustomLink>
                <CustomLink
                   v-if="$can('create', 'product')"
                   :to="{

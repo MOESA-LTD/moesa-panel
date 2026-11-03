@@ -548,6 +548,21 @@ const routes: RouteRecordRaw[] = [
             ]
          },
          {
+            // An S10 product file, imported whole or not at all (see public.import_products).
+            path: 'product/import',
+            name: 'ops-product-import',
+            meta: {
+               label: 'route.label.ops_product_import',
+               icon: PrimeIcons.UPLOAD,
+               visible: false,
+               requiredPermissions: [{ action: 'create', subject: 'product' }]
+            },
+            components: {
+               default: () => import('@/views/pages/ops/product/Import.vue'),
+               skeleton: () => import('@/views/pages/ops/product/Import.vue')
+            }
+         },
+         {
             path: 'document/add',
             name: 'ops-document-add',
             props: { default: documentProps, skeleton: documentProps },
