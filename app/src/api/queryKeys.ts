@@ -24,7 +24,10 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
    product: ['product_evidence'],
-   document: ['product_evidence']
+   document: ['product_evidence'],
+   // The project card embeds its gates. (dashboard_gate_pending and dashboard_task_due join here
+   // with the dashboard views.)
+   project_gate: ['project']
 };
 
 /** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */

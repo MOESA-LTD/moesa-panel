@@ -258,7 +258,21 @@
       "document_entity_missing": "Belgenin ait olduğu kayıt bulunamadı",
       "invalid_gtin": "Geçerli bir GTIN girin: kontrol hanesi doğru 8, 12, 13 veya 14 hane",
       "gtin_in_use": "Bu GTIN başka bir aktif üründe kullanılıyor",
-      "sku_in_use": "Bu SKU müşteride zaten var"
+      "sku_in_use": "Bu SKU müşteride zaten var",
+      "gate_not_pending": "Bu kapı zaten geçti; geçmiş kapı değiştirilemez.",
+      "gate_order": "Önce önceki kapıları geçirin.",
+      "gate_customer_approval_required": "Bu kapı için müşteri onay tarihi ve onay belgesi gerekir.",
+      "gate_approval_document_invalid": "Onay belgesi bu kapının kapı onayı belgesi olmalı.",
+      "gate_evidence_invalid": "Kanıtlar bu kapının ya da projesinin belgeleri olmalı.",
+      "gate_spec_sheet_required": "G2 için bağlı ürünler ve her birinin imzalı ya da onaylı spec sheet'i gerekir.",
+      "gate_blocked_by_task": "Bu aşamanın bloklayan bir görevi henüz bitmedi.",
+      "gate_one_at_a_time": "Kapıları tek tek geçirin.",
+      "gate_reason_required": "Geri alma için sebep yazın.",
+      "gate_rollback_order": "Önce sonraki geçmiş kapıları geri alın.",
+      "gate_not_passed": "Yalnızca geçmiş bir kapı geri alınabilir.",
+      "project_not_active": "Proje beklemede, kapalı ya da iptal.",
+      "project_immutable_field": "Projenin müşterisi, tipi, yolu ve paketleri değiştirilemez.",
+      "project_code_immutable": "Proje kodu değiştirilemez."
    },
    "account": {
       "profile": {
@@ -362,7 +376,17 @@
          "ops_product_dimensions": "Ölçüler",
          "ops_product_cost": "Maliyet",
          "ops_product_documents": "Belgeler",
-         "ops_product_import": "Ürün içe aktar"
+         "ops_product_import": "Ürün içe aktar",
+         "ops_project": "Projeler",
+         "ops_project_list": "Proje listesi",
+         "ops_project_add": "Yeni proje",
+         "ops_project_manage": "Proje kartı",
+         "ops_project_overview": "Genel bakış",
+         "ops_project_tasks": "Görevler",
+         "ops_project_products": "Ürünler",
+         "ops_project_documents": "Belgeler",
+         "ops_project_task_add": "Yeni görev",
+         "ops_project_task_edit": "Görevi düzenle"
       }
    },
    "fields": {
@@ -994,6 +1018,142 @@
                "status_depoda_as_ordering": "\"Depoda\", siparişte olarak aktarılır",
                "status_karantina_as_paused": "\"Karantina\", durduruldu olarak aktarılır"
             }
+         }
+      },
+      "project": {
+         "title": "Projeler",
+         "select": "Proje seçin",
+         "tabs": {
+            "overview": "Genel bakış",
+            "tasks": "Görevler",
+            "products": "Ürünler",
+            "documents": "Belgeler"
+         },
+         "sections": {
+            "general": "Proje",
+            "plan": "Plan",
+            "gates": "Kapılar"
+         },
+         "fields": {
+            "code": "Kod",
+            "customer_id": "Müşteri",
+            "customer": "Müşteri",
+            "display_name": "Ad",
+            "type": "Tip",
+            "path": "Yol",
+            "packages": "Paketler",
+            "current_phase": "Aşama",
+            "open_gate": "Bekleyen kapı",
+            "status": "Durum",
+            "target_delivery_on": "Hedef teslim",
+            "target_live_on": "Hedef yayın",
+            "coordinator_id": "Koordinatör",
+            "coordinator": "Koordinatör",
+            "notes": "Notlar"
+         },
+         "fixed_hint": "Müşteri, tip, yol ve paketler kapıları belirler; sonradan değiştirilemez.",
+         "type": {
+            "npi": "Yeni ürün",
+            "variant": "Varyant",
+            "revision": "Revizyon",
+            "reorder": "Tekrar sipariş"
+         },
+         "path": {
+            "a_sourcing": "A — tedarik",
+            "b_private_label": "B — özel marka"
+         },
+         "status": {
+            "active": "Aktif",
+            "on_hold": "Beklemede",
+            "closed": "Kapandı",
+            "cancelled": "İptal"
+         },
+         "gate_status": {
+            "pending": "Bekliyor",
+            "passed": "Geçti",
+            "rolled_back": "Geri alındı"
+         },
+         "task_status": {
+            "todo": "Yapılacak",
+            "doing": "Sürüyor",
+            "done": "Bitti",
+            "blocked": "Engelli"
+         },
+         "role": {
+            "coordinator": "Koordinatör",
+            "supply_qc": "Tedarik ve QC",
+            "compliance": "Uyum",
+            "content_listing": "İçerik ve listeleme",
+            "logistics": "Lojistik",
+            "finance": "Finans",
+            "management": "Yönetim"
+         },
+         "gate_panel": {
+            "pass": "Kapıyı geçir",
+            "rollback": "Geri al",
+            "note": "Not",
+            "customer_approved_on": "Müşteri onay tarihi",
+            "approval_document": "Onay belgesi",
+            "approval_hint": "Önce onay belgesini ekleyin (aşağıdaki kapı belgeleri).",
+            "evidence": "Kanıt",
+            "evidence_documents": "Kapı belgeleri",
+            "reason": "Sebep",
+            "passed_at": "Geçiş tarihi",
+            "needs_customer_approval": "Müşteri onayı gerekir",
+            "rolled_back_reason": "Geri alma sebebi",
+            "passed": "Kapı geçti",
+            "rolled_back": "Kapı geri alındı"
+         },
+         "task": {
+            "fields": {
+               "phase": "Aşama",
+               "display_name": "Görev",
+               "role": "Rol",
+               "assignee_id": "Sorumlu",
+               "due_on": "Termin",
+               "status": "Durum",
+               "blocks_gate": "Kapıyı bloklar",
+               "position": "Sıra"
+            }
+         },
+         "products": {
+            "link": "Bağla",
+            "unlink": "Kaldır",
+            "empty": "Henüz bağlı ürün yok."
+         },
+         "phase": {
+            "P1": "P1",
+            "P2": "P2",
+            "PL1": "PL1",
+            "PL2": "PL2",
+            "PL3": "PL3",
+            "PL4": "PL4",
+            "PL5": "PL5",
+            "PL6": "PL6",
+            "PL7": "PL7",
+            "P3": "P3",
+            "P4": "P4",
+            "P5": "P5",
+            "P6": "P6",
+            "L1": "L1",
+            "L2": "L2",
+            "L3": "L3",
+            "L4": "L4",
+            "L5": "L5",
+            "closed": "Kapandı"
+         },
+         "gate": {
+            "G1": "G1",
+            "G2": "G2",
+            "G3": "G3",
+            "G4": "G4",
+            "G5": "G5",
+            "PL_G1": "PL-G1",
+            "PL_G2": "PL-G2",
+            "PL_G3": "PL-G3",
+            "PL_G4": "PL-G4",
+            "L_G1": "L-G1",
+            "L_G2": "L-G2"
          }
       }
    }

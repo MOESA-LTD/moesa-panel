@@ -24,6 +24,7 @@ const routes: RouteRecordRaw[] = [
          anyPermission: [
             { action: 'select', subject: 'customer' },
             { action: 'select', subject: 'product' },
+            { action: 'select', subject: 'project' },
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' }
          ]
@@ -544,6 +545,162 @@ const routes: RouteRecordRaw[] = [
                         }
                      }
                   ]
+               }
+            ]
+         },
+         {
+            path: 'projects',
+            name: 'ops-project',
+            meta: {
+               label: 'route.label.ops_project',
+               icon: PrimeIcons.FLAG,
+               requiredPermissions: [{ action: 'select', subject: 'project' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-project-add',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-project-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-project-list',
+                  meta: {
+                     label: 'route.label.ops_project_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'project' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/project/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/project/Index.vue')
+                  }
+               },
+               {
+                  // A new project; once saved it opens in its card.
+                  path: 'add',
+                  name: 'ops-project-add',
+                  meta: {
+                     label: 'route.label.ops_project_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'project' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/project/Upsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/project/Upsert.vue')
+                  }
+               },
+               {
+                  // The project card: its tabs open on their own as these child routes.
+                  path: ':id/manage/:tab?',
+                  name: 'ops-project-manage',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_project_manage',
+                     icon: PrimeIcons.FLAG,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'project' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/project/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/project/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'overview',
+                        name: 'ops-project-manage-overview',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_overview',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Overview.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Overview.vue')
+                        }
+                     },
+                     {
+                        path: 'tasks',
+                        name: 'ops-project-manage-tasks',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_tasks',
+                           icon: PrimeIcons.CHECK_SQUARE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Tasks.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Tasks.vue')
+                        }
+                     },
+                     {
+                        path: 'products',
+                        name: 'ops-project-manage-products',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_products',
+                           icon: PrimeIcons.BOX,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Products.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Products.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-project-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Documents.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Documents.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':projectId/task/add',
+                  name: 'ops-project-task-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_project_task_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'project_task' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/project/TaskUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/project/TaskUpsert.vue')
+                  }
+               },
+               {
+                  path: 'task/:id/edit',
+                  name: 'ops-project-task-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_project_task_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'project_task' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/project/TaskUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/project/TaskUpsert.vue')
+                  }
                }
             ]
          },

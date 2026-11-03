@@ -22,5 +22,8 @@ export const fieldRoutes: FieldRoutes = {
    customer_warehouse: { name: 'ops-customer-warehouse-edit' },
    customer_platform_account: { name: 'ops-customer-platform-edit' },
    customer_brand: { name: 'ops-customer-brand-edit' },
-   product: { name: 'ops-product-manage' }
+   product: { name: 'ops-product-manage' },
+   project: { name: 'ops-project-manage' },
+   project_task: { name: 'ops-project-task-edit' },
+   project_gate: { name: 'ops-project-manage', field: 'project_id' }
 };
