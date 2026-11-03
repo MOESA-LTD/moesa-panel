@@ -32,7 +32,12 @@ const NAMED_ERRORS: { code: string; name: string; field: string; message: string
       field: 'status',
       message: 'errors.document_signed_incomplete'
    },
-   { code: '23514', name: 'document_has_file', field: 'url', message: 'form.required' },
+   {
+      code: '23514',
+      name: 'document_has_file',
+      field: 'url',
+      message: 'errors.document_file_required'
+   },
    {
       code: '23503',
       name: 'media_file_missing',

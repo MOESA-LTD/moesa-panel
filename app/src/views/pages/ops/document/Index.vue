@@ -2,7 +2,9 @@
 import {
    DOCUMENT_ENTITIES,
    DOCUMENT_STATUSES,
+   DOCUMENT_MEDIA_SELECT,
    DOCUMENT_TYPES,
+   documentFile,
    type DocumentStatus
 } from '@/api/document';
 import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
@@ -11,6 +13,7 @@ import {
    equalsFilter
 } from '@/components/service-components/resource-table/createFilters';
 import { DIALOG_POSITIONS } from '@/constants/router';
+import DocumentFileLink from '@/components/service-components/entity-documents/DocumentFileLink.vue';
 import { useCustomerFilter, withCustomerFilter } from '@/store/customerFilter';
 
 // Every document of the tenant (of the customer the lists are filtered by, when one is). Opened
@@ -106,7 +109,7 @@ const rowActions = computed<Props['rowActions']>(() => [
       v-bind="attrs"
       stateKey="document"
       from="document"
-      select="*, customer!document_customer_fkey(code)"
+      :select="`*, customer!document_customer_fkey(code), ${DOCUMENT_MEDIA_SELECT}`"
       :columns
       :rowActions
       :enableExpansion="false"
@@ -147,16 +150,7 @@ const rowActions = computed<Props['rowActions']>(() => [
          />
       </template>
       <template #url_body="{ data }">
-         <a
-            v-if="data.url"
-            :href="data.url"
-            target="_blank"
-            rel="noopener"
-            :title="$t('ops.document.open_link')"
-            :aria-label="$t('ops.document.open_link')"
-         >
-            <i :class="PrimeIcons.EXTERNAL_LINK" />
-         </a>
+         <DocumentFileLink :url="data.url" :media="documentFile(data)" />
       </template>
    </ResourceTable>
 </template>

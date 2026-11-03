@@ -764,13 +764,16 @@
       "document": {
          "title": "Documents",
          "open_link": "Open link",
+         "drive_link": "Drive link",
+         "file": "File",
+         "remove_file": "Remove file",
          "fields": {
             "type": "Type",
             "version": "Version",
             "issued_on": "Date",
             "status": "Status",
             "file_name": "File name",
-            "url": "Link (Drive)",
+            "url": "File or link",
             "is_signed": "Signed",
             "is_stamped": "Stamped",
             "sent_from_official_email": "Sent from the official e-mail",

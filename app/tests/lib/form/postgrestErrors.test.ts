@@ -88,7 +88,7 @@ describe('mapPostgrestError', () => {
             },
             fields
          )
-      ).toEqual({ url: i18n.t('form.required') });
+      ).toEqual({ url: i18n.t('errors.document_file_required') });
 
       // Left to the error toast.
       expect(

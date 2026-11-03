@@ -154,6 +154,24 @@ describe('documentSchema', () => {
       expect(result.data!.issued_on).toBe('2026-11-02');
    });
 
+   it('needs a Drive link or a file', () => {
+      const result = documentSchema.safeParse(formValues({ url: '', media_id: null }));
+      expect(result.success).toBe(false);
+      expect(result.error!.issues).toEqual([
+         expect.objectContaining({
+            path: ['url'],
+            message: i18n.t('errors.document_file_required')
+         })
+      ]);
+   });
+
+   it('accepts a file without a Drive link, for any document type', () => {
+      for (const type of DOCUMENT_TYPES)
+         expect(
+            documentSchema.safeParse(formValues({ type, url: '', media_id: 'm1' })).success
+         ).toBe(true);
+   });
+
    it('requires a type and a version of at least 1', () => {
       const result = documentSchema.safeParse(formValues({ type: null, version: 0 }));
       expect(result.success).toBe(false);
@@ -192,6 +210,13 @@ describe('document mappers', () => {
       );
    });
 
+   it('reads and saves the document file', () => {
+      expect(toDocumentFormValues({ media_id: 'm1' }).media_id).toBe('m1');
+      expect(toDocumentFormValues({}).media_id).toBeNull();
+      const data = documentSchema.parse(formValues({ url: '', media_id: 'm1' }));
+      expect(toDocumentPayload(data, 'X')).toMatchObject({ media_id: 'm1', url: null });
+   });
+
    it('keeps the stored file name when no record code is given', () => {
       const data = documentSchema.parse(formValues());
       expect(toDocumentPayload(data)).not.toHaveProperty('file_name');
@@ -209,6 +234,17 @@ describe('withRouteContext', () => {
          ...context,
          file_name: 'SUP-2_SPEC_v03_' + dayjs().format('YYYYMMDD') + '_taslak'
       });
+   });
+
+   it("drops a restored draft's customer for a record without one (a supplier)", () => {
+      // The document's customer decides which customer's files it may cite (document_check_media).
+      const data = documentSchema.parse(formValues());
+      expect(
+         withRouteContext(data, { entity_type: 'supplier', entity_id: 's2', customer_id: null })
+      ).toMatchObject({ entity_type: 'supplier', entity_id: 's2', customer_id: null });
+      expect(
+         withRouteContext(data, { entity_type: 'supplier', entity_id: 's2' }).customer_id
+      ).toBeNull();
    });
 
    it('keeps the form values where the route gives no context', () => {

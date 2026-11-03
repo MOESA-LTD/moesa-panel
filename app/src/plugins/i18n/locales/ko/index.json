@@ -816,7 +816,10 @@
             "purchase_order": "Purchase order",
             "shipment": "Shipment",
             "incident": "Incident"
-         }
+         },
+         "drive_link": "Drive link",
+         "file": "File",
+         "remove_file": "Remove file"
       },
       "supplier": {
          "title": "Suppliers",
