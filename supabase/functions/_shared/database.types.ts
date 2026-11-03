@@ -161,6 +161,45 @@ export type Database = {
           },
         ]
       }
+      code_sequence: {
+        Row: {
+          kind: string
+          last_no: number
+          scope: string
+          tenant_id: string
+          year: number
+        }
+        Insert: {
+          kind: string
+          last_no?: number
+          scope: string
+          tenant_id: string
+          year: number
+        }
+        Update: {
+          kind?: string
+          last_no?: number
+          scope?: string
+          tenant_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_sequence_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "code_sequence_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module: {
         Row: {
           created_at: string | null
@@ -339,6 +378,33 @@ export type Database = {
           },
         ]
       }
+      platform: {
+        Row: {
+          countries: string[]
+          created_at: string | null
+          display_name: string
+          id: string
+          position: number
+          product_id_label: string | null
+        }
+        Insert: {
+          countries?: string[]
+          created_at?: string | null
+          display_name: string
+          id: string
+          position?: number
+          product_id_label?: string | null
+        }
+        Update: {
+          countries?: string[]
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          position?: number
+          product_id_label?: string | null
+        }
+        Relationships: []
+      }
       role: {
         Row: {
           created_at: string | null
@@ -407,6 +473,51 @@ export type Database = {
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      setting: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          source_question: string | null
+          tenant_id: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          source_question?: string | null
+          tenant_id: string
+          value: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          source_question?: string | null
+          tenant_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setting_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "setting_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
             referencedColumns: ["id"]
           },
         ]
@@ -831,6 +942,13 @@ export type Database = {
           requested?: string
         }
         Returns: Json
+      }
+      next_code: {
+        Args: {
+          kind: string
+          scope: string
+        }
+        Returns: string
       }
       owned_via: {
         Args: {

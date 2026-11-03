@@ -18,7 +18,9 @@
       "i18n-extract": "vue-i18n-extract report",
       "i18n-build": "node src/script/translate-with-ollama.js",
       "lint:fix": "pnpm lint --fix",
-      "prepare": "cd .. && husky app/.husky"
+      "prepare": "cd .. && husky app/.husky",
+      "test:db": "cd ../supabase && supabase test db",
+      "i18n-sync": "node src/script/sync-locales.mjs"
    },
    "dependencies": {
       "@casl/ability": "^6.7.3",
