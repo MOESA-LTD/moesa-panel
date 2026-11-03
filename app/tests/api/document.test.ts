@@ -91,6 +91,39 @@ describe('documentSchema', () => {
       ]);
    });
 
+   it('rejects an approved document without signature, stamp, official e-mail and date', () => {
+      const result = documentSchema.safeParse(
+         formValues({
+            status: 'approved',
+            is_signed: false,
+            is_stamped: false,
+            sent_from_official_email: false,
+            issued_on: null
+         })
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error!.issues).toEqual([
+         expect.objectContaining({
+            path: ['status'],
+            message: i18n.t('errors.document_signed_incomplete')
+         })
+      ]);
+   });
+
+   it('accepts an approved document that is signed, stamped, sent and dated', () => {
+      const result = documentSchema.safeParse(
+         formValues({
+            status: 'approved',
+            is_signed: true,
+            is_stamped: true,
+            sent_from_official_email: true,
+            issued_on: new Date(2026, 10, 2)
+         })
+      );
+      expect(result.success).toBe(true);
+   });
+
    it('accepts a signed document that is signed, stamped, sent and dated', () => {
       const result = documentSchema.safeParse(
          formValues({

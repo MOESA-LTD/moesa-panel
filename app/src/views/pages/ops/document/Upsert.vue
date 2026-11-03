@@ -43,6 +43,11 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
 await ready;
 
 const flags = ['is_signed', 'is_stamped', 'sent_from_official_email'] as const;
+
+// What a saved document is (its record, type and version) is fixed (document_identity_immutable),
+// and a superseded one stays superseded (document_superseded_sticky).
+const identityFixed = computed(() => !!values.value.id);
+const statusFixed = computed(() => !!values.value.id && values.value.status === 'superseded');
 </script>
 
 <template>
@@ -60,7 +65,7 @@ const flags = ['is_signed', 'is_stamped', 'sent_from_official_email'] as const;
             fluid
             :label="$t('ops.document.fields.type')"
             :error="errors.type"
-            :readonly
+            :readonly="readonly || identityFixed"
             v-slot="slotProps"
          >
             <SelectEnum
@@ -68,16 +73,22 @@ const flags = ['is_signed', 'is_stamped', 'sent_from_official_email'] as const;
                v-model="values.type"
                :values="DOCUMENT_TYPES"
                i18n-prefix="ops.document.type"
+               :disabled="identityFixed"
             />
          </FormField>
          <FormField
             fluid
             :label="$t('ops.document.fields.version')"
             :error="errors.version"
-            :readonly
+            :readonly="readonly || identityFixed"
             v-slot="slotProps"
          >
-            <InputNumber v-bind="slotProps" v-model="values.version" :min="1" />
+            <InputNumber
+               v-bind="slotProps"
+               v-model="values.version"
+               :min="1"
+               :disabled="identityFixed"
+            />
          </FormField>
          <FormField
             fluid
@@ -98,7 +109,7 @@ const flags = ['is_signed', 'is_stamped', 'sent_from_official_email'] as const;
             fluid
             :label="$t('ops.document.fields.status')"
             :error="errors.status"
-            :readonly
+            :readonly="readonly || statusFixed"
             v-slot="slotProps"
          >
             <SelectEnum
@@ -106,6 +117,7 @@ const flags = ['is_signed', 'is_stamped', 'sent_from_official_email'] as const;
                v-model="values.status"
                :values="DOCUMENT_STATUSES"
                i18n-prefix="ops.document.status"
+               :disabled="statusFixed"
             />
          </FormField>
          <FormField

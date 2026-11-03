@@ -57,10 +57,11 @@ SELECT is(
 UPDATE public.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000302' AND phase = 'P1' AND blocks_gate;
 
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url,
+                             is_signed, is_stamped, sent_from_official_email, issued_on)
 SELECT '00000000-0000-4000-8000-000000000304', current_setting('test.tenant_id')::UUID,
        '00000000-0000-4000-8000-000000000301', 'project_gate', g.id, 'gate_approval', 'approved',
-       'https://example.test/dash-g1.pdf'
+       'https://example.test/dash-g1.pdf', TRUE, TRUE, TRUE, current_date
 FROM public.project_gate g
 WHERE g.project_id = '00000000-0000-4000-8000-000000000302' AND g.code = 'G1';
 
@@ -117,9 +118,11 @@ VALUES ('00000000-0000-4000-8000-000000000305', current_setting('test.tenant_id'
        ('00000000-0000-4000-8000-000000000308', current_setting('test.tenant_id')::UUID,
         '00000000-0000-4000-8000-000000000301', 'DSH-004', 'archived', 'none');
 
-INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, status, url, is_signed,
+                             is_stamped, sent_from_official_email, issued_on)
 VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000301', 'product',
-        '00000000-0000-4000-8000-000000000305', 'spec_sheet', 'approved', 'https://example.test/dsh-001.pdf');
+        '00000000-0000-4000-8000-000000000305', 'spec_sheet', 'approved', 'https://example.test/dsh-001.pdf', TRUE,
+        TRUE, TRUE, current_date);
 
 SELECT is(
     (SELECT d.customer_code || ':' || d.active_sku_count || ':' || d.signed_spec_count || ':'

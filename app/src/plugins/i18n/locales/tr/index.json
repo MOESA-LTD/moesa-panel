@@ -254,7 +254,7 @@
       "logo_type": "Logo PNG, JPEG veya WebP olmalı.",
       "logo_size": "Logo en fazla 1 MB olmalı.",
       "document_version_exists": "Belgenin bu sürümü zaten var",
-      "document_signed_incomplete": "İmzalı belge imzalı, kaşeli, resmi e-postadan gönderilmiş ve tarihli olmalı",
+      "document_signed_incomplete": "İmzalı veya onaylı belge imzalı, kaşeli, resmi e-postadan gönderilmiş ve tarihli olmalı",
       "document_entity_missing": "Belgenin ait olduğu kayıt bulunamadı",
       "invalid_gtin": "Geçerli bir GTIN girin: kontrol hanesi doğru 8, 12, 13 veya 14 hane",
       "gtin_in_use": "Bu GTIN başka bir aktif üründe kullanılıyor",
@@ -272,7 +272,9 @@
       "gate_not_passed": "Yalnızca geçmiş bir kapı geri alınabilir.",
       "project_not_active": "Proje beklemede, kapalı ya da iptal.",
       "project_immutable_field": "Projenin müşterisi, tipi, yolu ve paketleri değiştirilemez.",
-      "project_code_immutable": "Proje kodu değiştirilemez."
+      "project_code_immutable": "Proje kodu değiştirilemez.",
+      "document_superseded_sticky": "Eskimiş bir belge eski kalır; bunun yerine yeni bir sürüm ekleyin.",
+      "document_identity_immutable": "Kaydedilmiş bir belgenin kaydı, türü ve sürümü değiştirilemez; bunun yerine yeni bir sürüm ekleyin."
    },
    "account": {
       "profile": {

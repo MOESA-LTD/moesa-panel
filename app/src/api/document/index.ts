@@ -105,10 +105,11 @@ export const documentSchema = z
       sent_from_official_email: z.boolean(),
       notes: optional(z.string())
    })
-   // Mirrors the database rule (document_signed_requires), so it shows before saving.
+   // Mirrors the database rule (document_signed_requires), so it shows before saving: approved
+   // is signed and more, so it needs the same.
    .superRefine((document, ctx) => {
       if (
-         document.status === 'signed' &&
+         (document.status === 'signed' || document.status === 'approved') &&
          !(
             document.is_signed &&
             document.is_stamped &&
