@@ -131,6 +131,8 @@ export function useUpsertForm<S extends z.ZodType, Row, Payload>(
       readonly,
       save,
       ready,
+      /** Drops this form's draft for good, e.g. once a new row is saved and edited under its id. */
+      discardDraft: draft.discard,
       /** Whether a draft was restored, and whether the row changed since (see FormBox). */
       draft: readonlyReactive(reactive({ restored: draft.restored, stale: draft.stale }))
    };

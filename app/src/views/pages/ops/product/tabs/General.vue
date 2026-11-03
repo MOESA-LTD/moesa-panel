@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { COMPLIANCE_STATUSES, PRODUCT_STATUSES, type ProductRow } from '@/api/product';
+import { COMPLIANCE_STATUSES, PRODUCT_STATUSES } from '@/api/product';
 import ParentSelect from '../ParentSelect.vue';
-import { useProductForm } from '../useProductForm';
+import { injectProductForm } from '../useProductForm';
 
-const props = defineProps<{ id?: string | null }>();
-const emit = defineEmits<{ saved: [product: ProductRow] }>();
+// Identity, supplier and compliance of the product, in the card's shared form.
+const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } =
+   injectProductForm();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
-   useProductForm(
-      () => props.id,
-      (product) => emit('saved', product)
-   );
-await ready;
+const id = computed(() => values.value.id);
 
 const IDENTITY = ['variant_label', 'category', 'brand', 'gs1_prefix_owner'] as const;
 const SUPPLIER = ['supplier_product_code', 'manufacturer_art_no'] as const;
@@ -20,7 +16,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
 
 <template>
    <FormBox
-      @submit="save"
+      @submit="submit"
       @reset="() => reset()"
       v-focustrap
       :readonly
@@ -37,7 +33,13 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
             :readonly="readonly || !!id"
             v-slot="slotProps"
          >
-            <SelectCustomer v-bind="slotProps" v-model="values.customer_id" :disabled="!!id" />
+            <!-- The parent is one of the customer's products. -->
+            <SelectCustomer
+               v-bind="slotProps"
+               v-model="values.customer_id"
+               :disabled="!!id"
+               @change="values.parent_id = null"
+            />
          </FormField>
          <FormField
             fluid

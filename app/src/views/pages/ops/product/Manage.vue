@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { productResource } from '@/api/product';
-import Cost from './tabs/Cost.vue';
-import Dimensions from './tabs/Dimensions.vue';
-import Documents from './tabs/Documents.vue';
-import General from './tabs/General.vue';
+import ProductCard from './ProductCard.vue';
+import { PRODUCT_CARD_TABS, type ProductCardTab } from './useProductForm';
 
 // The product card. Dimensions, cost and documents belong to a saved product, so their tabs open
-// once the general tab has saved it. The general, dimensions and cost tabs edit the same row, so
-// only the open one is mounted (see useProductForm).
+// once the general tab has saved it.
 const props = defineProps<{
    id?: string | null;
    /** The tab opened first (the route's tab segment). */
@@ -23,20 +20,20 @@ watch(
    (id) => (productId.value = id || null)
 );
 
-// Loaded here so the route's Suspense waits for it; the tabs reuse the cached query.
+// Loaded here so the route's Suspense waits for it; the card reuses the cached query.
 const { data: product, suspense } = productResource.useOne(productId);
 if (productId.value) await suspense();
 
-const TABS = ['general', 'dimensions', 'cost', 'documents'] as const;
-type TabKey = (typeof TABS)[number];
+const fromRoute = (): ProductCardTab =>
+   PRODUCT_CARD_TABS.find(
+      (key) => route.name === `ops-product-manage-${key}` || props.tab === key
+   ) ?? 'general';
 
-const fromRoute = (): TabKey =>
-   TABS.find((key) => route.name === `ops-product-manage-${key}` || props.tab === key) ?? 'general';
-
-const activeTab = ref<TabKey>(productId.value ? fromRoute() : 'general');
+// Kept here, so the tab stays open when the card is re-created for a saved product.
+const activeTab = ref<ProductCardTab>(productId.value ? fromRoute() : 'general');
 
 // The URL deliberately stays on the "new" route: inside a dialog, navigating would stack a second
-// dialog (see dialogBeforeEach). The local id unlocks the other tabs.
+// dialog (see dialogBeforeEach). The local id re-creates the card under the saved product.
 const onSaved = (id: string) => (productId.value = id);
 
 const title = computed(() =>
@@ -49,30 +46,12 @@ const title = computed(() =>
 <template>
    <div class="card p-0">
       <h2 v-if="title" class="m-4 mb-0 text-xl font-semibold" v-text="title" />
-      <Tabs v-model:value="activeTab">
-         <TabList>
-            <Tab v-for="key in TABS" :key :value="key" :disabled="key !== 'general' && !productId">
-               {{ $t(`ops.product.tabs.${key}`) }}
-            </Tab>
-         </TabList>
-         <TabPanels>
-            <TabPanel value="general">
-               <General
-                  v-if="activeTab === 'general'"
-                  :id="productId"
-                  @saved="onSaved($event.id)"
-               />
-            </TabPanel>
-            <TabPanel value="dimensions">
-               <Dimensions v-if="productId && activeTab === 'dimensions'" :id="productId" />
-            </TabPanel>
-            <TabPanel value="cost">
-               <Cost v-if="productId && activeTab === 'cost'" :id="productId" />
-            </TabPanel>
-            <TabPanel value="documents">
-               <Documents v-if="productId && activeTab === 'documents'" :id="productId" />
-            </TabPanel>
-         </TabPanels>
-      </Tabs>
+      <!-- Keyed on the id: a saved new product gets a form (and draft) of its own. -->
+      <ProductCard
+         :key="productId ?? 'new'"
+         :id="productId"
+         v-model:tab="activeTab"
+         @saved="onSaved($event.id)"
+      />
    </div>
 </template>

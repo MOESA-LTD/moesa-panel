@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { PURCHASE_CURRENCIES } from '@/api/product';
-import { useProductForm } from '../useProductForm';
+import { injectProductForm } from '../useProductForm';
 
 // What the product costs: the purchase from the supplier, the landed cost and the prices.
-const props = defineProps<{ id: string }>();
-
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
-   useProductForm(() => props.id);
-await ready;
+const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } =
+   injectProductForm();
 
 const PRICES = [
    { field: 'landed_cost_eur', digits: 4 },
@@ -19,7 +16,7 @@ const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
 
 <template>
    <FormBox
-      @submit="save"
+      @submit="submit"
       @reset="() => reset()"
       v-focustrap
       :readonly

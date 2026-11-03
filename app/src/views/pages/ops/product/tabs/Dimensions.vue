@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { useProductForm } from '../useProductForm';
+import { injectProductForm } from '../useProductForm';
 
 // Dimensions and weights of the product, from unit to pallet. Dimensions are free text (e.g.
 // 120x80x40); weights and quantities are numbers.
-const props = defineProps<{ id: string }>();
-
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
-   useProductForm(() => props.id);
-await ready;
+const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } =
+   injectProductForm();
 
 const SECTIONS = [
    {
@@ -42,7 +39,7 @@ const SECTIONS = [
 
 <template>
    <FormBox
-      @submit="save"
+      @submit="submit"
       @reset="() => reset()"
       v-focustrap
       :readonly
