@@ -53,7 +53,7 @@ const resendCode = () => {
 const save = handleSubmit(async ({ email, code }) => {
    await verifyOtp(email, code, isPasswordReset.value ? 'recovery' : 'invite');
 
-   await router.replace({ name: 'update-password' });
+   await router.replace({ name: 'account-security' });
 
    toast.add({
       life: 0,

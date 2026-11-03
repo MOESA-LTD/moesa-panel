@@ -432,7 +432,32 @@
             "created_at": "Account Creation Date",
             "email_confirmed_at": "Email Verification Date",
             "last_sign_in_at": "Last Login Date"
-         }
+         },
+         "legend": "Profile details",
+         "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
+         "email_change_sent": "Check {email} to confirm the new address."
+      },
+      "header": {
+         "member_since": "Member since {date}",
+         "email_verified": "Verified",
+         "email_not_verified": "Not verified"
+      },
+      "avatar": {
+         "upload": "Upload photo",
+         "change": "Change photo",
+         "remove": "Remove photo",
+         "hint": "PNG, JPEG or WebP, up to 1 MB."
+      },
+      "security": {
+         "password_legend": "Change password",
+         "sessions_legend": "Sessions",
+         "sign_out_others": "Sign out other devices",
+         "sign_out_others_hint": "Ends every session except this one.",
+         "confirm_sign_out_others": {
+            "header": "Sign out other devices",
+            "question": "Every other device signed in to your account will be signed out. Continue?"
+         },
+         "signed_out_others": "Other devices were signed out."
       }
    },
    "toast": {
@@ -455,7 +480,7 @@
          "dashboard": "Dashboard",
          "error": "Error",
          "notfound": "Not Found",
-         "account": "Account",
+         "account": "My account",
          "profile": "Profile",
          "settings": "Settings",
          "update-profile": "Update Profile",
@@ -540,7 +565,8 @@
          "ops_document": "Documents",
          "ops_document_list": "Document list",
          "ops_media": "Media library",
-         "ops_media_edit": "Edit file"
+         "ops_media_edit": "Edit file",
+         "security": "Security"
       }
    },
    "dashboard": {

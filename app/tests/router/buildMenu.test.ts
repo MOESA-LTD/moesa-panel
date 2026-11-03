@@ -1,7 +1,15 @@
 import { buildMenu } from '@/router/buildMenu';
-import { describe, expect, it } from 'vitest';
+import accountRoutes from '@/router/routes/account';
+import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
-import type { RouteMeta, RouteRecordNormalized } from 'vue-router';
+import {
+   createMemoryHistory,
+   createRouter,
+   type RouteMeta,
+   type RouteRecordNormalized
+} from 'vue-router';
+
+vi.mock('@/store/auth', () => ({ useAuthStore: () => ({ isSignedIn: true }) }));
 
 const record = (
    path: string,
@@ -168,5 +176,35 @@ describe('buildMenu', () => {
          ['client', false, undefined]
       ]);
       expect(menu[0]!.items).toBeUndefined();
+   });
+});
+
+describe('account section', () => {
+   const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', children: accountRoutes }]
+   });
+   const routeAt = (path: string) => router.getRoutes().find((route) => route.path === path)!;
+
+   it('has the Profile and Security sections, without the old settings links', () => {
+      const account = build(router.getRoutes()).find((item) => item.name === 'account')!;
+      expect(account.items?.map((item) => item.name)).toEqual([
+         'account-profile',
+         'account-security'
+      ]);
+   });
+
+   it('sends the old settings links to their sections', () => {
+      expect(routeAt('/account/settings/update-password').redirect).toEqual({
+         name: 'account-security'
+      });
+      expect(routeAt('/account/settings/update-profile').redirect).toEqual({
+         name: 'account-profile'
+      });
+      expect(routeAt('/account/settings').redirect).toEqual({ name: 'account-profile' });
+   });
+
+   it('opens Profile at /account', () => {
+      expect(routeAt('/account').redirect).toEqual({ name: 'account-profile' });
    });
 });
