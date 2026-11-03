@@ -46,7 +46,7 @@ const context = computed(() => ({
    ...(props.customerId ? { customer_id: props.customerId } : {})
 }));
 
-const rowActions: Props['rowActions'] = [
+const rowActions = computed<Props['rowActions']>(() => [
    {
       label: t('action.edit'),
       icon: PrimeIcons.PENCIL,
@@ -60,7 +60,7 @@ const rowActions: Props['rowActions'] = [
                query: context.value
             })
    }
-];
+]);
 </script>
 
 <template>

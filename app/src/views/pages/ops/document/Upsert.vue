@@ -6,6 +6,7 @@ import {
    documentSchema,
    toDocumentFormValues,
    toDocumentPayload,
+   withRouteContext,
    type DocumentEntity,
    type DocumentRow
 } from '@/api/document';
@@ -37,7 +38,7 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       subject: 'document',
       schema: documentSchema,
       toFormValues: toDocumentFormValues,
-      toPayload: (data) => toDocumentPayload(data, props.code)
+      toPayload: (data) => toDocumentPayload(withRouteContext(data, props), props.code)
    });
 await ready;
 

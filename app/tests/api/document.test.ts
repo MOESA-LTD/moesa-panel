@@ -4,7 +4,8 @@ import {
    documentFileName,
    documentSchema,
    toDocumentFormValues,
-   toDocumentPayload
+   toDocumentPayload,
+   withRouteContext
 } from '@/api/document';
 import { setZodLocale } from '@/lib/form/zod';
 import i18n from '@plugins/i18n';
@@ -145,5 +146,35 @@ describe('document mappers', () => {
    it('keeps the stored file name when no record code is given', () => {
       const data = documentSchema.parse(formValues());
       expect(toDocumentPayload(data)).not.toHaveProperty('file_name');
+   });
+});
+
+describe('withRouteContext', () => {
+   const context = { entity_type: 'supplier' as const, entity_id: 's2', customer_id: 'c2' };
+
+   it('files a new document under the record its dialog was opened from', () => {
+      // E.g. a draft restored from adding to another record.
+      const data = documentSchema.parse(formValues());
+      expect(withRouteContext(data, context)).toMatchObject(context);
+      expect(toDocumentPayload(withRouteContext(data, context), 'SUP-2')).toMatchObject({
+         ...context,
+         file_name: 'SUP-2_SPEC_v03_' + dayjs().format('YYYYMMDD') + '_taslak'
+      });
+   });
+
+   it('keeps the form values where the route gives no context', () => {
+      const data = documentSchema.parse(formValues());
+      expect(
+         withRouteContext(data, { entity_type: null, entity_id: null, customer_id: null })
+      ).toMatchObject({ entity_type: 'product', entity_id: 'p1', customer_id: 'c1' });
+   });
+
+   it('leaves a saved document where it is', () => {
+      const data = documentSchema.parse(formValues({ id: 'd1' }));
+      expect(withRouteContext(data, context)).toMatchObject({
+         entity_type: 'product',
+         entity_id: 'p1',
+         customer_id: 'c1'
+      });
    });
 });

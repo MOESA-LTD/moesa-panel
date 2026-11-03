@@ -165,6 +165,30 @@ export const toDocumentPayload = (
       : {})
 });
 
+export type DocumentRouteContext = {
+   entity_type?: DocumentEntity | null;
+   entity_id?: string | null;
+   customer_id?: string | null;
+};
+
+/**
+ * A new document belongs to the record its dialog was opened from (the route's query), whatever
+ * the form holds: every add dialog shares one draft, so a restored draft may carry another
+ * record's context. A saved document keeps its own.
+ */
+export const withRouteContext = <V extends DocumentRouteContext & { id?: string | null }>(
+   values: V,
+   context: DocumentRouteContext
+): V =>
+   values.id
+      ? values
+      : {
+           ...values,
+           entity_type: context.entity_type ?? values.entity_type,
+           entity_id: context.entity_id ?? values.entity_id,
+           customer_id: context.customer_id ?? values.customer_id
+        };
+
 /** ResourceTable props for the documents of one record. */
 export const useEntityDocuments = (entityType: DocumentEntity, entityId: string) => ({
    from: 'document' as const,
