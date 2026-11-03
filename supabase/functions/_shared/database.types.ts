@@ -1010,6 +1010,306 @@ export type Database = {
           },
         ]
       }
+      project: {
+        Row: {
+          code: string | null
+          coordinator_id: string | null
+          created_at: string
+          current_phase: Database["public"]["Enums"]["project_phase"]
+          customer_id: string
+          display_name: string
+          id: string
+          notes: string | null
+          packages: string[]
+          path: Database["public"]["Enums"]["project_path"] | null
+          status: Database["public"]["Enums"]["project_status"]
+          target_delivery_on: string | null
+          target_live_on: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["project_type"]
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          coordinator_id?: string | null
+          created_at?: string
+          current_phase?: Database["public"]["Enums"]["project_phase"]
+          customer_id: string
+          display_name: string
+          id?: string
+          notes?: string | null
+          packages?: string[]
+          path?: Database["public"]["Enums"]["project_path"] | null
+          status?: Database["public"]["Enums"]["project_status"]
+          target_delivery_on?: string | null
+          target_live_on?: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["project_type"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          coordinator_id?: string | null
+          created_at?: string
+          current_phase?: Database["public"]["Enums"]["project_phase"]
+          customer_id?: string
+          display_name?: string
+          id?: string
+          notes?: string | null
+          packages?: string[]
+          path?: Database["public"]["Enums"]["project_path"] | null
+          status?: Database["public"]["Enums"]["project_status"]
+          target_delivery_on?: string | null
+          target_live_on?: string | null
+          tenant_id?: string
+          type?: Database["public"]["Enums"]["project_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_gate: {
+        Row: {
+          approval_document_id: string | null
+          code: Database["public"]["Enums"]["gate_code"]
+          created_at: string
+          customer_approved_on: string | null
+          decided_by_role: string | null
+          evidence_document_ids: string[]
+          id: string
+          needs_customer_approval: boolean
+          note: string | null
+          passed_at: string | null
+          position: number
+          project_id: string
+          rolled_back_reason: string | null
+          status: Database["public"]["Enums"]["gate_status"]
+          tenant_id: string
+        }
+        Insert: {
+          approval_document_id?: string | null
+          code: Database["public"]["Enums"]["gate_code"]
+          created_at?: string
+          customer_approved_on?: string | null
+          decided_by_role?: string | null
+          evidence_document_ids?: string[]
+          id?: string
+          needs_customer_approval: boolean
+          note?: string | null
+          passed_at?: string | null
+          position: number
+          project_id: string
+          rolled_back_reason?: string | null
+          status?: Database["public"]["Enums"]["gate_status"]
+          tenant_id: string
+        }
+        Update: {
+          approval_document_id?: string | null
+          code?: Database["public"]["Enums"]["gate_code"]
+          created_at?: string
+          customer_approved_on?: string | null
+          decided_by_role?: string | null
+          evidence_document_ids?: string[]
+          id?: string
+          needs_customer_approval?: boolean
+          note?: string | null
+          passed_at?: string | null
+          position?: number
+          project_id?: string
+          rolled_back_reason?: string | null
+          status?: Database["public"]["Enums"]["gate_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_gate_approval_document_fkey"
+            columns: ["approval_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_gate_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_product: {
+        Row: {
+          created_at: string
+          product_id: string
+          project_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          product_id: string
+          project_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          product_id?: string
+          project_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_product_product_fkey"
+            columns: ["product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_product_fkey"
+            columns: ["product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_task: {
+        Row: {
+          assignee_id: string | null
+          blocks_gate: boolean
+          created_at: string
+          display_name: string
+          due_on: string | null
+          id: string
+          phase: Database["public"]["Enums"]["project_phase"]
+          position: number
+          project_id: string
+          role: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          tenant_id: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          blocks_gate?: boolean
+          created_at?: string
+          display_name: string
+          due_on?: string | null
+          id?: string
+          phase: Database["public"]["Enums"]["project_phase"]
+          position?: number
+          project_id: string
+          role?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tenant_id: string
+        }
+        Update: {
+          assignee_id?: string | null
+          blocks_gate?: boolean
+          created_at?: string
+          display_name?: string
+          due_on?: string | null
+          id?: string
+          phase?: Database["public"]["Enums"]["project_phase"]
+          position?: number
+          project_id?: string
+          role?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_task_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_task_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_task_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_task_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role: {
         Row: {
           created_at: string | null
@@ -1340,6 +1640,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      task_template: {
+        Row: {
+          blocks_gate: boolean
+          created_at: string | null
+          display_name: string
+          id: string
+          phase: Database["public"]["Enums"]["project_phase"]
+          position: number
+          role: string
+        }
+        Insert: {
+          blocks_gate?: boolean
+          created_at?: string | null
+          display_name: string
+          id?: string
+          phase: Database["public"]["Enums"]["project_phase"]
+          position?: number
+          role: string
+        }
+        Update: {
+          blocks_gate?: boolean
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          phase?: Database["public"]["Enums"]["project_phase"]
+          position?: number
+          role?: string
+        }
+        Relationships: []
       }
       tenant: {
         Row: {
@@ -1716,6 +2046,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      gates_for: {
+        Args: {
+          type: Database["public"]["Enums"]["project_type"]
+          path: Database["public"]["Enums"]["project_path"]
+          packages: string[]
+        }
+        Returns: Database["public"]["Enums"]["gate_code"][]
+      }
       import_products: {
         Args: {
           rows: Json
@@ -1752,6 +2090,46 @@ export type Database = {
           "": unknown
         }
         Returns: string[]
+      }
+      pass_gate: {
+        Args: {
+          gate_id: string
+          note: string
+          customer_approved_on?: string
+          approval_document_id?: string
+          evidence_document_ids?: string[]
+        }
+        Returns: {
+          approval_document_id: string | null
+          code: Database["public"]["Enums"]["gate_code"]
+          created_at: string
+          customer_approved_on: string | null
+          decided_by_role: string | null
+          evidence_document_ids: string[]
+          id: string
+          needs_customer_approval: boolean
+          note: string | null
+          passed_at: string | null
+          position: number
+          project_id: string
+          rolled_back_reason: string | null
+          status: Database["public"]["Enums"]["gate_status"]
+          tenant_id: string
+        }
+      }
+      phase_after: {
+        Args: {
+          code: Database["public"]["Enums"]["gate_code"]
+          path: Database["public"]["Enums"]["project_path"]
+          packages: string[]
+        }
+        Returns: Database["public"]["Enums"]["project_phase"]
+      }
+      phase_before: {
+        Args: {
+          code: Database["public"]["Enums"]["gate_code"]
+        }
+        Returns: Database["public"]["Enums"]["project_phase"]
       }
       register_tenant: {
         Args: {
@@ -1793,6 +2171,29 @@ export type Database = {
           phone: string | null
           user_metadata: Json | null
         }[]
+      }
+      rollback_gate: {
+        Args: {
+          gate_id: string
+          reason: string
+        }
+        Returns: {
+          approval_document_id: string | null
+          code: Database["public"]["Enums"]["gate_code"]
+          created_at: string
+          customer_approved_on: string | null
+          decided_by_role: string | null
+          evidence_document_ids: string[]
+          id: string
+          needs_customer_approval: boolean
+          note: string | null
+          passed_at: string | null
+          position: number
+          project_id: string
+          rolled_back_reason: string | null
+          status: Database["public"]["Enums"]["gate_status"]
+          tenant_id: string
+        }
       }
       save_plan: {
         Args: {
@@ -1868,6 +2269,19 @@ export type Database = {
         | "contract"
         | "certificate"
         | "other"
+      gate_code:
+        | "G1"
+        | "G2"
+        | "G3"
+        | "G4"
+        | "G5"
+        | "PL_G1"
+        | "PL_G2"
+        | "PL_G3"
+        | "PL_G4"
+        | "L_G1"
+        | "L_G2"
+      gate_status: "pending" | "passed" | "rolled_back"
       platform_access: "authorized_user" | "none"
       product_status:
         | "concept"
@@ -1877,7 +2291,31 @@ export type Database = {
         | "on_sale"
         | "paused"
         | "archived"
+      project_path: "a_sourcing" | "b_private_label"
+      project_phase:
+        | "P1"
+        | "P2"
+        | "PL1"
+        | "PL2"
+        | "PL3"
+        | "PL4"
+        | "PL5"
+        | "PL6"
+        | "PL7"
+        | "P3"
+        | "P4"
+        | "P5"
+        | "P6"
+        | "L1"
+        | "L2"
+        | "L3"
+        | "L4"
+        | "L5"
+        | "closed"
+      project_status: "active" | "on_hold" | "closed" | "cancelled"
+      project_type: "npi" | "variant" | "revision" | "reorder"
       supplier_status: "candidate" | "approved" | "suspended"
+      task_status: "todo" | "doing" | "done" | "blocked"
       type_permission_command: "select" | "insert" | "update" | "delete"
       type_permission_kind: "read" | "create" | "modify"
       warehouse_type: "own" | "third_party" | "fba"
