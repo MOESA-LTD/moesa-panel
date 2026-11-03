@@ -4,9 +4,13 @@ import {
    mediaKind,
    mediaLinkRows,
    mediaPath,
+   mediaSchema,
    safeFileName,
    thumbPath,
-   validateMediaFile
+   toMediaFormValues,
+   toMediaPayload,
+   validateMediaFile,
+   type MediaRow
 } from '@/api/media';
 import { MediaFileError, uploadMedia } from '@/api/media/upload';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -258,5 +262,53 @@ describe('uploadMedia', () => {
 
       await expect(uploadMedia(pdf(), ctx)).rejects.toBe(error);
       expect(mock.insert).not.toHaveBeenCalled();
+   });
+});
+
+describe('mediaSchema', () => {
+   const values = (overrides: Record<string, unknown> = {}) => ({
+      title: 'Front',
+      alt_text: '',
+      tags: [],
+      customer_id: null,
+      ...overrides
+   });
+
+   it('trims and lower-cases the tags', () => {
+      const parsed = mediaSchema.parse(values({ tags: [' Mop ', 'mop'] }));
+      expect(parsed.tags).toEqual(['mop', 'mop']);
+      // An emptied optional field is stored as null.
+      expect(parsed.alt_text).toBeNull();
+   });
+
+   it('refuses a title over 200 characters on the title', () => {
+      const result = mediaSchema.safeParse(values({ title: 'x'.repeat(201) }));
+      expect(result.success).toBe(false);
+      expect(result.error?.issues.map(({ path }) => path)).toEqual([['title']]);
+   });
+
+   it('saves only the form fields', () => {
+      const row = {
+         id: 'm1',
+         tenant_id: 't1',
+         customer_id: 'c1',
+         title: 'Front',
+         alt_text: 'A mop',
+         tags: ['mop'],
+         storage_path: 't1/m1/front.png',
+         thumbnail_path: 't1/m1/thumb/thumb.webp',
+         file_name: 'front.png',
+         mime_type: 'image/png',
+         size_bytes: 10
+      } as unknown as MediaRow;
+      const payload = toMediaPayload(mediaSchema.parse(toMediaFormValues(row)));
+
+      expect(payload).toEqual({
+         id: 'm1',
+         title: 'Front',
+         alt_text: 'A mop',
+         tags: ['mop'],
+         customer_id: 'c1'
+      });
    });
 });

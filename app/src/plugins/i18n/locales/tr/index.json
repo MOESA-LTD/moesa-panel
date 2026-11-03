@@ -415,7 +415,9 @@
          "ops_project_task_add": "Yeni görev",
          "ops_project_task_edit": "Görevi düzenle",
          "ops_document": "Belgeler",
-         "ops_document_list": "Belge listesi"
+         "ops_document_list": "Belge listesi",
+         "ops_media": "Ortam kütüphanesi",
+         "ops_media_edit": "Dosyayı düzenle"
       }
    },
    "fields": {
@@ -1252,7 +1254,21 @@
          "empty_library": "Kütüphanede dosya yok.",
          "load_more": "Daha fazla yükle",
          "link_count": "Bağla ({count})",
-         "drop_hint": "Dosyaları buraya bırakın ya da seçin."
+         "drop_hint": "Dosyaları buraya bırakın ya da seçin.",
+         "download": "İndir",
+         "filter": {
+            "kind": "Tüm türler",
+            "tag": "Etiket, ardından Enter",
+            "linked": "Bağlı olduğu kayıt",
+            "unlinked": "Bağlı değil"
+         },
+         "fields": {
+            "title": "Başlık",
+            "alt_text": "Alternatif metin",
+            "tags": "Etiketler",
+            "customer": "Müşteri",
+            "file_name": "Dosya"
+         }
       }
    }
 }

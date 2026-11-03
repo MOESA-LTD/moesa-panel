@@ -19,6 +19,7 @@ const api = vi.hoisted(() => ({
    setRole: vi.fn(),
    setPrimary: vi.fn(),
    open: vi.fn(),
+   download: vi.fn(),
    library: [] as unknown[],
    libraryFilters: undefined as unknown
 }));
@@ -52,7 +53,8 @@ vi.mock('@/api/media/signedUrls', async () => {
    return {
       useSignedUrl: (path: () => string | null) =>
          computed(() => (toValue(path) ? `signed:${toValue(path)}` : undefined)),
-      openMediaFile: api.open
+      openMediaFile: api.open,
+      downloadMediaFile: api.download
    };
 });
 vi.mock('@/api/media/library', async () => {
@@ -108,9 +110,15 @@ describe('EntityMedia', () => {
       ability.update(allowAll());
       api.links = [];
       api.library = [];
-      [api.upload, api.link, api.unlink, api.setRole, api.setPrimary, api.open].forEach((fn) =>
-         fn.mockReset().mockResolvedValue(undefined)
-      );
+      [
+         api.upload,
+         api.link,
+         api.unlink,
+         api.setRole,
+         api.setPrimary,
+         api.open,
+         api.download
+      ].forEach((fn) => fn.mockReset().mockResolvedValue(undefined));
       api.link.mockResolvedValue([]);
    });
 
@@ -189,11 +197,17 @@ describe('EntityMedia', () => {
       );
    });
 
-   it('opens a file from its card', async () => {
+   it('opens a file from its card, or downloads it under its name', async () => {
       const file = media('sheet', 'application/pdf');
       api.links = [link('l-pdf', 'attachment', file)];
-      await cards(mountMedia())[0].get('[data-action="open"]').trigger('click');
-      expect(api.open).toHaveBeenCalledWith(file.storage_path, file.file_name);
+      const card = cards(mountMedia())[0];
+
+      await card.get('[data-action="open"]').trigger('click');
+      expect(api.open).toHaveBeenCalledWith(file.storage_path);
+      expect(api.download).not.toHaveBeenCalled();
+
+      await card.get('[data-action="download"]').trigger('click');
+      expect(api.download).toHaveBeenCalledWith(file.storage_path, file.file_name);
    });
 
    it('is read-only without the right to update the record', () => {

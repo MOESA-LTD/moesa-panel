@@ -13,7 +13,7 @@ import {
    type MediaKind,
    type MediaRole
 } from '@/api/media';
-import { openMediaFile } from '@/api/media/signedUrls';
+import { downloadMediaFile, openMediaFile } from '@/api/media/signedUrls';
 import MediaDropzone from '@/components/service-components/media/MediaDropzone.vue';
 import MediaPickerDialog from '@/components/service-components/media/MediaPickerDialog.vue';
 import MediaThumb from '@/components/service-components/media/MediaThumb.vue';
@@ -116,9 +116,10 @@ const SEVERITY: Record<MediaRole, string> = {
    attachment: 'secondary'
 };
 
-/** Opens the file; the tab opens in the click itself, so no pop-up blocker stops it. */
-const open = (row: EntityMediaLink) =>
-   void report(openMediaFile(row.media.storage_path, row.media.file_name));
+/** Shows the file in a tab; the tab opens in the click itself, so no pop-up blocker stops it. */
+const open = (row: EntityMediaLink) => void report(openMediaFile(row.media.storage_path));
+const download = (row: EntityMediaLink) =>
+   void report(downloadMediaFile(row.media.storage_path, row.media.file_name));
 </script>
 
 <template>
@@ -201,6 +202,17 @@ const open = (row: EntityMediaLink) =>
             </span>
             <span class="flex items-center justify-between gap-1">
                <Tag :value="$t(`ops.media.role.${row.role}`)" :severity="SEVERITY[row.role]" />
+               <Button
+                  data-action="download"
+                  :icon="PrimeIcons.DOWNLOAD"
+                  variant="text"
+                  rounded
+                  size="small"
+                  class="ml-auto"
+                  :title="$t('ops.media.download')"
+                  :aria-label="$t('ops.media.download')"
+                  @click="download(row)"
+               />
                <i
                   v-if="isPrimary(row)"
                   :class="PrimeIcons.STAR_FILL"

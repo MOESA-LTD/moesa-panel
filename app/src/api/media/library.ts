@@ -3,7 +3,7 @@ import type { MediaKind, MediaLibraryRow } from '@/api/media';
 import { queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { supabase } from '@/lib/supabase';
-import { useInfiniteQuery } from '@tanstack/vue-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 
 export type MediaLibraryFilters = {
@@ -74,3 +74,28 @@ export function useMediaLibrary(filters: MaybeRefOrGetter<MediaLibraryFilters>) 
          lastPage.length === MEDIA_PAGE_SIZE ? pages.length : undefined
    });
 }
+
+/** How often a file is used: its links and the documents citing it (null until loaded). */
+export function useMediaUsage(id: MaybeRefOrGetter<string | null | undefined>) {
+   const tenantId = useTenantKey();
+
+   return useQuery({
+      queryKey: computed(() => queryKeys.detail(tenantId.value, 'media_library', toValue(id))),
+      queryFn: async ({ signal }) => {
+         const { data } = await supabase
+            .from('media_library')
+            .select('link_count, document_count')
+            .eq('id', toValue(id)!)
+            .abortSignal(signal)
+            .maybeSingle()
+            .throwOnError();
+         return data;
+      },
+      enabled: computed(() => !!toValue(id))
+   });
+}
+
+/** A file in use (linked to a record or cited by a document) is neither deleted nor moved. */
+export const isMediaInUse = (
+   usage: { link_count: number | null; document_count: number | null } | null | undefined
+) => (usage?.link_count ?? 0) + (usage?.document_count ?? 0) > 0;

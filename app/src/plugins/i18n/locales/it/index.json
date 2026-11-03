@@ -571,7 +571,9 @@
          "ops_document": "Documents",
          "ops_document_list": "Document list",
          "ops_customer_media": "Media",
-         "ops_product_media": "Media"
+         "ops_product_media": "Media",
+         "ops_media": "Media library",
+         "ops_media_edit": "Edit file"
       }
    },
    "account": {
@@ -1252,7 +1254,21 @@
          "empty_library": "No files in the library.",
          "load_more": "Load more",
          "link_count": "Link ({count})",
-         "drop_hint": "Drop files here or choose them."
+         "drop_hint": "Drop files here or choose them.",
+         "download": "Download",
+         "filter": {
+            "kind": "Any type",
+            "tag": "Tag, then Enter",
+            "linked": "Linked to",
+            "unlinked": "Not linked"
+         },
+         "fields": {
+            "title": "Title",
+            "alt_text": "Alt text",
+            "tags": "Tags",
+            "customer": "Customer",
+            "file_name": "File"
+         }
       }
    }
 }

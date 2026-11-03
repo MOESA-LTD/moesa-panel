@@ -99,23 +99,39 @@ export function useSignedUrl(
    return computed(() => url.value);
 }
 
+/** A signed URL for one file; with `download`, the browser saves it under that name. */
+async function signOne(path: string, download?: string): Promise<string> {
+   const bucket = supabase.storage.from(MEDIA_BUCKET);
+   const { data, error } = await (download
+      ? bucket.createSignedUrl(path, SIGNED_URL_SECONDS, { download })
+      : bucket.createSignedUrl(path, SIGNED_URL_SECONDS));
+   if (error) throw error;
+   return data.signedUrl;
+}
+
 /**
- * Opens a file in a new tab, downloaded under its own name. The tab is opened at once, in the
- * click, so a pop-up blocker lets it through; it goes to the file once its URL is signed.
+ * Shows a file in a new tab (an image, PDF or video renders there). The tab is opened at once, in
+ * the click, so a pop-up blocker lets it through; it goes to the file once its URL is signed.
  */
-export async function openMediaFile(path: string, fileName: string): Promise<void> {
+export async function openMediaFile(path: string): Promise<void> {
    const tab = window.open('about:blank', '_blank');
    // Opened without noopener (which would return no window), so the link is cut here instead.
    if (tab) tab.opener = null;
    try {
-      const { data, error } = await supabase.storage
-         .from(MEDIA_BUCKET)
-         .createSignedUrl(path, SIGNED_URL_SECONDS, { download: fileName });
-      if (error) throw error;
-      if (tab) tab.location.href = data.signedUrl;
-      else window.open(data.signedUrl, '_blank', 'noopener');
+      const url = await signOne(path);
+      if (tab) tab.location.href = url;
+      else window.open(url, '_blank', 'noopener');
    } catch (error) {
       tab?.close();
       throw error;
    }
+}
+
+/** Saves a file under its own name. The signed URL is an attachment, so the page stays. */
+export async function downloadMediaFile(path: string, fileName: string): Promise<void> {
+   const url = await signOne(path, fileName);
+   const anchor = document.createElement('a');
+   anchor.href = url;
+   anchor.rel = 'noopener';
+   anchor.click();
 }

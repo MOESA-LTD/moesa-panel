@@ -1,4 +1,9 @@
-import { createSignedUrlLoader, openMediaFile, SIGNED_URL_SECONDS } from '@/api/media/signedUrls';
+import {
+   createSignedUrlLoader,
+   downloadMediaFile,
+   openMediaFile,
+   SIGNED_URL_SECONDS
+} from '@/api/media/signedUrls';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const storage = vi.hoisted(() => ({ createSignedUrl: vi.fn() }));
@@ -68,21 +73,20 @@ describe('openMediaFile', () => {
       return { tab, open };
    };
 
-   it('opens the tab at once, then sends it to the signed download', async () => {
+   it('opens the tab at once, then shows the file in it (signed inline)', async () => {
       let resolve!: (value: unknown) => void;
       storage.createSignedUrl.mockReturnValue(new Promise((r) => (resolve = r)));
       const { tab, open } = stubTab();
 
-      const opening = openMediaFile('t/m/sheet.pdf', 'Sheet.pdf');
+      const opening = openMediaFile('t/m/sheet.pdf');
       expect(open).toHaveBeenCalledOnce();
       expect(tab.opener).toBeNull();
       expect(tab.location.href).toBe('about:blank');
 
       resolve({ data: { signedUrl: 'https://signed' }, error: null });
       await opening;
-      expect(storage.createSignedUrl).toHaveBeenCalledWith('t/m/sheet.pdf', SIGNED_URL_SECONDS, {
-         download: 'Sheet.pdf'
-      });
+      // No download option: an image, PDF or video shows in the tab instead of being saved.
+      expect(storage.createSignedUrl).toHaveBeenCalledWith('t/m/sheet.pdf', SIGNED_URL_SECONDS);
       expect(tab.location.href).toBe('https://signed');
    });
 
@@ -90,7 +94,37 @@ describe('openMediaFile', () => {
       storage.createSignedUrl.mockResolvedValue({ data: null, error: new Error('gone') });
       const { tab } = stubTab();
 
-      await expect(openMediaFile('t/m/x.pdf', 'x.pdf')).rejects.toThrow('gone');
+      await expect(openMediaFile('t/m/x.pdf')).rejects.toThrow('gone');
       expect(tab.close).toHaveBeenCalledOnce();
+   });
+});
+
+describe('downloadMediaFile', () => {
+   it('saves the file under its own name, without opening a tab', async () => {
+      storage.createSignedUrl.mockResolvedValue({
+         data: { signedUrl: 'https://signed.test/sheet.pdf?download=Sheet.pdf' },
+         error: null
+      });
+      const open = vi.fn();
+      vi.stubGlobal('open', open);
+      const clicked: string[] = [];
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+         this: HTMLAnchorElement
+      ) {
+         clicked.push(this.href);
+      });
+
+      await downloadMediaFile('t/m/sheet.pdf', 'Sheet.pdf');
+
+      expect(storage.createSignedUrl).toHaveBeenCalledWith('t/m/sheet.pdf', SIGNED_URL_SECONDS, {
+         download: 'Sheet.pdf'
+      });
+      expect(clicked).toEqual(['https://signed.test/sheet.pdf?download=Sheet.pdf']);
+      expect(open).not.toHaveBeenCalled();
+   });
+
+   it('fails when the file cannot be signed', async () => {
+      storage.createSignedUrl.mockResolvedValue({ data: null, error: new Error('gone') });
+      await expect(downloadMediaFile('t/m/x.pdf', 'x.pdf')).rejects.toThrow('gone');
    });
 });
