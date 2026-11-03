@@ -274,6 +274,23 @@ describe('uploadMedia', () => {
       await expect(uploadMedia(pdf(), ctx)).rejects.toBe(error);
       expect(mock.insert).not.toHaveBeenCalled();
    });
+
+   it('gives a refused upload a status, so the error handler shows it', async () => {
+      // Storage returns its JSON body as the error: no `status` and no `code`.
+      const body = {
+         statusCode: '409',
+         error: 'Duplicate',
+         message: 'The resource already exists'
+      };
+      mock.upload.mockResolvedValue({ data: null, error: body });
+
+      await expect(uploadMedia(pdf(), ctx)).rejects.toMatchObject({
+         name: 'MediaFileError',
+         status: 409,
+         message: 'The resource already exists'
+      });
+      expect(mock.insert).not.toHaveBeenCalled();
+   });
 });
 
 describe('mediaSchema', () => {

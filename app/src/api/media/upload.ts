@@ -73,6 +73,16 @@ export async function makeThumbnail(file: File, size = THUMBNAIL_SIZE): Promise<
    }
 }
 
+/**
+ * Storage returns a refused upload's JSON body as the error ({ statusCode, error, message }): it
+ * has neither `status` nor `code`, and appErrorHandler shows only errors that do. Give it both a
+ * status and the "File not uploaded" title.
+ */
+const refusedUpload = (error: Error & { status?: number; statusCode?: string }) =>
+   error.status
+      ? error
+      : Object.assign(error, { name: 'MediaFileError', status: Number(error.statusCode) || 500 });
+
 /** The name a file is titled by: its name without the extension. */
 const titleOf = (name: string) => name.replace(/\.[^.]*$/, '') || name;
 
@@ -99,7 +109,7 @@ export async function uploadMedia(
       contentType: file.type,
       upsert: false
    });
-   if (uploadError) throw uploadError;
+   if (uploadError) throw refusedUpload(uploadError);
    const uploaded = [storagePath];
 
    // A file without a thumbnail is shown by itself (thumbPath), so a failed one is left out.
