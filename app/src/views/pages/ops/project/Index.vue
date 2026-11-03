@@ -137,6 +137,7 @@ const dialogRef = useDialogRef();
          <SelectEnum
             v-model="filterModel.value"
             :values="PROJECT_TYPES"
+            glossary="project_type"
             i18n-prefix="ops.project.type"
          />
       </template>

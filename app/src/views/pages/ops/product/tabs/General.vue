@@ -84,6 +84,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
                v-bind="slotProps"
                v-model="values.status"
                :values="PRODUCT_STATUSES"
+               glossary="product_status"
                i18n-prefix="ops.product.status"
             />
          </FormField>

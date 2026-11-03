@@ -98,6 +98,7 @@ const DATES = ['target_delivery_on', 'target_live_on'] as const;
                v-bind="slotProps"
                v-model="values.type"
                :values="PROJECT_TYPES"
+               glossary="project_type"
                i18n-prefix="ops.project.type"
                :disabled="!!id"
             />
@@ -114,6 +115,7 @@ const DATES = ['target_delivery_on', 'target_live_on'] as const;
                v-bind="slotProps"
                v-model="values.path"
                :values="PROJECT_PATHS"
+               glossary="project_path"
                i18n-prefix="ops.project.path"
                :disabled="!!id"
             />
@@ -125,11 +127,12 @@ const DATES = ['target_delivery_on', 'target_live_on'] as const;
             :readonly="readonly || !!id"
             v-slot="slotProps"
          >
-            <MultiSelect
+            <SelectEnum
                v-bind="slotProps"
                v-model="values.packages"
-               :options="[...PACKAGES]"
-               display="chip"
+               :values="PACKAGES"
+               glossary="package"
+               multiple
                :disabled="!!id"
             />
          </FormField>

@@ -100,14 +100,23 @@ export const documentSchema = z
       issued_on: optional(dateOnly()),
       status: z.enum(DOCUMENT_STATUSES).default('draft'),
       url: optional(website()),
+      /** An uploaded or library file; a document has a Drive link, a file or both. */
+      media_id: z.string().nullish(),
       is_signed: z.boolean(),
       is_stamped: z.boolean(),
       sent_from_official_email: z.boolean(),
       notes: optional(z.string())
    })
-   // Mirrors the database rule (document_signed_requires), so it shows before saving: a signed
-   // document, and an approved spec sheet (the product's evidence), need every flag and a date.
+   // Mirrors the database rules, so they show before saving. A document has a file
+   // (document_has_file). A signed document, and an approved spec sheet (the product's evidence),
+   // need every flag and a date (document_signed_requires).
    .superRefine((document, ctx) => {
+      if (!document.url && !document.media_id)
+         ctx.addIssue({
+            code: 'custom',
+            path: ['url'],
+            message: i18n.t('errors.document_file_required')
+         });
       if (
          (document.status === 'signed' ||
             (document.status === 'approved' && document.type === 'spec_sheet')) &&
@@ -139,6 +148,7 @@ export const toDocumentFormValues = (
    issued_on: parseDateOnly(document?.issued_on),
    status: document?.status ?? 'draft',
    url: document?.url ?? '',
+   media_id: document?.media_id ?? null,
    is_signed: document?.is_signed ?? false,
    is_stamped: document?.is_stamped ?? false,
    sent_from_official_email: document?.sent_from_official_email ?? false,
@@ -176,7 +186,9 @@ export type DocumentRouteContext = {
 /**
  * A new document belongs to the record its dialog was opened from (the route's query), whatever
  * the form holds: every add dialog shares one draft, so a restored draft may carry another
- * record's context. A saved document keeps its own.
+ * record's context. Its customer is the record's (none for a supplier or a tenant-level record),
+ * which decides the customer files it may cite (document_check_media). A saved document keeps its
+ * own.
  */
 export const withRouteContext = <V extends DocumentRouteContext & { id?: string | null }>(
    values: V,
@@ -188,13 +200,27 @@ export const withRouteContext = <V extends DocumentRouteContext & { id?: string 
            ...values,
            entity_type: context.entity_type ?? values.entity_type,
            entity_id: context.entity_id ?? values.entity_id,
-           customer_id: context.customer_id ?? values.customer_id
+           customer_id: context.entity_id
+              ? (context.customer_id ?? null)
+              : (context.customer_id ?? values.customer_id)
         };
+
+/**
+ * A document's file, embedded in the lists (shown as file or link). Named by its key: the key is
+ * composite (media_id, tenant_id), so the column hint `media:media_id` does not resolve.
+ */
+export const DOCUMENT_MEDIA_SELECT = 'media!document_media_fkey(id, storage_path, file_name)';
+
+export type DocumentFile = { id: string; storage_path: string; file_name: string };
+
+/** A list row's embedded file (DOCUMENT_MEDIA_SELECT), which the table's row type leaves out. */
+export const documentFile = (row: object): DocumentFile | null =>
+   (row as { media?: DocumentFile | null }).media ?? null;
 
 /** ResourceTable props for the documents of one record. */
 export const useEntityDocuments = (entityType: DocumentEntity, entityId: string) => ({
    from: 'document' as const,
-   select: '*',
+   select: `*, ${DOCUMENT_MEDIA_SELECT}`,
    useMeta: false,
    filters: createFilters({
       entity_type: equalsFilter(entityType),

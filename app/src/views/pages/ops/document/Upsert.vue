@@ -11,6 +11,7 @@ import {
    type DocumentRow
 } from '@/api/document';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+import DocumentFileField from './DocumentFileField.vue';
 
 // Opened as a dialog from a record's document list, which passes the record in the query.
 const props = defineProps<{
@@ -42,6 +43,9 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
    });
 await ready;
 
+// The customer the document is saved under (that of its record), whose files it may cite.
+const customerId = computed(() => withRouteContext(values.value, props).customer_id ?? null);
+
 const flags = ['is_signed', 'is_stamped', 'sent_from_official_email'] as const;
 
 // What a saved document is (its record, type and version) is fixed (document_identity_immutable),
@@ -72,6 +76,7 @@ const statusFixed = computed(() => !!values.value.id && values.value.status === 
                v-bind="slotProps"
                v-model="values.type"
                :values="DOCUMENT_TYPES"
+               glossary="document_type"
                i18n-prefix="ops.document.type"
                :disabled="identityFixed"
             />
@@ -116,6 +121,7 @@ const statusFixed = computed(() => !!values.value.id && values.value.status === 
                v-bind="slotProps"
                v-model="values.status"
                :values="DOCUMENT_STATUSES"
+               glossary="document_status"
                i18n-prefix="ops.document.status"
                :disabled="statusFixed"
             />
@@ -123,12 +129,21 @@ const statusFixed = computed(() => !!values.value.id && values.value.status === 
          <FormField
             class="!flex-auto !max-w-none w-full"
             fluid
-            :label="$t('ops.document.fields.url')"
+            :label="$t('ops.document.drive_link')"
             :error="errors.url"
             :readonly
             v-slot="slotProps"
          >
             <InputText v-bind="slotProps" v-model="values.url" />
+         </FormField>
+         <FormField
+            class="!flex-auto !max-w-none w-full"
+            fluid
+            :label="$t('ops.document.file')"
+            :error="errors.media_id"
+            :readonly
+         >
+            <DocumentFileField v-model:mediaId="values.media_id" :customerId :readonly />
          </FormField>
          <FormBox class="!flex-auto">
             <span v-for="flag in flags" :key="flag" class="flex items-center gap-2">

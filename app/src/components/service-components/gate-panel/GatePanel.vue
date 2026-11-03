@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DocumentRow } from '@/api/document';
+import { glossaryKey } from '@/api/glossary';
 import {
    byPosition,
    usePassGate,
@@ -20,10 +21,14 @@ const props = defineProps<{ gate: ProjectGateRow; project: ProjectCard }>();
 
 type GateDocument = Pick<DocumentRow, 'id' | 'entity_id' | 'type' | 'version' | 'file_name'>;
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 
 const gateLabel = computed(() => t(`ops.project.gate.${props.gate.code}`));
+const gateDescription = computed(() => {
+   const key = glossaryKey('gate_code', props.gate.code);
+   return te(key) ? t(key) : undefined;
+});
 
 const STATUS_SEVERITY: Record<GateStatus, string> = {
    passed: 'success',
@@ -147,6 +152,14 @@ const formatDate = (value: string | null, format = 'YYYY-MM-DD') =>
 <template>
    <div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center gap-2">
+         <i
+            v-if="gateDescription"
+            data-test="gate-glossary-info"
+            class="pi pi-info-circle"
+            role="img"
+            v-tooltip.top="gateDescription"
+            :aria-label="gateDescription"
+         />
          <Tag
             :value="$t(`ops.project.gate_status.${gate.status}`)"
             :severity="STATUS_SEVERITY[gate.status]"

@@ -28,9 +28,9 @@ NOTIFY pgrst,
 --
 -- MOESA LTD has the two Phase 1 roles (spec §7), built by private.seed_ops_roles:
 --   management   every permission of the business modules (ops_setting, document, supplier,
---                customer, product, project) and of branch, user, role and audit_log
+--                customer, product, project, media) and of branch, user, role and audit_log
 --   coordinator  the same, but the settings, the users, the roles and the company and its branches
---                read-only
+--                read-only, and no deleting media (spec M19: management only)
 -- and the THOMETZKI customer (THO) with its warehouse, Amazon account, brand and a contact; five
 -- approved suppliers; three products on sale (THO-MOP40-2P with a signed spec sheet); and the
 -- "Mop ailesi çok ülke pilotu" project, its gates all pending (it waits on G1).
@@ -120,11 +120,12 @@ BEGIN
     FROM public.role r
     JOIN public.permission p
         ON p.group_name IN ('ops_setting', 'document', 'supplier', 'customer', 'product', 'project',
-                            'branch', 'user', 'role', 'audit_log')
+                            'media', 'branch', 'user', 'role', 'audit_log')
        AND (r.display_name = 'management'
             OR NOT (p.group_name = 'ops_setting' AND p.command = 'update'
                     OR p.group_name IN ('role', 'user') AND p.command <> 'select'
-                    OR p.resource_name = 'public.tenant' AND p.command <> 'select'))
+                    OR p.resource_name = 'public.tenant' AND p.command <> 'select'
+                    OR p.resource_name = 'public.media' AND p.command = 'delete'))
     WHERE r.tenant_id = seed_ops_roles.tenant_id AND r.display_name IN ('management', 'coordinator');
 END;
 $$;

@@ -112,6 +112,7 @@ const rowActions: Props['rowActions'] = [
          <SelectEnum
             :modelValue="data.status"
             :values="TASK_STATUSES"
+            glossary="task_status"
             i18n-prefix="ops.project.task_status"
             :disabled="!$can('modify', 'project_task')"
             @update:modelValue="$event && setStatus({ id: data.id, status: $event as TaskStatus })"

@@ -10,6 +10,7 @@ import { toS10Csv, type ProductExportRow } from '@/api/product/csv';
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
 import { useCustomerFilter, withCustomerFilter } from '@/store/customerFilter';
+import MediaThumb from '@/components/service-components/media/MediaThumb.vue';
 import {
    PRODUCT_STATUSES,
    specFilterFromQuery,
@@ -31,6 +32,13 @@ const route = useRoute();
 const { t } = useI18n();
 
 const columns = computed<Props['columns']>(() => [
+   // The primary image (its thumbnail), named for screen readers only.
+   {
+      field: 'primary_image_path',
+      header: '',
+      reorderableColumn: false,
+      pt: { headerCell: { 'aria-label': t('ops.media.primary') } }
+   },
    { field: 'customer.code', header: t('ops.product.fields.customer') },
    { field: 'sku', sortable: true, sortOrder: { value: 1 }, header: t('ops.product.fields.sku') },
    { field: 'display_name', sortable: true, header: t('ops.product.fields.display_name') },
@@ -218,6 +226,9 @@ const dialogRef = useDialogRef();
             </span>
          </Teleport>
       </template>
+      <template #primary_image_path_body="{ data }">
+         <MediaThumb :path="data.primary_image_path" :alt="data.display_name" :size="40" />
+      </template>
       <template #status_body="{ data }">
          <Tag
             :value="$t(`ops.product.status.${data.status}`)"
@@ -228,6 +239,7 @@ const dialogRef = useDialogRef();
          <SelectEnum
             v-model="filterModel.value"
             :values="PRODUCT_STATUSES"
+            glossary="product_status"
             i18n-prefix="ops.product.status"
          />
       </template>

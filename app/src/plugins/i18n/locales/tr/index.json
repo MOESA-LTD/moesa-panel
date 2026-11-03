@@ -281,7 +281,23 @@
       "customer_code_immutable": "Müşteri kodu değiştirilemez.",
       "tenant_required": "Önce bir şube seçin.",
       "invalid_code_kind_or_scope": "Bu tür kod bu kapsam için üretilemez.",
-      "rows_must_be_an_array": "İçe aktarma dosyası satır listesi olarak okunamadı."
+      "rows_must_be_an_array": "İçe aktarma dosyası satır listesi olarak okunamadı.",
+      "media_file_missing": "Dosya yüklenmedi. Tekrar deneyin.",
+      "media_type_not_allowed": "Yalnızca PNG, JPEG, WebP, PDF ve MP4 dosyaları yüklenebilir.",
+      "media_too_large": "Dosya, ayarlardaki yükleme sınırından büyük.",
+      "MediaFileError": "Dosya yüklenmedi",
+      "media_file_immutable": "Ortam dosyası değiştirilemez; yenisini yükleyin.",
+      "media_in_use": "Dosya bir kayda ya da belgeye bağlı; önce bağlantıyı kaldırın.",
+      "media_link_entity_missing": "Bağlanacak kayıt bulunamadı.",
+      "media_link_forbidden": "Bu kaydı değiştirme yetkiniz yok; ortamını da değiştiremezsiniz.",
+      "media_link_identity_immutable": "Bağlantı başka bir dosyaya ya da kayda taşınamaz.",
+      "media_customer_mismatch": "Bu dosya başka bir müşteriye ait.",
+      "media_primary_not_image": "Birincil görsel yalnızca bir resim olabilir.",
+      "media_customer_locked": "Dosya bağlıyken müşterisi değiştirilemez.",
+      "media_missing": "Ortam dosyası bulunamadı.",
+      "media_already_linked": "Dosya bu kayda zaten bağlı.",
+      "media_primary_exists": "Kaydın zaten bir birincil görseli var.",
+      "document_file_required": "Drive bağlantısı ya da dosya ekleyin."
    },
    "account": {
       "profile": {
@@ -371,6 +387,7 @@
          "ops_customer_platforms": "Platformlar",
          "ops_customer_brands": "Markalar",
          "ops_customer_documents": "Belgeler",
+         "ops_customer_media": "Ortam",
          "ops_customer_contact_add": "Kişi ekle",
          "ops_customer_contact_edit": "Kişiyi düzenle",
          "ops_customer_warehouse_add": "Depo ekle",
@@ -386,6 +403,7 @@
          "ops_product_dimensions": "Ölçüler",
          "ops_product_cost": "Maliyet",
          "ops_product_documents": "Belgeler",
+         "ops_product_media": "Ortam",
          "ops_product_import": "Ürün içe aktar",
          "ops_project": "Projeler",
          "ops_project_list": "Proje listesi",
@@ -398,7 +416,9 @@
          "ops_project_task_add": "Yeni görev",
          "ops_project_task_edit": "Görevi düzenle",
          "ops_document": "Belgeler",
-         "ops_document_list": "Belge listesi"
+         "ops_document_list": "Belge listesi",
+         "ops_media": "Ortam kütüphanesi",
+         "ops_media_edit": "Dosyayı düzenle"
       }
    },
    "fields": {
@@ -459,7 +479,9 @@
       "project": "Proje",
       "project_product": "Proje ürünü",
       "project_gate": "Proje kapısı",
-      "project_task": "Proje görevi"
+      "project_task": "Proje görevi",
+      "media": "Ortam",
+      "media_link": "Ortam bağlantısı"
    },
    "dashboard": {
       "statistics": {
@@ -733,7 +755,8 @@
             "s1_customer_notify_hours": "S1’de müşteriye bildirim süresi (saat)",
             "spec_sheet_required_from": "Teknik şartname zorunluluk tarihi",
             "wip_limit_per_role": "Rol başına devam eden iş sınırı",
-            "gate_evidence_blocking": "Eksik kapı kanıtı adımı engeller"
+            "gate_evidence_blocking": "Eksik kapı kanıtı adımı engeller",
+            "media_max_mb": "En büyük yükleme (MB)"
          }
       },
       "customer_filter": {
@@ -742,13 +765,16 @@
       "document": {
          "title": "Belgeler",
          "open_link": "Bağlantıyı aç",
+         "drive_link": "Drive bağlantısı",
+         "file": "Dosya",
+         "remove_file": "Dosyayı kaldır",
          "fields": {
             "type": "Tür",
             "version": "Sürüm",
             "issued_on": "Tarih",
             "status": "Durum",
             "file_name": "Dosya adı",
-            "url": "Bağlantı (Drive)",
+            "url": "Dosya ya da bağlantı",
             "is_signed": "İmzalı",
             "is_stamped": "Kaşeli",
             "sent_from_official_email": "Resmi e-postadan gönderildi",
@@ -856,7 +882,8 @@
             "warehouses": "Depolar",
             "platforms": "Platformlar",
             "brands": "Markalar",
-            "documents": "Belgeler"
+            "documents": "Belgeler",
+            "media": "Ortam"
          },
          "sections": {
             "general": "Müşteri",
@@ -954,7 +981,8 @@
             "general": "Genel",
             "dimensions": "Ölçüler",
             "cost": "Maliyet",
-            "documents": "Belgeler"
+            "documents": "Belgeler",
+            "media": "Ortam"
          },
          "sections": {
             "identity": "Ürün",
@@ -1200,6 +1228,142 @@
             "L_G1": "L-G1",
             "L_G2": "L-G2"
          }
+      },
+      "media": {
+         "title": "Ortam",
+         "library": "Ortam kütüphanesi",
+         "upload": "Dosya yükle",
+         "pick": "Kütüphaneden seç",
+         "link_from_library": "Kütüphaneden bağla",
+         "primary": "Birincil görsel",
+         "role": {
+            "primary_image": "Birincil görsel",
+            "gallery": "Galeri",
+            "evidence_photo": "Kanıt fotoğrafı",
+            "attachment": "Ek"
+         },
+         "kind": {
+            "image": "Görsel",
+            "pdf": "PDF",
+            "video": "Video"
+         },
+         "upload_hint": "PNG, JPEG, WebP, PDF ya da MP4, en fazla {mb} MB.",
+         "too_large": "Dosya yükleme sınırından büyük: en fazla {mb} MB.",
+         "set_primary": "Birincil görsel yap",
+         "set_role": "Rol ata",
+         "unlink": "Bağlantıyı kaldır",
+         "selected": "{count} seçili",
+         "select": "{name} seç",
+         "open": "Dosyayı aç",
+         "empty": "Henüz dosya yok.",
+         "empty_library": "Kütüphanede dosya yok.",
+         "load_more": "Daha fazla yükle",
+         "link_count": "Bağla ({count})",
+         "drop_hint": "Dosyaları buraya bırakın ya da seçin.",
+         "download": "İndir",
+         "filter": {
+            "kind": "Tüm türler",
+            "tag": "Etiket, ardından Enter",
+            "linked": "Bağlı olduğu kayıt",
+            "unlinked": "Bağlı değil"
+         },
+         "fields": {
+            "title": "Başlık",
+            "alt_text": "Alternatif metin",
+            "tags": "Etiketler",
+            "customer": "Müşteri",
+            "file_name": "Dosya"
+         }
+      }
+   },
+   "glossary": {
+      "package": {
+         "A0": "Pazar araştırması, konsept ve tasarım (PL1–PL3): araştırma raporu, onaylı konsept, tasarım ve marka dosyası.",
+         "A1": "Marka sourcing (P1–P4): mevcut bir markanın ya da üreticinin ürünü; onaylı, kalite kontrolünden geçmiş.",
+         "A2": "Private label geliştirme (P1 → PL1–PL7 → P3–P4): müşterinin markasıyla konseptten itibaren geliştirilen ürün; A0'ı içerir.",
+         "B": "Lojistik ve teslim (P5–P6): ürün gümrüklenmiş, müşterinin deposunda.",
+         "C": "Listing ve pazara açılış (L1–L5): ürün seçilen platform ve ülkelerde yayında.",
+         "D": "Uçtan uca: A1 veya A2 + B + C; fikirden satışa hazır ürüne tek muhatap.",
+         "E": "Sürekli yönetim (O1–O3): yeniden sipariş, listing bakımı, raporlama. Proje açılmaz; yeniden sipariş reorder projesi olur."
+      },
+      "project_type": {
+         "npi": "Yeni ürün: yolunun tam kapı setinden geçer.",
+         "variant": "Mevcut üründen yeni varyant (G2 → G5).",
+         "revision": "Değişiklik talebi sonucu spec ya da ambalaj değişikliği (G2 → G5).",
+         "reorder": "Onaylı ürünün tekrar siparişi (G3 → G5)."
+      },
+      "project_path": {
+         "a_sourcing": "A yolu, marka sourcing: mevcut markanın ürünü için tedarikçi ve numune (P2).",
+         "b_private_label": "B yolu, private label: müşterinin markasıyla konseptten baskı onayına (PL1–PL7)."
+      },
+      "gate_code": {
+         "G1": "Proje başlatma (M): brief ve fizibilite onaylı.",
+         "G2": "Numune, spec sheet ve NPDS onayı (M); imzalı spec sheet olmadan geçilmez.",
+         "G3": "PI, fiyat ve baskı onayı (M).",
+         "G4": "Sevkiyat izni (iç kapı): PSI geçti, belgeler tam; onay uyum ve kalite sorumlusunda.",
+         "G5": "Teslim kabulü (M), müşterinin deposunda.",
+         "PL_G1": "Konsept ve tasarım onayı (M), yazılı.",
+         "PL_G2": "Marka ve kimlik onayı (M).",
+         "PL_G3": "Altın numune onayı (M).",
+         "PL_G4": "Baskıya onay (M).",
+         "L_G1": "İçerik onayı (M).",
+         "L_G2": "Proje kapanışı (M)."
+      },
+      "document_type": {
+         "spec_sheet": "Üreticinin imzalı ve kaşeli ürün spesifikasyonu: ürünün kanıtı.",
+         "tech_pack": "Üreticiye tasarım paketi: çizim, malzeme, ölçüler.",
+         "sample_report": "Numune değerlendirmesi: numunenin spec'e göre durumu.",
+         "pi": "Tedarikçinin proforma faturası: adet, fiyat, şartlar.",
+         "po": "Tedarikçiye gönderilen satın alma siparişi.",
+         "psi_report": "Yükleme öncesi kontrol raporu (AQL), fotoğraflı ve videolu.",
+         "test_report": "Ürün uyumu için laboratuvar test raporu.",
+         "sds": "Güvenlik bilgi formu; kimyasallarda zorunlu.",
+         "doc_of_conformity": "AB uygunluk beyanı (DoC).",
+         "technical_file": "Piyasa gözetimi için tutulan teknik dosya.",
+         "label_artwork": "Etiket ve ambalaj baskı dosyası: dieline, GTIN, uyarılar.",
+         "packing_list": "Sevkiyatın çeki listesi: koli, adet, ağırlık.",
+         "commercial_invoice": "Gümrük için ticari fatura.",
+         "bill_of_lading": "Taşıyıcının konşimentosu (B/L).",
+         "customs": "Gümrük beyannamesi ve işlem belgeleri.",
+         "delivery_receipt": "Depoda imzalanan teslim tutanağı; G5 kanıtı.",
+         "gate_approval": "Kapının yazılı müşteri onayı (e-posta ya da e-imza).",
+         "change_request": "Değişiklik talebi (CR): spec, tasarım, ambalaj ya da fiyatta sürümlü değişiklik.",
+         "contract": "Müşteri ya da tedarikçiyle sözleşme (MSA, SOW, NNN).",
+         "certificate": "Tedarikçi ya da ürün sertifikası.",
+         "other": "Diğer belgeler."
+      },
+      "document_status": {
+         "draft": "Henüz kesin değil; değişebilir.",
+         "signed": "İmzalı, kaşeli, resmî e-postadan gönderilmiş ve tarihli.",
+         "approved": "Kabul edildi; onaylı spec sheet ayrıca imzalı olmalı.",
+         "superseded": "Yeni sürümle değiştirildi; saklanır, silinmez."
+      },
+      "supplier_status": {
+         "candidate": "Değerlendiriliyor; henüz sipariş yok.",
+         "approved": "Değerlendirildi, siparişe onaylı.",
+         "suspended": "Sorun çözülene kadar yeni sipariş verilmez."
+      },
+      "customer_status": {
+         "lead": "Potansiyel müşteri, henüz sözleşme yok (C1–C2).",
+         "onboarding": "Sözleşme imzalandı, onboarding sürüyor (C3).",
+         "active": "Projeleri yürüyor.",
+         "paused": "İş şimdilik beklemede.",
+         "closed": "İlişki sona erdi; yeni proje açılamaz."
+      },
+      "product_status": {
+         "concept": "Fikir ya da konsept; henüz geliştirilmedi.",
+         "development": "Tedarikçiyle geliştiriliyor ya da numunede.",
+         "approved": "Numune ve spec onaylı; siparişe hazır.",
+         "ordering": "Sipariş verildi; üretimde ya da yolda.",
+         "on_sale": "Yayında, satışta.",
+         "paused": "Satış şimdilik durduruldu.",
+         "archived": "Artık kullanılmıyor; GTIN'i yeniden verilebilir."
+      },
+      "task_status": {
+         "todo": "Başlanmadı.",
+         "doing": "Sürüyor.",
+         "done": "Bitti.",
+         "blocked": "Başka bir şey çözülmeden ilerleyemiyor."
       }
    }
 }

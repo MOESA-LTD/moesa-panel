@@ -26,7 +26,8 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'product' },
             { action: 'select', subject: 'project' },
             { action: 'select', subject: 'supplier' },
-            { action: 'select', subject: 'setting' }
+            { action: 'select', subject: 'setting' },
+            { action: 'select', subject: 'media' }
          ]
       },
       components: {
@@ -180,6 +181,20 @@ const routes: RouteRecordRaw[] = [
                         components: {
                            default: () => import('@/views/pages/ops/customer/tabs/Documents.vue'),
                            skeleton: () => import('@/views/pages/ops/customer/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-customer-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_customer_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/customer/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/customer/tabs/Media.vue')
                         }
                      }
                   ]
@@ -543,6 +558,20 @@ const routes: RouteRecordRaw[] = [
                            default: () => import('@/views/pages/ops/product/tabs/Documents.vue'),
                            skeleton: () => import('@/views/pages/ops/product/tabs/Documents.vue')
                         }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-product-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Media.vue')
+                        }
                      }
                   ]
                }
@@ -732,6 +761,36 @@ const routes: RouteRecordRaw[] = [
                   }
                }
             ]
+         },
+         {
+            // Every file of the tenant as a grid, narrowed by customer, type, tag and linked record.
+            path: 'media',
+            name: 'ops-media',
+            meta: {
+               label: 'route.label.ops_media',
+               icon: PrimeIcons.IMAGES,
+               requiredPermissions: [{ action: 'select', subject: 'media' }]
+            },
+            components: {
+               default: () => import('@/views/pages/ops/media/Index.vue'),
+               skeleton: () => import('@/views/pages/ops/media/Index.vue')
+            }
+         },
+         {
+            // A file's title, alt text, tags and customer, opened as a dialog from the library.
+            path: 'media/:id/edit',
+            name: 'ops-media-edit',
+            props: true,
+            meta: {
+               label: 'route.label.ops_media_edit',
+               icon: PrimeIcons.FILE_EDIT,
+               visible: false,
+               requiredPermissions: [{ action: 'modify', subject: 'media' }]
+            },
+            components: {
+               default: () => import('@/views/pages/ops/media/Upsert.vue'),
+               skeleton: () => import('@/views/pages/ops/media/Upsert.vue')
+            }
          },
          {
             // An S10 product file, imported whole or not at all (see public.import_products).

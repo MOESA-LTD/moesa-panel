@@ -1,3 +1,4 @@
+import { allValues } from '@/lib/enumValues';
 import { defineResource, type ResourceInput } from '@/api/defineResource';
 import {
    dateOnly,
@@ -16,11 +17,11 @@ export type SupplierStatus = Db['public']['Enums']['supplier_status'];
 export type SupplierRow = Tables['supplier']['Row'];
 export type SupplierContactRow = Tables['supplier_contact']['Row'];
 
-export const SUPPLIER_STATUSES = [
+export const SUPPLIER_STATUSES = allValues<SupplierStatus>()([
    'candidate',
    'approved',
    'suspended'
-] as const satisfies readonly SupplierStatus[];
+]);
 
 /** Country letters and a number, e.g. CN1, TR12. */
 export const SUPPLIER_CODE = /^[A-Z]{2}[0-9]{1,3}$/;

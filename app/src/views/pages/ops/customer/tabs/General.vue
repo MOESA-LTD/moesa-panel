@@ -96,6 +96,7 @@ const contractLocked = (field: string) =>
                v-bind="slotProps"
                v-model="values.status"
                :values="CUSTOMER_STATUSES"
+               glossary="customer_status"
                i18n-prefix="ops.customer.status"
             />
          </FormField>
@@ -145,11 +146,12 @@ const contractLocked = (field: string) =>
             :readonly
             v-slot="slotProps"
          >
-            <MultiSelect
+            <SelectEnum
                v-bind="slotProps"
                v-model="values.packages"
-               :options="[...PACKAGES]"
-               display="chip"
+               :values="PACKAGES"
+               glossary="package"
+               multiple
             />
          </FormField>
          <FormField

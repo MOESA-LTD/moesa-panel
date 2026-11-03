@@ -4,11 +4,12 @@ import Brands from './tabs/Brands.vue';
 import Contacts from './tabs/Contacts.vue';
 import Documents from './tabs/Documents.vue';
 import General from './tabs/General.vue';
+import Media from './tabs/Media.vue';
 import Platforms from './tabs/Platforms.vue';
 import Warehouses from './tabs/Warehouses.vue';
 
 // The customer card. Contacts, warehouses, platform accounts, brands and documents belong to a
-// saved customer, so their tabs open once the general tab has saved it.
+// saved customer, as do its media, so their tabs open once the general tab has saved it.
 const props = defineProps<{
    id?: string | null;
    /** The tab opened first (the route's tab segment). */
@@ -28,7 +29,15 @@ watch(
 const { data: customer, suspense } = customerResource.useOne(customerId);
 if (customerId.value) await suspense();
 
-const TABS = ['general', 'contacts', 'warehouses', 'platforms', 'brands', 'documents'] as const;
+const TABS = [
+   'general',
+   'contacts',
+   'warehouses',
+   'platforms',
+   'brands',
+   'documents',
+   'media'
+] as const;
 type TabKey = (typeof TABS)[number];
 
 const fromRoute = (): TabKey =>
@@ -73,6 +82,9 @@ const title = computed(() =>
             </TabPanel>
             <TabPanel value="documents">
                <Documents v-if="customerId && activeTab === 'documents'" :id="customerId" />
+            </TabPanel>
+            <TabPanel value="media">
+               <Media v-if="customerId && activeTab === 'media'" :id="customerId" />
             </TabPanel>
          </TabPanels>
       </Tabs>

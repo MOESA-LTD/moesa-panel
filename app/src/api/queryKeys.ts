@@ -24,7 +24,16 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
    product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
-   document: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
+   // A document may cite a media file (the library's document_count).
+   document: [
+      'product_evidence',
+      'product_with_evidence',
+      'dashboard_product_evidence',
+      'media_library'
+   ],
+   // product_with_evidence carries the primary image; a record's media list embeds its files.
+   media: ['media_library', 'product_with_evidence', 'media_link'],
+   media_link: ['media_library', 'product_with_evidence', 'media'],
    // The project card embeds its gates.
    project_gate: ['project', 'dashboard_gate_pending'],
    project_task: ['dashboard_task_due'],
