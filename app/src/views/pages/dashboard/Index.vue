@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+   evidenceTarget,
    groupGates,
    splitTasks,
    useDashboardEvidence,
@@ -16,6 +17,7 @@ import { useDialogRef } from '@/composables/useDialogRef';
 import { fieldRoutes } from '@/constants/form/field';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
+import { useCustomerFilter } from '@/store/customerFilter';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
 const dialogRef = useDialogRef();
@@ -56,7 +58,12 @@ const { data: evidenceRows } = useDashboardEvidence();
 const gates = computed(() => groupGates(gateRows.value ?? []));
 const tasks = computed(() => splitTasks(taskRows.value ?? []));
 
-/** Per customer, how many SKUs `count` finds, as rows linking to the product list (unfiltered). */
+const customerFilter = useCustomerFilter();
+
+/**
+ * Per customer, how many SKUs `count` finds, as rows opening the product list narrowed to that
+ * customer (through the global customer filter).
+ */
 const evidenceBox = (count: (row: DashboardEvidenceRow) => number) => {
    const rows = (evidenceRows.value ?? [])
       .map((row) => ({ row, n: count(row) }))
@@ -64,11 +71,15 @@ const evidenceBox = (count: (row: DashboardEvidenceRow) => number) => {
       .sort((a, b) => b.n - a.n);
    return {
       count: _sumBy(rows, 'n'),
-      items: rows.map(({ row, n }) => ({
-         label: row.customer_code ?? '',
-         meta: String(n),
-         to: { name: 'ops-product-list' }
-      }))
+      items: rows.map(({ row, n }): CountListItem => {
+         const { customerId, route } = evidenceTarget(row);
+         return {
+            label: row.customer_code ?? '',
+            meta: String(n),
+            to: route,
+            onSelect: () => customerFilter.set(customerId)
+         };
+      })
    };
 };
 

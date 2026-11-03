@@ -14,8 +14,9 @@
 --
 -- The views run as the caller (security_invoker), so each shows what the caller's RLS lets them
 -- read. The customer is joined LEFT: a caller who may read projects but not customers still sees
--- the rows, without the customer's code. A caller who cannot read the settings gets the default
--- management gates (G1).
+-- the rows, without the customer's code. The management gates are read by
+-- private.management_gates, so every caller gets the company's list whatever settings they may
+-- read, and a branch's project uses its company's (root tenant's) setting.
 
 -- Settings: the gates that need management's approval, added to the defaults of new companies and
 -- given to the companies that exist now.
@@ -30,7 +31,7 @@ SET
         ('spec_sheet_required_from', '"2026-12-31"'::JSONB, 'Date from which every purchase order needs an approved spec sheet', NULL),
         ('wip_limit_per_role', '5'::JSONB, 'Work in progress allowed per role', NULL),
         ('gate_evidence_blocking', 'true'::JSONB, 'Whether missing gate evidence blocks the gate (else a warning)', NULL),
-        ('management_gates', '["G1"]'::JSONB, 'Yönetim onayı gereken kapılar', NULL);
+        ('management_gates', '["G1"]'::JSONB, 'Gates that need management approval', NULL);
 $$;
 
 INSERT INTO
@@ -48,6 +49,34 @@ WHERE
    t.parent_id IS NULL
    AND d.key = 'management_gates'
 ON CONFLICT ON CONSTRAINT unique_setting_key DO NOTHING;
+
+-- The gates that need management's approval in a tenant: its company's (root tenant's) setting
+-- management_gates, ["G1"] when the setting is missing or null. SECURITY DEFINER: the dashboard
+-- shows the same list to every viewer, whether or not they may read the settings, and branches
+-- have no setting rows of their own.
+CREATE OR REPLACE FUNCTION private.management_gates (tenant_id UUID) RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+    WITH RECURSIVE chain AS (
+        SELECT t.id, t.parent_id, 0 AS depth FROM public.tenant t WHERE t.id = management_gates.tenant_id
+        UNION ALL
+        SELECT t.id, t.parent_id, c.depth + 1
+        FROM public.tenant t
+        JOIN chain c ON t.id = c.parent_id
+        WHERE c.depth < 32
+    )
+    SELECT coalesce(
+        (SELECT nullif(s.value, 'null'::JSONB)
+         FROM chain c
+         JOIN public.setting s ON s.tenant_id = c.id AND s.key = 'management_gates'
+         WHERE c.parent_id IS NULL),
+        '["G1"]'::JSONB
+    );
+$$;
+
+REVOKE ALL ON FUNCTION private.management_gates (UUID) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION private.management_gates (UUID) TO authenticated;
 
 -- Pending gates
 CREATE OR REPLACE VIEW public.dashboard_gate_pending
@@ -74,7 +103,7 @@ SELECT
       END
    )::TEXT AS owner_role,
    -- A JSONB array of gate codes; `?` matches its string elements.
-   coalesce(s.value, '["G1"]'::JSONB) ? g.code::TEXT AS needs_management
+   private.management_gates (p.tenant_id) ? g.code::TEXT AS needs_management
 FROM
    public.project p
    JOIN LATERAL (
@@ -110,12 +139,10 @@ FROM
    ) prev ON TRUE
    LEFT JOIN public.customer c ON c.id = p.customer_id
    AND c.tenant_id = p.tenant_id
-   LEFT JOIN public.setting s ON s.tenant_id = p.tenant_id
-   AND s.key = 'management_gates'
 WHERE
    p.status = 'active';
 
-COMMENT ON VIEW public.dashboard_gate_pending IS 'Per active project: the gate it waits on (first pending or rolled-back gate by position), the days it has waited since the previous gate passed or the project was created, the role that owns it, and whether management must act on it (setting management_gates, default ["G1"]).';
+COMMENT ON VIEW public.dashboard_gate_pending IS 'Per active project: the gate it waits on (first pending or rolled-back gate by position), the days it has waited since the previous gate passed or the project was created, the role that owns it, and whether management must act on it (the company setting management_gates, default ["G1"], through private.management_gates).';
 
 GRANT SELECT ON public.dashboard_gate_pending TO authenticated;
 

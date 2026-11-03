@@ -5,6 +5,7 @@ import { useCustomerFilter } from '@/store/customerFilter';
 import { useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import type { RouteLocationRaw } from 'vue-router';
 
 export type DashboardGateRow = Views['dashboard_gate_pending']['Row'];
 export type DashboardTaskRow = Views['dashboard_task_due']['Row'];
@@ -75,3 +76,14 @@ export function splitTasks<Row extends Pick<DashboardTaskRow, 'overdue'>>(rows: 
       dueSoon: rows.filter((row) => !row.overdue)
    };
 }
+
+/**
+ * Where an evidence row leads: the product list narrowed to the row's customer, which the list
+ * reads from the global customer filter (no customer, as for a row of all customers, clears it).
+ */
+export const evidenceTarget = (
+   row: Pick<DashboardEvidenceRow, 'customer_id'>
+): { customerId: string | null; route: RouteLocationRaw } => ({
+   customerId: row.customer_id ?? null,
+   route: { name: 'ops-product-list' }
+});

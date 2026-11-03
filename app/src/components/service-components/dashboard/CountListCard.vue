@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router';
 
-export type CountListItem = { label: string; meta?: string; to: RouteLocationRaw };
+export type CountListItem = {
+   label: string;
+   meta?: string;
+   to: RouteLocationRaw;
+   /** Runs before the row navigates to `to` (e.g. to set a filter the target page reads). */
+   onSelect?: () => void;
+};
 
 /** A dashboard box: how many there are, and the first few of them, each linking to its record. */
 const props = withDefaults(
@@ -19,6 +25,11 @@ const props = withDefaults(
 const MAX_ROWS = 8;
 
 const shown = computed(() => props.items.slice(0, MAX_ROWS));
+
+const select = (item: CountListItem, navigate: () => unknown) => {
+   item.onSelect?.();
+   navigate();
+};
 </script>
 
 <template>
@@ -44,7 +55,7 @@ const shown = computed(() => props.items.slice(0, MAX_ROWS));
                   <button
                      type="button"
                      class="w-full flex items-baseline justify-between gap-4 text-left cursor-pointer hover:text-primary"
-                     @click="navigate"
+                     @click="select(item, navigate)"
                   >
                      <span class="truncate" v-text="item.label" />
                      <span

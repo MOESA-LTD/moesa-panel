@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 BEGIN;
 
-SELECT plan(9);
+SELECT plan(13);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'Atlas Danışmanlık')::TEXT, TRUE);
 
@@ -138,6 +138,86 @@ SELECT is(
      WHERE d.project_id = '00000000-0000-4000-8000-000000000302'),
     TRUE,
     'a gate listed in the company''s management_gates setting needs management'
+);
+
+-- A project of a branch (Atlas Avcılar), opened by the branch's manager. Branches have no setting
+-- rows: their company's apply.
+RESET ROLE;
+
+SELECT set_config('test.branch_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'Atlas Avcılar')::TEXT, TRUE);
+
+SELECT private.impersonate(
+    (SELECT u.id FROM public.user u WHERE u.email = 'mehmet@moesa-panel.test'),
+    current_setting('test.branch_id')::UUID
+);
+
+INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+VALUES ('00000000-0000-4000-8000-000000000309', current_setting('test.branch_id')::UUID, 'BRN', 'Branch Trading',
+        'trading_partner');
+
+INSERT INTO public.project (id, tenant_id, customer_id, display_name, type, path, packages)
+VALUES ('00000000-0000-4000-8000-000000000310', current_setting('test.branch_id')::UUID,
+        '00000000-0000-4000-8000-000000000309', 'Branch lamp', 'npi', 'a_sourcing', ARRAY['A1']);
+
+-- The company now needs management on G2 only, and its auditor loses the setting read permission.
+RESET ROLE;
+
+UPDATE public.setting SET value = '["G2"]'::JSONB
+WHERE tenant_id = current_setting('test.tenant_id')::UUID AND key = 'management_gates';
+
+DELETE FROM public.role_permission rp
+USING public.role r, public.permission p
+WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  AND r.tenant_id = current_setting('test.tenant_id')::UUID AND r.display_name = 'Auditor'
+  AND p.resource_name = 'public.setting';
+
+SELECT private.impersonate(
+    (SELECT u.id FROM public.user u WHERE u.email = 'can@moesa-panel.test'),
+    current_setting('test.tenant_id')::UUID
+);
+
+SELECT is(
+    (SELECT count(*)::INT FROM public.setting s WHERE s.tenant_id = current_setting('test.tenant_id')::UUID),
+    0,
+    'the auditor cannot read the company''s settings'
+);
+
+SELECT is(
+    (SELECT d.gate_code || ':' || d.needs_management FROM public.dashboard_gate_pending d
+     WHERE d.project_id = '00000000-0000-4000-8000-000000000302'),
+    'G2:true',
+    'a viewer who cannot read the settings still gets the company''s management gates'
+);
+
+RESET ROLE;
+
+SELECT private.impersonate(
+    (SELECT u.id FROM public.user u WHERE u.email = 'mehmet@moesa-panel.test'),
+    current_setting('test.branch_id')::UUID
+);
+
+SELECT is(
+    (SELECT d.gate_code || ':' || d.needs_management FROM public.dashboard_gate_pending d
+     WHERE d.project_id = '00000000-0000-4000-8000-000000000310'),
+    'G1:false',
+    'a branch''s project follows its company''s management gates'
+);
+
+RESET ROLE;
+
+UPDATE public.setting SET value = 'null'::JSONB
+WHERE tenant_id = current_setting('test.tenant_id')::UUID AND key = 'management_gates';
+
+SELECT private.impersonate(
+    (SELECT u.id FROM public.user u WHERE u.email = 'mehmet@moesa-panel.test'),
+    current_setting('test.branch_id')::UUID
+);
+
+SELECT is(
+    (SELECT d.gate_code || ':' || d.needs_management FROM public.dashboard_gate_pending d
+     WHERE d.project_id = '00000000-0000-4000-8000-000000000310'),
+    'G1:true',
+    'a null management_gates setting falls back to the default, G1'
 );
 
 RESET ROLE;

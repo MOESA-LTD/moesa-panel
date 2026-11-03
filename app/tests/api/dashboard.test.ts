@@ -1,4 +1,5 @@
 import {
+   evidenceTarget,
    groupGates,
    splitTasks,
    type DashboardGateRow,
@@ -10,7 +11,7 @@ import en from '@/plugins/i18n/locales/en/index.json';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { mount } from '@vue/test-utils';
 import PrimeVue from 'primevue/config';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 const gate = (
    gate_id: string,
@@ -49,6 +50,19 @@ describe('splitTasks', () => {
    });
 });
 
+describe('evidenceTarget', () => {
+   it("opens the product list narrowed to the row's customer", () => {
+      expect(evidenceTarget({ customer_id: 'c1' })).toEqual({
+         customerId: 'c1',
+         route: { name: 'ops-product-list' }
+      });
+   });
+
+   it('clears the customer filter for a row without a customer', () => {
+      expect(evidenceTarget({ customer_id: null }).customerId).toBeNull();
+   });
+});
+
 describe('dashboard query invalidation', () => {
    it('refreshes the dashboard views when gates, tasks, products or documents change', () => {
       expect(affectedTables(['project_gate'])).toEqual(
@@ -63,7 +77,12 @@ describe('dashboard query invalidation', () => {
 describe('CountListCard', () => {
    beforeAll(() => i18n.setLocaleMessage('en', en));
 
-   const mountCard = (count: number, items: { label: string; meta?: string }[] = []) =>
+   const navigate = vi.fn();
+
+   const mountCard = (
+      count: number,
+      items: { label: string; meta?: string; onSelect?: () => void }[] = []
+   ) =>
       mount(CountListCard, {
          props: {
             title: 'Overdue tasks',
@@ -73,7 +92,12 @@ describe('CountListCard', () => {
          },
          global: {
             plugins: [i18NPlugin, PrimeVue],
-            stubs: { CustomLink: { template: '<a><slot /></a>' } }
+            stubs: {
+               CustomLink: {
+                  setup: () => ({ navigate }),
+                  template: '<a><slot :navigate="navigate" /></a>'
+               }
+            }
          }
       });
 
@@ -95,5 +119,13 @@ describe('CountListCard', () => {
       expect(rows[0].text()).toContain('0 days');
       expect(wrapper.text()).toContain('10');
       expect(wrapper.text()).not.toContain(i18n.t('dashboard.ops.none'));
+   });
+
+   it("runs the row's onSelect before navigating", async () => {
+      const calls: string[] = [];
+      navigate.mockImplementation(() => calls.push('navigate'));
+      const wrapper = mountCard(1, [{ label: 'THO', onSelect: () => calls.push('select') }]);
+      await wrapper.find('li button').trigger('click');
+      expect(calls).toEqual(['select', 'navigate']);
    });
 });
