@@ -1,6 +1,6 @@
 {
    "name": "moesa-panel-supabase",
-   "version": "0.13.0-alpha.1",
+   "version": "0.14.0-alpha.1",
    "scripts": {
       "dev:supabase": "supabase start",
       "dev:supabase-types": "supabase gen types typescript --local > functions/_shared/database.types.ts",
