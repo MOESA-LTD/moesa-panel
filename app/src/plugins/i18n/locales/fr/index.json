@@ -392,7 +392,8 @@
       "project_code_immutable": "A project's code cannot be changed.",
       "document_superseded_sticky": "A superseded document stays superseded; add a new version instead.",
       "document_identity_immutable": "A saved document's record, type and version cannot be changed; add a new version instead.",
-      "customer_closed": "The customer is closed: it gets no new projects."
+      "customer_closed": "The customer is closed: it gets no new projects.",
+      "customer_contract_restricted": "Only management may change a customer's contract terms."
    },
    "account": {
       "profile": {

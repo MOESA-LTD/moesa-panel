@@ -1,10 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- The Phase 1 fixes on the MOESA demo company of seed.sql: approved documents need signatures,
--- superseded ones stay superseded and documents keep their identity; closed customers get no projects. What it writes is rolled back.
+-- superseded ones stay superseded and documents keep their identity; closed customers get no projects; only management changes contract terms. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(7);
+SELECT plan(11);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 SELECT set_config('test.tho', (SELECT c.id FROM public.customer c
@@ -85,6 +85,41 @@ SELECT throws_ok(
     '23514',
     'customer_closed',
     'a closed customer gets no new projects'
+);
+
+-- Contract terms: management only.
+SELECT lives_ok(
+    $$ UPDATE public.customer SET deposit_rate = 40 WHERE id = current_setting('test.tho')::UUID $$,
+    'management changes a customer''s deposit rate'
+);
+
+-- Back to the seed's rate, then act as the coordinator.
+UPDATE public.customer SET deposit_rate = 30 WHERE id = current_setting('test.tho')::UUID;
+
+RESET ROLE;
+
+SELECT private.impersonate(
+    (SELECT u.id FROM public.user u WHERE u.email = 'koordinator@moesa-panel.test'),
+    current_setting('test.tenant_id')::UUID
+);
+
+SELECT throws_ok(
+    $$ UPDATE public.customer SET deposit_rate = 50 WHERE id = current_setting('test.tho')::UUID $$,
+    '23514',
+    'customer_contract_restricted',
+    'the coordinator cannot change a customer''s deposit rate'
+);
+
+SELECT lives_ok(
+    $$ UPDATE public.customer SET display_name = display_name || ' GmbH' WHERE id = current_setting('test.tho')::UUID $$,
+    'the coordinator changes a customer''s name'
+);
+
+SELECT throws_ok(
+    $$ UPDATE public.customer SET restricted_drive_url = 'https://drive.example.test/x' WHERE id = current_setting('test.tho')::UUID $$,
+    '23514',
+    'customer_contract_restricted',
+    'the coordinator cannot change the restricted Drive link'
 );
 
 SELECT * FROM finish();

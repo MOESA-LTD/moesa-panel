@@ -10,6 +10,7 @@ import {
    type CustomerRow
 } from '@/api/customer';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+import { useAbility } from '@casl/vue';
 import ContractDocumentSelect from '../ContractDocumentSelect.vue';
 
 const props = defineProps<{ id?: string | null }>();
@@ -32,6 +33,20 @@ const WEBSITE_PLACEHOLDER = 'https://example.com';
 
 const DATES = ['contract_accepted_on', 'start_on'] as const;
 const TERMS = ['extra_cost_rule', 'eu_responsible_person'] as const;
+
+// The contract terms are management's: only those who may change the settings change them
+// (customer_contract_restricted).
+const CONTRACT_FIELDS: ReadonlySet<string> = new Set([
+   'contract_accepted_on',
+   'contract_document_id',
+   'start_on',
+   'deposit_rate',
+   'extra_cost_rule',
+   'restricted_drive_url'
+]);
+const ability = useAbility();
+const contractLocked = (field: string) =>
+   CONTRACT_FIELDS.has(field) && !ability.can('modify', 'setting');
 </script>
 
 <template>
@@ -141,11 +156,12 @@ const TERMS = ['extra_cost_rule', 'eu_responsible_person'] as const;
             fluid
             :label="$t('ops.customer.fields.deposit_rate')"
             :error="errors.deposit_rate"
-            :readonly
+            :readonly="readonly || contractLocked('deposit_rate')"
             v-slot="slotProps"
          >
             <InputNumber
                v-bind="slotProps"
+               :disabled="contractLocked('deposit_rate')"
                v-model="values.deposit_rate"
                :min="0"
                :max="100"
@@ -162,11 +178,12 @@ const TERMS = ['extra_cost_rule', 'eu_responsible_person'] as const;
             fluid
             :label="$t(`ops.customer.fields.${date}`)"
             :error="errors[date]"
-            :readonly
+            :readonly="readonly || contractLocked(date)"
             v-slot="slotProps"
          >
             <DatePicker
                v-bind="slotProps"
+               :disabled="contractLocked(date)"
                :model-value="values[date] || null"
                @update:model-value="values[date] = $event as Date | null"
                date-format="yy-mm-dd"
@@ -179,11 +196,12 @@ const TERMS = ['extra_cost_rule', 'eu_responsible_person'] as const;
             fluid
             :label="$t('ops.customer.fields.contract_document_id')"
             :error="errors.contract_document_id"
-            :readonly
+            :readonly="readonly || contractLocked('contract_document_id')"
             v-slot="slotProps"
          >
             <ContractDocumentSelect
                v-bind="slotProps"
+               :disabled="contractLocked('contract_document_id')"
                v-model="values.contract_document_id"
                :customerId="id"
             />
@@ -192,10 +210,14 @@ const TERMS = ['extra_cost_rule', 'eu_responsible_person'] as const;
             fluid
             :label="$t('ops.customer.fields.restricted_drive_url')"
             :error="errors.restricted_drive_url"
-            :readonly
+            :readonly="readonly || contractLocked('restricted_drive_url')"
             v-slot="slotProps"
          >
-            <InputText v-bind="slotProps" v-model="values.restricted_drive_url" />
+            <InputText
+               v-bind="slotProps"
+               v-model="values.restricted_drive_url"
+               :disabled="contractLocked('restricted_drive_url')"
+            />
          </FormField>
          <FormField
             v-for="term in TERMS"
@@ -204,10 +226,16 @@ const TERMS = ['extra_cost_rule', 'eu_responsible_person'] as const;
             fluid
             :label="$t(`ops.customer.fields.${term}`)"
             :error="errors[term]"
-            :readonly
+            :readonly="readonly || contractLocked(term)"
             v-slot="slotProps"
          >
-            <Textarea v-bind="slotProps" v-model="values[term]" auto-resize rows="2" />
+            <Textarea
+               v-bind="slotProps"
+               v-model="values[term]"
+               auto-resize
+               rows="2"
+               :disabled="contractLocked(term)"
+            />
          </FormField>
       </FormBox>
 
