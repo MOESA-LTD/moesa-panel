@@ -2572,6 +2572,13 @@ export type Database = {
         }
         Returns: Json
       }
+      my_memberships: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          tenant_id: string
+          roles: string[]
+        }[]
+      }
       next_code: {
         Args: {
           kind: string
