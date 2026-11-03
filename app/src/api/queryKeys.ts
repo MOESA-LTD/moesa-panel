@@ -23,8 +23,8 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    user: ['tenant_member'],
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
-   product: ['product_evidence', 'dashboard_product_evidence'],
-   document: ['product_evidence', 'dashboard_product_evidence'],
+   product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
+   document: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
    // The project card embeds its gates.
    project_gate: ['project', 'dashboard_gate_pending'],
    project_task: ['dashboard_task_due'],

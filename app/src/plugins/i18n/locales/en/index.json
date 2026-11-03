@@ -1053,7 +1053,8 @@
                "status_depoda_as_ordering": "\"Depoda\" (in warehouse) is imported as ordering",
                "status_karantina_as_paused": "\"Karantina\" (quarantine) is imported as paused"
             }
-         }
+         },
+         "spec_signed": "Signed"
       },
       "project": {
          "title": "Projects",

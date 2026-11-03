@@ -6,25 +6,20 @@ import {
    equalsFilter
 } from '@/components/service-components/resource-table/createFilters';
 import { DIALOG_POSITIONS } from '@/constants/router';
-import { useLookup } from '@/api/useLookup';
 import { toS10Csv, type ProductExportRow } from '@/api/product/csv';
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
 import { useCustomerFilter, withCustomerFilter } from '@/store/customerFilter';
 import {
    PRODUCT_STATUSES,
+   specFilterFromQuery,
    type ComplianceStatus,
-   type ProductEvidenceRow,
-   type ProductRow,
    type ProductStatus
 } from '@/api/product';
 
-// The products of the customer the lists are filtered by (every customer's when none is).
-type Props = ResourceTableProps<'product'>;
-type Evidence = Pick<
-   ProductEvidenceRow,
-   'product_id' | 'has_signed_spec' | 'spec_version' | 'compliance_complete'
->;
+// The products of the customer the lists are filtered by (every customer's when none is), with
+// their evidence (public.product_with_evidence).
+type Props = ResourceTableProps<'product_with_evidence'>;
 
 defineOptions({
    inheritAttrs: false
@@ -32,6 +27,7 @@ defineOptions({
 
 const attrs = useAttrs();
 const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
 
 const columns = computed<Props['columns']>(() => [
@@ -49,7 +45,13 @@ const columns = computed<Props['columns']>(() => [
       showAddButton: false
    },
    { field: 'supplier.code', header: t('ops.product.fields.supplier') },
-   { field: 'spec', header: t('ops.product.fields.spec') },
+   {
+      field: 'has_signed_spec',
+      header: t('ops.product.fields.spec'),
+      showFilterMatchModes: false,
+      showFilterOperator: false,
+      showAddButton: false
+   },
    { field: 'compliance_status', sortable: true, header: t('ops.product.fields.compliance_status') }
 ]);
 
@@ -62,6 +64,7 @@ const filters = ref<NonNullable<Props['filters']>>(
          display_name: 'text',
          gtin: 'startsWith',
          status: equalsFilter(),
+         has_signed_spec: equalsFilter(),
          customer_id: equalsFilter()
       },
       attrs.filters as Props['filters']
@@ -77,6 +80,18 @@ const applyCustomerFilter = () => {
 };
 onMounted(applyCustomerFilter);
 watch(() => customerFilter.customerId, applyCustomerFilter);
+
+// A link may ask for products with or without a signed spec sheet (?spec=true|false), applied
+// over the stored state like the customer filter.
+onMounted(() => {
+   const spec = specFilterFromQuery(route.query);
+   if (spec !== null) filters.value.has_signed_spec.constraints = equalsFilter(spec).constraints;
+});
+
+const SPEC_OPTIONS = computed(() => [
+   { value: true, label: t('ops.product.spec_signed') },
+   { value: false, label: t('ops.product.spec_none') }
+]);
 
 const STATUS_SEVERITY: Record<ProductStatus, string> = {
    concept: 'secondary',
@@ -94,20 +109,6 @@ const COMPLIANCE_SEVERITY: Record<ComplianceStatus, string> = {
    complete: 'success'
 };
 
-// The evidence of the products shown: a view has no foreign key to embed, so it is read apart.
-const rows = ref<ProductRow[]>([]);
-const productIds = computed(() => rows.value.map(({ id }) => id));
-const { data: evidenceRows } = useLookup<Evidence>(
-   'product_evidence',
-   () => ({
-      select: 'product_id, has_signed_spec, spec_version, compliance_complete',
-      in: { column: 'product_id', values: productIds.value }
-   }),
-   () => productIds.value.length > 0
-);
-const evidence = computed(
-   () => new Map((evidenceRows.value ?? []).map((row) => [row.product_id, row]))
-);
 const specVersion = (version: number | null) => `v${String(version ?? 0).padStart(2, '0')}`;
 
 const rowActions: Props['rowActions'] = [
@@ -170,12 +171,11 @@ const dialogRef = useDialogRef();
    <ResourceTable
       v-bind="attrs"
       stateKey="product"
-      from="product"
+      from="product_with_evidence"
       select="*, customer(code, display_name), supplier(code)"
       :columns
       :rowActions
       :enableExpansion="false"
-      v-model="rows"
       v-model:filters="filters"
    >
       <template #header>
@@ -231,16 +231,21 @@ const dialogRef = useDialogRef();
             i18n-prefix="ops.product.status"
          />
       </template>
-      <template #spec_body="{ data }">
+      <template #has_signed_spec_body="{ data }">
          <Tag
-            v-if="evidence.get(data.id)?.has_signed_spec"
-            :value="specVersion(evidence.get(data.id)!.spec_version)"
+            v-if="data.has_signed_spec"
+            :value="specVersion(data.spec_version)"
             severity="success"
          />
-         <Tag
-            v-else-if="evidence.has(data.id)"
-            :value="$t('ops.product.spec_none')"
-            severity="danger"
+         <Tag v-else :value="$t('ops.product.spec_none')" severity="danger" />
+      </template>
+      <template #has_signed_spec_filter="{ filterModel }">
+         <Select
+            v-model="filterModel.value"
+            :options="SPEC_OPTIONS"
+            option-value="value"
+            option-label="label"
+            :placeholder="$t('ops.product.fields.spec')"
          />
       </template>
       <template #compliance_status_body="{ data }">

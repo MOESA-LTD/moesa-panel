@@ -988,6 +988,13 @@ export type Database = {
             referencedColumns: ["product_id", "tenant_id"]
           },
           {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
             foreignKeyName: "product_supplier_fkey"
             columns: ["supplier_id", "tenant_id"]
             isOneToOne: false
@@ -1226,6 +1233,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_evidence"
             referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_product_fkey"
+            columns: ["product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "tenant_id"]
           },
           {
             foreignKeyName: "project_product_project_fkey"
@@ -2127,6 +2141,111 @@ export type Database = {
             columns: ["customer_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_with_evidence: {
+        Row: {
+          brand: string | null
+          carton_dims_mm: string | null
+          carton_gross_kg: number | null
+          carton_net_kg: number | null
+          carton_pack_qty: number | null
+          category: string | null
+          compliance_complete: boolean | null
+          compliance_status:
+            | Database["public"]["Enums"]["compliance_status"]
+            | null
+          created_at: string | null
+          customer_id: string | null
+          display_name: string | null
+          eu_responsible_person: string | null
+          golden_sample_locations: string | null
+          golden_sample_on: string | null
+          gs1_prefix_owner: string | null
+          gtin: string | null
+          has_signed_spec: boolean | null
+          hs_code: string | null
+          id: string | null
+          is_hazmat: boolean | null
+          landed_cost_eur: number | null
+          landed_cost_on: string | null
+          lot_rule: string | null
+          manufacturer_art_no: string | null
+          moesa_price_eur: number | null
+          notes: string | null
+          origin_country: string | null
+          pack_dims_mm: string | null
+          pack_gross_g: number | null
+          pack_qty: number | null
+          pallet_carton_qty: number | null
+          pallet_type: string | null
+          parent_id: string | null
+          price_list_version: string | null
+          purchase_currency: string | null
+          purchase_incoterm: string | null
+          purchase_price: number | null
+          sku: string | null
+          spec_version: number | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          supplier_id: string | null
+          supplier_product_code: string | null
+          target_price_eur: number | null
+          tenant_id: string | null
+          unit_dims_mm: string | null
+          unit_net_g: number | null
+          updated_at: string | null
+          variant_label: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_supplier_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "supplier"
             referencedColumns: ["id", "tenant_id"]
           },
           {

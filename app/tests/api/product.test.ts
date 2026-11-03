@@ -1,4 +1,9 @@
-import { productSchema, toProductFormValues, toProductPayload } from '@/api/product';
+import {
+   productSchema,
+   specFilterFromQuery,
+   toProductFormValues,
+   toProductPayload
+} from '@/api/product';
 import { gtinValid } from '@/lib/gtin';
 import i18n from '@plugins/i18n';
 import { describe, expect, it } from 'vitest';
@@ -81,5 +86,18 @@ describe('product form', () => {
       expect(payload.purchase_price).toBeNull();
       expect(payload.purchase_currency).toBeNull();
       expect(payload).not.toHaveProperty('id');
+   });
+});
+
+describe('specFilterFromQuery', () => {
+   it('reads ?spec=true and ?spec=false as the Spec filter', () => {
+      expect(specFilterFromQuery({ spec: 'true' })).toBe(true);
+      expect(specFilterFromQuery({ spec: 'false' })).toBe(false);
+      expect(specFilterFromQuery({ spec: ['false'] })).toBe(false);
+   });
+
+   it('leaves the filter alone without a spec query or with another value', () => {
+      expect(specFilterFromQuery({})).toBeNull();
+      expect(specFilterFromQuery({ spec: 'maybe' })).toBeNull();
    });
 });

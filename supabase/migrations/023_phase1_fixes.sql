@@ -11,6 +11,8 @@
 --                        deposit_rate, extra_cost_rule, restricted_drive_url) are changed only by
 --                        those who may change the company's settings, i.e. management
 --                        (private.customer_contract_guard).
+-- product_with_evidence  The product list: every product column plus its evidence
+--                        (public.product_evidence), so the list can filter on a signed spec sheet.
 --
 -- Each rule is a check_violation whose message is the rule's code:
 --   document_signed_incomplete    a signed or approved document lacks signature, stamp, official
@@ -115,3 +117,19 @@ EXECUTE FUNCTION private.customer_contract_guard ();
 
 REVOKE ALL ON FUNCTION private.customer_contract_guard () FROM PUBLIC, anon, authenticated;
 
+-- The product list: the product and its evidence, as the caller may read them.
+CREATE OR REPLACE VIEW public.product_with_evidence
+WITH
+   (security_invoker = TRUE) AS
+SELECT
+   p.*,
+   e.has_signed_spec,
+   e.spec_version,
+   e.compliance_complete
+FROM
+   public.product p
+   LEFT JOIN public.product_evidence e ON e.product_id = p.id;
+
+COMMENT ON VIEW public.product_with_evidence IS 'Every product column plus its evidence (public.product_evidence): whether it has a signed or approved spec sheet, the highest such version, and whether its compliance is complete. Read by the product list, which filters on has_signed_spec.';
+
+GRANT SELECT ON public.product_with_evidence TO authenticated;

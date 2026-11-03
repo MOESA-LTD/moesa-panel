@@ -58,6 +58,13 @@ describe('evidenceTarget', () => {
       });
    });
 
+   it('opens the unsigned SKU card on the products without a signed spec sheet', () => {
+      expect(evidenceTarget({ customer_id: 'c1' }, 'unsigned_spec')).toEqual({
+         customerId: 'c1',
+         route: { name: 'ops-product-list', query: { spec: 'false' } }
+      });
+   });
+
    it('clears the customer filter for a row without a customer', () => {
       expect(evidenceTarget({ customer_id: null }).customerId).toBeNull();
    });
@@ -71,6 +78,8 @@ describe('dashboard query invalidation', () => {
       expect(affectedTables(['project_task'])).toContain('dashboard_task_due');
       expect(affectedTables(['product'])).toContain('dashboard_product_evidence');
       expect(affectedTables(['document'])).toContain('dashboard_product_evidence');
+      expect(affectedTables(['product'])).toContain('product_with_evidence');
+      expect(affectedTables(['document'])).toContain('product_with_evidence');
    });
 });
 

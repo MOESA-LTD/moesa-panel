@@ -1053,7 +1053,8 @@
                "status_depoda_as_ordering": "\"Depoda\", siparişte olarak aktarılır",
                "status_karantina_as_paused": "\"Karantina\", durduruldu olarak aktarılır"
             }
-         }
+         },
+         "spec_signed": "İmzalı"
       },
       "project": {
          "title": "Projeler",

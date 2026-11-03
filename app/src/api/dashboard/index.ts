@@ -80,10 +80,16 @@ export function splitTasks<Row extends Pick<DashboardTaskRow, 'overdue'>>(rows: 
 /**
  * Where an evidence row leads: the product list narrowed to the row's customer, which the list
  * reads from the global customer filter (no customer, as for a row of all customers, clears it).
+ * The unsigned SKU card (`unsigned_spec`) also narrows it to products without a signed spec sheet
+ * (`?spec=false`, see specFilterFromQuery).
  */
 export const evidenceTarget = (
-   row: Pick<DashboardEvidenceRow, 'customer_id'>
+   row: Pick<DashboardEvidenceRow, 'customer_id'>,
+   card: 'unsigned_spec' | 'compliance' = 'compliance'
 ): { customerId: string | null; route: RouteLocationRaw } => ({
    customerId: row.customer_id ?? null,
-   route: { name: 'ops-product-list' }
+   route:
+      card === 'unsigned_spec'
+         ? { name: 'ops-product-list', query: { spec: 'false' } }
+         : { name: 'ops-product-list' }
 });

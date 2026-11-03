@@ -62,9 +62,12 @@ const customerFilter = useCustomerFilter();
 
 /**
  * Per customer, how many SKUs `count` finds, as rows opening the product list narrowed to that
- * customer (through the global customer filter).
+ * customer (through the global customer filter) and to what the card counts (see evidenceTarget).
  */
-const evidenceBox = (count: (row: DashboardEvidenceRow) => number) => {
+const evidenceBox = (
+   count: (row: DashboardEvidenceRow) => number,
+   card: Parameters<typeof evidenceTarget>[1]
+) => {
    const rows = (evidenceRows.value ?? [])
       .map((row) => ({ row, n: count(row) }))
       .filter(({ n }) => n > 0)
@@ -72,7 +75,7 @@ const evidenceBox = (count: (row: DashboardEvidenceRow) => number) => {
    return {
       count: _sumBy(rows, 'n'),
       items: rows.map(({ row, n }): CountListItem => {
-         const { customerId, route } = evidenceTarget(row);
+         const { customerId, route } = evidenceTarget(row, card);
          return {
             label: row.customer_code ?? '',
             meta: String(n),
@@ -83,9 +86,14 @@ const evidenceBox = (count: (row: DashboardEvidenceRow) => number) => {
    };
 };
 
-const unsignedSkus = computed(() => evidenceBox((row) => row.unsigned_sku_count ?? 0));
+const unsignedSkus = computed(() =>
+   evidenceBox((row) => row.unsigned_sku_count ?? 0, 'unsigned_spec')
+);
 const incompleteCompliance = computed(() =>
-   evidenceBox((row) => (row.active_sku_count ?? 0) - (row.compliance_complete_count ?? 0))
+   evidenceBox(
+      (row) => (row.active_sku_count ?? 0) - (row.compliance_complete_count ?? 0),
+      'compliance'
+   )
 );
 
 const useDashboardNotifications = () => {

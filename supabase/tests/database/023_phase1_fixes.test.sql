@@ -1,10 +1,12 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- The Phase 1 fixes on the MOESA demo company of seed.sql: approved documents need signatures,
--- superseded ones stay superseded and documents keep their identity; closed customers get no projects; only management changes contract terms. What it writes is rolled back.
+-- superseded ones stay superseded and documents keep their identity; closed customers get no
+-- projects; only management changes contract terms; the product list's evidence view. What it
+-- writes is rolled back.
 BEGIN;
 
-SELECT plan(11);
+SELECT plan(13);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 SELECT set_config('test.tho', (SELECT c.id FROM public.customer c
@@ -15,6 +17,21 @@ SELECT set_config('test.tips', (SELECT p.id FROM public.product p
 SELECT private.impersonate(
     (SELECT u.id FROM public.user u WHERE u.email = 'akif@moesa-panel.test'),
     current_setting('test.tenant_id')::UUID
+);
+
+-- The product list's view.
+SELECT is(
+    (SELECT string_agg(v.sku || ':' || v.has_signed_spec, ',' ORDER BY v.sku)
+     FROM public.product_with_evidence v WHERE v.tenant_id = current_setting('test.tenant_id')::UUID),
+    'THO-CONES-100:false,THO-MOP40-2P:true,THO-TIPS-6-50:false',
+    'product_with_evidence: only THO-MOP40-2P has a signed spec sheet'
+);
+
+SELECT is(
+    (SELECT v.spec_version FROM public.product_with_evidence v
+     WHERE v.tenant_id = current_setting('test.tenant_id')::UUID AND v.sku = 'THO-MOP40-2P'),
+    2,
+    'product_with_evidence carries the spec sheet''s version'
 );
 
 -- Approved documents need the signature, the stamp, the official e-mail and the date.

@@ -9,6 +9,20 @@ export type ProductStatus = Enums['product_status'];
 export type ComplianceStatus = Enums['compliance_status'];
 export type ProductRow = Tables['product']['Row'];
 export type ProductEvidenceRow = Views['product_evidence']['Row'];
+/** A row of the product list: the product and its evidence. */
+export type ProductListRow = Views['product_with_evidence']['Row'];
+
+/**
+ * The product list's Spec filter from the route's query (`?spec=true|false`, e.g. from the
+ * dashboard's unsigned SKU card): whether the product must have a signed spec sheet, or null when
+ * the query does not say.
+ */
+export const specFilterFromQuery = (query: Record<string, unknown>): boolean | null => {
+   const value = Array.isArray(query.spec) ? query.spec[0] : query.spec;
+   if (value === 'true') return true;
+   if (value === 'false') return false;
+   return null;
+};
 
 export const PRODUCT_STATUSES = [
    'concept',
