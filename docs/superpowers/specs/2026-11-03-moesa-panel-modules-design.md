@@ -139,6 +139,7 @@ Banka, vergi/EORI, şifre, platform vaka numarası için alan yoktur. Müşteri 
 | M16 | İş geliştirme (müşteri adayları) | C1 | — | 3 |
 | M17 | Listing içeriği (EN ana set, çeviriler, platform attribute katmanı, dışa aktarım) | L2–L4 | T10, S13 | 3 |
 | M18 | Platform entegrasyonları (SP-API rapor okuma, sonra yayınlama; diğer pazar yerleri adaptör olarak) | L4, O1–O2 | — | 4 |
+| M19 | Ortam yönetimi (fotoğraf, görsel, dosya; her kayda bağlanır) | §7.6 fotoğraf/video kanıtı, PL7, L2 | — | **2 (ilk görev)** |
 
 Faz 1 "tek doğru kaynak", Faz 2 "operasyon", Faz 3 "sürekli yönetim ve müşteri", Faz 4 "entegrasyonlar" (ikinci müşteriden sonra, çok kanallı araç satın almakla karşılaştırılarak karar verilir). Faz 3 modülleri Faz 2 bitince yeniden önceliklenir; bu belge onların yalnızca sınırını çizer.
 
@@ -319,6 +320,19 @@ C-G1 müşteri kaydındadır (M1). (M) işaretli kapılar 06 §2'deki gibi: G1, 
 **Kayıt `change_request`** (S08): **kod**, **müşteri**, proje/ürünler, **kaynak** (customer / supplier / moesa / regulation), **aciliyet** (normal / urgent), ne değişiyor (alan listesi: spec / design / packaging / price / deadline), gerekçe, etki (maliyet, süre), onaylar (MOESA rol + tarih, müşteri + tarih + belge), sonuç: yeni belge sürümü (M4 bağlantısı), durum (open / approved / rejected / applied).
 
 **Kurallar:** S1/S2 olayda yönetime bildirim zamanı zorunlu. Kapı geri alma yalnızca olay üzerinden yapılır (K3). CR `applied` olunca ilgili belge yeni sürüm alır.
+
+### M19 Ortam yönetimi (Faz 2, ilk görev) — eklendi 03.11.2026
+
+**Amaç:** Fotoğraf, görsel ve dosyaları tek bir yerde tutup her kayda (ürün, müşteri, tedarikçi, proje, kapı, PO, sevkiyat, olay) bağlayabilmek. Belge (M4) "bu belge nedir, hangi sürümdür, imzalı mıdır" sorusuna cevap verir; ortam "dosyanın kendisi nerede, hangi kayıtların görseli" sorusuna. İkisi birbirine bağlanabilir: bir belge kaydı Drive bağlantısı yerine bir ortam dosyasına işaret edebilir (`document.storage_path` zaten var).
+
+**Kayıt `media`:** **dosya** (Supabase Storage `media` kovası, `<tenant_id>/<media_id>/<dosya>`), **mime**, boyut, genişlik/yükseklik (görselde), küçük resim yolu, başlık, alt metin, etiketler, yükleyen, yüklenme tarihi, `customer_id` (müşteriye ait görseller için, paylaşılan ortamda NULL).
+**Kayıt `media_link`:** **ortam**, **bağlı kayıt** (`entity_type` + `entity_id`, M4 ile aynı polimorfik kalıp ve aynı tenant/satır doğrulama tetikleyicisi), **rol** (`primary_image` | `gallery` | `evidence_photo` | `attachment`), sıra. Bir ortam birden çok kayda bağlanabilir (aynı görsel ana ürün ve varyantlarında).
+
+**Ekranlar:** Ortam kütüphanesi (ızgara, filtre: müşteri, tür, etiket, bağlı kayıt); her kartta "Ortam" sekmesi (sürükle-bırak yükleme, çoklu seçim, birincil görsel işareti, kütüphaneden bağla); ürün listesinde küçük resim sütunu.
+
+**Kurallar:** Kabul edilen türler görsel (png/jpg/webp), pdf, video (mp4) — SVG yok; boyut sınırı ayarda (`media_max_mb`, varsayılan 25). Yazma izni ilgili kaydın `update` iznine bağlı (tenant-logo kalıbı); silme yalnız bağlantısı olmayan ortamda ve `management` rolünde. Ürün başına tek `primary_image`. Faz 2'deki "kanıt belgeleri için yükleme" bu modül üzerinden yapılır: kanıt türü belgeler bir `media` dosyasına bağlanır, Drive bağlantısı opsiyonel kalır.
+
+**Faz 3 bağlantısı:** M17 listing içeriği görsel setini `media_link` rolleriyle (`primary_image`, `gallery`) okur; dışa aktarım için herkese açık URL gerekirse kovanın okuma politikası ürün görselleri için açılır (ayrı karar).
 
 ### M11–M16 (Faz 3, sınır tanımı)
 
