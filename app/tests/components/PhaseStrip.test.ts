@@ -45,4 +45,11 @@ describe('PhaseStrip', () => {
       expect(pending.find('.pi-check').exists()).toBe(false);
       expect(pending.find('.pi-clock').exists()).toBe(true);
    });
+
+   it('titles each gate with its status and what the gate is', () => {
+      const title = mountStrip().find('[data-gate="G1"] [title]').attributes('title');
+      expect(title).toBe(
+         `${i18n.t('ops.project.gate_status.passed')} — ${i18n.t('glossary.gate_code.G1')}`
+      );
+   });
 });

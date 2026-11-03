@@ -76,6 +76,7 @@ const statusFixed = computed(() => !!values.value.id && values.value.status === 
                v-bind="slotProps"
                v-model="values.type"
                :values="DOCUMENT_TYPES"
+               glossary="document_type"
                i18n-prefix="ops.document.type"
                :disabled="identityFixed"
             />
@@ -120,6 +121,7 @@ const statusFixed = computed(() => !!values.value.id && values.value.status === 
                v-bind="slotProps"
                v-model="values.status"
                :values="DOCUMENT_STATUSES"
+               glossary="document_status"
                i18n-prefix="ops.document.status"
                :disabled="statusFixed"
             />

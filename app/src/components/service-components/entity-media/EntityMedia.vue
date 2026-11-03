@@ -95,8 +95,8 @@ const selectedIds = computed(() =>
 );
 
 const bulkRole = ref<BulkRole | null>(null);
-const applyRole = async (role: string | null | undefined) => {
-   if (!role || !selectedIds.value.length) return;
+const applyRole = async (role: string | string[] | null | undefined) => {
+   if (typeof role !== 'string' || !role || !selectedIds.value.length) return;
    await report(setLinkRole.mutateAsync({ linkIds: selectedIds.value, role: role as BulkRole }));
    bulkRole.value = null;
 };

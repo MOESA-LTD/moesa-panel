@@ -6,6 +6,7 @@ import {
    type ProjectGateRow,
    type ProjectPhase
 } from '@/api/project';
+import { glossaryKey } from '@/api/glossary';
 
 /**
  * A project's phases in a row: the ones it has gone through, the one it is in, the ones ahead.
@@ -16,6 +17,15 @@ const props = defineProps<{
    current: ProjectPhase;
    gates: Pick<ProjectGateRow, 'id' | 'code' | 'position' | 'status'>[];
 }>();
+
+const { t, te } = useI18n();
+
+/** The gate's status, then what the gate is (glossary), as its hover text. */
+const gateTitle = (gate: { code: string; status: GateStatus }) => {
+   const status = t(`ops.project.gate_status.${gate.status}`);
+   const key = glossaryKey('gate_code', gate.code);
+   return te(key) ? `${status} — ${t(key)}` : status;
+};
 
 const GATE_ICON: Record<GateStatus, string> = {
    passed: PrimeIcons.CHECK,
@@ -64,7 +74,7 @@ const steps = computed(() => {
                :icon="GATE_ICON[gate.status]"
                :severity="GATE_SEVERITY[gate.status]"
                :value="$t(`ops.project.gate.${gate.code}`)"
-               :title="$t(`ops.project.gate_status.${gate.status}`)"
+               :title="gateTitle(gate)"
             />
          </li>
       </template>

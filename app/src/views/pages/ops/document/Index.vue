@@ -122,6 +122,7 @@ const rowActions = computed<Props['rowActions']>(() => [
          <SelectEnum
             v-model="filterModel.value"
             :values="DOCUMENT_TYPES"
+            glossary="document_type"
             i18n-prefix="ops.document.type"
          />
       </template>
@@ -136,6 +137,7 @@ const rowActions = computed<Props['rowActions']>(() => [
          <SelectEnum
             v-model="filterModel.value"
             :values="DOCUMENT_STATUSES"
+            glossary="document_status"
             i18n-prefix="ops.document.status"
          />
       </template>

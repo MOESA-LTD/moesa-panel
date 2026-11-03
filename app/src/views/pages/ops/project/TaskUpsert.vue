@@ -138,6 +138,7 @@ await ready;
                v-bind="slotProps"
                v-model="values.status"
                :values="TASK_STATUSES"
+               glossary="task_status"
                i18n-prefix="ops.project.task_status"
             />
          </FormField>

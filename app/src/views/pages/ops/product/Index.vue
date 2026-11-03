@@ -239,6 +239,7 @@ const dialogRef = useDialogRef();
          <SelectEnum
             v-model="filterModel.value"
             :values="PRODUCT_STATUSES"
+            glossary="product_status"
             i18n-prefix="ops.product.status"
          />
       </template>

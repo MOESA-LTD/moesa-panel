@@ -75,6 +75,7 @@ const TERMS = [
                v-bind="slotProps"
                v-model="values.status"
                :values="SUPPLIER_STATUSES"
+               glossary="supplier_status"
                i18n-prefix="ops.supplier.status"
             />
          </FormField>
