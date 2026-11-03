@@ -28,7 +28,7 @@ VALUES ('00000000-0000-4000-8000-000000000202', current_setting('test.tenant_id'
 -- An active product of another customer holding a GTIN the import must not take.
 INSERT INTO public.product (tenant_id, customer_id, sku, display_name, gtin)
 VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000203', 'OTH-001', 'Held GTIN',
-        '4260696025800');
+        '4260696025855');
 
 SELECT is(
     public.import_products($$[
@@ -49,8 +49,8 @@ SELECT is(
 );
 
 SELECT set_config('test.gtin_clash', public.import_products($$[
-    {"customer_code": "IMP", "sku": "IMP-003", "display_name": "Bucket", "gtin": "4260696025831"},
-    {"customer_code": "IMP", "sku": "IMP-004", "display_name": "Clash", "gtin": "4260696025800"}
+    {"customer_code": "IMP", "sku": "IMP-003", "display_name": "Bucket", "gtin": "4260696025862"},
+    {"customer_code": "IMP", "sku": "IMP-004", "display_name": "Clash", "gtin": "4260696025855"}
 ]$$::JSONB)::TEXT, TRUE);
 
 SELECT is(

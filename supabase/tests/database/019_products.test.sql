@@ -5,7 +5,7 @@ BEGIN;
 SELECT plan(17);
 
 -- GTIN check digits (GS1 mod-10), before signing in.
-SELECT is(private.gtin_valid('4260696025800'), TRUE, 'a GTIN-13 with the right check digit is valid');
+SELECT is(private.gtin_valid('4260696025855'), TRUE, 'a GTIN-13 with the right check digit is valid');
 
 SELECT is(private.gtin_valid('4260696025801'), FALSE, 'a GTIN-13 with the wrong check digit is not');
 
@@ -38,7 +38,7 @@ VALUES ('00000000-0000-4000-8000-000000000192', current_setting('test.tenant_id'
 
 INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name, gtin)
 VALUES ('00000000-0000-4000-8000-000000000193', current_setting('test.tenant_id')::UUID,
-        '00000000-0000-4000-8000-000000000192', 'THO-001', 'Garden Hose 15 m', '4260696025800');
+        '00000000-0000-4000-8000-000000000192', 'THO-001', 'Garden Hose 15 m', '4260696025855');
 
 -- Positive control: the row the negative checks below compare against is there and visible.
 SELECT is(
@@ -63,7 +63,7 @@ SELECT throws_ok(
     $$
         INSERT INTO public.product (tenant_id, customer_id, sku, gtin)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000192', 'THO-002',
-                '4260696025800')
+                '4260696025855')
     $$,
     '23505',
     NULL,
@@ -76,7 +76,7 @@ SELECT lives_ok(
     $$
         INSERT INTO public.product (tenant_id, customer_id, sku, gtin)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000192', 'THO-002',
-                '4260696025800')
+                '4260696025855')
     $$,
     'an archived product frees its GTIN'
 );
