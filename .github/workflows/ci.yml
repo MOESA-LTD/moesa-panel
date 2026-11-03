@@ -36,7 +36,12 @@ jobs:
             - run: pnpm build
             - run: pnpm lint
             - run: pnpm typecheck
+            # Importing the app creates the Supabase client at module load; the tests never reach
+            # the network, so placeholder values are enough.
             - run: pnpm test
+              env:
+                  VITE_SUPABASE_PROJECT_URL: http://127.0.0.1:54321
+                  VITE_SUPABASE_PROJECT_ANON_KEY: ci-placeholder
 
     functions:
         runs-on: ubuntu-latest
