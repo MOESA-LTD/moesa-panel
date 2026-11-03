@@ -464,7 +464,12 @@
       "document_superseded_sticky": "A superseded document stays superseded; add a new version instead.",
       "document_identity_immutable": "A saved document's record, type and version cannot be changed; add a new version instead.",
       "customer_closed": "The customer is closed: it gets no new projects.",
-      "customer_contract_restricted": "Only management may change a customer's contract terms."
+      "customer_contract_restricted": "Only management may change a customer's contract terms.",
+      "project_customer_missing": "The project's customer was not found.",
+      "customer_code_immutable": "A customer's code cannot be changed.",
+      "tenant_required": "Choose a branch first.",
+      "invalid_code_kind_or_scope": "This kind of code cannot be generated for that scope.",
+      "rows_must_be_an_array": "The import file could not be read as a list of rows."
    },
    "account": {
       "profile": {

@@ -276,7 +276,12 @@
       "document_superseded_sticky": "Eskimiş bir belge eski kalır; bunun yerine yeni bir sürüm ekleyin.",
       "document_identity_immutable": "Kaydedilmiş bir belgenin kaydı, türü ve sürümü değiştirilemez; bunun yerine yeni bir sürüm ekleyin.",
       "customer_closed": "Müşteri kapalı: yeni proje açılamaz.",
-      "customer_contract_restricted": "Müşterinin sözleşme koşullarını yalnızca yönetim değiştirebilir."
+      "customer_contract_restricted": "Müşterinin sözleşme koşullarını yalnızca yönetim değiştirebilir.",
+      "project_customer_missing": "Projenin müşterisi bulunamadı.",
+      "customer_code_immutable": "Müşteri kodu değiştirilemez.",
+      "tenant_required": "Önce bir şube seçin.",
+      "invalid_code_kind_or_scope": "Bu tür kod bu kapsam için üretilemez.",
+      "rows_must_be_an_array": "İçe aktarma dosyası satır listesi olarak okunamadı."
    },
    "account": {
       "profile": {
