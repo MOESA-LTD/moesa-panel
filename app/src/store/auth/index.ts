@@ -1,171 +1,273 @@
 // app/src/store/auth/index.ts
 
-import { BaseModel } from '@/services/models/BaseModel';
-import { MongoAbility } from '@casl/ability';
-import { ABILITY_TOKEN } from '@casl/vue';
-import Collection from '@lib/Collection';
-import { AuthChangeEvent, Session, UserMetadata } from '@supabase/supabase-js';
+import { fetchAccess, type Access, type SubscriptionSummary, type Tenant } from '@/api/access';
+import { clearDialogs } from '@/components/layout/route-dialog/session';
+import { clearDrafts } from '@/lib/form/drafts';
+import { supabase } from '@/lib/supabase';
+import { ability, createAbility, toAbilityRules } from '@plugins/casl';
+import { queryKeys } from '@/api/queryKeys';
+import { clearQueryCache, queryClient } from '@plugins/tanstack-query';
+import type {
+   RealtimeChannel,
+   Session,
+   SignInWithPasswordCredentials
+} from '@supabase/supabase-js';
+import { useEventListener, useStorage } from '@vueuse/core';
 import { jwtDecode } from 'jwt-decode';
 import { defineStore } from 'pinia';
-import { ToastMessageOptions } from 'primevue';
-import { useToast } from 'primevue/usetoast';
-import { computed, inject, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { RouteLocationAsPath, useRoute, useRouter } from 'vue-router';
+import { computed, ref, shallowRef, watch } from 'vue';
 
-const tenantURLRegex = /^(?:https?:\/\/)?(?<tenant>(?!\d+\.\d+\.\d+\.\d+)[a-zA-Z0-9-]+)\./;
+export type { Tenant };
 
+/** Claims added to the access token by private.custom_access_token_hook. */
+export type JwtPayload = {
+   user_metadata?: { current_tenant_id?: string } & Record<string, unknown>;
+};
+
+/** The first label of the host (tenant.example.com), unless the host is an IP address. */
+const SUBDOMAIN = /^(?:https?:\/\/)?(?<tenant>(?!\d+\.\d+\.\d+\.\d+)[a-zA-Z0-9-]+)\./;
+
+/**
+ * Session and access state. The session identifies the user; their tenants and permissions come
+ * from the database (my_access), which RLS also enforces, and are reloaded whenever they may have
+ * changed. UI reactions (toasts, redirects) live in useAuthUi.
+ */
 export const useAuthStore = defineStore('auth', () => {
-   const toast = useToast();
-   const router = useRouter();
-   const route = useRoute();
-   const { t } = useI18n();
+   const session = shallowRef<Session | null>(null);
 
-   const session = Collection.create<Session>();
-   const user = BaseModel.create<Session['user']>();
+   const user = computed(() => session.value?.user ?? null);
+   const isSignedIn = computed(() => !!user.value);
 
-   const jwt = computed(() => {
-      return session?.access_token ? jwtDecode<JwtPayload>(session?.access_token) : null;
+   const jwt = computed(() =>
+      session.value?.access_token ? jwtDecode<JwtPayload>(session.value.access_token) : null
+   );
+
+   // Access
+
+   const access = shallowRef<Access | null>(null);
+
+   /** The tenant picked in this tab; until then the user's saved one (current_tenant_id). */
+   const preferredTenantId = ref<string | null>(null);
+
+   const branches = computed(() => access.value?.tenants ?? []);
+
+   const subdomainTenant = SUBDOMAIN.exec(window.location.href)?.groups?.tenant ?? null;
+
+   /** The active tenant: new rows go there, and the permissions are its (x-tenant-id). */
+   const currentTenant = computed<Tenant | null>(
+      () => branches.value.find(({ id }) => id === access.value?.tenant_id) ?? null
+   );
+
+   /**
+    * The logo to show for the active tenant: its own, else the nearest one above (my_access
+    * resolves it). A path in the tenant-logo bucket (see logoUrl).
+    */
+   const currentLogoPath = computed(() => currentTenant.value?.logo_path ?? null);
+
+   // The tenants read together (x-tenant-ids), kept per user in this browser.
+   const savedScopes = useStorage<Record<string, string[]>>('tenant-scope', {}, localStorage);
+   const selectedTenantIds = computed<string[]>({
+      get: () => savedScopes.value[user.value?.id ?? ''] ?? [],
+      set: (ids) => {
+         if (user.value) savedScopes.value = { ...savedScopes.value, [user.value.id]: ids };
+      }
    });
 
-   const isSignedIn = computed(() => !!user?.id);
-   const branches = computed(() => jwt?.value?.app_metadata?.allowed_tenant || []);
+   /** The tenants requests read from: the selected ones the user may still use, and the active. */
+   const scopeTenants = computed<Tenant[]>(() => {
+      const ids = new Set([...selectedTenantIds.value, currentTenant.value?.id]);
+      return branches.value.filter(({ id }) => ids.has(id));
+   });
 
-   function useCurrentTenant() {
-      const currentTenant = Collection.create<Tenant>({
-         id: null,
-         display_name: _get(window.location.href.match(tenantURLRegex), 'groups.tenant', null)
-      });
-
-      function setCurrentTenant(tenant?: Tenant) {
-         currentTenant?._reset();
-
-         const current_tenant_id = jwt.value?.user_metadata?.current_tenant_id;
-
-         if (branches.value.length <= 0) return;
-
-         tenant ??= branches.value.find(
-            ({ display_name, id }) =>
-               id == current_tenant_id || display_name === currentTenant.display_name
-         );
-         currentTenant?._reset(tenant || branches.value[0]);
-      }
-
-      async function changeCurrentTenant(tenant?: Tenant) {
-         const current_tenant_id = jwt.value?.user_metadata?.current_tenant_id;
-
-         tenant ??= branches.value.find(
-            ({ display_name, id }) =>
-               id == current_tenant_id || display_name === currentTenant?.display_name
-         );
-
-         if (currentTenant.id === tenant?.id) return;
-
-         await supabase.auth.updateUser({
-            data: { current_tenant_id: tenant?.id }
-         });
-
-         await supabase.auth.refreshSession();
-
-         setCurrentTenant(tenant);
-      }
-
-      return { currentTenant, setCurrentTenant, changeCurrentTenant };
-   }
-
-   function useAbility() {
-      const ability = inject<MongoAbility>(ABILITY_TOKEN);
-
-      watch(
-         () => jwt.value?.app_metadata?.permission,
-         (newPermissions: Permission[] = []) => {
-            ability.update(
-               newPermissions.map(({ command, resource_name }) => ({
-                  action: command,
-                  subject: resource_name?.replace?.('public.', '')
-               }))
-            );
-         },
-         { immediate: true, deep: true }
-      );
-
-      return { ability };
-   }
-
-   const { currentTenant, setCurrentTenant, changeCurrentTenant } = useCurrentTenant();
-   const { ability } = useAbility();
-
-   async function handleAuthStateChange(event: AuthChangeEvent, newSession?: Session) {
-      session._reset(newSession);
-      user._reset(newSession?.user);
-
-      const toastOptions: ToastMessageOptions = {
-         summary: '',
-         severity: 'success',
-         life: 3000
-      };
-      const previousSignedIn = isSignedIn.value;
-
-      setTimeout(() => {
-         if (event === 'SIGNED_IN') {
-            toastOptions.summary = t('auth.toast.welcome');
-            toastOptions.severity = ToastSeverity.SUCCESS;
-            toast.add(toastOptions);
-         } else if (event === 'SIGNED_OUT' && !previousSignedIn) {
-            toastOptions.summary = t('auth.toast.goodby');
-            toastOptions.severity = ToastSeverity.INFO;
-            toast.add(toastOptions);
-         }
-      }, 1000);
-
-      return { event, newSession };
-   }
-
-   const initialized = new Promise((resolve) => {
-      supabase.auth.onAuthStateChange(async (event, newSession) => {
-         const result = await handleAuthStateChange(event, newSession);
-
-         if (newSession?.access_token) setCurrentTenant();
-
-         if (event === 'INITIAL_SESSION') {
-            resolve(result);
-         }
-      });
+   /** What requests read and write (the active tenant, then the others); in every query key. */
+   const tenantKey = computed<string | null>(() => {
+      const active = currentTenant.value?.id;
+      if (!active) return null;
+      const others = scopeTenants.value.map(({ id }) => id).filter((id) => id !== active);
+      return [active, ...others.sort()].join(',');
    });
 
    watch(
-      () => isSignedIn.value,
-      async (signedIn) => {
-         await router.isReady();
-         await initialized;
-
-         if (signedIn) {
-            if (route.name.toString().startsWith('auth-')) {
-               const backTo =
-                  (router.options.history.state.back as unknown as RouteLocationAsPath) || '/';
-               return router.replace(backTo);
-            }
-            return;
-         }
-
-         if (route?.meta?.requiresAuth) {
-            if (route.name === 'logout') {
-               return router.replace({ name: 'auth-login' });
-            }
-            router.push({ name: 'auth-login' });
-         }
-      }
+      () => access.value?.permissions,
+      (permissions) => ability.update(toAbilityRules(permissions)),
+      { immediate: true }
    );
 
-   const loginWithPassword = async (loginData: LoginData) => {
-      const { data, error } = await supabase.auth.signInWithPassword(loginData);
-      if (error) throw error;
-      return data;
+   // Each tenant's own permissions, for rows of the other branches shown.
+   const tenantAbilities = computed(
+      () => new Map(branches.value.map(({ id, permissions }) => [id, createAbility(permissions)]))
+   );
+
+   /**
+    * Whether the user may do `action` on `subject` in `tenantId`: a row's own tenant, which may be
+    * another of the branches shown. Rows without a tenant (shared) follow the active tenant.
+    */
+   const canIn = (tenantId: string | null | undefined, action: string, subject: string) =>
+      ((tenantId && tenantAbilities.value.get(tenantId)) || ability).can(action, subject);
+
+   // Subscription
+
+   const isSuperAdmin = computed(() => !!access.value?.is_super_admin);
+
+   /** The subscription of the active tenant's company; its plan limits what the user may do. */
+   const subscription = computed<SubscriptionSummary | null>(
+      () => access.value?.subscription ?? null
+   );
+
+   /**
+    * The module outside the company's plan that a permission subject belongs to, if it is one:
+    * pages needing it are shown locked. Nothing is locked for the super admin.
+    */
+   const lockedModule = (subject: string): string | null =>
+      isSuperAdmin.value ? null : (subscription.value?.locked[subject] ?? null);
+
+   // The newest load wins; an older one finishing later is dropped.
+   let latestLoad = 0;
+   let loading: Promise<void> = Promise.resolve();
+
+   async function loadAccess() {
+      const load = ++latestLoad;
+      if (!session.value) {
+         access.value = null;
+         return;
+      }
+
+      // The user's metadata, not the token's: updateUser saves it at once, while the token keeps
+      // the old tenant until it is refreshed (a reload right after switching opened the old one).
+      const requested =
+         preferredTenantId.value ??
+         (session.value.user.user_metadata?.current_tenant_id as string | undefined) ??
+         null;
+      const result = await fetchAccess(requested);
+      if (load !== latestLoad) return;
+
+      // A tenant's own subdomain opens that tenant.
+      const fromSubdomain = result?.tenants.find(
+         ({ display_name }) => display_name === subdomainTenant
+      );
+      if (fromSubdomain && !preferredTenantId.value && fromSubdomain.id !== result?.tenant_id) {
+         preferredTenantId.value = fromSubdomain.id;
+         return loadAccess();
+      }
+
+      access.value = result;
+   }
+
+   /** Reloads the user's tenants and permissions; resolves when they are in place. */
+   function refreshAccess() {
+      loading = loadAccess();
+      return loading;
+   }
+
+   /** Resolves once the access of the current session is loaded (or failed to load). */
+   const accessReady = () => loading.catch(() => {});
+
+   // Changes to roles, permissions or memberships are broadcast to the users they affect
+   // (private.notify_access_changed); other tabs, devices and admins' edits show up right away.
+   let accessChannel: RealtimeChannel | null = null;
+   let accessUserId: string | null = null;
+   async function listenForAccessChanges(userId: string | null) {
+      // Once per user: removing a channel is async and, with no channel left, closes the socket,
+      // which would take a channel subscribed meanwhile down with it.
+      if (userId === accessUserId) return;
+      accessUserId = userId;
+
+      const previous = accessChannel;
+      accessChannel = null;
+      if (previous) await supabase.removeChannel(previous);
+      if (!userId || userId !== accessUserId) return;
+
+      // A private channel is joined with the user's token, which Realtime may not have yet.
+      await supabase.realtime.setAuth(session.value?.access_token ?? null);
+      if (userId !== accessUserId) return;
+
+      accessChannel = supabase
+         .channel(`access:${userId}`, { config: { private: true } })
+         .on('broadcast', { event: 'access_changed' }, () => refreshAccess().catch(() => {}))
+         .subscribe();
+   }
+
+   // Coming back to the tab picks up changes made while the broadcast could not arrive.
+   useEventListener(window, 'focus', () => {
+      if (isSignedIn.value) refreshAccess().catch(() => {});
+   });
+
+   // Queries are keyed by tenantKey, so the open pages already fetch the new tenants' rows.
+   // Clearing the whole cache would abort those fetches; drop only the previous tenants' queries.
+   const dropPreviousQueries = (previousKey: string | null) => {
+      if (previousKey !== tenantKey.value) {
+         queryClient.removeQueries({ queryKey: queryKeys.tenant(previousKey) });
+      }
    };
 
-   const logout = async () => {
-      return await supabase.auth.signOut();
-   };
+   async function changeCurrentTenant(tenant: Tenant) {
+      const previousId = currentTenant.value?.id ?? null;
+      if (!tenant || tenant.id === previousId) return;
+      const previousKey = tenantKey.value;
+
+      preferredTenantId.value = tenant.id;
+      await refreshAccess();
+
+      // Remembered for the next sign-in, on any device.
+      const { error } = await supabase.auth.updateUser({ data: { current_tenant_id: tenant.id } });
+      if (error) throw error;
+
+      dropPreviousQueries(previousKey);
+   }
+
+   /** Reads from these tenants; the active one stays among them (or becomes the first of them). */
+   async function setScope(ids: string[]) {
+      const previousKey = tenantKey.value;
+      selectedTenantIds.value = ids;
+
+      const active = currentTenant.value;
+      const first = branches.value.find(({ id }) => ids.includes(id));
+      if (active && first && !ids.includes(active.id)) await changeCurrentTenant(first);
+
+      dropPreviousQueries(previousKey);
+   }
+
+   let resolveInitialized: () => void;
+   /** Resolves once the stored session (if any) and its access have been restored. */
+   const initialized = new Promise<void>((resolve) => (resolveInitialized = resolve));
+
+   supabase.auth.onAuthStateChange((event, newSession) => {
+      // Without a session nothing cached may survive: the next user could be someone else.
+      if (!newSession) clearQueryCache();
+
+      const userChanged = newSession?.user.id !== session.value?.user.id;
+      session.value = newSession;
+
+      if (userChanged || event === 'INITIAL_SESSION') {
+         preferredTenantId.value = null;
+         // Pending right away, so a navigation right after signing in waits for the permissions;
+         // the call itself is deferred, as Supabase calls inside this callback can deadlock.
+         loading = new Promise<void>((resolve, reject) =>
+            setTimeout(() => {
+               void listenForAccessChanges(newSession?.user.id ?? null);
+               loadAccess().then(resolve, reject);
+            })
+         );
+         loading.catch((error) => console.error('Could not load the access:', error));
+         if (event === 'INITIAL_SESSION') void accessReady().then(resolveInitialized);
+      }
+   });
+
+   async function loginWithPassword(credentials: SignInWithPasswordCredentials) {
+      const { data, error } = await supabase.auth.signInWithPassword(credentials);
+      if (error) throw error;
+      return data;
+   }
+
+   async function logout() {
+      const result = await supabase.auth.signOut();
+      // Signing out on purpose leaves nothing of the user's work in the tab. Cleared after the
+      // sign-out: with no user, no pending draft can be written back. (A session that merely
+      // expires keeps drafts and dialogs, so signing in again picks up where the user was.)
+      clearDrafts();
+      clearDialogs();
+      return result;
+   }
 
    return {
       session,
@@ -174,36 +276,20 @@ export const useAuthStore = defineStore('auth', () => {
       isSignedIn,
       branches,
       currentTenant,
+      currentLogoPath,
+      scopeTenants,
+      tenantKey,
       changeCurrentTenant,
+      setScope,
+      refreshAccess,
+      accessReady,
       ability,
+      canIn,
+      isSuperAdmin,
+      subscription,
+      lockedModule,
       loginWithPassword,
       logout,
       initialized
    };
 });
-
-interface JwtPayload {
-   app_metadata?: AppMetadata;
-   user_metadata?: UserMetadata;
-}
-
-interface AppMetadata {
-   allowed_tenant?: Tenant[];
-   current_tenant_id?: string;
-   permission: Permission[];
-}
-
-interface Tenant {
-   id: string | null;
-   display_name: string | null;
-}
-
-interface Permission {
-   command: string;
-   resource_name: string;
-}
-
-interface LoginData {
-   email: string;
-   password: string;
-}

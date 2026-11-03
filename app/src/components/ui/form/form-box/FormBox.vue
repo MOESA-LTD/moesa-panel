@@ -1,18 +1,21 @@
 <script setup lang="ts" generic="T = any">
-import { Form } from '@/lib/Form';
-
-export declare type FormBoxProps = {
+export declare type FormBoxProps<T = any> = {
    legend?: string;
-   form?: Form<T>;
+   /** Whether there are unsaved changes; enables the reset and save buttons. */
+   dirty?: boolean;
+   /** Shows the save button as busy while the form is being submitted. */
+   submitting?: boolean;
    readonly?: boolean;
    invalid?: boolean;
    error?: string | boolean;
    printable?: boolean;
    submitText?: string;
    resetText?: string;
+   /** A restored draft (see useFormDraft): shows a note with a way to discard it. */
+   draft?: { restored: boolean; stale: boolean };
 };
 
-const props = defineProps<FormBoxProps>();
+const props = defineProps<FormBoxProps<T>>();
 
 const boxElement = ref<HTMLElement | null>(null);
 </script>
@@ -23,9 +26,13 @@ const boxElement = ref<HTMLElement | null>(null);
          :invalid="invalid || !!error"
          class="form_box"
          @submit.prevent
+         @reset.prevent
          ref="boxElement"
          autocomplete="on"
       >
+         <!-- @reset.prevent: the browser's own reset would blank inputs whose value did not change
+              (Vue does not re-render them); the parent's @reset resets the form state instead.
+              (Kept inside the form: a comment next to it would make the root a fragment.) -->
          <BlockUI
             :blocked="readonly === true"
             :pt="{
@@ -35,6 +42,22 @@ const boxElement = ref<HTMLElement | null>(null);
                }
             }"
          >
+            <Message
+               v-if="draft?.restored && !readonly"
+               :severity="draft.stale ? 'warn' : 'info'"
+               :icon="draft.stale ? PrimeIcons.EXCLAMATION_TRIANGLE : PrimeIcons.HISTORY"
+               class="form_box__draft"
+            >
+               <span class="form_box__draft-content">
+                  <span>
+                     {{ $t('form.draft.restored') }}
+                     <template v-if="draft.stale">{{ $t('form.draft.stale') }}</template>
+                  </span>
+                  <!-- A form reset discards the draft along with the edits. -->
+                  <Button :label="$t('form.draft.discard')" size="small" text type="reset" />
+               </span>
+            </Message>
+
             <slot v-bind="$props" />
 
             <slot name="form-actions" v-bind="$props">
@@ -44,13 +67,14 @@ const boxElement = ref<HTMLElement | null>(null);
                         :label="resetText || $t('action.reset')"
                         severity="secondary"
                         class="form_box__button"
-                        :disabled="!form?._isChanged"
+                        :disabled="!dirty"
                         type="reset"
                      />
                      <Button
                         :label="submitText || $t('action.save')"
                         class="form_box__button"
-                        :disabled="!form?._isChanged"
+                        :disabled="!dirty"
+                        :loading="submitting"
                         type="submit"
                      />
                      <PrintElementButton
@@ -143,6 +167,14 @@ const boxElement = ref<HTMLElement | null>(null);
 
    &__button {
       @apply flex-1 w-48;
+   }
+
+   &__draft {
+      @apply w-full;
+
+      &-content {
+         @apply flex flex-wrap items-center justify-between gap-2 w-full;
+      }
    }
 }
 </style>

@@ -1,5 +1,9 @@
 <script setup>
-useLayout();
+import { useRouteDialogRestore } from '@/components/layout/route-dialog/useRouteDialogRestore';
+import { useAuthUi } from '@/composables/useAuthUi';
+
+useAuthUi();
+useRouteDialogRestore();
 </script>
 
 <template>

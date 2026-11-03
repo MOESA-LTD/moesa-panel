@@ -68,6 +68,11 @@ function onCountryChange(value) {
 
 function onInputChange(val) {
    const national = val?.replace(/\D/g, '') || '';
+   // A calling code alone is not a number; clearing the input clears the value.
+   if (!national) {
+      modelValue.value = '';
+      return;
+   }
    const callingCode = selectedCountry.value?.countryCallingCode;
    if (callingCode) {
       modelValue.value = `+${callingCode}${national}`;

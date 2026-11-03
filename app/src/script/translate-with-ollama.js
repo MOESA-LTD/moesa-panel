@@ -103,15 +103,15 @@ async function translateFile(file, targetLang) {
       const prompt = `
 Translate the following JSON object to **${targetLang}** language.
 
-This JSON contains interface text for a Hearing Aid CRM application used by clinics, audiologists, and patients.
+This JSON contains interface text for a multi-tenant business management panel (branches, users, roles, subscriptions).
 
 **Translation rules:**
 - If a value is empty, translate by **key** instead.
 - **If a key contains or ends with "id"**:
   - If "id" is part of a meaningful label (e.g., "national_id", "identity_id"), **translate the full value**.
-  - If "id" is a technical suffix (e.g., "product_id", "client_id"), **only translate the prefix** (e.g., "Product", "Client").
+  - If "id" is a technical suffix (e.g., "role_id", "user_id"), **only translate the prefix** (e.g., "Role", "User").
 - Preserve all **placeholders wrapped in curly braces** (e.g., {user_name}, {table_name}) **without translating** them. Keep them exactly as they appear and place them correctly in the translated sentence.
-- Use a **formal and professional tone** suitable for medical and clinical software interfaces.
+- Use a **formal and professional tone** suitable for business software interfaces.
 - Use **title casing** for labels and messages when appropriate.
 - Keep the **JSON structure** exactly the same. 
 - Do **not** include explanations, comments, or Markdown formatting and do **not** translate keys.

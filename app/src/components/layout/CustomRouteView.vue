@@ -1,4 +1,7 @@
 <script setup>
+import { useDialogRef } from '@/composables/useDialogRef';
+import { provideRouteStatus } from '@/composables/useRouteStatus';
+
 defineOptions({
    inheritAttrs: false
 });
@@ -10,52 +13,24 @@ const props = defineProps({
    suspensible: { type: Boolean, default: false }
 });
 
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 
 const route = useRoute();
 
-const isResolved = ref(true);
-const isPending = ref(false);
-const isFallback = ref(false);
-const isLoading = computed(() => isPending.value || isFallback.value);
-
-provide('routeResolved', isResolved.value);
-provide('routePending', isPending.value);
-provide('routeFallback', isFallback.value);
-provide('routeLoading', isLoading.value);
+const { status, isLoading, setStatus } = provideRouteStatus();
+const isPending = computed(() => status.value === 'pending');
+const isFallback = computed(() => status.value === 'fallback');
 
 const routeComponent = ref(null);
 
-const updateRouteStatus = (status) => {
-   switch (status) {
-      case 'resolve':
-         isResolved.value = true;
-         isFallback.value = false;
-         isPending.value = false;
-         break;
-      case 'fallback':
-         isFallback.value = true;
-         isResolved.value = false;
-         isPending.value = false;
-         break;
-      case 'pending':
-         isPending.value = true;
-         isResolved.value = false;
-         isFallback.value = false;
-         break;
-      default:
-         break;
-   }
-};
-
 watch(
    () => route?.fullPath,
-   () => updateRouteStatus('resolve')
+   () => setStatus('resolve')
 );
 
-const onResolve = () => updateRouteStatus('resolve');
-const onFallback = () => updateRouteStatus('fallback');
-const onPending = () => updateRouteStatus('pending');
+const onResolve = () => setStatus('resolve');
+const onFallback = () => setStatus('fallback');
+const onPending = () => setStatus('pending');
 </script>
 
 <template>
@@ -91,7 +66,15 @@ const onPending = () => updateRouteStatus('pending');
          :key="routeComponent?.name || routeComponent?.type"
       >
          <template v-if="isLoading">
-            <component v-if="Component" :is="Component" />
+            <!-- Its own boundary: a skeleton that loads data itself (often the page itself) would
+                 otherwise join the page's boundary, and once removed it was still mounted when its
+                 data came, as a copy that no longer updated. -->
+            <Suspense v-if="Component">
+               <component :is="Component" />
+               <template #fallback>
+                  <Skeleton class="route_view__skeleton" />
+               </template>
+            </Suspense>
             <Skeleton v-else class="route_view__skeleton" />
          </template>
       </RouterView>

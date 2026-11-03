@@ -1,16 +1,31 @@
 <script setup>
-const { isSignedIn } = storeToRefs(useAuthStore());
+import { logoUrl } from '@/api/branch';
+import BranchPicker from '@/components/service-components/branch-picker/BranchPicker.vue';
+import CustomerFilter from '@/components/service-components/customer-filter/CustomerFilter.vue';
+import { useCustomerFilter } from '@/store/customerFilter';
+import { useCustomerOptions } from '@/store/customerFilter/useCustomerOptions';
+import { useSidebar } from '@/composables/useSidebar';
+import { useAbility } from '@casl/vue';
+
+const { isSignedIn, currentLogoPath, currentTenant } = storeToRefs(useAuthStore());
+const logo = computed(() => (isSignedIn.value ? logoUrl(currentLogoPath.value) : null));
 const appConfigurator = ref();
-const { layoutState, sidebarToggle } = useLayout();
+const sidebar = useSidebar();
 
 const version = import.meta.env.PACKAGE_VERSION;
+
+// The customer filter, for those who may read customers.
+const ability = useAbility();
+const showCustomerFilter = computed(() => isSignedIn.value && ability.can('read', 'customer'));
+const customerFilter = useCustomerFilter();
+const { data: customers } = useCustomerOptions(showCustomerFilter);
 </script>
 
 <template>
    <Teleport
       to="#sidebar-start"
       defer
-      :disabled="!(layoutState.sidebarActive && layoutState.sidebarMode === 'overlay')"
+      :disabled="!(sidebar.active.value && sidebar.mode.value === 'overlay')"
    >
       <div class="layout-topbar-logo-container">
          <Button
@@ -21,12 +36,19 @@ const version = import.meta.env.PACKAGE_VERSION;
             aria-label="Sidebar toggle button"
             severity="secondary"
             :icon="PrimeIcons.BARS"
-            @click="sidebarToggle"
+            @click="sidebar.toggle"
             v-if="isSignedIn"
          />
          <router-link to="/" class="layout-topbar-logo">
+            <!-- The company's own logo, when it has one (see the branch profile). -->
+            <img
+               v-if="logo"
+               :src="logo"
+               :alt="currentTenant?.display_name"
+               class="h-10 max-w-32 object-contain"
+            />
             <span class="flex flex-col">
-               <span class="font-mono text-primary text-3xl" v-text="'EchoChart'" />
+               <span class="font-mono text-primary text-3xl" v-text="'Moesa Panel'" />
                <small v-if="version" class="text-xs text-muted-color" v-text="`v${version}`" />
             </span>
          </router-link>
@@ -34,6 +56,13 @@ const version = import.meta.env.PACKAGE_VERSION;
    </Teleport>
 
    <div class="layout-topbar-actions">
+      <BranchPicker v-if="isSignedIn" />
+      <CustomerFilter
+         v-if="showCustomerFilter"
+         :model-value="customerFilter.customerId"
+         @update:model-value="customerFilter.set"
+         :options="customers ?? []"
+      />
       <AccountPopover v-if="isSignedIn" class="mt-auto" />
       <Button
          :aria-label="'App configurator toggle button'"

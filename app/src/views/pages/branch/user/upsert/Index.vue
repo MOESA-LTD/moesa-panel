@@ -1,79 +1,21 @@
 <script setup lang="ts">
-import { Json } from '@/@types/database.types';
-import { Form } from '@/lib/Form';
+import { useUser, type UserWithRoles } from '@/api/user';
 import General from '@/views/pages/branch/user/upsert/tabs/General.vue';
-import { AdminUserAttributes } from '@supabase/supabase-js';
 import { TabProps } from 'primevue';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
-export declare type UserUpsertGeneralData = Omit<AdminUserAttributes, 'user_metadata'> & {
-   user_metadata?: Json & {
-      display_name?: string;
-      avatar_url?: string;
-      email_verified?: boolean;
-   };
-};
+const props = defineProps<{
+   id?: string | null;
+   data?: Partial<UserWithRoles> | null;
+   /** The branch of the membership opened; see the route. */
+   tenant?: string | null;
+}>();
 
-export declare type UserUpsertRoleData = {
-   role?: Array<
-      Tables['role']['Update'] & {
-         permission?: Array<Tables['permission']['Update']>;
-      }
-   >;
-};
+const userId = computed(() => props.id ?? props.data?.id ?? null);
 
-export declare type UserUpsertFormData = UserUpsertGeneralData & UserUpsertRoleData;
-
-export declare type UserUpsertProps = {
-   id?: Tables['user']['Update']['id'];
-   data?: UserUpsertFormData;
-};
-
-const props = withDefaults(defineProps<UserUpsertProps>(), {});
-
-const emit = defineEmits(['update:tab']);
-
-const initialFormData: UserUpsertFormData = {
-   id: undefined,
-   email: null,
-   phone: null,
-   user_metadata: {
-      display_name: null
-   },
-   password: '',
-   role: null
-};
-
-const fields = _keys(initialFormData);
-
-const form = Form.create<UserUpsertFormData>({
-   data: props.id
-      ? ((
-           await supabase
-              .from('user')
-              .select('*, role(*)')
-              .eq('id', props.id)
-              .maybeSingle()
-              .throwOnError()
-        ).data as any)
-      : _defaults(props.data, initialFormData),
-   rules: {
-      email: 'required|email',
-      phone: 'phone',
-      'user_metadata.display_name': 'required'
-   },
-   useDialogForm: false
-});
-
-provide('userForm', form);
-
-if (props.id || props.data?.id) {
-   const updateCallback = (data: any) => {
-      if (data?.id === form.id) form._setDefaults(_pick(data, fields))._reset();
-   };
-   onMounted(() => emitter.on('user-update', updateCallback));
-   onUnmounted(() => emitter.off('user-update', updateCallback));
-}
+// Loaded here so the route's Suspense waits for it; the tab reuses the cached query.
+const { suspense } = useUser(userId, () => props.tenant);
+if (userId.value) await suspense();
 
 const tabs: ComputedRef<(TabProps & { route: RouteLocationAsRelativeGeneric })[]> = computed(() => [
    {
@@ -81,7 +23,8 @@ const tabs: ComputedRef<(TabProps & { route: RouteLocationAsRelativeGeneric })[]
       asChild: true,
       route: {
          name: 'branch-manage-user-general',
-         params: { id: form.id }
+         params: { id: userId.value },
+         query: props.tenant ? { tenant: props.tenant } : {}
       }
    }
 ]);
@@ -97,6 +40,7 @@ const tabValue = computed(() => tab.value || tabs.value[0].value);
    <div class="card p-0">
       <Tabs v-model:value="tabValue">
          <TabList>
+            <!-- @vue-expect-error PrimeVue's TabSlots omits the scope it passes in asChild mode -->
             <Tab
                v-for="tab in tabs"
                v-bind="tab"
@@ -105,13 +49,14 @@ const tabValue = computed(() => tab.value || tabs.value[0].value);
                :disabled="!$can('create', 'user') || !$can('modify', 'user')"
             >
                <CustomLink :to="tab.route">
+                  <!-- @vue-expect-error see above -->
                   <button v-bind="slotProps" v-text="tab.value" />
                </CustomLink>
             </Tab>
          </TabList>
          <TabPanels>
             <TabPanel :value="$t('user.upsert.tabs.general_info')">
-               <General />
+               <General :id="userId" :data="props.data" :tenant="props.tenant" />
             </TabPanel>
          </TabPanels>
       </Tabs>

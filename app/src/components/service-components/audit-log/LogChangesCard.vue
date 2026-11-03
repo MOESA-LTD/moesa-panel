@@ -1,20 +1,19 @@
-<script setup lang="ts" generic="T = Tables['audit_log']['Update']">
+<script setup lang="ts">
 import { fieldRoutes } from '@/constants/form/field';
-import Collection from '@/lib/Collection';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
-import { detailedDiff, diff } from 'deep-object-diff';
+import { diff } from 'deep-object-diff';
 
-type Log = Tables['audit_log']['Update'] & {
-   changes?: {
-      key?: string;
-      type?: string;
-      oldValue?: any;
-      newValue?: any;
-   }[];
+type LogChange = {
+   key: string;
+   type: 'add' | 'delete' | 'update';
+   oldValue?: unknown;
+   newValue?: unknown;
 };
 
+type Log = Partial<Tables['audit_log']['Row']> & { changes?: LogChange[] };
+
+/** One changed row of an audit transaction. */
 const props = defineProps<{
-   id?: Tables['audit_log']['Row']['id'];
    data?: Tables['audit_log']['Row'];
 }>();
 const { t, te } = useI18n();
@@ -32,7 +31,7 @@ const getLogTagProps = (log: Log) => {
    }
 };
 
-const getChanges = (log: Log) => {
+const getChanges = (log: Log | null | undefined): Log => {
    if (!_isObject(log)) return {};
 
    const omitFn = (value: any, key: string) => {
@@ -40,7 +39,7 @@ const getChanges = (log: Log) => {
       return false;
    };
 
-   const rowData = _omitBy(_get(log, 'row_data', {}) as object, omitFn);
+   const rowData = _omitBy(_get(log, 'new_data', {}) as object, omitFn);
    const oldData = _omitBy(_get(log, 'old_data', {}) as object, omitFn);
 
    const operation = _toLower(log?.operation);
@@ -63,35 +62,25 @@ const getChanges = (log: Log) => {
       return log;
    }
 
-   const diffResult = detailedDiff(oldData, rowData);
-   const changes = [];
-
-   for (const [key, value] of _toPairs(diffResult?.added)) {
-      changes.push({ key, type: 'add', oldValue: null, newValue: value });
-   }
-   for (const [key, value] of _toPairs(diffResult?.deleted)) {
-      changes.push({ key, type: 'delete', oldValue: value, newValue: null });
-   }
-   for (const [key, newValue] of _toPairs(diffResult?.updated)) {
-      let oldValue = _get(oldData, key);
-      if (_isObject(newValue)) {
-         oldValue = diff(_merge(_cloneDeep(_get(oldData, key)), newValue), _get(oldData, key));
-      }
-      changes.push({
-         key,
-         type: 'update',
-         oldValue,
-         newValue
-      });
-   }
-   log.changes = changes;
+   // An update keeps the old values of the changed columns only; objects show their changed parts.
+   log.changes = _toPairs(oldData).map(([key, oldValue]): LogChange => {
+      const newValue = _get(rowData, key);
+      return _isPlainObject(oldValue) && _isPlainObject(newValue)
+         ? {
+              key,
+              type: 'update',
+              oldValue: diff(newValue, oldValue),
+              newValue: diff(oldValue, newValue)
+           }
+         : { key, type: 'update', oldValue, newValue };
+   });
    return log;
 };
 
 function getLogResourceRoute(log: Log) {
-   const { table_name, row_data, old_data } = log;
-   const { name, field } = fieldRoutes[table_name];
-   const id = field ? _get(row_data, field, _get(old_data, field)) : _get(row_data, 'id');
+   const { table_name, new_data, old_data } = log;
+   const { name, field } = fieldRoutes[table_name ?? ''];
+   const id = field ? _get(new_data, field, _get(old_data, field)) : log.record_id;
    const params = {
       id
    };
@@ -102,10 +91,11 @@ function getLogResourceRoute(log: Log) {
    };
 }
 
-function getLogEntryRoute(entry: Log['changes'][0]) {
+function getLogEntryRoute(entry: LogChange) {
    const { key, newValue } = entry;
    const { name } = fieldRoutes[key];
-   const id = newValue;
+   // Shown only for `*_id` changes, so the value is the related row's id.
+   const id = newValue as string;
    const params = {
       id
    };
@@ -156,18 +146,8 @@ function formatValue(value: any, indentSize = 0): any {
    return te('fields.' + value) ? t('fields.' + value) : value;
 }
 
-const log = Collection.create(getChanges(props.data));
-
-if (props.id) {
-   await supabase
-      .from('audit_log')
-      .select('*')
-      .or(`id.eq.${props.id},correlation_id.eq.${props.id}`)
-      .maybeSingle()
-      .then((res) => {
-         log._setDefaults(getChanges(res.data))._reset();
-      });
-}
+// Copied, as getChanges adds to it; shallowRef also avoids unwrapping the nested Json types.
+const log = shallowRef(getChanges(props.data && { ...props.data }));
 </script>
 
 <template>
@@ -177,10 +157,9 @@ if (props.id) {
             <span v-text="$t('fields.' + log?.table_name || '')" />
             <CustomLink
                v-if="
-                  !log.reverted_at &&
                   log.operation !== 'DELETE' &&
-                  !!fieldRoutes[log.table_name] &&
-                  !!(log.row_data as any)?.id
+                  !!fieldRoutes[log.table_name ?? ''] &&
+                  !!log.record_id
                "
                :to="getLogResourceRoute(log)"
                v-slot="{ navigate }"
@@ -196,10 +175,14 @@ if (props.id) {
          </div>
       </template>
       <template #icons>
-         <Tag v-bind="getLogTagProps(log?._data)" />
+         <Tag v-bind="getLogTagProps(log)" />
       </template>
       <div class="audit_card__changes-container" v-if="_size(log.changes) > 0">
-         <div v-for="(entry, i) in log?.changes" :key="log?.id + i" class="audit_card__change-item">
+         <div
+            v-for="(entry, i) in log?.changes"
+            :key="`${log.id}-${i}`"
+            class="audit_card__change-item"
+         >
             <span class="audit_card__key" v-text="$t('fields.' + entry?.key || '')" />
 
             <div class="audit_card__value-container">
@@ -215,7 +198,6 @@ if (props.id) {
                </span>
                <CustomLink
                   v-if="
-                     !log.reverted_at &&
                      (log.operation !== 'INSERT' || entry?.type !== 'delete') &&
                      !!fieldRoutes[entry.key] &&
                      _endsWith(entry.key, '_id') &&

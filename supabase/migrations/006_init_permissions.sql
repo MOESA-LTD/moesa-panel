@@ -7,9 +7,6 @@ GRANT usage ON SCHEMA "private" TO supabase_auth_admin;
 GRANT
 EXECUTE ON FUNCTION private.custom_access_token_hook TO supabase_auth_admin;
 
-GRANT
-EXECUTE ON FUNCTION public.revert_audit_log (TEXT) TO authenticated;
-
 CREATE POLICY allow_select_permission ON public.permission FOR
 SELECT
   TO authenticated USING (TRUE);
@@ -47,14 +44,18 @@ $$ LANGUAGE plpgsql;
 -- Tenant-specific policy
 DROP POLICY IF EXISTS restrict_to_user_tenant ON public.tenant;
 
-CREATE POLICY restrict_to_user_tenant ON public.tenant AS RESTRICTIVE FOR ALL TO authenticated USING (id = ANY (private.allowed_tenant ()))
+CREATE POLICY restrict_to_user_tenant ON public.tenant AS RESTRICTIVE FOR ALL TO authenticated USING (id = ANY ((SELECT private.allowed_tenant ())::UUID[]))
 WITH
-  CHECK (id = ANY (private.allowed_tenant ()));
+  CHECK (id = ANY ((SELECT private.allowed_tenant ())::UUID[]));
 
 -- User-specific policy
 DROP POLICY IF EXISTS restrict_to_tenant_user ON public.user;
 
-CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE TO authenticated USING (
+-- Users are read with the members of the tenants read and the owners above them (who may use
+-- these tenants too); only members are written.
+DROP POLICY IF EXISTS "restrict_to_tenant" ON public.user;
+
+CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT
       1
@@ -62,24 +63,74 @@ CREATE POLICY "restrict_to_tenant" ON public.user AS RESTRICTIVE TO authenticate
       tenant_user tu
     WHERE
       tu.user_id = public.user.id
-      AND tu.tenant_id = (
-        SELECT
-          private.tenant_id ()
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
       )
   )
-)
+  OR id = ANY ((SELECT private.scope_owners ())::UUID[])
+);
+
+CREATE POLICY "restrict_insert_to_tenant" ON public.user AS RESTRICTIVE FOR INSERT TO authenticated
 WITH
-  CHECK (
-    EXISTS (
-      SELECT
-        1
-      FROM
-        tenant_user tu
-      WHERE
-        tu.user_id = public.user.id
-        AND tu.tenant_id = (
+  CHECK (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
           SELECT
-            private.tenant_id ()
-        )
-    )
-  );
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ));
+
+CREATE POLICY "restrict_update_to_tenant" ON public.user AS RESTRICTIVE FOR UPDATE TO authenticated USING (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ))
+WITH
+  CHECK (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ));
+
+CREATE POLICY "restrict_delete_to_tenant" ON public.user AS RESTRICTIVE FOR DELETE TO authenticated USING (EXISTS (
+    SELECT
+      1
+    FROM
+      tenant_user tu
+    WHERE
+      tu.user_id = public.user.id
+      AND tu.tenant_id = ANY (
+        (
+          SELECT
+            private.tenant_scope ()
+        )::UUID[]
+      )
+  ));

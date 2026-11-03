@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T = Tables['role']['Row']">
-import Collection from '@/lib/Collection';
+import { useLookup } from '@/api/useLookup';
 import { ResourceTableProps } from '@components/service-components/resource-table/ResourceTable.vue';
 
 export type SelectRoleProps = {
@@ -15,19 +15,17 @@ const props = withDefaults(defineProps<SelectRoleProps>(), {
 
 const modelValue = defineModel<T | T[]>();
 
-const { data } = await supabase
-   .from('role')
-   .select(props.select)
-   .overrideTypes<T[]>()
-   .throwOnError();
-
-const roles = Collection.create<T[]>(data ? (data as T[]) : []);
+const { data: roles, suspense } = useLookup<T>('role', () => ({
+   select: props.select,
+   order: 'display_name'
+}));
+await suspense();
 </script>
 <template>
    <InputGroup :class="$attrs.class">
       <MultiSelect
          :filter="true"
-         :options="roles._data"
+         :options="roles ?? []"
          multiple
          option-label="display_name"
          option-value="id"

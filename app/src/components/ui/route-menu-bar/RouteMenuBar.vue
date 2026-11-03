@@ -1,4 +1,5 @@
 <script setup>
+import { useDialogRef } from '@/composables/useDialogRef';
 const props = defineProps({
    route: {
       type: Object,
@@ -7,7 +8,7 @@ const props = defineProps({
 });
 
 const mounted = useMounted();
-const dialogRef = inject('dialogRef', null);
+const dialogRef = useDialogRef();
 const tabs = computed(() => props.route?.items);
 </script>
 

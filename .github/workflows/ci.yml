@@ -1,0 +1,74 @@
+name: ci
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    app:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: app
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+                  cache-dependency-path: app/pnpm-lock.yaml
+
+            - run: pnpm install --frozen-lockfile
+            # The build also generates auto-imports.d.ts and .eslintrc-auto-import.json (gitignored),
+            # which typecheck and lint need.
+            - run: pnpm build
+            - run: pnpm lint
+            - run: pnpm typecheck
+            # Importing the app creates the Supabase client at module load; the tests never reach
+            # the network, so placeholder values are enough.
+            - run: pnpm test
+              env:
+                  VITE_SUPABASE_PROJECT_URL: http://127.0.0.1:54321
+                  VITE_SUPABASE_PROJECT_ANON_KEY: ci-placeholder
+
+    functions:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: supabase/functions
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.x
+
+            - run: deno task check
+            - run: deno task test
+
+    database:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: 2.9.6
+
+            # Migrations and seed.sql run on start. Auth and Storage stay up: the seed writes
+            # auth.users/identities and the migrations write storage.buckets.
+            - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+            - run: supabase test db

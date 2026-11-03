@@ -1,5 +1,5 @@
 {
-   "name": "echochart-supabase",
+   "name": "moesa-panel-supabase",
    "version": "0.13.0-alpha.1",
    "scripts": {
       "dev:supabase": "supabase start",

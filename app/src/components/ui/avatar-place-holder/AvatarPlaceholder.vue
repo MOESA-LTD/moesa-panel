@@ -1,4 +1,6 @@
 <script setup>
+import { findPalette, PRIMARY_COLORS, SURFACES } from '@/lib/theme/palettes';
+
 const props = defineProps({
    src: {
       type: String
@@ -21,7 +23,7 @@ const props = defineProps({
    }
 });
 
-const { getPrimaryColor, getSurfaceColor, isDarkTheme } = useLayout();
+const theme = useThemeStore();
 
 const firstLetters = computed(() => {
    const words = props.placeholder?.split?.(' ');
@@ -35,9 +37,13 @@ const firstLetters = computed(() => {
    }
 });
 
-const bg = computed(() => props.backgroundColor || getPrimaryColor.value?.['500']);
+const bg = computed(
+   () => props.backgroundColor || findPalette(PRIMARY_COLORS, theme.profile.primary)?.['500']
+);
 const color = computed(
-   () => props.textColor || getSurfaceColor.value?.[isDarkTheme.value ? '700' : '200']
+   () =>
+      props.textColor ||
+      findPalette(SURFACES, theme.profile.surface)?.[theme.isDark ? '700' : '200']
 );
 const label = computed(() => firstLetters.value || '♥');
 </script>

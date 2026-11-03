@@ -27,7 +27,7 @@ const onMouseMove = _throttle((e) => {
                         name: $route.name == 'auth-login' ? 'auth-register' : 'auth-login',
                         replace: true
                      }"
-                     v-slot="{ href, navigate, route }"
+                     v-slot="{ href, navigate }"
                   >
                      <Button
                         as="a"

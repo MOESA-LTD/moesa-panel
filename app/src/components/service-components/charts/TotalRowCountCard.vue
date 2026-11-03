@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { applyTableMeta } from '@/api/postgrest/tableQuery';
 import StatisticCard, {
    StatisticCardProps,
    StatisticCardSlots
@@ -14,13 +15,10 @@ export type TotalRowCountCardProps = StatisticCardProps & {
 
 const slots = defineSlots<StatisticCardSlots>();
 
-const props = withDefaults(defineProps<TotalRowCountCardProps>(), {
-   from: null,
-   filters: null
-});
+const props = defineProps<TotalRowCountCardProps>();
 
-const totalRowCount = ref(null);
-const sinceDateCount = ref(null);
+const totalRowCount = ref<number | null>(null);
+const sinceDateCount = ref<number | null>(null);
 const loading = ref(true);
 const selectLoading = ref(true);
 
@@ -41,14 +39,10 @@ const selectedDate = ref(dateOptions[1]);
 const loadTotalStatistics = async () => {
    try {
       loading.value = true;
-      return await supabase
-         .from(props.from)
-         .select('', {
-            count: 'exact',
-            head: true
-         })
-         .setHeader('meta', encodeURI(JSON.stringify({ filters: props.filters })))
-         .then(({ count }) => (totalRowCount.value = count));
+      const query = supabase.from(props.from).select('', { count: 'exact', head: true });
+      return await applyTableMeta(query, { filters: props.filters }).then(
+         ({ count }) => (totalRowCount.value = count)
+      );
    } finally {
       loading.value = false;
    }
@@ -60,15 +54,10 @@ const loadTotalStatisticsByDate = async (sinceDate = selectedDate.value) => {
 
       const date = parseDayjs({ value: new Date(Date.now()).toISOString() })
          .subtract(sinceDate.value, sinceDate.unit)
-         .format('YYYY-MM-DDTHH:mm:ss');
+         .toISOString();
 
-      return await supabase
-         .from(props.from)
-         .select('', {
-            count: 'exact',
-            head: true
-         })
-         .setHeader('meta', encodeURI(JSON.stringify({ filters: props.filters })))
+      const query = supabase.from(props.from).select('', { count: 'exact', head: true });
+      return await applyTableMeta(query, { filters: props.filters })
          .gte('created_at', date)
          .then(({ count }) => count);
    } finally {
@@ -101,7 +90,7 @@ const mounted = useMounted();
       :statistic="$t('dashboard.statistics.total') + ': ' + totalRowCount?.toString()"
       :loading
    >
-      <template #description v-if="totalRowCount > 0">
+      <template #description v-if="(totalRowCount ?? 0) > 0">
          <FormField :loading="selectLoading" v-slot="slotProps">
             <Select
                v-model="selectedDate"

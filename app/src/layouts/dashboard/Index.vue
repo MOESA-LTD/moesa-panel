@@ -1,14 +1,16 @@
 <script setup>
-const { layoutState } = useLayout();
-const { currentTenant, isSignedIn } = storeToRefs(useAuthStore());
+import { useSidebar } from '@/composables/useSidebar';
 import { useIsFetching } from '@tanstack/vue-query';
+
+const { mode, active } = useSidebar();
+const { currentTenant, scopeTenants, isSignedIn } = storeToRefs(useAuthStore());
 
 const isFetching = useIsFetching();
 
 const containerClass = computed(() => {
    return {
-      [`layout-${layoutState.sidebarMode}`]: layoutState.sidebarMode,
-      'layout-sidebar-inactive': !layoutState.sidebarActive || !isSignedIn.value
+      [`layout-${mode.value}`]: true,
+      'layout-sidebar-inactive': !active.value || !isSignedIn.value
    };
 });
 </script>
@@ -22,7 +24,11 @@ const containerClass = computed(() => {
             leave-active-class="animate-fadeoutup animate-fill-forwards animate-ease-in animate-duration-[var(--transition-duration)]"
             mode="out-in"
          >
-            <header v-if="Component" class="layout-topbar" :key="currentTenant?.display_name">
+            <header
+               v-if="Component"
+               class="layout-topbar"
+               :key="`${currentTenant?.id}:${scopeTenants.length}`"
+            >
                <Suspense>
                   <component :is="Component" />
                </Suspense>
@@ -37,7 +43,11 @@ const containerClass = computed(() => {
                leave-active-class="animate-fadeoutleft animate-fill-forwards animate-ease-in animate-duration-[var(--transition-duration)]"
                mode="out-in"
             >
-               <aside v-if="Component" class="layout-sidebar" :key="currentTenant?.display_name">
+               <aside
+                  v-if="Component"
+                  class="layout-sidebar"
+                  :key="`${currentTenant?.id}:${scopeTenants.length}`"
+               >
                   <span class="empty:hidden p-4" id="sidebar-start" />
                   <Suspense>
                      <component :is="Component" />
@@ -49,7 +59,7 @@ const containerClass = computed(() => {
             <RouterView v-slot="{ Component }" name="page-header">
                <div
                   v-if="Component"
-                  :key="currentTenant?.display_name"
+                  :key="`${currentTenant?.id}:${scopeTenants.length}`"
                   class="card p-4 mb-4 flex justify-center lg:justify-between gap-2 sticky top-0 shadow-md z-10"
                >
                   <Suspense>
@@ -59,7 +69,8 @@ const containerClass = computed(() => {
                </div>
             </RouterView>
 
-            <CustomRouteView :key="currentTenant?.display_name" />
+            <SubscriptionBanner v-if="isSignedIn" />
+            <CustomRouteView :key="`${currentTenant?.id}:${scopeTenants.length}`" />
 
             <RouterView v-slot="{ Component }" name="page-footer">
                <div v-if="Component" class="p-4">

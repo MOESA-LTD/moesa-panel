@@ -10,11 +10,11 @@ import ToastService from 'primevue/toastservice';
 
 import '@/assets/style/styles.scss';
 import '@/assets/style/tailwind.css';
-import { defineAbility } from '@casl/ability';
 import { abilitiesPlugin, Can } from '@casl/vue';
 import { appErrorHandler } from '@lib/appErrorHandler';
-import { resolveAction } from '@plugins/casl';
-import { mutationCache, queryCache, queryClient } from '@plugins/tanstack-query';
+import { setupTheme } from '@lib/theme/setup';
+import { ability } from '@plugins/casl';
+import { queryClient } from '@plugins/tanstack-query';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import DialogService from 'primevue/dialogservice';
 import FocusTrap from 'primevue/focustrap';
@@ -27,13 +27,7 @@ export const app = createApp(App);
 
 app.config.errorHandler = appErrorHandler;
 
-app.use(
-   abilitiesPlugin,
-   defineAbility(() => {}, { resolveAction }),
-   {
-      useGlobalProperties: true
-   }
-).component(Can.name as string, Can);
+app.use(abilitiesPlugin, ability, { useGlobalProperties: true }).component(Can.name as string, Can);
 app.use(createPinia());
 app.use(i18NPlugin);
 app.use(PrimeVue, {
@@ -47,13 +41,7 @@ app.use(PrimeVue, {
    }
 });
 
-app.use(VueQueryPlugin, {
-   queryClient,
-   queryClientConfig: {
-      queryCache,
-      mutationCache
-   }
-});
+app.use(VueQueryPlugin, { queryClient });
 
 app.use(DialogService);
 app.use(ToastService);
@@ -63,5 +51,8 @@ app.directive('focustrap', FocusTrap);
 app.directive('ripple', Ripple);
 app.directive('tooltip', Tooltip);
 app.use(router);
+
+// The chosen preset is loaded before the first paint.
+await setupTheme();
 
 app.mount('#app');

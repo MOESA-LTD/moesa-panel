@@ -1,8 +1,10 @@
-<script setup lang="ts" generic="T extends Tables['user']['Row']">
+<script setup lang="ts" generic="T extends Views['tenant_member']['Row']">
+import { useDialogRef } from '@/composables/useDialogRef';
 import ResourceTable, {
    ResourceTableProps
 } from '@/components/service-components/resource-table/ResourceTable.vue';
-import Collection from '@/lib/Collection';
+import { isOwnerAbove, useRemoveUser, type UserAccess } from '@/api/user';
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
 import { useI18n } from 'vue-i18n';
 import Upsert from './upsert/Index.vue';
 
@@ -35,7 +37,7 @@ const columns = computed<ResourceTableProps['columns']>(() => [
    }
 ]);
 
-const filters = ref<ResourceTableProps['filters']>({
+const filters = ref<NonNullable<ResourceTableProps['filters']>>({
    global: {
       value: null,
       matchMode: FilterMatchMode.CONTAINS
@@ -57,20 +59,23 @@ const filters = ref<ResourceTableProps['filters']>({
 });
 
 const stateKey = 'user';
+// The edge function used to be confirmed by the dialog in customFetch, which no longer exists.
+const confirmDelete = useConfirmDelete();
+const { mutateAsync: removeUser } = useRemoveUser();
 
-const rowActions = Collection.create<ResourceTableProps['rowActions']>([
+const rowActions: ResourceTableProps<'tenant_member', T>['rowActions'] = [
    {
       label: t('action.delete'),
       command:
          ({ data }) =>
          async () => {
-            const { error } = await supabase.functions.invoke(`user/${data.id}`, {
-               method: 'DELETE'
-            });
-            if (error) throw error;
-            emitter.emit('user-update');
+            if (await confirmDelete({ ...data, display_name: data.email })) {
+               await removeUser({ id: data.id!, tenantId: data.tenant_id });
+            }
          },
-      icon: PrimeIcons.TRASH
+      icon: PrimeIcons.TRASH,
+      requires: { action: 'modify', subject: 'user' },
+      disabled: ({ data }) => isOwnerAbove(data as UserAccess)
    },
    {
       label: t('action.edit'),
@@ -80,26 +85,29 @@ const rowActions = Collection.create<ResourceTableProps['rowActions']>([
             await router.push({
                name: 'branch-user-manage',
                params: { id: data.id },
-               query: { showDialog: 'true' }
+               query: { showDialog: 'true', ...(data.tenant_id ? { tenant: data.tenant_id } : {}) }
             }),
-      icon: PrimeIcons.PENCIL
+      icon: PrimeIcons.PENCIL,
+      disabled: ({ data }) => isOwnerAbove(data as UserAccess)
    }
-]);
+];
 
-const dialogRef = inject('dialogRef', false);
+const dialogRef = useDialogRef();
 </script>
 <template>
    <component
-      :is="ResourceTable<T>"
+      :is="ResourceTable<'tenant_member', T>"
       :stateKey
-      :from="'user'"
-      :select="'*, role(*,permission(*))'"
+      :from="'tenant_member'"
+      select="*"
+      dataKey="key"
+      branchSortField="branch_name"
       :columns="columns"
-      :rowActions="rowActions._data"
+      :rowActions="rowActions"
       v-model:filters="filters"
    >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
                <CustomLink v-if="$can('create', 'user')" :to="{ name: 'branch-user-manage' }">
@@ -110,8 +118,22 @@ const dialogRef = inject('dialogRef', false);
             </span>
          </Teleport>
       </template>
+      <template #user_metadata_display_name_body="{ data }">
+         <span class="inline-flex items-center gap-2 flex-wrap">
+            <span>{{
+               (data.user_metadata as { display_name?: string } | null)?.display_name
+            }}</span>
+            <Tag
+               v-for="tenant in (data as UserAccess).owned_via"
+               :key="tenant"
+               severity="secondary"
+               :value="$t('user.owner_of', { name: tenant })"
+               v-tooltip.top="isOwnerAbove(data as UserAccess) ? $t('user.owner_above') : undefined"
+            />
+         </span>
+      </template>
       <template #expansion="{ data }">
-         <Upsert :id="data.id" class="p-0" />
+         <Upsert :id="data.id" :tenant="data.tenant_id" class="p-0" />
       </template>
    </component>
 </template>

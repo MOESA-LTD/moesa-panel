@@ -1,0 +1,261 @@
+-- Branches: tenants under a tenant (tenant.parent_id), any number of levels deep. The owners of a
+-- tenant own every branch below it (private.owned_tenants) and open or remove branches under it.
+
+CREATE INDEX IF NOT EXISTS idx_tenant_parent_id ON public.tenant (parent_id);
+
+-- A tenant cannot be placed under itself or under one of its own branches.
+CREATE OR REPLACE FUNCTION private.prevent_tenant_cycle () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF NEW.parent_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF EXISTS (
+        WITH RECURSIVE ancestors (id, parent_id) AS (
+            SELECT t.id, t.parent_id FROM public.tenant t WHERE t.id = NEW.parent_id
+            UNION
+            SELECT t.id, t.parent_id FROM public.tenant t JOIN ancestors a ON t.id = a.parent_id
+        )
+        SELECT 1 FROM ancestors WHERE ancestors.id = NEW.id
+    ) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_cycle')::TEXT,
+            DETAIL = json_build_object('status', 409, 'headers', json_build_object())::TEXT;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER prevent_tenant_cycle BEFORE INSERT
+OR
+UPDATE OF parent_id ON public.tenant FOR EACH ROW
+EXECUTE FUNCTION private.prevent_tenant_cycle ();
+
+-- Branches are opened (create_branch) and removed (delete_branch), never moved: ownership, the
+-- owners' permissions and the plan all follow the tree, so moving a tenant would hand it, with its
+-- branches, to another company. The API writes a tenant's details only; the tree and the identity
+-- of a tenant are not theirs to change. (A column REVOKE does not undo a table-level GRANT, which
+-- Supabase gives by default, so the table's UPDATE is taken and given back for those columns.)
+REVOKE UPDATE ON public.tenant FROM anon, authenticated;
+
+GRANT UPDATE (
+   display_name,
+   email,
+   phone,
+   website,
+   legal_name,
+   tax_office,
+   tax_number,
+   country,
+   city,
+   district,
+   address,
+   logo_path
+) ON public.tenant TO authenticated;
+
+-- Should the grants ever be widened: only the super admin moves a tenant through the API (the
+-- service role and migrations are not signed-in users and are not stopped).
+CREATE OR REPLACE FUNCTION private.prevent_tenant_move () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF NEW.parent_id IS DISTINCT FROM OLD.parent_id
+       AND coalesce(auth.role(), '') IN ('authenticated', 'anon')
+       AND NOT private.check_super_admin() THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_move_forbidden')::TEXT,
+            DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER prevent_tenant_move BEFORE
+UPDATE OF parent_id ON public.tenant FOR EACH ROW
+EXECUTE FUNCTION private.prevent_tenant_move ();
+
+-- Opens a branch under `parent_id`; only its owners (including owners of the tenants above) may.
+-- The branch's owners are the parent's, through the tree; others are invited to it.
+CREATE OR REPLACE FUNCTION public.create_branch (parent_id UUID, branch JSONB) RETURNS public.tenant LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    created public.tenant;
+BEGIN
+    IF NOT (create_branch.parent_id = ANY (private.owned_tenants(auth.uid())) OR private.check_super_admin()) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_owner_required')::TEXT,
+            DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
+    END IF;
+
+    -- Its details, as a tenant may change them; the logo is uploaded once the branch exists.
+    INSERT INTO public.tenant (
+        display_name, email, phone, website, legal_name, tax_office, tax_number, country, city,
+        district, address, parent_id
+    )
+    VALUES (
+        branch ->> 'display_name',
+        nullif(branch ->> 'email', ''),
+        nullif(branch ->> 'phone', ''),
+        nullif(branch ->> 'website', ''),
+        nullif(branch ->> 'legal_name', ''),
+        nullif(branch ->> 'tax_office', ''),
+        nullif(branch ->> 'tax_number', ''),
+        nullif(branch ->> 'country', ''),
+        nullif(branch ->> 'city', ''),
+        nullif(branch ->> 'district', ''),
+        nullif(branch ->> 'address', ''),
+        create_branch.parent_id
+    )
+    RETURNING * INTO created;
+
+    RETURN created;
+END;
+$$;
+
+-- Removes a branch with everything in it. Only a branch without branches of its own, and only by
+-- the owners of the tenant above it; a top-level tenant (a company) is not removed this way.
+CREATE OR REPLACE FUNCTION public.delete_branch (branch_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    target public.tenant;
+BEGIN
+    SELECT * INTO target FROM public.tenant t WHERE t.id = branch_id;
+
+    IF NOT FOUND OR target.parent_id IS NULL THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0002', 'message', 'branch_not_found')::TEXT,
+            DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
+    END IF;
+
+    IF NOT (target.parent_id = ANY (private.owned_tenants(auth.uid())) OR private.check_super_admin()) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_owner_required')::TEXT,
+            DETAIL = json_build_object('status', 403, 'headers', json_build_object())::TEXT;
+    END IF;
+
+    -- Not while the company is read-only (see 013_init_subscriptions.sql).
+    PERFORM private.check_plan_allows(branch_id);
+
+    IF EXISTS (SELECT 1 FROM public.tenant t WHERE t.parent_id = branch_id) THEN
+        RAISE SQLSTATE 'PGRST' USING
+            MESSAGE = json_build_object('code', 'P0001', 'message', 'branch_has_branches')::TEXT,
+            DETAIL = json_build_object('status', 409, 'headers', json_build_object())::TEXT;
+    END IF;
+
+    DELETE FROM public.tenant t WHERE t.id = branch_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_branch (UUID, JSONB) FROM PUBLIC, anon;
+
+REVOKE ALL ON FUNCTION public.delete_branch (UUID) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.create_branch (UUID, JSONB) TO authenticated;
+
+GRANT EXECUTE ON FUNCTION public.delete_branch (UUID) TO authenticated;
+
+-- Opening or removing a branch changes what the owners above it may use.
+DO $$
+BEGIN
+    EXECUTE 'CREATE OR REPLACE TRIGGER notify_access_insert AFTER INSERT ON public.tenant REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()';
+    EXECUTE 'CREATE OR REPLACE TRIGGER notify_access_update AFTER UPDATE ON public.tenant REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()';
+    EXECUTE 'CREATE OR REPLACE TRIGGER notify_access_delete AFTER DELETE ON public.tenant REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed()';
+END;
+$$;
+
+-- Computed fields of a user for the user list. owned_via: the tenants read, or above them, that the
+-- user owns directly (by name); managed_in: the tenant read where the user is managed (invited,
+-- given roles, removed): the active one if they belong to it, else the first by name they belong to.
+-- NULL for an owner who belongs to none of them: they use the tenants through a tenant above and
+-- are managed there.
+CREATE OR REPLACE FUNCTION public.owned_via (public.user) RETURNS TEXT[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        SELECT t.display_name
+        FROM public.tenant_owner o
+        JOIN public.tenant t ON t.id = o.tenant_id
+        WHERE o.user_id = $1.id AND o.tenant_id = ANY (private.scope_and_above())
+        ORDER BY t.display_name
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.managed_in (public.user) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN (
+        SELECT tu.tenant_id
+        FROM public.tenant_user tu
+        JOIN public.tenant t ON t.id = tu.tenant_id
+        WHERE tu.user_id = $1.id AND tu.tenant_id = ANY (private.tenant_scope())
+        ORDER BY tu.tenant_id IS DISTINCT FROM private.tenant_id(), t.display_name, t.id
+        LIMIT 1
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.owned_via (public.user) FROM PUBLIC, anon;
+
+REVOKE ALL ON FUNCTION public.managed_in (public.user) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.owned_via (public.user) TO authenticated;
+
+GRANT EXECUTE ON FUNCTION public.managed_in (public.user) TO authenticated;
+
+-- The user list: a row per membership in the tenants read where the caller may see users (the
+-- member is managed in that tenant), and a row without a tenant for an owner of a tenant above who
+-- belongs to none of them (managed there). `key` tells the rows of one user apart; branch_name
+-- sorts the list by branch.
+CREATE OR REPLACE VIEW public.tenant_member
+WITH
+   (security_invoker = TRUE) AS
+SELECT
+   tu.tenant_id::TEXT || ':' || u.id::TEXT AS key,
+   u.id,
+   u.user_metadata,
+   u.email,
+   u.phone,
+   u.created_at,
+   tu.tenant_id,
+   (SELECT t.display_name FROM public.tenant t WHERE t.id = tu.tenant_id) AS branch_name,
+   public.owned_via (u) AS owned_via
+FROM
+   public.tenant_user tu
+   JOIN public.user u ON u.id = tu.user_id
+WHERE
+   tu.tenant_id = ANY ((SELECT private.permitted_tenants ('public.user', 'select'))::UUID[])
+UNION ALL
+SELECT
+   'owner:' || u.id::TEXT AS key,
+   u.id,
+   u.user_metadata,
+   u.email,
+   u.phone,
+   u.created_at,
+   NULL::UUID AS tenant_id,
+   NULL::TEXT AS branch_name,
+   public.owned_via (u) AS owned_via
+FROM
+   public.user u
+WHERE
+   u.id = ANY ((SELECT private.scope_owners ())::UUID[])
+   AND NOT EXISTS (
+      SELECT
+         1
+      FROM
+         public.tenant_user tu
+      WHERE
+         tu.user_id = u.id
+         AND tu.tenant_id = ANY ((SELECT private.tenant_scope ())::UUID[])
+   );
+
+REVOKE ALL ON public.tenant_member FROM anon;
+
+GRANT SELECT ON public.tenant_member TO authenticated;

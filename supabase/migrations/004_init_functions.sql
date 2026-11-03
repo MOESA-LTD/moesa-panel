@@ -99,6 +99,7 @@ DECLARE
     policy_name TEXT;
     policy_clause TEXT;
     policy_error_message TEXT;
+    permission_check TEXT;
 BEGIN
     -- Determine command based on trigger type
     IF TG_OP = 'INSERT' THEN
@@ -150,6 +151,24 @@ BEGIN
             RAISE LOG 'Policy "%" dropped for % on command %', policy_name, target_resource, command;
         END IF;
 
+        -- A table with a tenant_id takes each row's own tenant: the rows of the request's tenants
+        -- where the user has the permission. Others need it in the active tenant.
+        IF private.has_table_tenant_id(target_table) THEN
+            permission_check := format(
+                'tenant_id = ANY ((SELECT private.permitted_tenants(%L, %L))::UUID[])', target_resource, command
+            );
+        -- A tenant row is its own tenant: it is written only by those with the permission in that
+        -- tenant, not in the active one (else a member of a tenant with the permission elsewhere
+        -- could change it). Reads keep the active tenant's check, so the branch of the rows read
+        -- can be embedded.
+        ELSIF target_resource = 'public.tenant' AND command <> 'select' THEN
+            permission_check := format(
+                'id = ANY ((SELECT private.permitted_tenants(%L, %L))::UUID[])', target_resource, command
+            );
+        ELSE
+            permission_check := format('(SELECT private.check_permission(%L, %L))', target_resource, command);
+        END IF;
+
         -- Extract policy error message
         policy_error_message := COALESCE(permission_record.error_message, format('You don''t have permission to %I on %I', COALESCE(kind, command), COALESCE(permission_record.group_name, target_table)));
 
@@ -175,14 +194,14 @@ BEGIN
                      $f$
                         CREATE POLICY %I ON %I.%I FOR %s TO authenticated USING (
                         CASE
-                            WHEN (%s AND (SELECT private.check_permission(%L, %L)))
+                            WHEN (%s AND %s)
                             THEN true
                             WHEN (%L = TRUE) THEN
                                 public.throw_rls_policy_error(%L)
                         END
                         ) WITH CHECK (
                         CASE
-                            WHEN (%s AND (SELECT private.check_permission(%L, %L)))
+                            WHEN (%s AND %s)
                             THEN true
                             WHEN (%L = TRUE) THEN
                                 public.throw_rls_policy_error(%L)
@@ -194,13 +213,11 @@ BEGIN
                   , target_table
                   , command
                   , permission_record.resource_condition
-                  , target_resource
-                  , command
+                  , permission_check
                   , permission_record.throws_error
                   , policy_error_message
                   , permission_record.resource_condition
-                  , target_resource
-                  , command
+                  , permission_check
                   , permission_record.throws_error
                   , policy_error_message
                   );
@@ -232,7 +249,7 @@ BEGIN
                     $f$
                         CREATE POLICY %I ON %I.%I FOR %s TO authenticated %s (
                         CASE
-                            WHEN (%s AND (SELECT private.check_permission(%L, %L)))
+                            WHEN (%s AND %s)
                             THEN true
                             WHEN (%L = TRUE) THEN
                                 public.throw_rls_policy_error(%L)
@@ -245,8 +262,7 @@ BEGIN
                   , command
                   , policy_clause
                   , permission_record.resource_condition
-                  , target_resource
-                  , command
+                  , permission_check
                   , permission_record.throws_error
                   , policy_error_message
                   );
@@ -262,589 +278,347 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION private.check_super_admin (user_id UUID DEFAULT NULL) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER
+-- Access: who may use which tenants, with which permissions. Everything is read from the tables on
+-- each request, so a change (a role, a permission, a membership, a branch) applies to the next
+-- request; the access token only identifies the user. RLS policies call these through
+-- `(SELECT …)`, which runs them once per statement rather than once per row. They are plpgsql:
+-- a SECURITY DEFINER SQL function is planned again on every call, plpgsql keeps its plans.
+--
+-- Tenants form a tree (tenant.parent_id). Owning a tenant makes one the owner of every branch below
+-- it, computed here rather than copied, so it ends with the ownership. A request works on a set
+-- of the user's tenants (x-tenant-ids) and adds new rows to one of them, the active tenant
+-- (x-tenant-id).
+CREATE OR REPLACE FUNCTION private.check_super_admin (user_id UUID DEFAULT NULL) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
-BEGIN 
-    IF user_id IS NULL THEN
-        user_id := (SELECT auth.uid())::UUID;
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM auth.users WHERE id = user_id AND is_super_admin = TRUE) THEN
-        RETURN TRUE;
-    END IF;
-    RETURN FALSE;
-END;$$;
-
-CREATE OR REPLACE FUNCTION private.check_permission (p_resource_name TEXT, p_command TEXT) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
-SET
-    search_path = '' AS $$
-DECLARE
-   permission JSONB; -- Holds the user's permission
-   jwt_claims JSONB; -- Holds the JWT claims
 BEGIN
-
-    IF (SELECT private.check_super_admin()) THEN
-        RETURN TRUE;
-    END IF;
-
-    -- Retrieve JWT claims
-    BEGIN
-        jwt_claims := COALESCE(
-            current_setting('request.jwt.claims', true)::jsonb
-          , '{}'::jsonb
-        );
-    EXCEPTION
-        WHEN others THEN
-            -- If JWT claims are not accessible, deny permission
-            RETURN FALSE;
-    END;
-
-    -- Retrieve permission from JWT claims
-    BEGIN
-        permission := COALESCE(
-            jwt_claims->'app_metadata'->'permission'
-          , '[]'::JSONB
-        );
-    EXCEPTION
-        WHEN others THEN
-            RETURN FALSE;
-    END;
-
-    -- Check if the user has the required permission
     RETURN EXISTS (
-        SELECT 1
-        FROM jsonb_array_elements(permission) perm
-        WHERE perm->>'resource_name' = p_resource_name
-        AND perm->>'command' = p_command
+        SELECT 1 FROM auth.users u
+        WHERE u.id = coalesce(check_super_admin.user_id, auth.uid()) AND u.is_super_admin = TRUE
     );
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION private.check_tenant_id (tenant_id UUID) RETURNS BOOLEAN STABLE LANGUAGE plpgsql SECURITY DEFINER
+-- Whether another user is a super admin, for edge functions acting with the service role (e.g. so
+-- a super admin is not managed as a company's user). Not for signed-in users.
+CREATE OR REPLACE FUNCTION public.is_super_admin (user_id UUID) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
 BEGIN
-   RETURN tenant_id = (SELECT private.tenant_id());
+    RETURN private.check_super_admin(is_super_admin.user_id);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION private.check_allowed_tenant (tenant_id UUID) RETURNS BOOLEAN STABLE LANGUAGE plpgsql SECURITY DEFINER
+REVOKE ALL ON FUNCTION public.is_super_admin (UUID) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.is_super_admin (UUID) TO service_role;
+
+-- The tenants `user_id` owns: those in tenant_owner and every branch below them.
+CREATE OR REPLACE FUNCTION private.owned_tenants (user_id UUID) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
 BEGIN
-   RETURN tenant_id = ANY (private.allowed_tenant());
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION private.custom_access_token_hook (e JSONB) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER STABLE
-SET
-    search_path = '' AS $$
-DECLARE
-    u_id UUID;
-    claims JSONB;
-    user_roles TEXT[];
-    allowed_tenant JSONB;
-    user_metadata JSONB;
-    permission JSONB;
-    current_tenant_id UUID;
-BEGIN
-    u_id := (e->>'user_id')::UUID;
-
-    -- Extract 'user_id' from the input JSONB
-    claims := e->'claims';
-
-    -- Ensure 'app_metadata' exists
-    IF NOT claims ? 'app_metadata' THEN
-        claims := jsonb_set(claims, '{app_metadata}', '{}'::JSONB);
-    END IF;
-    
-    -- Ensure 'user_metadata' exists
-    IF NOT claims ? 'user_metadata' THEN
-        claims := jsonb_set(claims, '{user_metadata}', '{}'::JSONB);
-    END IF;
-
-    -- Retrieve user_metadata from claims or auth.users if it's missing
-    user_metadata := claims->'user_metadata';
-    
-    -- Retrieve tenant ID from auth.users.user_metadata or fallback to the first allowed tenant
-    SELECT user_metadata->>'current_tenant_id' INTO current_tenant_id;
-
-    IF (SELECT private.check_super_admin(u_id)) THEN
-        SELECT COALESCE(
-            jsonb_agg(jsonb_build_object('id', t.id, 'display_name', t.display_name))
-        , '[]'::jsonb
+    RETURN ARRAY(
+        -- UNION (not UNION ALL) also stops at a cycle, should one ever get in.
+        WITH RECURSIVE owned (id) AS (
+            SELECT o.tenant_id FROM public.tenant_owner o WHERE o.user_id = owned_tenants.user_id
+            UNION
+            SELECT t.id FROM public.tenant t JOIN owned ON t.parent_id = owned.id
         )
-        INTO allowed_tenant
-        FROM  public.tenant t;
-
-        user_roles := ARRAY['super_admin'];
-    ELSE
-        -- Add user's tenant to the token
-        SELECT COALESCE(
-            jsonb_agg(jsonb_build_object('id', t.id, 'display_name', t.display_name))
-        , '[]'::jsonb
-        )
-        INTO allowed_tenant
-        FROM public.tenant_user tu
-        JOIN public.tenant t ON t.id = tu.tenant_id
-        WHERE user_id = u_id;
-
-        -- Add user's role to the token
-        SELECT ARRAY_AGG(role.display_name)
-        INTO user_roles
-        FROM public.user_role ur
-        JOIN public.role role ON role.id = ur.role_id
-        WHERE ur.user_id = u_id;
-    END IF;
-
-    -- Check if current_tenant_id is not in allowed_tenant and set the first available one
-    IF current_tenant_id IS NULL OR current_tenant_id NOT IN (SELECT (value->>'id')::UUID FROM jsonb_array_elements(allowed_tenant)) THEN
-        SELECT (value->>'id')::UUID
-        INTO current_tenant_id
-        FROM jsonb_array_elements(allowed_tenant)
-        LIMIT 1;
-    END IF;
-
-    -- Set the 'current_tenant_id' in the 'user_metadata' field
-    IF current_tenant_id IS NOT NULL THEN
-        claims := jsonb_set(claims, '{user_metadata,current_tenant_id}', to_jsonb(current_tenant_id), true);
-    END IF;
-
-    -- Add user's permission to the token
-    IF (SELECT private.check_super_admin(u_id)) THEN
-        SELECT JSONB_AGG(
-            JSONB_BUILD_OBJECT(
-                'resource_name', sub.resource_name,
-                'command', sub.command
-            )
-        )
-        INTO permission
-        FROM (
-            SELECT DISTINCT ON (p.resource_name, p.command)
-                p.resource_name,
-                p.command
-            FROM public.permission p
-        ) AS sub;
-    ELSE
-        SELECT JSONB_AGG(
-            JSONB_BUILD_OBJECT(
-                'resource_name', sub.resource_name,
-                'command', sub.command
-            )
-        )
-        INTO permission
-        FROM (
-            SELECT DISTINCT ON (p.resource_name, p.command)
-                p.resource_name,
-                p.command
-            FROM public.user_role ur
-            JOIN public.role r ON r.id = ur.role_id
-            JOIN public.role_permission rp ON rp.role_id = ur.role_id
-            JOIN public.permission p ON p.id = rp.permission_id
-            WHERE ur.user_id = u_id 
-                AND (
-                    r.tenant_id = current_tenant_id 
-                    OR (
-                        r.tenant_id IS NULL 
-                        AND EXISTS (
-                            SELECT 1
-                            FROM public.tenant_owner
-                            WHERE user_id = u_id
-                            AND tenant_id = current_tenant_id
-                        )
-                    )
-                )
-        ) AS sub;
-    END IF;
-
-    IF allowed_tenant IS NOT NULL THEN
-        -- Properly convert UUID[] to JSONB before using jsonb_set
-        claims := jsonb_set(claims, '{app_metadata,allowed_tenant}', to_jsonb(allowed_tenant), true);
-    END IF;
-
-    IF user_roles IS NOT NULL THEN
-        claims := jsonb_set(claims, '{app_metadata,role}', to_jsonb(user_roles), true);
-    END IF;
-
-    IF permission IS NOT NULL THEN
-        claims := jsonb_set(claims, '{app_metadata,permission}', permission, true);
-    END IF;
-
-    -- Update the 'claims' field in the token
-    e := jsonb_set(e, '{claims}', claims, true);
-    RETURN e;
+        SELECT owned.id FROM owned
+    );
 END;
 $$;
 
--- Create a helper function to use in RLS policies
-CREATE OR REPLACE FUNCTION private.allowed_tenant () RETURNS UUID[] SECURITY DEFINER LANGUAGE plpgsql STABLE
+-- The tenants the user may use: those they belong to and those they own (every tenant for a super
+-- admin).
+CREATE OR REPLACE FUNCTION private.allowed_tenant () RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
 DECLARE
-   jwt_claims JSONB;
-   app_metadata JSONB;
-   allowed_tenant UUID[];
+    uid UUID := auth.uid();
 BEGIN
-   BEGIN
-      -- Attempt to fetch JWT claims
-      jwt_claims := COALESCE(
-         CURRENT_SETTING('request.jwt.claims', TRUE)::JSONB
-       , '{}'::JSONB
-      );
-
-      -- Extract app_metadata from JWT claims
-      app_metadata := jwt_claims -> 'app_metadata';
-   EXCEPTION
-      WHEN OTHERS THEN
-         -- If JWT claims are not accessible, return an empty UUID array
-         RETURN ARRAY[]::UUID[];
-   END;
-
-   -- Extract allowed_tenant from app_metadata and convert it to UUID[]
-   SELECT ARRAY(
-      SELECT (tenant->>'id')::UUID
-      FROM JSONB_ARRAY_ELEMENTS(app_metadata -> 'allowed_tenant') AS tenant
-   )
-   INTO allowed_tenant;
-
-   -- Return the allowed_tenant or an empty UUID array if null
-   RETURN COALESCE(allowed_tenant, ARRAY[]::UUID[]);
+    IF private.check_super_admin() THEN
+        RETURN ARRAY(SELECT t.id FROM public.tenant t);
+    END IF;
+    RETURN ARRAY(
+        SELECT tu.tenant_id FROM public.tenant_user tu WHERE tu.user_id = uid
+        UNION
+        SELECT unnest(private.owned_tenants(uid))
+    );
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION private.tenant_id () RETURNS UUID SECURITY DEFINER
-SET
-    "search_path" = '' AS $$
-DECLARE
-   tenant_id UUID := NULL;
-   header_tenant TEXT := NULL;
-   header_tenant_id UUID := NULL;
-BEGIN
-    -- Attempt to get tenant_id from JWT claims
-    BEGIN
-        SELECT COALESCE(
-            (NULLIF(current_setting('request.jwt.claims', true), '')::jsonb->'user_metadata'->>'current_tenant_id')
-          , NULL
-        )::UUID
-        INTO tenant_id;
-      EXCEPTION
-         WHEN others THEN
-               tenant_id := NULL; -- Fallback to NULL if parsing fails
-    END;
-
-    -- Attempt to get tenant from headers
-    BEGIN
-        SELECT COALESCE(
-            (NULLIF(current_setting('request.headers', true), '')::jsonb->>'x-tenant')
-          , NULL
-        )
-        INTO header_tenant;
-    EXCEPTION
-        WHEN others THEN
-            header_tenant := NULL; -- Fallback to NULL if parsing fails
-    END;
-
-    -- If header_tenant is not null, resolve it to a UUID
-    IF header_tenant IS NOT NULL THEN
-        SELECT id
-        INTO header_tenant_id
-        FROM public.tenant
-        WHERE display_name = header_tenant;
-    END IF;
-
-    -- Check if header_tenant_id is in allowed tenant
-    IF header_tenant_id IS NOT NULL AND header_tenant_id = ANY(private.allowed_tenant()) THEN
-        tenant_id := header_tenant_id;
-    END IF;
-
-    -- Return the resolved tenant_id
-    RETURN tenant_id;
-END;
-$$ LANGUAGE plpgsql STABLE COST 100;
-
-CREATE OR REPLACE FUNCTION private.init_request_id () RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
+-- The tenant the request names as active, not yet checked against the user's tenants.
+CREATE OR REPLACE FUNCTION private.requested_tenant () RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
     search_path = '' AS $$
-DECLARE
-  req_id UUID;
 BEGIN
-    req_id := gen_random_uuid();
-    PERFORM set_config('request.id', req_id::TEXT, true);
-    RETURN req_id;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION private.get_request_id () RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
-SET
-    search_path = '' AS $$
-DECLARE
-  req_id UUID;
-BEGIN
-    BEGIN 
-        req_id := current_setting('request.id', true)::UUID;
-        IF req_id IS NULL THEN
-            req_id := private.init_request_id();
-            IF req_id IS NULL THEN
-                RAISE EXCEPTION 'Failed to initialize request ID';
-            END IF;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Exception occurred: %', SQLERRM;
-        req_id := private.init_request_id();
-        IF req_id IS NULL THEN
-            RAISE EXCEPTION 'Failed to initialize request ID after exception';
-        END IF;
-    END;
-    RETURN req_id;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION private.trg_audit_log () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
-SET
-    "search_path" = '' AS $$
-DECLARE
-  user_id UUID;
-  tenant_id UUID;
-  correlation_id TEXT;
-  request_id UUID;
-  db_role TEXT;
-BEGIN
-    BEGIN
-        SELECT (SELECT auth.role()) INTO db_role;
-        IF db_role <> 'authenticated' THEN
-            RETURN NULL;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
+    RETURN coalesce(
+        nullif(nullif(current_setting('request.headers', true), '')::JSONB ->> 'x-tenant-id', '')::UUID,
+        (nullif(current_setting('request.jwt.claims', true), '')::JSONB -> 'user_metadata' ->> 'current_tenant_id')::UUID
+    );
+EXCEPTION
+    -- A malformed header or claim names no tenant.
+    WHEN OTHERS THEN
         RETURN NULL;
-    END;
+END;
+$$;
 
-    BEGIN
-    SELECT auth.uid() INTO user_id;
-    EXCEPTION
-    WHEN OTHERS THEN
-        user_id := NULL;
-    END;
-
-    BEGIN
-    SELECT private.tenant_id() INTO tenant_id;
-    EXCEPTION
-    WHEN OTHERS THEN
-        tenant_id := NULL;
-    END;
-
-    -- Generate correlation_id
-    BEGIN
-    correlation_id := coalesce(user_id::TEXT, 'unknown') || '_' || to_char(date_trunc('second', now()), 'YYYYMMDDHH24MISS');
-    EXCEPTION
-    WHEN OTHERS THEN
-        correlation_id := NULL;
-    END;
-
-    SELECT (private.get_request_id())::UUID INTO request_id;
-
-    INSERT INTO public.audit_log (
-        table_name,
-        table_schema,
-        operation,
-        row_data,
-        old_data,
-        user_id,
-        tenant_id,
-        correlation_id,
-        request_id
-    ) VALUES (
-        TG_TABLE_NAME,
-        TG_TABLE_SCHEMA,
-        TG_OP,
-        CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END,
-        CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE to_jsonb(OLD) END,
-        user_id,
-        tenant_id,
-        correlation_id,
-        request_id
-    );
+-- The active tenant, where new rows go: the `x-tenant-id` header, else the user's current tenant
+-- (the token's user_metadata.current_tenant_id); only if the user may use it, else NULL.
+CREATE OR REPLACE FUNCTION private.tenant_id () RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+DECLARE
+    requested UUID := private.requested_tenant();
+BEGIN
+    IF requested = ANY (private.allowed_tenant()) THEN
+        RETURN requested;
+    END IF;
     RETURN NULL;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.revert_audit_log (target_correlation_id TEXT) RETURNS void LANGUAGE plpgsql
+-- The tenants a request reads from: those listed in `x-tenant-ids` (comma separated) that the user
+-- may use, and the active tenant. Without the header, the active tenant alone.
+CREATE OR REPLACE FUNCTION private.tenant_scope () RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
-    "search_path" = '' AS $$
+    search_path = '' AS $$
 DECLARE
-  audit_record RECORD;
-  columns_text TEXT;
-  values_text TEXT;
-  key_value RECORD; -- Declare a record for iterating over the key-value pairs
+    header TEXT := nullif(current_setting('request.headers', true), '')::JSONB ->> 'x-tenant-ids';
+    requested UUID[];
+    scope UUID[];
+    -- Policies of every table in a statement ask for it; the transaction keeps it, and
+    -- private.notify_access_changed drops it when memberships or ownerships change.
+    cache_key TEXT := concat_ws('|', auth.uid(), private.requested_tenant(), header);
+    cached TEXT := current_setting('access.tenant_scope', true);
 BEGIN
-    IF target_correlation_id IS NOT NULL THEN
-
-    -- Loop through all the audit log entries with the given correlation_id
-    FOR audit_record IN 
-        SELECT * FROM public.audit_log
-        WHERE (correlation_id = target_correlation_id OR id::TEXT = target_correlation_id)
-        AND reverted = FALSE
-        ORDER BY operation DESC
-    LOOP
-        CASE audit_record.operation 
-            WHEN 'INSERT' THEN
-                BEGIN
-                    EXECUTE format('DELETE FROM %I.%I WHERE id = $1',
-                        audit_record.table_schema, audit_record.table_name)
-                        USING (audit_record.row_data->>'id')::UUID;
-                EXCEPTION
-                    WHEN OTHERS THEN
-                        RAISE EXCEPTION 'Failed to revert INSERT operation: %', SQLERRM;
-                END;
-            WHEN 'UPDATE' THEN
-                BEGIN
-                    -- Prepare the columns and values for UPDATE statement
-                    columns_text := '';
-                    values_text := '';
-                    
-                    -- Iterate over the key-value pairs from old_data
-                    FOR key_value IN 
-                        SELECT key, value 
-                        FROM jsonb_each_text(audit_record.old_data)
-                    LOOP
-                        columns_text := columns_text || format('%I, ', key_value.key);
-                        values_text := values_text || format('%L, ', key_value.value);
-                    END LOOP;
-                    
-                    -- Remove the trailing commas
-                    columns_text := rtrim(columns_text, ', ');
-                    values_text := rtrim(values_text, ', ');
-
-                    -- Execute the dynamic SQL for the UPDATE
-                    EXECUTE format('UPDATE %I.%I SET (%s) = (%s) WHERE id = $1', 
-                        audit_record.table_schema, audit_record.table_name, columns_text, values_text) 
-                        USING (audit_record.row_data->>'id')::UUID;
-                EXCEPTION
-                    WHEN OTHERS THEN
-                        RAISE EXCEPTION 'Failed to revert UPDATE operation: %', SQLERRM;
-                END;
-            WHEN 'DELETE' THEN
-                BEGIN
-                    -- Prepare the columns and values for INSERT statement
-                    columns_text := '';
-                    values_text := '';
-                    
-                    -- Iterate over the key-value pairs from old_data
-                    FOR key_value IN 
-                        SELECT key, value 
-                        FROM jsonb_each_text(audit_record.old_data)
-                    LOOP
-                        columns_text := columns_text || format('%I, ', key_value.key);
-                        values_text := values_text || format('%L, ', key_value.value);
-                    END LOOP;
-                    
-                    -- Remove the trailing commas
-                    columns_text := rtrim(columns_text, ', ');
-                    values_text := rtrim(values_text, ', ');
-
-                    -- Execute the dynamic SQL for the INSERT
-                    EXECUTE format('INSERT INTO %I.%I (%s) VALUES (%s)', 
-                                audit_record.table_schema, audit_record.table_name, columns_text, values_text);
-                EXCEPTION
-                    WHEN OTHERS THEN
-                        RAISE EXCEPTION 'Failed to revert DELETE operation: %', SQLERRM;
-                END;
-        END CASE;
-
-        PERFORM set_config('role', 'service_role', true);
-        -- Mark the original audit log record as reverted
-        UPDATE public.audit_log
-        SET reverted = TRUE, reverted_by = (SELECT auth.uid()), reverted_at = now()
-        WHERE id = audit_record.id;
-        PERFORM set_config('role', 'authenticated', true);
-
-    END LOOP;
-
+    IF cached LIKE cache_key || '=%' THEN
+        RETURN substr(cached, length(cache_key) + 2)::UUID[];
     END IF;
 
+    BEGIN
+        requested := string_to_array(header, ',')::UUID[];
+    EXCEPTION
+        WHEN OTHERS THEN
+            requested := NULL;
+    END;
+
+    -- The allowed tenants once: the active one is in them exactly when tenant_id() would accept it.
+    scope := ARRAY(
+        SELECT id FROM unnest(coalesce(requested, '{}') || private.requested_tenant()) AS id
+        WHERE id IS NOT NULL
+        INTERSECT
+        SELECT unnest(private.allowed_tenant())
+    );
+    PERFORM set_config('access.tenant_scope', cache_key || '=' || scope::TEXT, true);
+    RETURN scope;
 END;
 $$;
 
--- Function to CREATE triggers automatically ON all enabled tables
-CREATE OR REPLACE FUNCTION private.audit_sync_triggers () RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+-- The tenants read and every tenant above them: the owners of any of these may use the tenants read.
+CREATE OR REPLACE FUNCTION private.scope_and_above () RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
-    "search_path" = '' AS $$
+    search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        -- UNION (not UNION ALL) also stops at a cycle, should one ever get in.
+        WITH RECURSIVE above (id, parent_id) AS (
+            SELECT t.id, t.parent_id FROM public.tenant t WHERE t.id = ANY (private.tenant_scope())
+            UNION
+            SELECT t.id, t.parent_id FROM public.tenant t JOIN above ON t.id = above.parent_id
+        )
+        SELECT above.id FROM above
+    );
+END;
+$$;
+
+-- The users who may use the tenants read by owning them (directly or through a tenant above),
+-- without necessarily being members. They are shown with the members, e.g. as the actor of a change.
+CREATE OR REPLACE FUNCTION private.scope_owners () RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        SELECT DISTINCT o.user_id FROM public.tenant_owner o WHERE o.tenant_id = ANY (private.scope_and_above())
+    );
+END;
+$$;
+
+-- Of `tenants`, those where `user_id` has the permission: through their roles in that tenant, or
+-- through owning it (the built-in owner role's permissions), and only where the company's plan
+-- allows it (private.entitlements). The one rule for policies and the app.
+CREATE OR REPLACE FUNCTION private.tenants_permitting (user_id UUID, tenants UUID[], p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
 DECLARE
-  r record;
-  trigger_name TEXT;
-  target_schema TEXT;
-  target_table TEXT;
+    permitted UUID[];
 BEGIN
-  -- CREATE triggers FOR enabled tables
-  FOR r IN SELECT * FROM private.audit_config WHERE audit_enabled = true LOOP
-    target_schema := split_part(r.table_name, '.', 1);
-    target_table := split_part(r.table_name, '.', 2);
-
-    trigger_name := 'trg_' || target_table || '_audit';
-
-    -- CREATE TRIGGER IF it does not already exist
-    IF not EXISTS (
-      SELECT 1 FROM pg_trigger
-      JOIN pg_class ON pg_trigger.tgrelid = pg_class.oid
-      WHERE pg_trigger.tgname = trigger_name
-      AND pg_class.relname = target_table
-    ) THEN
-      EXECUTE format($f$
-        CREATE TRIGGER %I
-        AFTER INSERT OR UPDATE OR DELETE ON %I.%I
-        FOR each ROW EXECUTE FUNCTION private.trg_audit_log();
-      $f$, trigger_name, target_schema, target_table);
+    IF private.check_super_admin(user_id) THEN
+        RETURN coalesce(tenants, '{}');
     END IF;
-  END LOOP;
-  
-  -- DROP triggers FOR disabled tables
-  FOR r IN SELECT * FROM private.audit_config WHERE audit_enabled = false LOOP
-    target_schema := split_part(r.table_name, '.', 1);
-    target_table := split_part(r.table_name, '.', 2);
 
-    trigger_name := 'trg_' || target_table || '_audit';
-    
-    -- DROP TRIGGER IF it EXISTS
-    IF EXISTS (
-      SELECT 1 FROM pg_trigger
-      JOIN pg_class ON pg_trigger.tgrelid = pg_class.oid
-      WHERE pg_trigger.tgname = trigger_name
-      AND pg_class.relname = target_table
-    ) THEN
-      EXECUTE format($f$
-        DROP TRIGGER IF EXISTS %I ON %I.%I;
-      $f$, trigger_name, target_schema, target_table);
+    permitted := private.tenants_granting(user_id, tenants, p_resource_name, p_command);
+    IF cardinality(permitted) = 0 THEN
+        RETURN permitted;
     END IF;
-  END LOOP;
+    RETURN private.tenants_entitled(permitted, p_resource_name, p_command);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION private.audit_sync_triggers_wrapper () RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+-- Of `tenants`, those where `user_id` holds the permission through roles or ownership, whatever
+-- the plan.
+CREATE OR REPLACE FUNCTION private.tenants_granting (user_id UUID, tenants UUID[], p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
-    "search_path" = '' AS $$
+    search_path = '' AS $$
+DECLARE
+    cmd public.type_permission_command := p_command::public.type_permission_command;
+    by_role UUID[];
+    owners_have_it BOOLEAN;
 BEGIN
-  -- Call your non-trigger function
-  PERFORM private.audit_sync_triggers();
-  
-  -- Required for statement-level trigger
-  RETURN NULL;
+    IF user_id IS NULL OR cardinality(tenants) IS NULL OR cardinality(tenants) = 0 THEN
+        RETURN '{}';
+    END IF;
+
+    -- Two narrow lookups rather than one query with an OR, which plans poorly.
+    by_role := ARRAY(
+        SELECT DISTINCT r.tenant_id
+        FROM public.user_role ur
+        JOIN public.role r ON r.id = ur.role_id
+        JOIN public.role_permission rp ON rp.role_id = r.id
+        JOIN public.permission p ON p.id = rp.permission_id
+        WHERE ur.user_id = tenants_granting.user_id
+          AND r.tenant_id = ANY (tenants)
+          AND p.resource_name = p_resource_name AND p.command = cmd
+    );
+
+    owners_have_it := EXISTS (
+        SELECT 1
+        FROM public.role r
+        JOIN public.role_permission rp ON rp.role_id = r.id
+        JOIN public.permission p ON p.id = rp.permission_id
+        WHERE r.tenant_id IS NULL AND r.display_name = 'owner'
+          AND p.resource_name = p_resource_name AND p.command = cmd
+    );
+
+    IF NOT owners_have_it THEN
+        RETURN by_role;
+    END IF;
+    RETURN ARRAY(
+        SELECT id FROM unnest(by_role) AS id
+        UNION
+        SELECT id FROM unnest(tenants) AS id WHERE id = ANY (private.owned_tenants(tenants_granting.user_id))
+    );
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION validate_record_quantity () RETURNS TRIGGER SECURITY DEFINER LANGUAGE plpgsql
+-- The tenants of the request's scope where the user has the permission. Policies of tables with a
+-- tenant_id test `tenant_id = ANY (…)` against it, which the tenant_id index serves.
+CREATE OR REPLACE FUNCTION private.permitted_tenants (p_resource_name TEXT, p_command TEXT) RETURNS UUID[] LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
-    "search_path" = '' AS $$
+    search_path = '' AS $$
 BEGIN
-    IF OLD.stock_id = NEW.stock_id AND TG_OP = 'UPDATE' THEN
-        IF NEW.quantity > OLD.quantity + (SELECT available_quantity FROM public.stock_view WHERE id = NEW.stock_id) THEN
-            RAISE EXCEPTION 'Amount cannot be greater than available quantity';
-        END IF;
-    ELSIF NOT EXISTS(SELECT 1 FROM public.record WHERE id = NEW.id) AND NEW.quantity > (SELECT available_quantity FROM public.stock_view WHERE id = NEW.stock_id) THEN
-        RAISE EXCEPTION 'Amount cannot be greater than available quantity';
+    RETURN private.tenants_permitting(auth.uid(), private.tenant_scope(), p_resource_name, p_command);
+END;
+$$;
+
+-- Whether the user has the permission in the active tenant (tables without a tenant_id).
+CREATE OR REPLACE FUNCTION private.check_permission (p_resource_name TEXT, p_command TEXT) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+DECLARE
+    active UUID := private.tenant_id();
+BEGIN
+    IF active IS NULL THEN
+        RETURN private.check_super_admin();
     END IF;
-   
-    RETURN NEW;
-END;$$;
+    RETURN cardinality(private.tenants_permitting(auth.uid(), ARRAY[active], p_resource_name, p_command)) > 0;
+END;
+$$;
+
+-- The permissions `user_id` has in `tenant_id` (the same rules as tenants_permitting), for the app.
+-- Those of modules outside the company's plan are left out, and only reads once it is read-only.
+CREATE OR REPLACE FUNCTION private.permissions (user_id UUID, tenant_id UUID) RETURNS TABLE (resource_name TEXT, command TEXT) LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    IF private.check_super_admin(permissions.user_id) THEN
+        RETURN QUERY SELECT p.resource_name::TEXT, p.command::TEXT FROM public.permission p;
+        RETURN;
+    END IF;
+
+    RETURN QUERY
+    SELECT DISTINCT p.resource_name::TEXT, p.command::TEXT
+    FROM public.permission p
+    JOIN public.role_permission rp ON rp.permission_id = p.id
+    JOIN public.role r ON r.id = rp.role_id
+    CROSS JOIN private.entitlements(ARRAY[permissions.tenant_id]) e
+    WHERE (
+        (
+            r.tenant_id = permissions.tenant_id
+            AND EXISTS (SELECT 1 FROM public.user_role ur WHERE ur.role_id = r.id AND ur.user_id = permissions.user_id)
+        ) OR (
+            r.tenant_id IS NULL AND r.display_name = 'owner'
+            AND permissions.tenant_id = ANY (private.owned_tenants(permissions.user_id))
+        )
+    )
+    AND (p.group_name IS NULL OR p.group_name = ANY (e.modules))
+    AND (p.command = 'select' OR e.writable);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION private.check_tenant_id (tenant_id UUID) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    RETURN check_tenant_id.tenant_id = private.tenant_id();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION private.check_allowed_tenant (tenant_id UUID) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+BEGIN
+    RETURN check_allowed_tenant.tenant_id = ANY (private.allowed_tenant());
+END;
+$$;
+
+-- The access token carries the user's current tenant only (user_metadata.current_tenant_id, the
+-- first of their tenants when unset or no longer theirs). Tenants and permissions are not in the
+-- token: they are read per request (above), and the app gets them from public.my_access.
+CREATE OR REPLACE FUNCTION private.custom_access_token_hook (e JSONB) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET
+    search_path = '' AS $$
+DECLARE
+    u_id UUID := (e ->> 'user_id')::UUID;
+    claims JSONB := e -> 'claims';
+    current_tenant_id UUID;
+BEGIN
+    IF NOT claims ? 'user_metadata' THEN
+        claims := jsonb_set(claims, '{user_metadata}', '{}'::JSONB);
+    END IF;
+
+    current_tenant_id := (claims -> 'user_metadata' ->> 'current_tenant_id')::UUID;
+
+    IF current_tenant_id IS NULL OR NOT EXISTS (
+        SELECT 1 FROM public.tenant_user tu WHERE tu.user_id = u_id AND tu.tenant_id = current_tenant_id
+    ) THEN
+        SELECT tu.tenant_id INTO current_tenant_id
+        FROM public.tenant_user tu
+        JOIN public.tenant t ON t.id = tu.tenant_id
+        WHERE tu.user_id = u_id
+        ORDER BY t.created_at, t.id
+        LIMIT 1;
+    END IF;
+
+    IF current_tenant_id IS NOT NULL THEN
+        claims := jsonb_set(claims, '{user_metadata,current_tenant_id}', to_jsonb(current_tenant_id), true);
+    END IF;
+
+    RETURN jsonb_set(e, '{claims}', claims, true);
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION private.has_table_tenant_id (p_table_name TEXT) RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER
 SET
@@ -858,12 +632,24 @@ SET
     );
 $$;
 
+-- Whether the table may have shared rows (tenant_id NULL), visible in every tenant.
+CREATE OR REPLACE FUNCTION private.is_tenant_id_nullable (p_table_name TEXT) RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER
+SET
+    "search_path" = '' AS $$
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = p_table_name AND column_name = 'tenant_id' AND is_nullable = 'YES'
+    );
+$$;
+
 CREATE OR REPLACE FUNCTION private.enable_tenant_level_security (p_table_name TEXT) RETURNS void LANGUAGE plpgsql SECURITY DEFINER
 SET
     "search_path" = '' AS $$
 DECLARE
   t_name text := p_table_name;
   t_schema text := 'public';
+  in_scope text;
 BEGIN
   IF NOT private.has_table_tenant_id(t_name) THEN
     RAISE NOTICE 'Table "%" does not have tenant_id column. Skipping.', t_name;
@@ -872,28 +658,30 @@ BEGIN
 
   EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY', t_schema, t_name);
 
-  -- SELECT
+  -- The request's tenants (private.tenant_scope): rows outside them are neither read nor written.
+  -- Shared rows (tenant_id NULL) only where the column allows them: an OR keeps the index from
+  -- narrowing the scan to the tenants, so every tenant's rows would be read and filtered.
+  in_scope := 'tenant_id = ANY ((SELECT private.tenant_scope())::UUID[])';
+
   EXECUTE format(
-    $f$CREATE POLICY restrict_selects_to_current_tenant ON %I.%I AS RESTRICTIVE FOR SELECT TO authenticated USING (tenant_id IS NULL OR tenant_id = (SELECT private.tenant_id()))$f$,
-    t_schema, t_name
+    $f$CREATE POLICY restrict_selects_to_current_tenant ON %I.%I AS RESTRICTIVE FOR SELECT TO authenticated USING (%s)$f$,
+    t_schema, t_name,
+    CASE WHEN private.is_tenant_id_nullable(t_name) THEN format('(tenant_id IS NULL OR %s)', in_scope) ELSE in_scope END
   );
 
-  -- INSERT
   EXECUTE format(
-    $f$CREATE POLICY restrict_inserts_to_allowed_tenants ON %I.%I AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (tenant_id = ANY (private.allowed_tenant()))$f$,
-    t_schema, t_name
+    $f$CREATE POLICY restrict_inserts_to_allowed_tenants ON %I.%I AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (%s)$f$,
+    t_schema, t_name, in_scope
   );
 
-  -- UPDATE
   EXECUTE format(
-    $f$CREATE POLICY restrict_updates_to_current_tenant ON %I.%I AS RESTRICTIVE FOR UPDATE TO authenticated USING (tenant_id = (SELECT private.tenant_id())) WITH CHECK (tenant_id = ANY (private.allowed_tenant()))$f$,
-    t_schema, t_name
+    $f$CREATE POLICY restrict_updates_to_current_tenant ON %I.%I AS RESTRICTIVE FOR UPDATE TO authenticated USING (%3$s) WITH CHECK (%3$s)$f$,
+    t_schema, t_name, in_scope
   );
 
-  -- DELETE
   EXECUTE format(
-    $f$CREATE POLICY restrict_deletes_to_current_tenant ON %I.%I AS RESTRICTIVE FOR DELETE TO authenticated USING (tenant_id = (SELECT private.tenant_id()))$f$,
-    t_schema, t_name
+    $f$CREATE POLICY restrict_deletes_to_current_tenant ON %I.%I AS RESTRICTIVE FOR DELETE TO authenticated USING (%s)$f$,
+    t_schema, t_name, in_scope
   );
 
   RAISE NOTICE 'RLS enabled and policies created for table: %', t_name;

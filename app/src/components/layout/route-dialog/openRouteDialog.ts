@@ -1,0 +1,58 @@
+import type { DialogPosition } from '@/constants/router';
+import { useAuthStore } from '@/store/auth';
+import type { useDialog } from 'primevue';
+import { h } from 'vue';
+import type { RouteLocationNormalized } from 'vue-router';
+import RouteDialog from './RouteDialog.vue';
+import { markOnScreen, rememberDialog, takeReopening, type SavedRouteDialog } from './session';
+import { frameStyle, isDialogFrame } from './snap';
+
+/**
+ * Opens `route`'s page in a RouteDialog; DynamicDialog only provides the mask and the box. The
+ * dialog is remembered for the tab so a reload reopens it, with its position, size and state when
+ * it is being reopened.
+ *
+ * `?dialogFrame=maximized` opens it filling the viewport, and `?dialogFrame=<snap zone>` (left,
+ * top-right, ...) filling that half or quarter; restoring gives it its normal box at `position`.
+ * A dialog being reopened keeps the frame it had.
+ */
+export function openRouteDialog(
+   dialogs: ReturnType<typeof useDialog>,
+   route: RouteLocationNormalized,
+   position: DialogPosition
+) {
+   const frame = route.query.dialogFrame;
+   const saved: Partial<SavedRouteDialog> | undefined =
+      takeReopening(route.fullPath) ??
+      (isDialogFrame(frame) ? { ...frameStyle(frame), normalStyle: '' } : undefined);
+   const id = saved?.id ?? crypto.randomUUID();
+   // Only pages of the signed-in user are reopened; auth pages (login, ...) are not.
+   const authStore = useAuthStore();
+   const userId = authStore.user?.id;
+   if (userId && route.meta.requiresAuth) {
+      // A page that needs permissions shows the current tenant's data (see RouteDialog).
+      const tenantId = route.meta.requiredPermissions
+         ? (authStore.currentTenant?.id ?? null)
+         : null;
+      rememberDialog({ ...saved, id, userId, tenantId, path: route.fullPath, position });
+   }
+   markOnScreen(id);
+
+   return dialogs.open(h(RouteDialog, { route, dialogId: id, initialFrame: saved }), {
+      props: {
+         // RouteDialog renders the header and handles closing, moving and resizing itself.
+         showHeader: false,
+         closable: false,
+         closeOnEscape: false,
+         draggable: false,
+         maximizable: false,
+         keepInViewport: false,
+         position,
+         style: saved?.style,
+         pt: { content: { class: '!p-0 !overflow-hidden flex flex-col' } },
+         // Not in PrimeVue's DialogProps; passed through to the dialog element. `relative` places
+         // the resize handles until the dialog is first moved (then it is `fixed`).
+         ...({ class: 'relative min-w-[clamp(32rem,50%,100vw)] max-w-min' } as object)
+      }
+   });
+}

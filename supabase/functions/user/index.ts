@@ -1,187 +1,176 @@
-import lodash from 'npm:lodash';
-import { corsHeaders } from '../_shared/cors.ts';
+import { type AuthContext, withAuthorization } from '../_shared/auth.ts';
+import {
+   accountReach,
+   belongsToCompany,
+   companyTenants,
+   isManageable
+} from '../_shared/company.ts';
+import { z } from '../_shared/deps.ts';
+import { HttpError, json, serve } from '../_shared/http.ts';
 import { supabaseAdmin, supabaseClient } from '../_shared/supabaseClient.ts';
-import { withAuthorization } from '../_shared/withAuthorization.ts';
 
-Deno.serve(async (req) => {
-   try {
-      if (req.method === 'OPTIONS') {
-         return new Response('ok', { headers: corsHeaders });
-      }
+const userMetadata = z
+   .object({
+      display_name: z.string().trim().min(1)
+   })
+   .partial()
+   .optional();
 
+// Only these attributes may be written through the admin API; anything else in the body is dropped.
+// Email, phone and password are sign-in credentials: a tenant admin never sets them for someone
+// else, users change their own through their session (account settings).
+const createUserSchema = z.object({
+   email: z.string().trim().toLowerCase().email(),
+   user_metadata: userMetadata
+});
+const updateUserSchema = z.object({ user_metadata: userMetadata });
+
+const assertTenantMember = async (tenantId: string, userId: string) => {
+   const { count } = await supabaseAdmin()
+      .from('tenant_user')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .throwOnError();
+
+   if (!count) throw new HttpError(404, 'user_not_found');
+};
+
+/**
+ * A member may be managed here only if nothing outside the caller's company relies on the
+ * account: a membership row alone is not enough, as one can be added for any account. Callers
+ * acting on their own account are let through.
+ */
+const assertManageable = async ({ tenantId, userId }: AuthContext, id: string) => {
+   await assertTenantMember(tenantId, id);
+   if (id === userId) return;
+
+   const [reach, company] = await Promise.all([accountReach(id), companyTenants(tenantId)]);
+   if (!isManageable(reach, company)) throw new HttpError(403, 'user_not_allowed');
+};
+
+const getUser = (req: Request, id: string) =>
+   withAuthorization(req, [['select', 'user']], async (context) => {
+      await assertManageable(context, id);
+
+      const { data, error } = await supabaseAdmin().auth.admin.getUserById(id);
+      if (error) throw error;
+
+      return json(data);
+   });
+
+const createUser = (req: Request) =>
+   withAuthorization(req, [['insert', 'user']], async ({ tenantId }: AuthContext) => {
+      const { email, user_metadata } = createUserSchema.parse(await req.json());
       const service = supabaseAdmin();
-      const supabase = supabaseClient({
-         global: {
-            headers: {
-               Authorization: req.headers.get('Authorization')!,
-               'x-tenant': req.headers.get('x-tenant')!,
-               'x-tenant-id': req.headers.get('x-tenant-id')!
-            }
-         }
-      });
 
-      const tenant_id = req.headers.get('x-tenant-id');
+      const { data: existing } = await service
+         .from('user')
+         .select('id, email')
+         .eq('email', email)
+         .maybeSingle()
+         .throwOnError();
 
-      const getUser = async (req: Request, id: string) =>
-         await withAuthorization(req, [['select', 'user']], async () => {
-            const { data, error } = await service.auth.admin.getUserById(id!);
-            if (error) throw error;
-            return new Response(JSON.stringify(data), {
-               status: 200,
-               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
+      let user = existing;
+      let invited = false;
+
+      if (user) {
+         // An existing account is only added to another branch of a company it is already in;
+         // anyone else's account is never linked without their consent.
+         const [reach, company] = await Promise.all([
+            accountReach(user.id),
+            companyTenants(tenantId)
+         ]);
+         if (!belongsToCompany(reach, company)) throw new HttpError(409, 'user_exists_elsewhere');
+      } else {
+         const { data, error } = await service.auth.admin.inviteUserByEmail(email, {
+            data: user_metadata
          });
-
-      const createUser = async (req: Request) =>
-         await withAuthorization(req, [['insert', 'user']], async () => {
-            try {
-               const body = await req.json();
-               const { email, ...rest } = body;
-
-               let user = null;
-
-               const { data } = await service
-                  .from('user')
-                  .select('*')
-                  .eq('email', email!)
-                  .maybeSingle();
-               user = data;
-
-               if (!data?.id) {
-                  const { data } = await service.auth.admin.inviteUserByEmail(email!, {
-                     data: {
-                        ...rest.user_metadata
-                     }
-                  });
-                  user = data.user;
-               }
-
-               await supabase
-                  .from('tenant_user')
-                  .insert({
-                     user_id: user!.id,
-                     tenant_id: rest.tenant_id!
-                  })
-                  .throwOnError();
-
-               return new Response(JSON.stringify(user), {
-                  status: 201,
-                  headers: {
-                     ...corsHeaders,
-                     'Access-Control-Allow-Methods': 'POST',
-                     'Content-Type': 'application/json'
-                  }
-               });
-            } catch (error) {
-               console.error(error);
-               return new Response(JSON.stringify(error), {
-                  status: 400,
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-               });
-            }
-         });
-
-      const updateUser = async (req: Request, id: string) =>
-         await withAuthorization(req, [['update', 'user']], async () => {
-            try {
-               const body = await req.json();
-               const { data, error } = await service.auth.admin.updateUserById(
-                  id!,
-                  lodash.omit(body, ['role'])
-               );
-               if (error) throw error;
-
-               return new Response(JSON.stringify(data), {
-                  status: 200,
-                  headers: {
-                     ...corsHeaders,
-                     'Access-Control-Allow-Methods': 'PUT',
-                     'Content-Type': 'application/json'
-                  }
-               });
-            } catch (error) {
-               console.error(error);
-               return new Response(JSON.stringify(error), {
-                  status: 400,
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-               });
-            }
-         });
-
-      const deleteUser = async (req: Request, id: string) =>
-         await withAuthorization(req, [['delete', 'user']], async () => {
-            try {
-               const { count } = await service
-                  .from('tenant_owner')
-                  .select('user_id,tenant_id', {
-                     count: 'exact',
-                     head: true
-                  })
-                  .filter('user_id', 'eq', id)
-                  .filter('tenant_id', 'eq', tenant_id);
-
-               if (count)
-                  return new Response(JSON.stringify({ message: 'You cannot delete owner user' }), {
-                     status: 403,
-                     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                  });
-
-               await supabase
-                  .from('tenant_user')
-                  .delete()
-                  .filter('user_id', 'eq', id)
-                  .filter('tenant_id', 'eq', tenant_id)
-                  .throwOnError();
-
-               return new Response(null, {
-                  status: 204,
-                  headers: {
-                     ...corsHeaders,
-                     'Access-Control-Allow-Methods': 'DELETE'
-                  }
-               });
-            } catch (error) {
-               console.error(error);
-               return new Response(JSON.stringify(error), {
-                  status: 400,
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-               });
-            }
-         });
-
-      const taskPattern = new URLPattern({ pathname: '/user/:id' });
-      const matchingPath = taskPattern.exec(req.url);
-      const id = matchingPath ? matchingPath.pathname.groups.id : null;
-
-      switch (true) {
-         case id && req.method === 'GET':
-            return await getUser(req, id);
-
-         case !id && req.method === 'GET':
-            return new Response(JSON.stringify({ message: 'User ID Required' }), {
-               status: 405,
-               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-
-         case id && req.method === 'PUT':
-            return await updateUser(req, id);
-
-         case id && req.method === 'DELETE':
-            return await deleteUser(req, id);
-
-         case req.method === 'POST':
-            return await createUser(req);
+         if (error) throw error;
+         user = { id: data.user.id, email: data.user.email ?? email };
+         invited = true;
       }
 
-      return new Response(JSON.stringify({ message: `Method ${req.method} Not Allowed` }), {
-         status: 405,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      try {
+         // Runs as the caller, so RLS also checks the tenant membership insert (and the database
+         // may refuse it, e.g. plan_limit_users).
+         await supabaseClient(req)
+            .from('tenant_user')
+            .insert({ user_id: user.id, tenant_id: tenantId })
+            .throwOnError();
+      } catch (error) {
+         // The account was made for this membership alone; do not leave it behind.
+         if (invited) {
+            const { error: cleanup } = await service.auth.admin.deleteUser(user.id);
+            if (cleanup) console.error(cleanup);
+         }
+         throw error;
+      }
+
+      return json({ user }, 201);
+   });
+
+const updateUser = (req: Request, id: string) =>
+   withAuthorization(req, [['update', 'user']], async (context) => {
+      await assertManageable(context, id);
+
+      const { user_metadata } = updateUserSchema.parse(await req.json());
+
+      const { data, error } = await supabaseAdmin().auth.admin.updateUserById(id, {
+         ...(user_metadata ? { user_metadata } : {})
       });
-   } catch (error) {
-      console.error(error);
-      return new Response(JSON.stringify(error), {
-         status: 400,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (error) throw error;
+
+      return json({ user: { id: data.user.id, email: data.user.email } });
+   });
+
+const deleteUser = (req: Request, id: string) =>
+   withAuthorization(req, [['delete', 'user']], async (context) => {
+      const { tenantId } = context;
+      await assertTenantMember(tenantId, id);
+
+      const { count } = await supabaseAdmin()
+         .from('tenant_owner')
+         .select('user_id', { count: 'exact', head: true })
+         .eq('user_id', id)
+         .eq('tenant_id', tenantId)
+         .throwOnError();
+
+      if (count) throw new HttpError(403, 'cannot_delete_owner');
+
+      await assertManageable(context, id);
+
+      await supabaseClient(req)
+         .from('tenant_user')
+         .delete()
+         .eq('user_id', id)
+         .eq('tenant_id', tenantId)
+         .throwOnError();
+
+      return json(null, 204);
+   });
+
+const userPattern = new URLPattern({ pathname: '/user/:id' });
+
+serve(async (req) => {
+   const id = userPattern.exec(req.url)?.pathname.groups.id;
+
+   switch (true) {
+      case !!id && req.method === 'GET':
+         return await getUser(req, id!);
+
+      case !!id && req.method === 'PUT':
+         return await updateUser(req, id!);
+
+      case !!id && req.method === 'DELETE':
+         return await deleteUser(req, id!);
+
+      case !id && req.method === 'POST':
+         return await createUser(req);
+
+      case !id && req.method !== 'POST':
+         throw new HttpError(400, 'user_id_required');
    }
+
+   throw new HttpError(405, 'method_not_allowed');
 });

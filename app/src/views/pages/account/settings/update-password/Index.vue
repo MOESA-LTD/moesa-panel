@@ -1,65 +1,55 @@
-<script setup>
-import { Form } from '@/lib/Form';
+<script setup lang="ts">
+import { passwordSchema, updatePassword } from '@/api/account';
+import { useForm } from '@/lib/form/useForm';
 import { useToast } from 'primevue';
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 const toast = useToast();
-const accountStore = useAccountStore();
-const form = Form.create({
-   data: {
-      password: '',
-      password_confirmation: ''
-   },
-   rules: {
-      password: 'required|alpha_dash|min:8',
-      password_confirmation: 'required|same:password'
-   }
+
+const { values, errors, isDirty, isSubmitting, reset, handleSubmit } = useForm({
+   schema: passwordSchema,
+   initialValues: { password: '', password_confirmation: '' }
 });
 
-const save = async () => {
-   if (!form._validate()) return;
-
-   const { error } = await accountStore.updateUser(form._data);
-   if (error) throw error;
-
-   form._reset();
+const save = handleSubmit(async (data) => {
+   await updatePassword(data);
+   reset();
 
    toast.add({
       life: 3000,
       severity: ToastSeverity.SUCCESS,
       summary: t('toast.updated')
    });
-};
+});
 </script>
 <template>
-   <FormBox @submit="save" @reset="() => form._reset()" v-focustrap :form>
-      <FormField
-         fluid
-         v-slot="slotProps"
-         :label="$t('fields.password')"
-         :error="form?._errors?.first('password')"
-      >
+   <FormBox
+      @submit="save"
+      @reset="() => reset()"
+      v-focustrap
+      :dirty="isDirty"
+      :submitting="isSubmitting"
+   >
+      <FormField fluid v-slot="slotProps" :label="$t('fields.password')" :error="errors.password">
          <Password
             autofocus
             v-bind="slotProps"
             :toggle-mask="true"
             :feedback="false"
-            v-model="form['password']"
-            @input="() => form._validate(['password'])"
+            v-model="values.password"
          />
       </FormField>
       <FormField
          fluid
          v-slot="slotProps"
          :label="$t('fields.password_confirmation')"
-         :error="form?._errors?.first('password_confirmation')"
+         :error="errors.password_confirmation"
       >
          <Password
             v-bind="slotProps"
             :toggle-mask="true"
             :feedback="false"
-            v-model="form['password_confirmation']"
-            @input="() => form._validate()"
+            v-model="values.password_confirmation"
          />
       </FormField>
    </FormBox>

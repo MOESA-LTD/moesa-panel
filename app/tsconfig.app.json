@@ -1,0 +1,26 @@
+{
+   "extends": "@vue/tsconfig/tsconfig.dom.json",
+   "compilerOptions": {
+      "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+      "allowJs": true,
+      "types": ["vite/client"],
+      // Transitional: tightened step by step during the TypeScript migration.
+      "strictNullChecks": true,
+      "noImplicitAny": false,
+      "verbatimModuleSyntax": false,
+      "paths": {
+         "@/*": ["./src/*"],
+         "@assets/*": ["./src/assets/*"],
+         "@style/*": ["./src/assets/style/*"],
+         "@plugins/*": ["./src/plugins/*"],
+         "@components/*": ["./src/components/*"],
+         "@store/*": ["./src/store/*"],
+         "@lib/*": ["./src/lib/*"],
+         "@services/*": ["./src/services/*"],
+         "@composables/*": ["./src/composables/*"],
+         "@types/*": ["./src/@types/*"]
+      }
+   },
+   "include": ["src/**/*", "src/**/*.vue", "auto-imports.d.ts", "components.d.ts"],
+   "exclude": ["src/script/**"]
+}

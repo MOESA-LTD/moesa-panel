@@ -47,7 +47,7 @@
       "branch": "Filiale",
       "welcome": {
          "title": "Willkommen",
-         "text": "Willkommen im CRM-System für Hörgeräte"
+         "text": "Willkommen im Verwaltungsbereich"
       },
       "please_dont_forget_to_update_your_password": "Bitte vergessen Sie nicht, Ihr Passwort zu aktualisieren",
       "confirm": {
@@ -102,43 +102,6 @@
    },
    "fields": {
       "": "Leerfeld",
-      "device": "Gerät",
-      "battery": "Akku",
-      "spare_part": "Ersatzteil",
-      "service": "Service",
-      "trial": "Test",
-      "sale": "Verkauf",
-      "assemble": "Zusammenbau",
-      "repair": "Reparatur",
-      "promotion": "Promotion",
-      "cash": "Bar",
-      "credit_card": "Kreditkarte",
-      "pending": "In Bearbeitung",
-      "pending_service": "In Bearbeitung",
-      "client_holds_service_bid": "Kunde hält Service-Angebot",
-      "client_approved_service_bid": "Kunde hat Service-Angebot genehmigt",
-      "client_rejected_service_bid": "Kunde hat Service-Angebot abgelehnt",
-      "done": "Fertig",
-      "approved": "Genehmigt",
-      "rejected": "Abgelehnt",
-      "pending_client": "Wartend auf Kunde",
-      "biopar": "Biopar",
-      "hard": "Hart",
-      "micro": "Mikro",
-      "full": "Voll",
-      "half": "Halb",
-      "supported": "Unterstützt",
-      "prob": "Wahrscheinlichkeit",
-      "pcs": "Stück",
-      "kg": "Kilogramm",
-      "gr": "Gramm",
-      "lbs": "Pfund",
-      "L": "Liter",
-      "mL": "Milliliter",
-      "m": "Meter",
-      "m²": "Quadratmeter",
-      "cm": "Zentimeter",
-      "in": "Zoll",
       "password": "Passwort",
       "password_confirmation": "Passwortbestätigung",
       "name": "Name",
@@ -146,113 +109,73 @@
       "phone": "Telefon",
       "country": "Land",
       "city": "Stadt",
-      "district": "Bezirk",
       "details": "Details",
       "remember_me": "Erinnere mich",
       "code": "Code",
       "company": "Firma",
       "permission": "Berechtigung",
       "role": "Rolle",
-      "client_id": "Kunde",
-      "nationality": "Nationalität",
-      "national_id": "Nationaler Identifikationscode",
-      "birth_date": "Geburtsdatum",
-      "gender": "Geschlecht",
-      "rear_ear_devices": "Geräte für das Ohr",
-      "attributes": "Eigenschaften",
-      "rear_ear_device": "Gerät für das Ohr",
-      "type": "Typ",
-      "model": "Modell",
-      "speaker_power": "Lautsprecherleistung",
-      "side": "Seite",
-      "left": "Links",
-      "right": "Rechts",
-      "ventilation": "Belüftung",
-      "speaker_size": "Lautsprechergröße",
-      "inner_ear_devices": "Innere Ohrgeräte",
-      "inner_ear_device": "Innere Ohrgerät",
-      "has_bluetooth": "Bluetooth-fähig",
-      "has_button": "Knopf vorhanden",
-      "record_type": "Aufzeichnungstyp",
-      "stock_id": "Lager-ID",
-      "device_side": "Gerätseite",
-      "both": "Beide",
-      "record_status": "Aufzeichnungsstatus",
-      "quantity": "Menge",
-      "payment_type": "Zahlungsart",
-      "currency_code": "Währungscode",
-      "repair_fee": "Reparaturgebühr",
-      "bid": "Angebot",
-      "bid_discount": "Angebotsrabatt",
-      "tax": "Steuer",
-      "total_bid": "Gesamtangebot",
-      "insurance_type": "Versicherungstyp",
-      "retired": "Ausgemustert",
-      "worker": "Mitarbeiter",
-      "insurance_contribution": "Versicherungsbeitrag",
-      "client_insurance_contribution": "Kundenversicherungsbeitrag",
-      "brand": "Markenname",
-      "categories": "Kategorien",
-      "product_id": "Produkt",
-      "vendor": "Lieferant",
-      "stocked_at": "Lagerdatum",
-      "barcode": "Barcode",
-      "serial_number": "Seriennummer",
       "currency": "Währung",
-      "unit_cost": "Einheitspreis",
-      "unit_discount": "Einheitsrabatt",
-      "unit_tax": "Einheitssteuer",
-      "total_cost": "Gesamtkosten",
       "none": "Keine",
       "tenant": "Mandant",
       "branch": "Filiale",
       "user": "Benutzer",
       "tenant_user": "Mandant-Benutzer",
       "tenant_owner": "Mandant-Eigner",
-      "address": "Adresse",
       "role_permission": "Rolle-Berechtigung",
       "user_role": "Benutzer-Rolle",
-      "client": "Kunde",
-      "product": "Produkt",
-      "product_category": "Produktkategorie",
-      "product_categories": "Produktkategorien",
-      "stock": "Lager",
-      "record": "Aufzeichnung",
-      "client_address": "Kundenadresse",
       "audit_config": "Audit-Konfiguration",
       "audit_log": "Protokoll",
-      "product_brands": "Produktmarken",
-      "stock_view": "Lageransicht",
-      "stock_vendor": "Lagerlieferant",
-      "stock_vendor_stat": "Lagerlieferant Statistik",
-      "stock_product_stat": "Lagerprodukt Statistik",
-      "client_address_view": "Kundenadresse Ansicht",
       "audit_log_group": "Audit-Log Gruppe",
       "parent_id": "Eltern",
       "user_id": "Benutzer",
       "tenant_id": "Mandant",
       "role_id": "Rolle",
       "permission_id": "Berechtigung",
-      "unit_type": "Einheitstyp",
-      "category_id": "Kategorie",
-      "address_id": "Adresse",
-      "address_tenant_id": "Adresse Mandant",
-      "client_national_id": "Kunden National ID",
-      "client_tenant_id": "Kunde Mandant",
       "correlation_id": "Korrelation",
       "request_id": "Anfrage",
       "display_name": "Name",
       "id": "ID",
-      "created_at": "Erstellt am"
+      "created_at": "Erstellt am",
+      "website": "Website",
+      "legal_name": "Firmenname",
+      "tax_office": "Finanzamt",
+      "tax_number": "Steuernummer",
+      "address": "Adresse",
+      "district": "Bezirk",
+      "address_details": "Straße und Hausnummer",
+      "ops_setting": "Settings",
+      "setting": "Setting",
+      "document": "Document",
+      "supplier": "Supplier",
+      "supplier_contact": "Supplier contact",
+      "customer": "Customer",
+      "customer_contact": "Customer contact",
+      "customer_warehouse": "Customer warehouse",
+      "customer_platform_account": "Customer platform account",
+      "customer_brand": "Customer brand",
+      "product": "Product",
+      "project": "Project",
+      "project_product": "Project product",
+      "project_gate": "Project gate",
+      "project_task": "Project task",
+      "media": "Media",
+      "media_link": "Media link"
    },
    "input": {
       "select_or_write": "Auswählen oder eingeben"
    },
    "financial": {
-      "select_currency": "Währung auswählen",
-      "select_unit_type": "Einheitstyp auswählen"
+      "select_currency": "Währung auswählen"
    },
    "component": {
+      "branch_picker": {
+         "column": "Filiale",
+         "hint": "Angezeigt werden die Daten der markierten Filialen. Neue Einträge kommen in die Filiale mit dem Stern.",
+         "label": "Filialen",
+         "active": "Aktive Filiale: neue Einträge kommen hierher",
+         "make_active": "Aktiv setzen"
+      },
       "select_permission": {
          "table": {
             "headers": {
@@ -267,10 +190,17 @@
       "table": {
          "no_data_found": "Keine Daten gefunden",
          "keyword_search": "Schlüsselwortsuche"
+      },
+      "dialog": {
+         "minimize": "Minimieren",
+         "maximize": "Maximieren",
+         "restore": "Wiederherstellen",
+         "close": "Schließen"
       }
    },
    "common": {
-      "select": "Auswählen"
+      "select": "Auswählen",
+      "select_country": "Land auswählen"
    },
    "role": {
       "select_role": "Rolle auswählen",
@@ -284,9 +214,7 @@
    "router": {
       "action": {
          "open_in_window": "In einem Fenster öffnen",
-         "manage-addresses": "Adressen verwalten",
          "close": "Schließen",
-         "manage_addresses": "Adressen verwalten",
          "go_back": "Zurück",
          "go_to_profile": "Profil öffnen"
       },
@@ -316,16 +244,9 @@
       "back": "Zurück",
       "invite": "Einladen"
    },
-   "const": {
-      "ear_device": {
-         "models": {
-            "in_ear_(ITE)": "In-Ohr (ITE)",
-            "in_canal_(ITC)": "In-Kanal (ITC)",
-            "completely_in_canal_(CIC)": "Vollständig in Kanal (CIC)"
-         }
-      }
-   },
    "errors": {
+      "audit_already_reverted": "Diese Änderung wurde bereits rückgängig gemacht.",
+      "audit_conflict": "Diese Änderung kann nicht rückgängig gemacht werden: Der Datensatz wurde danach geändert. Machen Sie zuerst die späteren Änderungen rückgängig.",
       "access_denied": "Zugriff verweigert",
       "confirmation_required": "Bestätigung erforderlich",
       "email_change_required": "E-Mail-Änderung erforderlich",
@@ -432,7 +353,70 @@
       "index_corrupted": "Index beschädigt",
       "sql_med_insufficient_privilege": "SQL_MED: Insufficient Privilege",
       "insufficient_permission": "Insufficient Permission",
-      "AuthInvalidCredentialsError": "AuthInvalidCredentialsError"
+      "AuthInvalidCredentialsError": "AuthInvalidCredentialsError",
+      "branch_owner_required": "Nur die Inhaber der übergeordneten Filiale dürfen das.",
+      "branch_has_branches": "Entfernen Sie zuerst die Filialen darunter.",
+      "branch_not_found": "Filiale nicht gefunden.",
+      "subscription_read_only": "Das Abonnement ist nicht aktiv: Änderungen sind erst nach der Verlängerung möglich.",
+      "plan_limit_branches": "Das Filiallimit des Tarifs ist erreicht. Wechseln Sie den Tarif, um weitere Filialen zu eröffnen.",
+      "plan_limit_users": "Das Benutzerlimit des Tarifs ist erreicht. Wechseln Sie den Tarif, um weitere Benutzer hinzuzufügen.",
+      "subscription_company_only": "Nur ein Unternehmen (eine oberste Filiale) kann ein Abonnement haben.",
+      "user_exists_elsewhere": "Ein Konto mit dieser E-Mail-Adresse existiert bereits außerhalb Ihres Unternehmens und kann hier nicht hinzugefügt werden.",
+      "user_not_allowed": "Dieses Konto kann hier nicht verwaltet werden: Es ist ein Inhaber, ein Administrator oder wird von einem anderen Unternehmen genutzt.",
+      "cannot_delete_owner": "Ein Inhaber kann nicht aus der Filiale entfernt werden.",
+      "request_rejected": "Die Anfrage wurde abgelehnt.",
+      "branch_move_forbidden": "Eine Filiale kann nicht unter eine andere verschoben werden.",
+      "plan_default_required": "Es muss einen Standardtarif geben: Machen Sie stattdessen einen anderen Tarif zum Standard.",
+      "plan_default_inactive": "Der Standardtarif muss angeboten werden.",
+      "invalid_website": "Geben Sie eine gültige Webadresse ein.",
+      "invalid_tax_number": "Nur Buchstaben, Ziffern, Leerzeichen und Bindestriche (höchstens 32).",
+      "logo_type": "Das Logo muss ein PNG-, JPEG- oder WebP-Bild sein.",
+      "logo_size": "Das Logo darf höchstens 1 MB groß sein.",
+      "document_version_exists": "This version of the document already exists",
+      "document_signed_incomplete": "A signed document must be signed, stamped, sent from the official e-mail and dated",
+      "document_entity_missing": "The record this document belongs to was not found",
+      "invalid_gtin": "Enter a valid GTIN: 8, 12, 13 or 14 digits with a correct check digit",
+      "gtin_in_use": "This GTIN is already used by another active product",
+      "sku_in_use": "This SKU already exists for the customer",
+      "gate_not_pending": "This gate is already passed; a passed gate cannot be changed.",
+      "gate_order": "Pass the earlier gates first.",
+      "gate_customer_approval_required": "This gate needs the customer's approval date and approval document.",
+      "gate_approval_document_invalid": "The approval document must be a gate approval document of this gate.",
+      "gate_evidence_invalid": "Evidence must be documents of this gate or its project.",
+      "gate_spec_sheet_required": "G2 needs linked products, each with a signed or approved spec sheet.",
+      "gate_blocked_by_task": "A blocking task of this phase is not done yet.",
+      "gate_one_at_a_time": "Pass one gate at a time.",
+      "gate_reason_required": "Give a reason for the rollback.",
+      "gate_rollback_order": "Roll back the later passed gates first.",
+      "gate_not_passed": "Only a passed gate can be rolled back.",
+      "project_not_active": "The project is on hold, closed or cancelled.",
+      "project_immutable_field": "A project's customer, type, path and packages cannot be changed.",
+      "project_code_immutable": "A project's code cannot be changed.",
+      "document_superseded_sticky": "A superseded document stays superseded; add a new version instead.",
+      "document_identity_immutable": "A saved document's record, type and version cannot be changed; add a new version instead.",
+      "customer_closed": "The customer is closed: it gets no new projects.",
+      "customer_contract_restricted": "Only management may change a customer's contract terms.",
+      "project_customer_missing": "The project's customer was not found.",
+      "customer_code_immutable": "A customer's code cannot be changed.",
+      "tenant_required": "Choose a branch first.",
+      "invalid_code_kind_or_scope": "This kind of code cannot be generated for that scope.",
+      "rows_must_be_an_array": "The import file could not be read as a list of rows.",
+      "media_file_missing": "The file was not uploaded. Try again.",
+      "media_type_not_allowed": "Only PNG, JPEG, WebP, PDF and MP4 files can be uploaded.",
+      "media_too_large": "The file is larger than the upload limit in the settings.",
+      "media_file_immutable": "A media file cannot be replaced; upload a new one.",
+      "media_in_use": "The file is linked to a record or a document; unlink it first.",
+      "media_link_entity_missing": "The record to link to does not exist.",
+      "media_link_forbidden": "You may not change this record, so you cannot change its media.",
+      "media_link_identity_immutable": "A link cannot be moved to another file or record.",
+      "media_customer_mismatch": "This file belongs to another customer.",
+      "media_primary_not_image": "Only an image can be the primary image.",
+      "media_customer_locked": "The file's customer cannot change while it is linked.",
+      "media_missing": "The media file does not exist.",
+      "media_already_linked": "The file is already linked to this record.",
+      "media_primary_exists": "The record already has a primary image.",
+      "document_file_required": "Add a Drive link or a file.",
+      "MediaFileError": "File not uploaded"
    },
    "account": {
       "profile": {
@@ -452,7 +436,8 @@
       "updated": "Aktualisiert",
       "success": "Erfolg",
       "saved": "Gespeichert",
-      "sended": "Versendet"
+      "sended": "Versendet",
+      "error": "Operation Failed"
    },
    "register": {
       "stepper": {
@@ -473,7 +458,6 @@
          "update-profile": "Profil aktualisieren",
          "update-password": "Passwort aktualisieren",
          "logout": "Abmelden",
-         "address": "Adresse",
          "edit": "Bearbeiten",
          "add": "Hinzufügen",
          "register": "Registrieren",
@@ -481,42 +465,79 @@
          "enter-auth-otp-code": "Authentifizierungs-OTP-Code eingeben",
          "access-denied": "Zugriff verweigert",
          "branch": "Filiale",
+         "branch-profile": "Filialprofil",
          "branch-user": "Filialbenutzer",
          "manage-user": "Benutzer verwalten",
          "user-general-info": "Allgemeine Benutzerinformationen",
          "branch-role": "Filialrolle",
          "audit-logs": "Protokolle",
-         "client": "Kunde",
-         "manage-client": "Kunde verwalten",
-         "client-general-info": "Allgemeine Kundendaten",
-         "client-addresses": "Kundeadressen",
-         "record": "Aufzeichnung",
-         "battery": "Akku",
-         "device": "Gerät",
-         "stock": "Lager",
-         "product": "Produkt",
-         "service": "Service",
-         "spare-parts": "Ersatzteile",
-         "address_list": "Adresse Liste",
-         "address_edit": "Adresse Bearbeiten",
-         "address_add": "Adresse Hinzufügen",
-         "client_list": "Kunde Liste",
-         "client_address_list": "Kunde Adresse Liste",
-         "record_list": "Aufzeichnung Liste",
-         "record_add": "Aufzeichnung Hinzufügen",
-         "record_edit": "Aufzeichnung Bearbeiten",
-         "battery_list": "Akku Liste",
-         "device_list": "Gerät Liste",
-         "stock_add": "Bestand Hinzufügen",
-         "stock_edit": "Bestand Bearbeiten",
-         "product_list": "Produkt Liste",
-         "product_add": "Produkt Hinzufügen",
-         "product_edit": "Produkt Bearbeiten",
-         "service_list": "Service Liste",
-         "spare_part_list": "Ersatzteil Liste",
          "branch_user_list": "Benutzerliste",
          "audit_log_list": "Auditprotokoll",
-         "branch_role_list": "Rollenliste"
+         "branch_role_list": "Rollenliste",
+         "branch-tree": "Filialen",
+         "branch_tree_list": "Filialliste",
+         "branch_tree_add": "Neue Filiale",
+         "subscription": "Abonnement",
+         "module_locked": "Gesperrtes Modul",
+         "admin": "Verwaltung",
+         "admin_subscriptions": "Abonnements",
+         "admin_subscription_list": "Abonnementliste",
+         "admin_subscription_manage": "Abonnement verwalten",
+         "admin_plans": "Tarife",
+         "admin_plan_list": "Tarifliste",
+         "ops": "Operations",
+         "ops_setting": "Settings",
+         "ops_document_add": "Add document",
+         "ops_document_edit": "Edit document",
+         "ops_supplier": "Suppliers",
+         "ops_supplier_list": "Supplier list",
+         "ops_supplier_manage": "Supplier card",
+         "ops_supplier_general": "General",
+         "ops_supplier_contacts": "Contacts",
+         "ops_supplier_documents": "Documents",
+         "ops_supplier_contact_add": "Add contact",
+         "ops_supplier_contact_edit": "Edit contact",
+         "ops_customer": "Customers",
+         "ops_customer_list": "Customer list",
+         "ops_customer_manage": "Customer card",
+         "ops_customer_general": "General",
+         "ops_customer_contacts": "Contacts",
+         "ops_customer_warehouses": "Warehouses",
+         "ops_customer_platforms": "Platforms",
+         "ops_customer_brands": "Brands",
+         "ops_customer_documents": "Documents",
+         "ops_customer_contact_add": "Add contact",
+         "ops_customer_contact_edit": "Edit contact",
+         "ops_customer_warehouse_add": "Add warehouse",
+         "ops_customer_warehouse_edit": "Edit warehouse",
+         "ops_customer_platform_add": "Add platform account",
+         "ops_customer_platform_edit": "Edit platform account",
+         "ops_customer_brand_add": "Add brand",
+         "ops_customer_brand_edit": "Edit brand",
+         "ops_product": "Products",
+         "ops_product_list": "Product list",
+         "ops_product_manage": "Product card",
+         "ops_product_general": "General",
+         "ops_product_dimensions": "Dimensions",
+         "ops_product_cost": "Cost",
+         "ops_product_documents": "Documents",
+         "ops_product_import": "Import products",
+         "ops_project": "Projects",
+         "ops_project_list": "Project list",
+         "ops_project_add": "New project",
+         "ops_project_manage": "Project card",
+         "ops_project_overview": "Overview",
+         "ops_project_tasks": "Tasks",
+         "ops_project_products": "Products",
+         "ops_project_documents": "Documents",
+         "ops_project_task_add": "New task",
+         "ops_project_task_edit": "Edit task",
+         "ops_document": "Documents",
+         "ops_document_list": "Document list",
+         "ops_customer_media": "Media",
+         "ops_product_media": "Media",
+         "ops_media": "Media library",
+         "ops_media_edit": "Edit file"
       }
    },
    "dashboard": {
@@ -527,23 +548,16 @@
          "last_half": "Letzte Hälfte",
          "last_year": "Letztes Jahr",
          "total": "Gesamt",
-         "client": {
-            "clients": "Kunden"
-         }
-      },
-      "best_selling_products": {
-         "sold_quantity": "Verkaufte Menge",
-         "total_gain": "Gesamtgewinn",
-         "total_discount": "Gesamterlass",
-         "total_tax": "Gesamtsteuer",
-         "title": "Top Verkäufe",
-         "empty": "Keine Produkte"
+         "branches": "Filialen",
+         "users": "Benutzer",
+         "roles": "Rollen"
       },
       "notifications": {
          "today": "Heute",
          "yesterday": "Gestern",
          "last_week": "Letzte Woche",
          "older": "Älter",
+         "system": "das System",
          "title": "Benachrichtigungen",
          "activity": {
             "created": "neuer {resource_name} von {user_name} erstellt",
@@ -552,30 +566,20 @@
             "unknown": "Aktivität erkannt in {resource_name} von {user_name}"
          }
       },
-      "sales_by_category": {
-         "total_quantity_sold": "Gesamtverkäufe",
-         "total_bid": "Gesamtgebote",
-         "total_discount": "Gesamterlass",
-         "total_tax": "Gesamtsteuer",
-         "title": "Verkäufe nach Kategorie"
-      },
-      "tables": {
-         "recent_sales": {
-            "title": "Letzte Verkäufe",
-            "see_all": "Alle ansehen"
-         }
-      }
-   },
-   "address": {
-      "select_country": "Land auswählen",
-      "table": {
-         "headers": {
-            "address_name": "Adresse",
-            "country": "Land",
-            "city": "Stadt",
-            "district": "Bezirk",
-            "created_at": "Erstellt am"
-         }
+      "ops": {
+         "none": "None",
+         "gates_team": "Pending gates",
+         "gates_management": "Management action",
+         "gates_customer": "Awaiting customer approval",
+         "tasks_overdue": "Overdue tasks",
+         "tasks_due_soon": "Tasks due within 5 days",
+         "unsigned_skus": "Active SKUs without a signed spec",
+         "incomplete_compliance": "SKUs with incomplete compliance",
+         "waiting_days": "{days} days",
+         "days_left": "{days} days left",
+         "due_today": "Due today",
+         "days_overdue": "{days} days late",
+         "open_product_list": "Open the product list"
       }
    },
    "audit_log": {
@@ -602,44 +606,6 @@
       "deleted": "Gelöscht",
       "readed": "Eingeschaut"
    },
-   "client": {
-      "select_client": "Kunden auswählen",
-      "address": {
-         "table": {
-            "headers": {
-               "client": "Kunde",
-               "address": "Adresse",
-               "country": "Land",
-               "city": "Stadt",
-               "district": "Bezirk",
-               "created_at": "Erstellt am"
-            }
-         }
-      },
-      "table": {
-         "headers": {
-            "client": "Kunde",
-            "nationality": "Nationalität",
-            "national_id": "National ID",
-            "birth_date": "Geburtsdatum",
-            "email": "E-Mail",
-            "phone": "Telefon",
-            "created_at": "Erstellt am"
-         }
-      },
-      "general_info": "Allgemeine Informationen",
-      "addresses": "Adressen",
-      "gender": {
-         "male": "Männlich",
-         "female": "Weiblich"
-      }
-   },
-   "product": {
-      "select_product": "Produkt auswählen",
-      "category": {
-         "select_category": "Kategorie auswählen"
-      }
-   },
    "user": {
       "table": {
          "headers": {
@@ -654,92 +620,750 @@
          }
       },
       "general_info": "Allgemeine Informationen",
-      "security": "Sicherheit"
+      "security": "Sicherheit",
+      "owner_of": "Inhaber · {name}",
+      "owner_above": "Nutzt diese Filiale als Inhaber einer übergeordneten Filiale und wird dort verwaltet."
    },
-   "record": {
-      "table": {
+   "form": {
+      "required": "Dieses Feld ist erforderlich",
+      "already_exists": "Dieser Wert wird bereits verwendet",
+      "invalid_reference": "Der ausgewählte Datensatz existiert nicht",
+      "invalid_value": "Dieser Wert ist nicht zulässig",
+      "unsaved_changes": {
+         "header": "Ungespeicherte Änderungen",
+         "message": "Sie haben ungespeicherte Änderungen. Ohne Speichern verlassen?"
+      },
+      "passwords_do_not_match": "Die Passwörter stimmen nicht überein",
+      "draft": {
+         "restored": "Ihre nicht gespeicherten Änderungen wurden wiederhergestellt.",
+         "stale": "Dieser Datensatz wurde seit Beginn Ihrer Bearbeitung geändert; beim Speichern werden diese Änderungen überschrieben.",
+         "discard": "Verwerfen"
+      },
+      "too_long": "Höchstens {max} Zeichen."
+   },
+   "branch_tree": {
+      "hint": "Ihre Filialen und die Filialen darunter. Die Inhaber einer Filiale eröffnen und entfernen die Filialen darunter; nur eine Filiale ohne eigene Filialen kann entfernt werden.",
+      "active": "Aktiv",
+      "owner": "Inhaber",
+      "add_branch": "Filiale darunter eröffnen",
+      "opened_under": "Wird unter {name} eröffnet."
+   },
+   "subscription": {
+      "no_plan": "Kein Tarif",
+      "starts_at": "Beginn",
+      "ends_at": "Ende",
+      "no_end": "Unbefristet",
+      "days_left": "Noch {days} Tag | Noch {days} Tage",
+      "read_only": "Das Abonnement ist nicht aktiv: Die Daten können angesehen, aber nicht geändert werden.",
+      "change_hint": "Wenden Sie sich an den Administrator, um den Tarif zu ändern oder das Abonnement zu verlängern.",
+      "limits": "Limits",
+      "limit": {
+         "max_branches": "Filialen",
+         "max_users": "Benutzer"
+      },
+      "unlimited_usage": "{used} (unbegrenzt)",
+      "modules": "Module",
+      "core_module": "In jedem Tarif",
+      "status": {
+         "none": "Kein Abonnement",
+         "scheduled": "Geplant",
+         "trialing": "Testphase",
+         "active": "Aktiv",
+         "expired": "Abgelaufen",
+         "canceled": "Gekündigt"
+      },
+      "banner": {
+         "read_only": "Abonnement: {status}. Bis zur Verlängerung sind die Daten schreibgeschützt.",
+         "trial_ends": "Die Testphase endet in {days} Tag. | Die Testphase endet in {days} Tagen.",
+         "ends": "Das Abonnement endet in {days} Tag. | Das Abonnement endet in {days} Tagen."
+      },
+      "locked": {
+         "title": "{module} ist nicht in Ihrem Tarif",
+         "text": "Dieses Modul gehört nicht zum Tarif Ihres Unternehmens. Wechseln Sie den Tarif, um es zu nutzen.",
+         "in_plans": "Enthalten in:",
+         "see_subscription": "Abonnement ansehen",
+         "menu": "Nicht in Ihrem Tarif",
+         "permission": "Nicht in Ihrem Tarif: ohne Wirkung, bis es enthalten ist."
+      }
+   },
+   "admin": {
+      "plan": {
+         "price": "Preis",
+         "trial_days": "Testtage",
+         "state": "Status",
+         "position": "Reihenfolge",
+         "default": "Standard",
+         "active": "Angeboten",
+         "inactive": "Nicht angeboten",
+         "period": {
+            "month": "Monat",
+            "year": "Jahr"
+         },
+         "description": "Beschreibung",
+         "pricing": "Preisgestaltung",
+         "billing_period": "Abrechnungszeitraum",
+         "unlimited": "Unbegrenzt",
+         "core_hint": "{modules} sind in jedem Tarif enthalten.",
+         "offer": "Angebot",
+         "active_hint": "Angeboten (ein inaktiver Tarif bleibt bei den Unternehmen, die ihn haben)",
+         "default_hint": "Standardtarif neuer Unternehmen (mit den Testtagen)"
+      },
+      "subscription": {
+         "company": "Unternehmen",
+         "plan": "Tarif",
+         "status": "Status",
+         "manage": "Verwalten",
+         "usage": "Nutzung",
+         "extend_month": "Um 1 Monat verlängern",
+         "extend_year": "Um 1 Jahr verlängern",
+         "remove_end": "Enddatum entfernen",
+         "cancel": "Abonnement kündigen",
+         "cancel_question": "Abonnement von {company} kündigen? Das Unternehmen ist sofort schreibgeschützt.",
+         "resume": "Kündigung zurücknehmen",
+         "start": "Abonnement starten",
+         "is_trial": "Testphase",
+         "note": "Notiz",
+         "start_hint": "Das neue Abonnement wird mit dem Verlauf gespeichert und gilt ab seinem Beginn (das zuletzt begonnene gilt).",
+         "history": "Verlauf",
+         "ends_after_start": "Das Ende muss nach dem Beginn liegen.",
+         "replaced": "Ersetzt"
+      }
+   },
+   "branch_profile": {
+      "general": "Allgemein",
+      "tax": "Steuerangaben",
+      "company": "Unternehmen",
+      "plan": "Tarif",
+      "sub_branches": "Filialen darunter",
+      "created_at": "Eröffnet",
+      "upload_logo": "Logo hochladen",
+      "change_logo": "Logo ändern",
+      "remove_logo": "Logo entfernen",
+      "logo_hint": "PNG, JPEG oder WebP, bis 1 MB."
+   },
+   "ops": {
+      "setting": {
+         "title": "Operation Settings",
          "headers": {
-            "product": "Produkt",
-            "client": "Kunde",
-            "quantity": "Menge",
-            "bid": "BID",
-            "created_at": "Erstellt am",
-            "record_type": "Aufzeichnungstyp",
-            "record_status": "Aufzeichnungsstatus"
+            "setting": "Setting",
+            "value": "Value"
+         },
+         "keys": {
+            "deposit_rate_default": "Default deposit rate (%)",
+            "safety_stock_days": "Safety stock (days)",
+            "document_request_days": "Days to request documents",
+            "s1_customer_notify_hours": "Hours to notify the customer at S1",
+            "spec_sheet_required_from": "Spec sheet required from",
+            "wip_limit_per_role": "Work-in-progress limit per role",
+            "gate_evidence_blocking": "Missing gate evidence blocks the step",
+            "media_max_mb": "Largest upload (MB)"
          }
       },
-      "tab": {
-         "record": "Aufzeichnung",
-         "ear_device": "Ohrendevice"
+      "customer_filter": {
+         "all": "All customers"
       },
-      "information": "Information",
-      "financial": "Finanzen"
-   },
-   "stock": {
-      "battery": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "unit_cost": "Einzelkosten",
-               "quantity": "Menge",
-               "vendor": "Lieferant",
-               "stocked_at": "Lagerort"
+      "document": {
+         "title": "Documents",
+         "open_link": "Open link",
+         "fields": {
+            "type": "Type",
+            "version": "Version",
+            "issued_on": "Date",
+            "status": "Status",
+            "file_name": "File name",
+            "url": "Link (Drive)",
+            "is_signed": "Signed",
+            "is_stamped": "Stamped",
+            "sent_from_official_email": "Sent from the official e-mail",
+            "notes": "Notes",
+            "customer": "Customer",
+            "entity_type": "Record"
+         },
+         "type": {
+            "spec_sheet": "Spec sheet",
+            "tech_pack": "Tech pack",
+            "sample_report": "Sample report",
+            "pi": "Proforma invoice (PI)",
+            "po": "Purchase order (PO)",
+            "psi_report": "Pre-shipment inspection report",
+            "test_report": "Test report",
+            "sds": "Safety data sheet (SDS)",
+            "doc_of_conformity": "Declaration of conformity",
+            "technical_file": "Technical file",
+            "label_artwork": "Label artwork",
+            "packing_list": "Packing list",
+            "commercial_invoice": "Commercial invoice",
+            "bill_of_lading": "Bill of lading",
+            "customs": "Customs document",
+            "delivery_receipt": "Delivery receipt",
+            "gate_approval": "Gate approval",
+            "change_request": "Change request",
+            "contract": "Contract",
+            "certificate": "Certificate",
+            "other": "Other"
+         },
+         "status": {
+            "draft": "Draft",
+            "signed": "Signed",
+            "approved": "Approved",
+            "superseded": "Superseded"
+         },
+         "entity": {
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "product": "Product",
+            "project": "Project",
+            "project_gate": "Project gate",
+            "purchase_order": "Purchase order",
+            "shipment": "Shipment",
+            "incident": "Incident"
+         },
+         "drive_link": "Drive link",
+         "file": "File",
+         "remove_file": "Remove file"
+      },
+      "supplier": {
+         "title": "Suppliers",
+         "select": "Select a supplier",
+         "tabs": {
+            "general": "General",
+            "contacts": "Contacts",
+            "documents": "Documents"
+         },
+         "sections": {
+            "general": "Supplier",
+            "capability": "Capability",
+            "terms": "Commercial terms"
+         },
+         "fields": {
+            "code": "Code",
+            "display_name": "Name",
+            "country": "Country",
+            "city": "City",
+            "website": "Website",
+            "product_groups": "Product groups",
+            "capacity_note": "Capacity",
+            "default_incoterm": "Default Incoterm",
+            "deposit_rate": "Deposit rate (%)",
+            "payment_terms": "Payment terms",
+            "damage_notice_hours": "Damage notice (hours)",
+            "storage_fee_rule": "Storage fee",
+            "late_payment_penalty": "Late payment penalty",
+            "cancellation_rule": "Cancellation",
+            "rating": "Rating (1–5)",
+            "last_audit_on": "Last audit",
+            "status": "Status",
+            "notes": "Notes"
+         },
+         "status": {
+            "candidate": "Candidate",
+            "approved": "Approved",
+            "suspended": "Suspended"
+         },
+         "errors": {
+            "invalid_code": "Two capital letters and 1–3 digits, e.g. CN1"
+         },
+         "contact": {
+            "fields": {
+               "name": "Name",
+               "role": "Role",
+               "email": "E-mail",
+               "phone": "Phone",
+               "is_primary": "Primary contact"
             }
          }
       },
-      "device": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "serial_number": "Seriennummer",
-               "unit_cost": "Einzelkosten",
-               "vendor": "Lieferant",
-               "stocked_at": "Lagerdatum"
+      "customer": {
+         "title": "Customers",
+         "select": "Select a customer",
+         "tabs": {
+            "general": "General",
+            "contacts": "Contacts",
+            "warehouses": "Warehouses",
+            "platforms": "Platforms",
+            "brands": "Brands",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "sections": {
+            "general": "Customer",
+            "service": "Service",
+            "contract": "Contract"
+         },
+         "fields": {
+            "code": "Code",
+            "display_name": "Name",
+            "country": "Country",
+            "website": "Website",
+            "commercial_model": "Commercial model",
+            "packages": "Packages",
+            "status": "Status",
+            "contract_accepted_on": "Contract accepted on",
+            "contract_document_id": "Contract document",
+            "start_on": "Start date",
+            "deposit_rate": "Deposit rate (%)",
+            "extra_cost_rule": "Extra costs",
+            "eu_responsible_person": "EU responsible person",
+            "restricted_drive_url": "Restricted Drive folder",
+            "notes": "Notes"
+         },
+         "status": {
+            "lead": "Lead",
+            "onboarding": "Onboarding",
+            "active": "Active",
+            "paused": "Paused",
+            "closed": "Closed"
+         },
+         "commercial_model": {
+            "trading_partner": "Trading partner",
+            "commercial_representative": "Commercial representative",
+            "operations_partner": "Operations partner"
+         },
+         "errors": {
+            "invalid_code": "Three capital letters, e.g. THO"
+         },
+         "contact": {
+            "fields": {
+               "name": "Name",
+               "role": "Role",
+               "email": "E-mail",
+               "phone": "Phone",
+               "can_approve": "Can approve"
+            }
+         },
+         "warehouse": {
+            "fields": {
+               "display_name": "Name",
+               "type": "Type",
+               "country": "Country",
+               "city": "City",
+               "address": "Address",
+               "postal_code": "Postal code",
+               "dock_hours": "Dock hours",
+               "appointment_rule": "Delivery appointment",
+               "pallet_standard": "Pallet standard",
+               "receiving_person": "Receiving person",
+               "is_default": "Default warehouse"
+            },
+            "type": {
+               "own": "Own",
+               "third_party": "Third party",
+               "fba": "FBA"
+            }
+         },
+         "platform": {
+            "select": "Select a platform",
+            "fields": {
+               "platform_id": "Platform",
+               "countries": "Countries",
+               "account_holder": "Account holder",
+               "access": "Our access",
+               "notes": "Notes"
+            },
+            "access": {
+               "authorized_user": "Authorized user",
+               "none": "None"
+            }
+         },
+         "brand": {
+            "fields": {
+               "name": "Brand",
+               "registration_status": "Registration status",
+               "brand_program_status": "Brand program status",
+               "gs1_prefix_owner": "GS1 prefix owner"
             }
          }
       },
       "product": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "brand": "Markenname",
-               "categories": "Kategorien",
-               "created_at": "Erstellt am"
+         "title": "Products",
+         "select": "Select a product",
+         "tabs": {
+            "general": "General",
+            "dimensions": "Dimensions",
+            "cost": "Cost",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "sections": {
+            "identity": "Product",
+            "supplier": "Supplier",
+            "compliance": "Compliance",
+            "unit": "Unit",
+            "pack": "Pack",
+            "carton": "Carton",
+            "pallet": "Pallet",
+            "purchase": "Purchase",
+            "prices": "Prices"
+         },
+         "fields": {
+            "customer_id": "Customer",
+            "parent_id": "Parent product",
+            "sku": "SKU",
+            "display_name": "Name",
+            "variant_label": "Variant",
+            "category": "Category",
+            "brand": "Brand",
+            "gtin": "GTIN",
+            "gs1_prefix_owner": "GS1 prefix owner",
+            "supplier_id": "Supplier",
+            "supplier_product_code": "Supplier product code",
+            "manufacturer_art_no": "Manufacturer article no.",
+            "status": "Status",
+            "golden_sample_on": "Golden sample date",
+            "golden_sample_locations": "Golden sample locations",
+            "is_hazmat": "Hazardous material",
+            "compliance_status": "Compliance",
+            "eu_responsible_person": "EU responsible person",
+            "hs_code": "HS code",
+            "origin_country": "Country of origin",
+            "unit_dims_mm": "Unit dimensions (mm)",
+            "unit_net_g": "Unit net weight (g)",
+            "pack_qty": "Units per pack",
+            "pack_dims_mm": "Pack dimensions (mm)",
+            "pack_gross_g": "Pack gross weight (g)",
+            "carton_pack_qty": "Packs per carton",
+            "carton_dims_mm": "Carton dimensions (mm)",
+            "carton_net_kg": "Carton net weight (kg)",
+            "carton_gross_kg": "Carton gross weight (kg)",
+            "pallet_carton_qty": "Cartons per pallet",
+            "pallet_type": "Pallet type",
+            "lot_rule": "Lot rule",
+            "purchase_price": "Purchase price",
+            "purchase_currency": "Currency",
+            "purchase_incoterm": "Incoterm",
+            "landed_cost_eur": "Landed cost (EUR)",
+            "landed_cost_on": "Landed cost date",
+            "target_price_eur": "Target price (EUR)",
+            "moesa_price_eur": "Moesa price (EUR)",
+            "price_list_version": "Price list version",
+            "notes": "Notes",
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "spec": "Spec"
+         },
+         "spec_none": "None",
+         "status": {
+            "concept": "Concept",
+            "development": "Development",
+            "approved": "Approved",
+            "ordering": "Ordering",
+            "on_sale": "On sale",
+            "paused": "Paused",
+            "archived": "Archived"
+         },
+         "compliance_status": {
+            "none": "None",
+            "partial": "Partial",
+            "complete": "Complete"
+         },
+         "errors": {
+            "invalid_sku": "Capital letters, digits and dashes, e.g. THO-MOP40-2P"
+         },
+         "import": {
+            "open": "Import",
+            "export": "Export",
+            "choose": "Choose CSV file",
+            "submit": "Import",
+            "hint": "Choose a CSV file in the S10 product template (Ürün ana tablosu). Columns may come in any order; a comma or semicolon delimiter is detected. The file is imported whole or not at all.",
+            "summary": "{file}: {count} rows ready",
+            "preview": "First {shown} of {count} rows",
+            "errors_title": "Fix these in the file, then choose it again:",
+            "warnings_title": "These columns are not imported:",
+            "row_error": "Row {row}, {column}: {message}",
+            "failed": "Nothing was imported: {count} errors",
+            "done": "{inserted} products added, {updated} updated",
+            "errors": {
+               "required": "required",
+               "invalid_value": "invalid value",
+               "gtin_invalid": "invalid GTIN (check digit)",
+               "customer_unknown": "no customer with this code",
+               "supplier_unknown": "no supplier with this code",
+               "parent_unknown": "no parent product with this SKU for the customer",
+               "gtin_in_use": "GTIN already used by active product {sku}",
+               "gtin_duplicate": "GTIN appears more than once in the file",
+               "sku_duplicate": "SKU appears more than once in the file for this customer"
+            },
+            "warnings": {
+               "unknown_column": "unknown column, ignored",
+               "deferred_column": "will be moved to the marketplace cell / document in Phase 2",
+               "compliance_expired_as_partial": "\"Süresi geçmiş\" (expired) is imported as partial",
+               "status_depoda_as_ordering": "\"Depoda\" (in warehouse) is imported as ordering",
+               "status_karantina_as_paused": "\"Karantina\" (quarantine) is imported as paused"
             }
+         },
+         "spec_signed": "Signed"
+      },
+      "project": {
+         "title": "Projects",
+         "select": "Select a project",
+         "tabs": {
+            "overview": "Overview",
+            "tasks": "Tasks",
+            "products": "Products",
+            "documents": "Documents"
+         },
+         "sections": {
+            "general": "Project",
+            "plan": "Plan",
+            "gates": "Gates"
+         },
+         "fields": {
+            "code": "Code",
+            "customer_id": "Customer",
+            "customer": "Customer",
+            "display_name": "Name",
+            "type": "Type",
+            "path": "Path",
+            "packages": "Packages",
+            "current_phase": "Phase",
+            "open_gate": "Pending gate",
+            "status": "Status",
+            "target_delivery_on": "Target delivery",
+            "target_live_on": "Target go-live",
+            "coordinator_id": "Coordinator",
+            "coordinator": "Coordinator",
+            "notes": "Notes"
+         },
+         "fixed_hint": "The customer, type, path and packages decide the gates and cannot be changed.",
+         "type": {
+            "npi": "New product",
+            "variant": "Variant",
+            "revision": "Revision",
+            "reorder": "Reorder"
+         },
+         "path": {
+            "a_sourcing": "A — sourcing",
+            "b_private_label": "B — private label"
+         },
+         "status": {
+            "active": "Active",
+            "on_hold": "On hold",
+            "closed": "Closed",
+            "cancelled": "Cancelled"
+         },
+         "gate_status": {
+            "pending": "Pending",
+            "passed": "Passed",
+            "rolled_back": "Rolled back"
+         },
+         "task_status": {
+            "todo": "To do",
+            "doing": "In progress",
+            "done": "Done",
+            "blocked": "Blocked"
+         },
+         "role": {
+            "coordinator": "Coordinator",
+            "supply_qc": "Supply & QC",
+            "compliance": "Compliance",
+            "content_listing": "Content & listing",
+            "logistics": "Logistics",
+            "finance": "Finance",
+            "management": "Management"
+         },
+         "gate_panel": {
+            "pass": "Pass gate",
+            "rollback": "Roll back",
+            "note": "Note",
+            "customer_approved_on": "Customer approval date",
+            "approval_document": "Approval document",
+            "approval_hint": "Add the approval document first (the gate documents below).",
+            "evidence": "Evidence",
+            "evidence_documents": "Gate documents",
+            "reason": "Reason",
+            "passed_at": "Passed on",
+            "needs_customer_approval": "Needs customer approval",
+            "rolled_back_reason": "Rolled back because",
+            "passed": "Gate passed",
+            "rolled_back": "Gate rolled back"
+         },
+         "task": {
+            "fields": {
+               "phase": "Phase",
+               "display_name": "Task",
+               "role": "Role",
+               "assignee_id": "Assignee",
+               "due_on": "Due",
+               "status": "Status",
+               "blocks_gate": "Blocks the gate",
+               "position": "Order"
+            }
+         },
+         "products": {
+            "link": "Link",
+            "unlink": "Unlink",
+            "empty": "No products linked yet."
+         },
+         "phase": {
+            "P1": "P1",
+            "P2": "P2",
+            "PL1": "PL1",
+            "PL2": "PL2",
+            "PL3": "PL3",
+            "PL4": "PL4",
+            "PL5": "PL5",
+            "PL6": "PL6",
+            "PL7": "PL7",
+            "P3": "P3",
+            "P4": "P4",
+            "P5": "P5",
+            "P6": "P6",
+            "L1": "L1",
+            "L2": "L2",
+            "L3": "L3",
+            "L4": "L4",
+            "L5": "L5",
+            "closed": "Closed"
+         },
+         "gate": {
+            "G1": "G1",
+            "G2": "G2",
+            "G3": "G3",
+            "G4": "G4",
+            "G5": "G5",
+            "PL_G1": "PL-G1",
+            "PL_G2": "PL-G2",
+            "PL_G3": "PL-G3",
+            "PL_G4": "PL-G4",
+            "L_G1": "L-G1",
+            "L_G2": "L-G2"
          }
       },
-      "service": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "unit_cost": "Einzelkosten",
-               "quantity": "Menge",
-               "vendor": "Lieferant",
-               "stocked_at": "Lagerort"
-            }
-         }
+      "media": {
+         "title": "Media",
+         "library": "Media library",
+         "upload": "Upload file",
+         "pick": "Pick from library",
+         "link_from_library": "Link from library",
+         "primary": "Primary image",
+         "role": {
+            "primary_image": "Primary image",
+            "gallery": "Gallery",
+            "evidence_photo": "Evidence photo",
+            "attachment": "Attachment"
+         },
+         "kind": {
+            "image": "Image",
+            "pdf": "PDF",
+            "video": "Video"
+         },
+         "upload_hint": "PNG, JPEG, WebP, PDF or MP4, up to {mb} MB.",
+         "set_primary": "Make primary image",
+         "set_role": "Set role",
+         "unlink": "Unlink",
+         "selected": "{count} selected",
+         "select": "Select {name}",
+         "open": "Open file",
+         "empty": "No files yet.",
+         "empty_library": "No files in the library.",
+         "load_more": "Load more",
+         "link_count": "Link ({count})",
+         "drop_hint": "Drop files here or choose them.",
+         "download": "Download",
+         "filter": {
+            "kind": "Any type",
+            "tag": "Tag, then Enter",
+            "linked": "Linked to",
+            "unlinked": "Not linked"
+         },
+         "fields": {
+            "title": "Title",
+            "alt_text": "Alt text",
+            "tags": "Tags",
+            "customer": "Customer",
+            "file_name": "File"
+         },
+         "too_large": "The file is larger than the upload limit: up to {mb} MB."
+      }
+   },
+   "glossary": {
+      "package": {
+         "A0": "Market research, concept and design (PL1–PL3): research report, approved concept, design and brand file.",
+         "A1": "Brand sourcing (P1–P4): an existing brand's or maker's product, approved and quality-checked.",
+         "A2": "Private label development (P1 → PL1–PL7 → P3–P4): a product made under the customer's brand from the concept on; includes A0.",
+         "B": "Logistics and delivery (P5–P6): goods cleared through customs and in the customer's warehouse.",
+         "C": "Listing and market launch (L1–L5): the product live on the chosen platforms and countries.",
+         "D": "End to end: A1 or A2 plus B and C, one contact from idea to a product ready to sell.",
+         "E": "Ongoing management (O1–O3): reorders, listing upkeep, reporting. No project; a reorder opens a reorder project."
       },
-      "spare_part": {
-         "table": {
-            "headers": {
-               "product": "Produkt",
-               "unit_cost": "Einzelkosten",
-               "quantity": "Menge",
-               "vendor": "Lieferant",
-               "stocked_at": "Lagerort"
-            }
-         }
+      "project_type": {
+         "npi": "New product: goes through the full gate set of its path.",
+         "variant": "A new variant of an existing product (G2 → G5).",
+         "revision": "A spec or packaging change after a change request (G2 → G5).",
+         "reorder": "A repeat order of an approved product (G3 → G5)."
       },
-      "information": "Information",
-      "financial": "Finanzen",
-      "table": {
-         "headers": {
-            "product": "Produkt",
-            "unit_cost": "Einzelkosten",
-            "vendor": "Lieferant",
-            "stocked_at": "Lagerort",
-            "available_quantity": "Verfügbare Menge"
-         }
+      "project_path": {
+         "a_sourcing": "Path A, brand sourcing: supplier and sample (P2) for an existing brand's product.",
+         "b_private_label": "Path B, private label: from concept to print approval (PL1–PL7) under the customer's brand."
+      },
+      "gate_code": {
+         "G1": "Project start (M): brief and feasibility approved.",
+         "G2": "Sample, spec sheet and NPDS approval (M); not passed without a signed spec sheet.",
+         "G3": "PI, price and print approval (M).",
+         "G4": "Shipment release (internal): PSI passed, documents complete; approved by compliance and quality.",
+         "G5": "Delivery acceptance (M) at the customer's warehouse.",
+         "PL_G1": "Concept and design approval (M), in writing.",
+         "PL_G2": "Brand and identity approval (M).",
+         "PL_G3": "Golden sample approval (M).",
+         "PL_G4": "Approval to print the packaging (M).",
+         "L_G1": "Content approval (M).",
+         "L_G2": "Project closure (M)."
+      },
+      "document_type": {
+         "spec_sheet": "The maker's product specification, signed and stamped: the product's evidence.",
+         "tech_pack": "Design package for the maker: drawings, materials, measurements.",
+         "sample_report": "Sample evaluation: how the sample compares with the spec.",
+         "pi": "Proforma invoice from the supplier: quantities, prices, terms.",
+         "po": "Purchase order sent to the supplier.",
+         "psi_report": "Pre-shipment inspection report (AQL), with photos and video.",
+         "test_report": "Laboratory test report for the product's compliance.",
+         "sds": "Safety data sheet; required for chemicals.",
+         "doc_of_conformity": "EU declaration of conformity (DoC).",
+         "technical_file": "Technical documentation kept for market surveillance.",
+         "label_artwork": "Label and packaging print file: dieline, GTIN, warnings.",
+         "packing_list": "Packing list of a shipment: cartons, quantities, weights.",
+         "commercial_invoice": "Commercial invoice for customs.",
+         "bill_of_lading": "Bill of lading (B/L) from the carrier.",
+         "customs": "Customs declaration and clearance papers.",
+         "delivery_receipt": "Delivery receipt signed at the warehouse; evidence for G5.",
+         "gate_approval": "The customer's written approval of a gate (e-mail or e-signature).",
+         "change_request": "Change request (CR): a versioned change to spec, design, packaging or price.",
+         "contract": "Contract with a customer or supplier (MSA, SOW, NDA).",
+         "certificate": "A supplier's or product's certificate.",
+         "other": "Any other document."
+      },
+      "document_status": {
+         "draft": "Not final yet; may change.",
+         "signed": "Signed, stamped, sent from the official e-mail and dated.",
+         "approved": "Accepted; an approved spec sheet must also be signed.",
+         "superseded": "Replaced by a newer version; kept, never deleted."
+      },
+      "supplier_status": {
+         "candidate": "Being evaluated; no orders yet.",
+         "approved": "Evaluated and approved for orders.",
+         "suspended": "No new orders until the issue is resolved."
+      },
+      "customer_status": {
+         "lead": "Potential customer, no contract yet (C1–C2).",
+         "onboarding": "Contract signed, being onboarded (C3).",
+         "active": "Projects are running.",
+         "paused": "Work is on hold for now.",
+         "closed": "Relationship ended; no new project can be opened."
+      },
+      "product_status": {
+         "concept": "An idea or concept; not developed yet.",
+         "development": "Being developed or sampled with the supplier.",
+         "approved": "Sample and spec approved; ready to order.",
+         "ordering": "Ordered; in production or on the way.",
+         "on_sale": "Live and selling.",
+         "paused": "Sales stopped for now.",
+         "archived": "No longer used; its GTIN can be given again."
+      },
+      "task_status": {
+         "todo": "Not started.",
+         "doing": "In progress.",
+         "done": "Finished.",
+         "blocked": "Cannot go on until something else is resolved."
       }
    }
 }

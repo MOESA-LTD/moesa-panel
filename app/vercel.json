@@ -1,4 +1,0 @@
-{
-   "rewrites": [{ "source": "/(.*)", "destination": "/" }],
-   "relatedProjects": ["prj_V7LZK4x1cSWzoD09exOzufxnbDO7"]
-}

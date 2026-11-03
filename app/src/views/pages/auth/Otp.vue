@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Form } from '@/lib/Form';
-import { VerifyOtpParams } from '@supabase/supabase-js';
+import { emailSchema, otpSchema, verifyOtp } from '@/api/auth';
+import { useForm } from '@/lib/form/useForm';
 import { useConfirm, useToast } from 'primevue';
 
 const router = useRouter();
@@ -8,24 +8,17 @@ const route = useRoute();
 const toast = useToast();
 const confirm = useConfirm();
 
-const form = Form.create<{ email: string; code: string }>({
-   rules: {
-      email: 'required|email',
-      code: 'required|min:6'
-   }
+const isPasswordReset = computed(() => route.path.endsWith('forgot-password'));
+
+const { values, errors, isDirty, handleSubmit } = useForm({
+   schema: otpSchema,
+   initialValues: { email: '', code: '' }
 });
 
-const resendForm = Form.create<{ email: string }>({
-   data: {
-      email: null
-   },
-   rules: {
-      email: 'required|email'
-   },
-   autoValidate: true
-});
+const resendForm = useForm({ schema: emailSchema, initialValues: { email: '' } });
+const { values: resendValues, errors: resendErrors } = resendForm;
 
-const resendCode = async () => {
+const resendCode = () => {
    confirm.require({
       group: 'resend-code',
       header: i18n.t('auth.otp.resend_code.confirm.title'),
@@ -35,20 +28,16 @@ const resendCode = async () => {
          severity: 'secondary',
          outlined: true
       },
-      acceptProps: {
+      // reactive() unwraps the computed, so the button follows the e-mail's validity.
+      acceptProps: reactive({
          label: i18n.t('action.send'),
-         disabled: computed(() => !resendForm._isValid)
-      },
-      accept: async () => {
-         if (!resendForm._validate()) return;
-
-         if (route.path.endsWith('forgot-password')) {
-            await supabase.auth.resetPasswordForEmail(resendForm.email);
+         disabled: computed(() => !emailSchema.safeParse(resendValues.value).success)
+      }),
+      accept: resendForm.handleSubmit(async ({ email }) => {
+         if (isPasswordReset.value) {
+            await supabase.auth.resetPasswordForEmail(email);
          } else if (route.path.endsWith('invite-code')) {
-            await supabase.auth.resend({
-               email: resendForm.email,
-               type: 'signup'
-            });
+            await supabase.auth.resend({ email, type: 'signup' });
          }
 
          toast.add({
@@ -57,36 +46,23 @@ const resendCode = async () => {
             detail: i18n.t('auth.otp.resend_code.toast.code_sended'),
             life: 3000
          });
-      }
+      })
    });
 };
 
-const save = async () => {
-   if (!form._validate()) return;
-   try {
-      const otpOptions: VerifyOtpParams = {
-         email: form.email,
-         token: form.code,
-         type: route.path.endsWith('forgot-password') ? 'recovery' : 'invite'
-      };
-      const { error } = await supabase.auth.verifyOtp(otpOptions);
+const save = handleSubmit(async ({ email, code }) => {
+   await verifyOtp(email, code, isPasswordReset.value ? 'recovery' : 'invite');
 
-      if (error) throw error;
+   await router.replace({ name: 'update-password' });
 
-      await router.replace({ name: 'update-password' });
-
-      if (otpOptions.type === 'invite' || otpOptions.type === 'recovery')
-         toast.add({
-            life: 0,
-            closable: true,
-            severity: ToastSeverity.INFO,
-            summary: i18n.t('auth.otp.resend_code.code_verified'),
-            detail: i18n.t('auth.please_dont_forget_to_update_your_password')
-         });
-   } catch (error) {
-      throw error;
-   }
-};
+   toast.add({
+      life: 0,
+      closable: true,
+      severity: ToastSeverity.INFO,
+      summary: i18n.t('auth.otp.resend_code.code_verified'),
+      detail: i18n.t('auth.please_dont_forget_to_update_your_password')
+   });
+});
 </script>
 <template>
    <div class="flex-auto w-full text-center flex flex-col justify-center gap-8 mb-8">
@@ -104,20 +80,12 @@ const save = async () => {
          v-text="$t('auth.otp.invite_code.please_enter_the_code_in_email_to_login')"
       />
    </div>
-   <FormBox :form :submit="save" :reset="() => form._reset()" class="justify-center">
-      <FormField
-         v-slot="slotProps"
-         :label="$t('fields.email')"
-         :error="form?._errors?.first('email')"
-      >
-         <InputText autofocus v-bind="slotProps" type="email" v-model="form['email']" />
+   <FormBox @submit="save" class="justify-center">
+      <FormField v-slot="slotProps" :label="$t('fields.email')" :error="errors.email">
+         <InputText autofocus v-bind="slotProps" type="email" v-model="values.email" />
       </FormField>
-      <FormField
-         :label="$t('fields.code')"
-         v-slot="slotProps"
-         :error="form?._errors?.first('code')"
-      >
-         <InputOtp v-bind="slotProps" v-model="form.code" :length="6" />
+      <FormField :label="$t('fields.code')" v-slot="slotProps" :error="errors.code">
+         <InputOtp v-bind="slotProps" v-model="values.code" :length="6" />
       </FormField>
       <template #form-actions>
          <div class="form_box__actions-bar !justify-center">
@@ -133,7 +101,7 @@ const save = async () => {
                   :label="$t('action.submit')"
                   class="form_box__button"
                   size="small"
-                  :disabled="!form?._isChanged"
+                  :disabled="!isDirty"
                   @click="save"
                />
             </span>
@@ -146,9 +114,9 @@ const save = async () => {
             :label="$t('fields.email')"
             fluid
             v-slot="slotProps"
-            :error="resendForm?._errors?.first('email')"
+            :error="resendErrors.email"
          >
-            <InputText v-bind="slotProps" v-model="resendForm.email" :length="6" />
+            <InputText v-bind="slotProps" v-model="resendValues.email" :length="6" />
          </FormField>
       </template>
    </ConfirmDialog>

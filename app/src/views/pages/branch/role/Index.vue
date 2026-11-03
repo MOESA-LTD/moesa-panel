@@ -1,6 +1,12 @@
-<script setup>
-import Collection from '@/lib/Collection';
+<script setup lang="ts">
+import { useDialogRef } from '@/composables/useDialogRef';
+import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import { DIALOG_POSITIONS } from '@/constants/router';
+import { useDeleteAction } from '@/composables/useDeleteAction';
+import { createFilters } from '@/components/service-components/resource-table/createFilters';
 import Upsert from './Upsert.vue';
+
+type Props = ResourceTableProps<'role'>;
 
 defineOptions({
    inheritAttrs: false
@@ -10,9 +16,7 @@ const attrs = useAttrs();
 const router = useRouter();
 const { t } = useI18n();
 
-// Define the columns
-/**@type {ComputedRef<ResourceTableProps['columns']>} */
-const columns = computed(() => [
+const columns = computed<Props['columns']>(() => [
    {
       field: 'display_name',
       sortable: true,
@@ -25,41 +29,20 @@ const columns = computed(() => [
    }
 ]);
 
-// Define the filters object
-/**@type {Ref<ResourceTableProps['filters']>} */
-const filters = ref({
-   global: {
-      value: null,
-      matchMode: FilterMatchMode.CONTAINS
-   },
-   display_name: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
-   },
-   created_at: {
-      operator: FilterOperator.AND,
-      constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }],
-      dataType: 'date'
-   },
-   ...attrs.filters
-});
+const filters = ref<NonNullable<Props['filters']>>(
+   createFilters(
+      {
+         display_name: 'startsWith',
+         created_at: 'date'
+      },
+      attrs.filters as Props['filters']
+   )
+);
 
 const stateKey = 'role';
-const rowActions = Collection.create([
-   {
-      label: t('action.delete'),
-      command:
-         ({ data }) =>
-         async () =>
-            await supabase
-               .from('role')
-               .delete()
-               .eq('id', data?.id)
-               .setHeader('item', encodeURI(JSON.stringify(data)))
-               .throwOnError()
-               .then(() => emitter.emit(`${stateKey}-update`, data)),
-      icon: PrimeIcons.TRASH
-   },
+const deleteAction = useDeleteAction('role');
+const rowActions: Props['rowActions'] = [
+   deleteAction,
    {
       label: t('action.edit'),
       command:
@@ -68,27 +51,26 @@ const rowActions = Collection.create([
             router.push({
                name: 'branch-role-edit',
                params: { id: data.id },
-               query: { showDialog: true }
+               query: { showDialog: DIALOG_POSITIONS.CENTER }
             }),
       icon: PrimeIcons.PENCIL
    }
-]);
+];
 
-const dialogRef = inject('dialogRef', null);
-
-const tableProps = computed(() => ({
-   stateKey,
-   from: 'role',
-   select: '*, permission(id, kind, group_name, resource_name)',
-   columns: columns.value,
-   rowActions: rowActions._data,
-   ...attrs
-}));
+const dialogRef = useDialogRef();
 </script>
 <template>
-   <ResourceTable v-bind="tableProps" v-model:filters="filters">
+   <ResourceTable
+      v-bind="attrs"
+      :stateKey
+      from="role"
+      select="*, permission(id, kind, group_name, resource_name)"
+      :columns
+      :rowActions
+      v-model:filters="filters"
+   >
       <template #header>
-         <Teleport to="#page-toolbar" :disabled="dialogRef">
+         <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <KeywordSearchInput v-model="filters.global.value" />
                <CustomLink v-if="$can('create', 'role')" :to="{ name: 'branch-role-add' }">

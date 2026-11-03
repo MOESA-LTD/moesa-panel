@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouteLoading } from '@/composables/useRouteStatus';
 defineOptions({
    inheritAttrs: false
 });
@@ -16,12 +17,12 @@ export type FormFieldProps = {
 const props = withDefaults(defineProps<FormFieldProps>(), {
    // default props
 });
-const routeLoading = inject('routeLoading', false as any);
+const routeLoading = useRouteLoading();
 const isLoading = computed(() => {
    if (!_isNil(props.loading)) {
       return props.loading;
    }
-   return routeLoading?.value;
+   return routeLoading.value;
 });
 
 const attrs = useAttrs();
@@ -149,7 +150,6 @@ onMounted(() => {
             ref="errorMessageElement"
             v-if="!!error && _size(error as string) < 60"
             severity="error"
-            class="form_field__error"
             :class="errorClass"
             :pt="{
                content: { class: '!py-0' },
@@ -179,15 +179,18 @@ onMounted(() => {
    &--fluid {
       @apply flex-col justify-center;
    }
+
    &:not(&--fluid) {
       @apply flex-row items-center;
    }
 
    &__header {
       @apply flex items-center gap-4 font-medium;
+
       &--fluid {
          @apply w-full;
       }
+
       &--reverse {
          @apply order-[1];
       }
@@ -199,16 +202,18 @@ onMounted(() => {
 
    &__input {
       @apply min-w-min md:min-w-fit;
+
       &--fluid {
          @apply w-full my-auto;
       }
+
       &--reverse {
          @apply flex-auto;
       }
    }
 
    &__error {
-      @apply absolute bottom-0 left-2 max-w-full capitalize animate-fadeinup animate-duration-[calc(var(--transition-duration)*2)] animate-ease-in-out animate-once;
+      @apply absolute bottom-0 left-2 max-w-full capitalize;
    }
 
    &__skeleton {

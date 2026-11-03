@@ -32,6 +32,8 @@ export default defineConfig({
    },
    server: {
       port: 6161,
+      // Fail instead of moving to the next free port, which the auth redirect URLs do not allow.
+      strictPort: true,
       watch: {
          usePolling: true
       }
@@ -66,20 +68,12 @@ export default defineConfig({
                imports: ['supabase']
             },
             {
-               from: '@composables/useLayout',
-               imports: [['default', 'useLayout']]
-            },
-            {
                from: '@store/index.js',
-               imports: ['useAuthStore', 'useAccountStore']
+               imports: ['useAuthStore', 'useThemeStore']
             },
             {
                from: '@plugins/i18n',
                imports: ['locale', 'loadLocaleMessages', 'SUPPORTED_LOCALES', ['default', 'i18n']]
-            },
-            {
-               from: '@plugins/mitt',
-               imports: ['emitter']
             },
             {
                from: 'lodash',
@@ -109,14 +103,6 @@ export default defineConfig({
       }
    },
    optimizeDeps: {
-      include: [
-         'vue',
-         'vue-router',
-         '@vueuse/core',
-         'pinia',
-         '@primevue/core/api',
-         '@plugins/mitt',
-         'lodash'
-      ]
+      include: ['vue', 'vue-router', '@vueuse/core', 'pinia', '@primevue/core/api', 'lodash']
    }
 });

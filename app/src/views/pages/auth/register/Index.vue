@@ -1,5 +1,6 @@
-<script setup>
-import { Form } from '@/lib/Form';
+<script setup lang="ts">
+import { createAccount, registerSchema } from '@/api/auth';
+import { useForm } from '@/lib/form/useForm';
 import { PrimeIcons } from '@primevue/core';
 import { useToast } from 'primevue';
 import { useI18n } from 'vue-i18n';
@@ -21,47 +22,16 @@ const steps = computed(() => [
    }
 ]);
 
-const form = Form.create({
-   data: {
-      account: {
-         email: '',
-         password: '',
-         password_confirmation: ''
-      },
-      company: {
-         display_name: '',
-         email: '',
-         phone: null
-      }
-   },
-   rules: {
-      account: {
-         email: 'required|email',
-         password: 'required|min:8',
-         password_confirmation: 'required|same:account.password'
-      },
-      company: {
-         display_name: 'required|min:3',
-         email: 'required|email',
-         phone: 'phone'
-      }
+const { values, errors, validateFields, handleSubmit } = useForm({
+   schema: registerSchema,
+   initialValues: {
+      account: { email: '', password: '', password_confirmation: '' },
+      company: { display_name: '', email: '', phone: '' }
    }
 });
 
-const submit = async () => {
-   if (!form._validate(['account'])) {
-      return setStep(1);
-   }
-
-   if (!form._validate(['company'])) {
-      return setStep(2);
-   }
-
-   const { error } = await supabase.functions.invoke('create-account', {
-      body: form._data
-   });
-
-   if (error) throw error;
+const register = handleSubmit(async (data) => {
+   await createAccount(data);
 
    toast.add({
       life: 3000,
@@ -69,6 +39,17 @@ const submit = async () => {
       summary: t('toast.success')
    });
    await router.replace({ name: 'auth-login' });
+});
+
+const hasAccountErrors = () =>
+   Object.keys(errors.value).some((path) => path.startsWith('account.'));
+
+const submit = async () => {
+   // Errors of the account step would be hidden on the company step.
+   if (!validateFields(['account'])) return setStep(1);
+   await register();
+   // e.g. the e-mail turned out to be registered already.
+   if (hasAccountErrors()) setStep(1);
 };
 </script>
 
@@ -121,19 +102,19 @@ const submit = async () => {
                      v-slot="slotProps"
                      fluid
                      :label="$t('fields.email')"
-                     :error="form?._errors?.first('account.email')"
+                     :error="errors['account.email']"
                   >
-                     <InputText autofocus v-bind="slotProps" v-model="form['account.email']" />
+                     <InputText autofocus v-bind="slotProps" v-model="values.account.email" />
                   </FormField>
                   <FormField
                      v-slot="slotProps"
                      fluid
                      :label="$t('fields.password')"
-                     :error="form?._errors?.first('account.password')"
+                     :error="errors['account.password']"
                   >
                      <Password
                         v-bind="slotProps"
-                        v-model="form['account.password']"
+                        v-model="values.account.password"
                         :toggleMask="true"
                         :feedback="false"
                      />
@@ -142,11 +123,11 @@ const submit = async () => {
                      v-slot="slotProps"
                      fluid
                      :label="$t('fields.password_confirmation')"
-                     :error="form?._errors?.first('account.password_confirmation')"
+                     :error="errors['account.password_confirmation']"
                   >
                      <Password
                         v-bind="slotProps"
-                        v-model="form['account.password_confirmation']"
+                        v-model="values.account.password_confirmation"
                         :toggleMask="true"
                         :feedback="false"
                      />
@@ -158,7 +139,7 @@ const submit = async () => {
                         :icon="PrimeIcons.CARET_RIGHT"
                         iconPos="right"
                         variant="outlined"
-                        @click="() => form._validate(['account']) && setStep(2)"
+                        @click="() => validateFields(['account']) && setStep(2)"
                      />
                   </div>
                </div>
@@ -173,25 +154,25 @@ const submit = async () => {
                      v-slot="slotProps"
                      fluid
                      :label="$t('fields.name')"
-                     :error="form?._errors?.first('company.display_name')"
+                     :error="errors['company.display_name']"
                   >
-                     <InputText v-bind="slotProps" v-model="form['company.display_name']" />
+                     <InputText v-bind="slotProps" v-model="values.company.display_name" />
                   </FormField>
                   <FormField
                      v-slot="slotProps"
                      fluid
                      :label="$t('fields.email')"
-                     :error="form?._errors?.first('company.email')"
+                     :error="errors['company.email']"
                   >
-                     <InputText v-bind="slotProps" v-model="form['company.email']" />
+                     <InputText v-bind="slotProps" v-model="values.company.email" />
                   </FormField>
                   <FormField
                      v-slot="slotProps"
                      fluid
                      :label="$t('fields.phone')"
-                     :error="form?._errors?.first('company.phone')"
+                     :error="errors['company.phone']"
                   >
-                     <PhoneInput v-bind="slotProps" v-model="form['phone']" />
+                     <PhoneInput v-bind="slotProps" v-model="values.company.phone" />
                   </FormField>
                   <div class="self-stretch flex gap-8">
                      <Button

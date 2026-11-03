@@ -1,37 +1,41 @@
-import { createClient, SupabaseClientOptions } from 'npm:@supabase/supabase-js';
 import type { Database } from './database.types.ts';
-export const supabaseClient = <
-   DB = Database,
-   SchemaName extends string & keyof DB = 'public' extends keyof DB ? 'public' : string & keyof DB
->(
-   options?: SupabaseClientOptions<SchemaName>
-) =>
-   createClient<DB, SchemaName>(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-         auth: {
-            autoRefreshToken: false,
-            persistSession: false
-         },
-         ...options
-      }
-   );
+import { createClient, type SupabaseClient } from './deps.ts';
 
-export const supabaseAdmin = <
-   DB = Database,
-   SchemaName extends string & keyof DB = 'public' extends keyof DB ? 'public' : string & keyof DB
->(
-   options?: SupabaseClientOptions<SchemaName>
-) =>
-   createClient<DB, SchemaName>(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-         auth: {
-            autoRefreshToken: false,
-            persistSession: false
-         },
-         ...options
+const requireEnv = (name: string) => {
+   const value = Deno.env.get(name);
+   if (!value) throw new Error(`Missing environment variable: ${name}`);
+   return value;
+};
+
+const options = {
+   auth: {
+      autoRefreshToken: false,
+      persistSession: false
+   }
+};
+
+const FORWARDED_HEADERS = ['Authorization', 'x-tenant-id', 'x-tenant-ids'];
+
+let admin: SupabaseClient<Database> | undefined;
+
+/** Service-role client. Bypasses RLS, so every call must be scoped by the caller explicitly. */
+export const supabaseAdmin = () =>
+   (admin ??= createClient<Database>(
+      requireEnv('SUPABASE_URL'),
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      options
+   ));
+
+/** Client acting as the requesting user, so RLS applies. */
+export const supabaseClient = (req: Request) =>
+   createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
+      ...options,
+      global: {
+         headers: Object.fromEntries(
+            FORWARDED_HEADERS.flatMap((name) => {
+               const value = req.headers.get(name);
+               return value ? [[name, value]] : [];
+            })
+         )
       }
-   );
+   });
