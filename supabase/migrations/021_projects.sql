@@ -3,44 +3,61 @@
 -- project          A customer's project: its type (npi / variant / revision / reorder), its path
 --                  (a_sourcing / b_private_label, only for npi), the customer's packages (A0…E),
 --                  its current phase (P1…L5, closed), target dates and coordinator. Its code
---                  (THO-2026-001) comes from public.next_code and never changes. Projects are
---                  closed or cancelled (status), never deleted.
+--                  (THO-2026-001) comes from public.next_code and never changes; nor do its
+--                  customer, type, path and packages, which decide its gates. Projects are closed
+--                  or cancelled (status), never deleted.
 -- project_product  The products a project is about.
 -- project_gate     The project's gates, generated when the project is created (see the gate model
---                  below). Only pass_gate and rollback_gate change them; there is no insert or
---                  delete permission, and only the decision columns can be updated.
+--                  below). There is no insert or delete permission, and only the decision columns
+--                  can be updated. The UI decides gates through pass_gate and rollback_gate, but
+--                  the rules sit in a trigger on the table, so a direct update obeys them too.
 -- project_task     The phase checklist (K4): what has to be done in each phase, by which role,
---                  and whether it blocks the phase's gate. A phase's checklist is copied from
---                  task_template when the project enters the phase; it can then be edited freely.
+--                  and whether it blocks the gate that closes the phase. The checklists of the
+--                  phases a project enters are copied from task_template; they can then be edited
+--                  freely.
 -- task_template    The starting checklist of every phase. Global reference data like
 --                  public.platform: no tenant_id, read by every signed-in user, written only by
 --                  migrations, not audited.
 --
 -- Gate model (spec M5, K3). The gate set follows from the project's type, path and packages
--- (public.gates_for); a project starts in the phase its first gate closes (public.initial_phase),
--- with that phase's checklist. Gates are passed in their order (position). Passing a gate moves the
--- project to the phase after it (public.phase_after) and adds that phase's checklist. Rules
--- enforced by pass_gate, in order, each a check_violation whose message is the rule's code:
+-- (public.gates_for); a project starts in the phase its first gate closes (public.initial_phase).
+-- Gates are passed in their order (position). Passing a gate moves the project to the phase after
+-- it (public.phase_after). Whenever a project enters a phase (created, or a gate passed) it gets
+-- the checklists of every phase from there up to the one its next open gate closes
+-- (public.phase_before), plus PL7 when it enters P3 from PL_G4 (content runs alongside the
+-- order); phases it already has tasks for are skipped.
+--
+-- Rules, checked by the BEFORE UPDATE trigger private.project_gate_guard whenever a gate is set
+-- to passed, in order, each a check_violation whose message is the rule's code:
 --   gate_not_pending                 the gate is already passed
+--   project_not_active               the project is on hold, closed or cancelled
 --   gate_order                       an earlier gate of the project is not passed
 --   gate_customer_approval_required  an (M) gate (every gate but G4) needs the customer's approval
 --                                    date and approval document
---   gate_spec_sheet_required         G2 needs a signed or approved spec sheet for every product of
---                                    the project (public.product_evidence)
---   gate_blocked_by_task             a blocking task of the current or an earlier phase is not done
---                                    (only while the setting gate_evidence_blocking is true)
--- rollback_gate (reason required) sets the gate and every later passed gate to rolled_back and
--- takes the project back to the phase the gate closes (public.phase_before). A rolled-back gate
--- is reopened in place: pass_gate accepts it like a pending one, so the UI simply passes it again.
--- In Phase 2 a rollback is tied to an incident (M10).
+--   gate_approval_document_invalid   the approval document is not a gate_approval document of
+--                                    this gate
+--   gate_evidence_invalid            an evidence document is not a document of this gate or its
+--                                    project
+--   gate_spec_sheet_required         G2 needs products, and a signed or approved spec sheet for
+--                                    each of them (public.product_evidence)
+--   gate_blocked_by_task             a blocking task of the phases up to the one the gate closes
+--                                    is not done (only while the setting gate_evidence_blocking
+--                                    is true)
+-- The AFTER UPDATE trigger private.project_gate_advance then moves the phase and adds the
+-- checklists. rollback_gate (reason required) sets the gate and every later passed gate to
+-- rolled_back and takes the project back to the phase the gate closes (public.phase_before). A
+-- rolled-back gate is reopened in place: the guard accepts it like a pending one, so the UI simply
+-- passes it again. In Phase 2 a rollback is tied to an incident (M10). pass_gate and
+-- rollback_gate lock the project row first, so the decisions on one project run one at a time.
 --
--- gates_for, initial_phase, phase_after and phase_before are pure functions in public: pass_gate and
--- rollback_gate are SECURITY INVOKER and signed-in users have no USAGE on schema private, and the
--- UI uses them too (the phase strip). The trigger functions are in private and not executable by
--- users. The code trigger runs as the caller: it reads the customer through RLS and gets the code
--- from public.next_code. The gate trigger is SECURITY DEFINER, since users have no insert
--- permission on project_gate; it writes only rows of the new project's own tenant
--- (NEW.tenant_id), which the caller has just been allowed to insert into.
+-- gates_for, initial_phase, phase_after and phase_before are pure functions in public: pass_gate
+-- and rollback_gate are SECURITY INVOKER and signed-in users have no USAGE on schema private, and
+-- the UI uses them too (the phase strip). The trigger functions are in private and not executable
+-- by users. The code trigger runs as the caller: it reads the customer through RLS and gets the
+-- code from public.next_code. The gate-creation, guard and advance triggers (and the checklist
+-- copy they share) are SECURITY DEFINER: users cannot insert gates or tasks on the project's
+-- behalf, and the rules must see the whole project whatever the caller may read. Each filters on
+-- the row's own tenant_id itself, a tenant the caller has just been allowed to write to.
 --
 -- Every reference to a tenant-scoped table includes tenant_id (see 018_customers.sql). Customers,
 -- products and documents are never deleted, so the references to them are ON DELETE RESTRICT; a
@@ -337,20 +354,28 @@ $$;
 CREATE OR REPLACE TRIGGER project_set_code BEFORE INSERT ON public.project FOR EACH ROW
 EXECUTE FUNCTION private.project_set_code ();
 
-CREATE OR REPLACE FUNCTION private.project_code_immutable () RETURNS TRIGGER LANGUAGE plpgsql
+-- What a project is (its customer, type, path and packages) decides its code and its gates, so it
+-- is fixed once the project exists.
+CREATE OR REPLACE FUNCTION private.project_immutable () RETURNS TRIGGER LANGUAGE plpgsql
 SET
    search_path = '' AS $$
 BEGIN
     IF NEW.code IS DISTINCT FROM OLD.code THEN
         RAISE EXCEPTION 'project_code_immutable' USING ERRCODE = 'check_violation';
     END IF;
+    IF NEW.type IS DISTINCT FROM OLD.type
+       OR NEW.path IS DISTINCT FROM OLD.path
+       OR NEW.packages IS DISTINCT FROM OLD.packages
+       OR NEW.customer_id IS DISTINCT FROM OLD.customer_id THEN
+        RAISE EXCEPTION 'project_immutable_field' USING ERRCODE = 'check_violation';
+    END IF;
     RETURN NEW;
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER project_code_immutable BEFORE
+CREATE OR REPLACE TRIGGER project_immutable BEFORE
 UPDATE ON public.project FOR EACH ROW
-EXECUTE FUNCTION private.project_code_immutable ();
+EXECUTE FUNCTION private.project_immutable ();
 
 -- Project products
 CREATE TABLE IF NOT EXISTS public.project_product (
@@ -430,8 +455,47 @@ CREATE INDEX IF NOT EXISTS idx_project_task_project ON public.project_task (tena
 
 CREATE INDEX IF NOT EXISTS idx_project_task_assignee ON public.project_task (assignee_id, status);
 
--- A new project's gates and its first phase's checklist. SECURITY DEFINER: users cannot insert
--- gates; the rows are the new project's, in its own tenant.
+-- Copies the checklists of the phases a project has entered: from `entered` up to the phase its
+-- next open gate closes (all of them when there is no open gate left before closing), skipping
+-- the phases it already has tasks for (a gate passed again after a rollback). On path B, P3 runs
+-- with PL7 (content production in parallel with the order), so entering P3 from PL6 adds PL7 too.
+-- Called only from the SECURITY DEFINER triggers below, which pass the project's own tenant.
+CREATE OR REPLACE FUNCTION private.project_copy_checklists (project_id UUID, tenant_id UUID, entered public.project_phase, with_pl7 BOOLEAN DEFAULT FALSE) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    open_code public.gate_code;
+    upto public.project_phase;
+BEGIN
+    IF entered = 'closed' THEN
+        RETURN;
+    END IF;
+
+    SELECT g.code INTO open_code
+    FROM public.project_gate g
+    WHERE g.project_id = project_copy_checklists.project_id AND g.status <> 'passed'
+    ORDER BY g.position
+    LIMIT 1;
+
+    upto := public.phase_before(open_code);
+    IF upto IS NULL OR upto < entered THEN
+        upto := entered;
+    END IF;
+
+    INSERT INTO public.project_task (tenant_id, project_id, phase, display_name, role, blocks_gate, position)
+    SELECT project_copy_checklists.tenant_id, project_copy_checklists.project_id, tt.phase, tt.display_name, tt.role,
+           tt.blocks_gate, tt.position
+    FROM public.task_template tt
+    WHERE (tt.phase = ANY (enum_range(entered, upto)) OR (with_pl7 AND tt.phase = 'PL7'))
+      AND NOT EXISTS (
+          SELECT 1 FROM public.project_task t
+          WHERE t.project_id = project_copy_checklists.project_id AND t.phase = tt.phase
+      );
+END;
+$$;
+
+-- A new project's gates and the checklists of its first phases. SECURITY DEFINER: users cannot
+-- insert gates; the rows are the new project's, in its own tenant.
 CREATE OR REPLACE FUNCTION private.project_create_gates () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -440,10 +504,7 @@ BEGIN
     SELECT NEW.tenant_id, NEW.id, g.code, g.position::INT, g.code <> 'G4'
     FROM unnest(public.gates_for(NEW.type, NEW.path, NEW.packages)) WITH ORDINALITY AS g (code, position);
 
-    INSERT INTO public.project_task (tenant_id, project_id, phase, display_name, role, blocks_gate, position)
-    SELECT NEW.tenant_id, NEW.id, tt.phase, tt.display_name, tt.role, tt.blocks_gate, tt.position
-    FROM public.task_template tt
-    WHERE tt.phase = NEW.current_phase;
+    PERFORM private.project_copy_checklists(NEW.id, NEW.tenant_id, NEW.current_phase);
 
     RETURN NULL;
 END;
@@ -453,15 +514,155 @@ CREATE OR REPLACE TRIGGER project_create_gates
 AFTER INSERT ON public.project FOR EACH ROW
 EXECUTE FUNCTION private.project_create_gates ();
 
+-- The gate rules (see the header), for every way a gate is passed: pass_gate or a direct update.
+-- SECURITY DEFINER, so the checks see the whole project whatever the caller may read, and every
+-- query filters on the gate's own tenant itself.
+CREATE OR REPLACE FUNCTION private.project_gate_guard () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    state public.project_status;
+    blocking JSONB;
+BEGIN
+    IF NEW.status <> 'passed' THEN
+        RETURN NEW;
+    END IF;
+
+    IF OLD.status = 'passed' THEN
+        RAISE EXCEPTION 'gate_not_pending' USING ERRCODE = 'check_violation';
+    END IF;
+
+    SELECT p.status INTO state
+    FROM public.project p
+    WHERE p.id = NEW.project_id AND p.tenant_id = NEW.tenant_id;
+
+    IF state IS DISTINCT FROM 'active' THEN
+        RAISE EXCEPTION 'project_not_active' USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public.project_gate g
+        WHERE g.project_id = NEW.project_id AND g.tenant_id = NEW.tenant_id
+          AND g.position < NEW.position AND g.status <> 'passed'
+    ) THEN
+        RAISE EXCEPTION 'gate_order' USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF NEW.needs_customer_approval AND (NEW.customer_approved_on IS NULL OR NEW.approval_document_id IS NULL) THEN
+        RAISE EXCEPTION 'gate_customer_approval_required' USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF NEW.approval_document_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM public.document d
+        WHERE d.id = NEW.approval_document_id AND d.tenant_id = NEW.tenant_id
+          AND d.type = 'gate_approval' AND d.entity_type = 'project_gate' AND d.entity_id = NEW.id
+    ) THEN
+        RAISE EXCEPTION 'gate_approval_document_invalid' USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM unnest(NEW.evidence_document_ids) AS e (id)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM public.document d
+            WHERE d.id = e.id AND d.tenant_id = NEW.tenant_id
+              AND ((d.entity_type = 'project_gate' AND d.entity_id = NEW.id)
+                   OR (d.entity_type = 'project' AND d.entity_id = NEW.project_id))
+        )
+    ) THEN
+        RAISE EXCEPTION 'gate_evidence_invalid' USING ERRCODE = 'check_violation';
+    END IF;
+
+    -- G2 needs products, and a signed or approved spec sheet for each of them.
+    IF NEW.code = 'G2' AND (
+        NOT EXISTS (
+            SELECT 1 FROM public.project_product pp
+            WHERE pp.project_id = NEW.project_id AND pp.tenant_id = NEW.tenant_id
+        )
+        OR EXISTS (
+            SELECT 1
+            FROM public.project_product pp
+            LEFT JOIN public.product_evidence e ON e.product_id = pp.product_id AND e.tenant_id = pp.tenant_id
+            WHERE pp.project_id = NEW.project_id AND pp.tenant_id = NEW.tenant_id
+              AND NOT coalesce(e.has_signed_spec, FALSE)
+        )
+    ) THEN
+        RAISE EXCEPTION 'gate_spec_sheet_required' USING ERRCODE = 'check_violation';
+    END IF;
+
+    SELECT s.value INTO blocking
+    FROM public.setting s
+    WHERE s.tenant_id = NEW.tenant_id AND s.key = 'gate_evidence_blocking';
+
+    -- The blocking tasks of the phases up to the one the gate closes; tasks of later phases (left
+    -- from before a rollback) do not hold back an earlier gate.
+    IF coalesce(blocking, 'true'::JSONB) = 'true'::JSONB AND EXISTS (
+        SELECT 1 FROM public.project_task t
+        WHERE t.project_id = NEW.project_id AND t.tenant_id = NEW.tenant_id
+          AND t.blocks_gate
+          AND t.status <> 'done'
+          AND t.phase <= public.phase_before(NEW.code)
+    ) THEN
+        RAISE EXCEPTION 'gate_blocked_by_task' USING ERRCODE = 'check_violation';
+    END IF;
+
+    NEW.passed_at := coalesce(NEW.passed_at, now());
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER project_gate_guard BEFORE
+UPDATE ON public.project_gate FOR EACH ROW
+EXECUTE FUNCTION private.project_gate_guard ();
+
+-- A passed gate moves its project to the next phase (public.phase_after) and adds the
+-- checklists of the phases entered. SECURITY DEFINER, in the gate's own tenant: the move is part
+-- of passing the gate, not a separate edit of the project.
+CREATE OR REPLACE FUNCTION private.project_gate_advance () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    target public.project;
+    next_phase public.project_phase;
+BEGIN
+    SELECT * INTO target FROM public.project p WHERE p.id = NEW.project_id AND p.tenant_id = NEW.tenant_id;
+
+    next_phase := public.phase_after(NEW.code, target.path, target.packages);
+
+    UPDATE public.project p SET current_phase = next_phase WHERE p.id = target.id;
+
+    PERFORM private.project_copy_checklists(target.id, target.tenant_id, next_phase, NEW.code = 'PL_G4');
+
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER project_gate_advance
+AFTER UPDATE ON public.project_gate FOR EACH ROW
+WHEN (
+   NEW.status = 'passed'
+   AND OLD.status <> 'passed'
+)
+EXECUTE FUNCTION private.project_gate_advance ();
+
 REVOKE ALL ON FUNCTION private.project_set_code () FROM PUBLIC, anon, authenticated;
 
-REVOKE ALL ON FUNCTION private.project_code_immutable () FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.project_immutable () FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION private.project_copy_checklists (UUID, UUID, public.project_phase, BOOLEAN) FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION private.project_create_gates () FROM PUBLIC, anon, authenticated;
 
--- Passes a gate (rules in the header). Runs as the caller: the gate, project, products and
--- settings are read through RLS, and the writes need the caller's update rights. A gate the
--- caller cannot see is a 404.
+REVOKE ALL ON FUNCTION private.project_gate_guard () FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION private.project_gate_advance () FROM PUBLIC, anon, authenticated;
+
+-- Passes a gate. Runs as the caller: the gate and project are read through RLS (one the caller
+-- cannot see is a 404) and the update needs the caller's right to update gates. The rules are
+-- the project_gate_guard trigger's, and the phase move and checklists project_gate_advance's;
+-- this function adds no rule checks of its own before the update. After it, the approval and
+-- evidence documents are checked once more through RLS, so the caller must be able to see them.
+-- The project row is locked first, as in rollback_gate, so passes and rollbacks of one project
+-- run one after the other.
 CREATE OR REPLACE FUNCTION public.pass_gate (
    gate_id UUID,
    note TEXT,
@@ -472,67 +673,23 @@ CREATE OR REPLACE FUNCTION public.pass_gate (
 SET
    search_path = '' AS $$
 DECLARE
-    gate public.project_gate;
-    target public.project;
-    blocking JSONB;
-    next_phase public.project_phase;
+    gate_project UUID;
     result public.project_gate;
 BEGIN
-    SELECT * INTO gate FROM public.project_gate g WHERE g.id = pass_gate.gate_id FOR UPDATE;
+    SELECT g.project_id INTO gate_project FROM public.project_gate g WHERE g.id = pass_gate.gate_id;
 
-    IF NOT FOUND THEN
+    IF gate_project IS NULL THEN
         RAISE SQLSTATE 'PGRST' USING
             MESSAGE = json_build_object('code', 'P0002', 'message', 'gate not found')::TEXT,
             DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
     END IF;
 
-    SELECT * INTO target FROM public.project p WHERE p.id = gate.project_id FOR UPDATE;
+    PERFORM 1 FROM public.project p WHERE p.id = gate_project FOR UPDATE;
 
     IF NOT FOUND THEN
         RAISE SQLSTATE 'PGRST' USING
             MESSAGE = json_build_object('code', 'P0002', 'message', 'project not found')::TEXT,
             DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
-    END IF;
-
-    -- A rolled-back gate is open again.
-    IF gate.status = 'passed' THEN
-        RAISE EXCEPTION 'gate_not_pending' USING ERRCODE = 'check_violation';
-    END IF;
-
-    IF EXISTS (
-        SELECT 1 FROM public.project_gate g
-        WHERE g.project_id = gate.project_id AND g.position < gate.position AND g.status <> 'passed'
-    ) THEN
-        RAISE EXCEPTION 'gate_order' USING ERRCODE = 'check_violation';
-    END IF;
-
-    IF gate.needs_customer_approval
-       AND (pass_gate.customer_approved_on IS NULL OR pass_gate.approval_document_id IS NULL) THEN
-        RAISE EXCEPTION 'gate_customer_approval_required' USING ERRCODE = 'check_violation';
-    END IF;
-
-    IF gate.code = 'G2' AND EXISTS (
-        SELECT 1
-        FROM public.project_product pp
-        LEFT JOIN public.product_evidence e ON e.product_id = pp.product_id
-        WHERE pp.project_id = gate.project_id AND NOT coalesce(e.has_signed_spec, FALSE)
-    ) THEN
-        RAISE EXCEPTION 'gate_spec_sheet_required' USING ERRCODE = 'check_violation';
-    END IF;
-
-    SELECT s.value INTO blocking
-    FROM public.setting s
-    WHERE s.tenant_id = gate.tenant_id AND s.key = 'gate_evidence_blocking';
-
-    -- Tasks of later phases (left from before a rollback) do not hold back an earlier gate.
-    IF coalesce(blocking, 'true'::JSONB) = 'true'::JSONB AND EXISTS (
-        SELECT 1 FROM public.project_task t
-        WHERE t.project_id = gate.project_id
-          AND t.blocks_gate
-          AND t.status <> 'done'
-          AND t.phase <= target.current_phase
-    ) THEN
-        RAISE EXCEPTION 'gate_blocked_by_task' USING ERRCODE = 'check_violation';
     END IF;
 
     UPDATE public.project_gate g
@@ -543,22 +700,27 @@ BEGIN
         customer_approved_on = pass_gate.customer_approved_on,
         approval_document_id = pass_gate.approval_document_id,
         evidence_document_ids = coalesce(pass_gate.evidence_document_ids, '{}')
-    WHERE g.id = gate.id
+    WHERE g.id = pass_gate.gate_id
     RETURNING * INTO result;
 
-    next_phase := public.phase_after(gate.code, target.path, target.packages);
-
-    UPDATE public.project p SET current_phase = next_phase WHERE p.id = target.id;
-
-    -- The new phase's checklist, unless the project has been there before (a gate passed again
-    -- after a rollback).
-    IF next_phase <> 'closed' AND NOT EXISTS (
-        SELECT 1 FROM public.project_task t WHERE t.project_id = target.id AND t.phase = next_phase
+    IF result.approval_document_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM public.document d
+        WHERE d.id = result.approval_document_id AND d.tenant_id = result.tenant_id
+          AND d.type = 'gate_approval' AND d.entity_type = 'project_gate' AND d.entity_id = result.id
     ) THEN
-        INSERT INTO public.project_task (tenant_id, project_id, phase, display_name, role, blocks_gate, position)
-        SELECT target.tenant_id, target.id, tt.phase, tt.display_name, tt.role, tt.blocks_gate, tt.position
-        FROM public.task_template tt
-        WHERE tt.phase = next_phase;
+        RAISE EXCEPTION 'gate_approval_document_invalid' USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM unnest(result.evidence_document_ids) AS e (id)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM public.document d
+            WHERE d.id = e.id AND d.tenant_id = result.tenant_id
+              AND ((d.entity_type = 'project_gate' AND d.entity_id = result.id)
+                   OR (d.entity_type = 'project' AND d.entity_id = result.project_id))
+        )
+    ) THEN
+        RAISE EXCEPTION 'gate_evidence_invalid' USING ERRCODE = 'check_violation';
     END IF;
 
     RETURN result;
@@ -566,11 +728,13 @@ END;
 $$;
 
 -- Rolls a passed gate back, with every gate passed after it, and takes the project back to the
--- phase the gate closes. The gates stay rolled_back until passed again.
+-- phase the gate closes. The gates stay rolled_back until passed again. The project row is locked
+-- before any gate is touched, so a rollback and a pass of the same project cannot interleave.
 CREATE OR REPLACE FUNCTION public.rollback_gate (gate_id UUID, reason TEXT) RETURNS public.project_gate LANGUAGE plpgsql SECURITY INVOKER
 SET
    search_path = '' AS $$
 DECLARE
+    gate_project UUID;
     gate public.project_gate;
     result public.project_gate;
 BEGIN
@@ -578,9 +742,14 @@ BEGIN
         RAISE EXCEPTION 'gate_reason_required' USING ERRCODE = 'check_violation';
     END IF;
 
-    SELECT * INTO gate FROM public.project_gate g WHERE g.id = rollback_gate.gate_id FOR UPDATE;
+    SELECT g.project_id INTO gate_project FROM public.project_gate g WHERE g.id = rollback_gate.gate_id;
 
-    IF NOT FOUND THEN
+    IF gate_project IS NOT NULL THEN
+        PERFORM 1 FROM public.project p WHERE p.id = gate_project FOR UPDATE;
+        SELECT * INTO gate FROM public.project_gate g WHERE g.id = rollback_gate.gate_id FOR UPDATE;
+    END IF;
+
+    IF gate.id IS NULL THEN
         RAISE SQLSTATE 'PGRST' USING
             MESSAGE = json_build_object('code', 'P0002', 'message', 'gate not found')::TEXT,
             DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
