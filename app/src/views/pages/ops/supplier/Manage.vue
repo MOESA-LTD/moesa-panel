@@ -13,6 +13,7 @@ const props = defineProps<{
 }>();
 
 const route = useRoute();
+const router = useRouter();
 
 // A new supplier gets its id when saved, while the dialog keeps its route.
 const supplierId = ref(props.id || null);
@@ -34,6 +35,13 @@ const fromRoute = (): TabKey =>
 
 const activeTab = ref<TabKey>(supplierId.value ? fromRoute() : 'general');
 
+// A new supplier's URL takes its id, so a reload reopens it and the form's draft follows the id.
+const onSaved = (id: string) => {
+   const isNew = !supplierId.value;
+   supplierId.value = id;
+   if (isNew) router.replace({ name: 'ops-supplier-manage', params: { id }, query: route.query });
+};
+
 const title = computed(() =>
    supplier.value ? `${supplier.value.code} — ${supplier.value.display_name}` : null
 );
@@ -50,7 +58,7 @@ const title = computed(() =>
          </TabList>
          <TabPanels>
             <TabPanel value="general">
-               <General :id="supplierId" @saved="supplierId = $event.id" />
+               <General :id="supplierId" @saved="onSaved($event.id)" />
             </TabPanel>
             <TabPanel value="contacts">
                <Contacts v-if="supplierId && activeTab === 'contacts'" :id="supplierId" />

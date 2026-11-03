@@ -795,11 +795,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "supplier_contact_supplier_id_fkey"
-            columns: ["supplier_id"]
+            foreignKeyName: "supplier_contact_supplier_fkey"
+            columns: ["supplier_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "supplier"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "tenant_id"]
           },
           {
             foreignKeyName: "supplier_contact_tenant_id_fkey"

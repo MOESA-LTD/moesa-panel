@@ -8,6 +8,12 @@
 --
 -- Now that public.supplier exists, documents with entity_type 'supplier' are checked against it
 -- (private.document_check_entity, 016_documents.sql).
+--
+-- Project rule for every child→parent reference between tenant-scoped tables: the foreign key
+-- includes tenant_id (parent UNIQUE (id, tenant_id), child FOREIGN KEY (parent_id, tenant_id)).
+-- Referential checks bypass RLS, so a plain FK on the id alone would let a row point at another
+-- tenant's parent (and probe which ids exist there), and that tenant's deletes would cascade into
+-- this tenant's rows.
 
 CREATE TYPE public.supplier_status AS ENUM ('candidate', 'approved', 'suspended');
 
@@ -34,7 +40,9 @@ CREATE TABLE IF NOT EXISTS public.supplier (
    notes TEXT,
    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-   CONSTRAINT unique_supplier_code UNIQUE (tenant_id, code)
+   CONSTRAINT unique_supplier_code UNIQUE (tenant_id, code),
+   -- Target of the tenant-scoped foreign keys of the supplier's child rows.
+   CONSTRAINT supplier_id_tenant_id_key UNIQUE (id, tenant_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_supplier_tenant_status ON public.supplier (tenant_id, status);
@@ -49,12 +57,13 @@ EXECUTE FUNCTION private.set_updated_at ();
 CREATE TABLE IF NOT EXISTS public.supplier_contact (
    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
    tenant_id UUID NOT NULL REFERENCES public.tenant (id) ON DELETE CASCADE,
-   supplier_id UUID NOT NULL REFERENCES public.supplier (id) ON DELETE CASCADE,
+   supplier_id UUID NOT NULL,
    name TEXT NOT NULL,
    role TEXT,
    email TEXT,
    phone TEXT,
-   is_primary BOOLEAN NOT NULL DEFAULT FALSE
+   is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+   CONSTRAINT supplier_contact_supplier_fkey FOREIGN KEY (supplier_id, tenant_id) REFERENCES public.supplier (id, tenant_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_supplier_contact_supplier ON public.supplier_contact (tenant_id, supplier_id);

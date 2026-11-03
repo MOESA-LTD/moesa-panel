@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 BEGIN;
 
-SELECT plan(10);
+SELECT plan(12);
 
 SELECT has_table('public', 'supplier', 'supplier table');
 
@@ -78,6 +78,24 @@ SELECT lives_ok(
                 'https://example.test/contract.pdf')
     $$,
     'a document attaches to the tenant''s own supplier'
+);
+
+SELECT throws_ok(
+    $$
+        INSERT INTO public.supplier_contact (tenant_id, supplier_id, name)
+        VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000171', 'Intruder')
+    $$,
+    '23503',
+    NULL,
+    'a contact cannot point at another tenant''s supplier'
+);
+
+SELECT is(
+    (SELECT count(*)::INT FROM public.supplier s
+     JOIN public.supplier_contact c ON c.supplier_id = s.id
+     WHERE s.code = 'CN1' AND s.tenant_id = current_setting('test.tenant_id')::UUID),
+    1,
+    'Atlas sees its own CN1 and its contact'
 );
 
 SELECT is(
