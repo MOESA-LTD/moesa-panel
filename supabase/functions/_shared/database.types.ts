@@ -672,6 +672,151 @@ export type Database = {
           },
         ]
       }
+      supplier: {
+        Row: {
+          cancellation_rule: string | null
+          capacity_note: string | null
+          city: string | null
+          code: string
+          country: string
+          created_at: string
+          damage_notice_hours: number | null
+          default_incoterm: string | null
+          deposit_rate: number | null
+          display_name: string
+          id: string
+          last_audit_on: string | null
+          late_payment_penalty: string | null
+          notes: string | null
+          payment_terms: string | null
+          product_groups: string[]
+          rating: number | null
+          status: Database["public"]["Enums"]["supplier_status"]
+          storage_fee_rule: string | null
+          tenant_id: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          cancellation_rule?: string | null
+          capacity_note?: string | null
+          city?: string | null
+          code: string
+          country: string
+          created_at?: string
+          damage_notice_hours?: number | null
+          default_incoterm?: string | null
+          deposit_rate?: number | null
+          display_name: string
+          id?: string
+          last_audit_on?: string | null
+          late_payment_penalty?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          product_groups?: string[]
+          rating?: number | null
+          status?: Database["public"]["Enums"]["supplier_status"]
+          storage_fee_rule?: string | null
+          tenant_id: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          cancellation_rule?: string | null
+          capacity_note?: string | null
+          city?: string | null
+          code?: string
+          country?: string
+          created_at?: string
+          damage_notice_hours?: number | null
+          default_incoterm?: string | null
+          deposit_rate?: number | null
+          display_name?: string
+          id?: string
+          last_audit_on?: string | null
+          late_payment_penalty?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          product_groups?: string[]
+          rating?: number | null
+          status?: Database["public"]["Enums"]["supplier_status"]
+          storage_fee_rule?: string | null
+          tenant_id?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_contact: {
+        Row: {
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          phone: string | null
+          role: string | null
+          supplier_id: string
+          tenant_id: string
+        }
+        Insert: {
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          phone?: string | null
+          role?: string | null
+          supplier_id: string
+          tenant_id: string
+        }
+        Update: {
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          phone?: string | null
+          role?: string | null
+          supplier_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_contact_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant: {
         Row: {
           address: string | null
@@ -1146,6 +1291,7 @@ export type Database = {
         | "contract"
         | "certificate"
         | "other"
+      supplier_status: "candidate" | "approved" | "suspended"
       type_permission_command: "select" | "insert" | "update" | "delete"
       type_permission_kind: "read" | "create" | "modify"
     }

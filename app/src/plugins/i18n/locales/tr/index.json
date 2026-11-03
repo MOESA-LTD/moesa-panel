@@ -326,7 +326,15 @@
          "ops": "Operasyon",
          "ops_setting": "Ayarlar",
          "ops_document_add": "Belge ekle",
-         "ops_document_edit": "Belgeyi düzenle"
+         "ops_document_edit": "Belgeyi düzenle",
+         "ops_supplier": "Tedarikçiler",
+         "ops_supplier_list": "Tedarikçi listesi",
+         "ops_supplier_manage": "Tedarikçi kartı",
+         "ops_supplier_general": "Genel",
+         "ops_supplier_contacts": "Kişiler",
+         "ops_supplier_documents": "Belgeler",
+         "ops_supplier_contact_add": "Kişi ekle",
+         "ops_supplier_contact_edit": "Kişiyi düzenle"
       }
    },
    "fields": {
@@ -690,6 +698,57 @@
             "purchase_order": "Satın alma siparişi",
             "shipment": "Sevkiyat",
             "incident": "Olay"
+         }
+      },
+      "supplier": {
+         "title": "Tedarikçiler",
+         "select": "Tedarikçi seçin",
+         "tabs": {
+            "general": "Genel",
+            "contacts": "Kişiler",
+            "documents": "Belgeler"
+         },
+         "sections": {
+            "general": "Tedarikçi",
+            "capability": "Yetkinlik",
+            "terms": "Ticari koşullar"
+         },
+         "fields": {
+            "code": "Kod",
+            "display_name": "Ad",
+            "country": "Ülke",
+            "city": "Şehir",
+            "website": "Web sitesi",
+            "product_groups": "Ürün grupları",
+            "capacity_note": "Kapasite",
+            "default_incoterm": "Varsayılan Incoterm",
+            "deposit_rate": "Kapora oranı (%)",
+            "payment_terms": "Ödeme koşulları",
+            "damage_notice_hours": "Hasar bildirimi (saat)",
+            "storage_fee_rule": "Depolama ücreti",
+            "late_payment_penalty": "Geç ödeme cezası",
+            "cancellation_rule": "İptal",
+            "rating": "Puan (1–5)",
+            "last_audit_on": "Son denetim",
+            "status": "Durum",
+            "notes": "Notlar"
+         },
+         "status": {
+            "candidate": "Aday",
+            "approved": "Onaylı",
+            "suspended": "Askıda"
+         },
+         "errors": {
+            "invalid_code": "İki büyük harf ve 1–3 rakam, ör. CN1"
+         },
+         "contact": {
+            "fields": {
+               "name": "Ad",
+               "role": "Görev",
+               "email": "E-posta",
+               "phone": "Telefon",
+               "is_primary": "Birincil kişi"
+            }
          }
       }
    }

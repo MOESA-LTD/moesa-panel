@@ -111,7 +111,15 @@
          "ops": "Operations",
          "ops_setting": "Settings",
          "ops_document_add": "Add document",
-         "ops_document_edit": "Edit document"
+         "ops_document_edit": "Edit document",
+         "ops_supplier": "Suppliers",
+         "ops_supplier_list": "Supplier list",
+         "ops_supplier_manage": "Supplier card",
+         "ops_supplier_general": "General",
+         "ops_supplier_contacts": "Contacts",
+         "ops_supplier_documents": "Documents",
+         "ops_supplier_contact_add": "Add contact",
+         "ops_supplier_contact_edit": "Edit contact"
       }
    },
    "auth": {
@@ -690,6 +698,57 @@
             "purchase_order": "Purchase order",
             "shipment": "Shipment",
             "incident": "Incident"
+         }
+      },
+      "supplier": {
+         "title": "Suppliers",
+         "select": "Select a supplier",
+         "tabs": {
+            "general": "General",
+            "contacts": "Contacts",
+            "documents": "Documents"
+         },
+         "sections": {
+            "general": "Supplier",
+            "capability": "Capability",
+            "terms": "Commercial terms"
+         },
+         "fields": {
+            "code": "Code",
+            "display_name": "Name",
+            "country": "Country",
+            "city": "City",
+            "website": "Website",
+            "product_groups": "Product groups",
+            "capacity_note": "Capacity",
+            "default_incoterm": "Default Incoterm",
+            "deposit_rate": "Deposit rate (%)",
+            "payment_terms": "Payment terms",
+            "damage_notice_hours": "Damage notice (hours)",
+            "storage_fee_rule": "Storage fee",
+            "late_payment_penalty": "Late payment penalty",
+            "cancellation_rule": "Cancellation",
+            "rating": "Rating (1–5)",
+            "last_audit_on": "Last audit",
+            "status": "Status",
+            "notes": "Notes"
+         },
+         "status": {
+            "candidate": "Candidate",
+            "approved": "Approved",
+            "suspended": "Suspended"
+         },
+         "errors": {
+            "invalid_code": "Two capital letters and 1–3 digits, e.g. CN1"
+         },
+         "contact": {
+            "fields": {
+               "name": "Name",
+               "role": "Role",
+               "email": "E-mail",
+               "phone": "Phone",
+               "is_primary": "Primary contact"
+            }
          }
       }
    }

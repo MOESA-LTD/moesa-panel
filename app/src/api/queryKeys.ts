@@ -29,7 +29,8 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
 const CASCADES: Partial<Record<TableName, TableName[]>> = {
    user: ['tenant_owner', 'tenant_user', 'user_role'],
    permission: ['role_permission'],
-   role: ['role_permission', 'user_role']
+   role: ['role_permission', 'user_role'],
+   supplier: ['supplier_contact']
 };
 
 // Every authenticated write is recorded by the audit trigger.
