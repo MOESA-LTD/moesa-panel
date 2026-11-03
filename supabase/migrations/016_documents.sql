@@ -1,19 +1,23 @@
 -- Documents: the evidence every business record (customer, supplier, product, project, gate and the
 -- Phase 2 purchase orders, shipments and incidents) is backed by. A document belongs to one record
--- (entity_type, entity_id) and is versioned per type: a new version supersedes the older ones.
+-- (entity_type, entity_id) and is versioned per type within its tenant: a new version supersedes
+-- the tenant's older ones, and version numbers are unique per tenant, so one tenant cannot take
+-- another's version slot.
 --
 -- entity_id is checked by a trigger rather than a foreign key, since it points into a different
 -- table per entity_type. A table that does not exist yet (Phase 2) lets any id through; once it
--- exists, the row must. customer_id (whose customer the document concerns, for the customer's
+-- exists, the row must, in the document's own tenant. customer_id (whose customer the document concerns, for the customer's
 -- document list) has no foreign key yet: public.customer arrives later and adds it.
 --
 -- Documents are records of what was sent and signed, so they are never deleted: there is no delete
 -- permission, and DELETE is revoked so an attempt fails instead of silently removing nothing.
 --
--- document_check_entity and document_supersede are SECURITY DEFINER: the check must find a row the
--- caller's RLS hides on the target table (the document's own tenant policies still apply), and
--- superseding older versions is part of adding a version, so it must not depend on the caller's
--- right to update documents.
+-- document_check_entity and document_supersede are SECURITY DEFINER, so both filter on the
+-- document's tenant_id themselves: the check does not depend on the caller's select right on the
+-- target table, but the row must still be in the document's own tenant (no attaching to, or
+-- probing for, another tenant's rows); superseding older versions is part of adding a version, so
+-- it does not depend on the caller's right to update documents, and touches only the same tenant's
+-- documents.
 
 CREATE TYPE public.document_type AS ENUM (
    'spec_sheet',
@@ -72,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.document (
    created_by UUID DEFAULT auth.uid (),
    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-   CONSTRAINT unique_document_version UNIQUE (entity_type, entity_id, type, version),
+   CONSTRAINT unique_document_version UNIQUE (tenant_id, entity_type, entity_id, type, version),
    CONSTRAINT document_has_file CHECK (url IS NOT NULL OR storage_path IS NOT NULL)
 );
 
@@ -98,7 +102,7 @@ CREATE OR REPLACE TRIGGER set_updated_at BEFORE
 UPDATE ON public.document FOR EACH ROW
 EXECUTE FUNCTION private.set_updated_at ();
 
--- The record a document belongs to must exist, once its table does.
+-- The record a document belongs to must exist in the document's tenant, once its table does.
 CREATE OR REPLACE FUNCTION private.document_check_entity () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -109,9 +113,9 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE id = $1)', NEW.entity_type::TEXT)
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE id = $1 AND tenant_id = $2)', NEW.entity_type::TEXT)
     INTO found
-    USING NEW.entity_id;
+    USING NEW.entity_id, NEW.tenant_id;
 
     IF NOT found THEN
         RAISE EXCEPTION 'document_entity_missing' USING ERRCODE = 'foreign_key_violation';
@@ -143,14 +147,15 @@ OR
 UPDATE ON public.document FOR EACH ROW
 EXECUTE FUNCTION private.document_signed_requires ();
 
--- A new version supersedes the older versions of the same document.
+-- A new version supersedes the older versions of the same document in the same tenant.
 CREATE OR REPLACE FUNCTION private.document_supersede () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
 BEGIN
     UPDATE public.document
     SET status = 'superseded'
-    WHERE entity_type = NEW.entity_type
+    WHERE tenant_id = NEW.tenant_id
+      AND entity_type = NEW.entity_type
       AND entity_id = NEW.entity_id
       AND type = NEW.type
       AND version < NEW.version
