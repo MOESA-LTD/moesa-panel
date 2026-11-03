@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- rolled back.
 BEGIN;
 
-SELECT plan(12);
+SELECT plan(14);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 
@@ -92,6 +92,22 @@ SELECT throws_ok(
     '42501',
     NULL,
     'the coordinator cannot change the settings'
+);
+
+-- Branch management is not the coordinator's: the company's details stay read-only, and a branch
+-- cannot be opened by a direct insert either (branches are opened by public.create_branch, owners only).
+SELECT throws_ok(
+    $$ UPDATE public.tenant SET display_name = display_name WHERE id = current_setting('test.tenant_id')::UUID $$,
+    '42501',
+    NULL,
+    'the coordinator cannot change the company or its branches'
+);
+
+SELECT throws_ok(
+    format('INSERT INTO public.tenant (display_name, parent_id) VALUES (%L, %L)', 'X', current_setting('test.tenant_id')),
+    '42501',
+    NULL,
+    'the coordinator cannot open a branch'
 );
 
 SELECT lives_ok(

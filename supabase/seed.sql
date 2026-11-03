@@ -29,7 +29,8 @@ NOTIFY pgrst,
 -- MOESA LTD has the two Phase 1 roles (spec §7), built by private.seed_ops_roles:
 --   management   every permission of the business modules (ops_setting, document, supplier,
 --                customer, product, project) and of branch, user, role and audit_log
---   coordinator  the same, but the settings, the users and the roles read-only
+--   coordinator  the same, but the settings, the users, the roles and the company and its branches
+--                read-only
 -- and the THOMETZKI customer (THO) with its warehouse, Amazon account, brand and a contact; five
 -- approved suppliers; three products on sale (THO-MOP40-2P with a signed spec sheet); and the
 -- "Mop ailesi çok ülke pilotu" project, its gates all pending (it waits on G1).
@@ -104,7 +105,8 @@ END;
 $$;
 
 -- The two Phase 1 roles of MOESA (spec §7): management (every permission of the business and core
--- modules) and coordinator (the same, without changing the settings, the users or the roles).
+-- modules) and coordinator (the same, without changing the settings, the users, the roles or the
+-- company and its branches).
 CREATE OR REPLACE FUNCTION private.seed_ops_roles (tenant_id UUID) RETURNS VOID LANGUAGE plpgsql
 SET
     search_path = '' AS $$
@@ -121,7 +123,8 @@ BEGIN
                             'branch', 'user', 'role', 'audit_log')
        AND (r.display_name = 'management'
             OR NOT (p.group_name = 'ops_setting' AND p.command = 'update'
-                    OR p.group_name IN ('role', 'user') AND p.command <> 'select'))
+                    OR p.group_name IN ('role', 'user') AND p.command <> 'select'
+                    OR p.resource_name = 'public.tenant' AND p.command <> 'select'))
     WHERE r.tenant_id = seed_ops_roles.tenant_id AND r.display_name IN ('management', 'coordinator');
 END;
 $$;
