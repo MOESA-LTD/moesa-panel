@@ -4,11 +4,11 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- the media_max_mb setting (a branch uses its company's), the file rules of public.media (the
 -- file must be uploaded; Storage gives its type and size; no SVG, nothing over the limit, the path
 -- in the media's own folder, the file fixed), the bucket's policies (upload into one's own tenant
--- only, a file whose row exists is kept) and the tenant isolation of the rows. What it writes is
--- rolled back.
+-- only, a file whose row exists is kept, one whose row is gone is deleted) and the tenant
+-- isolation of the rows and the files. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(15);
+SELECT plan(18);
 
 SELECT set_config('test.moesa', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 SELECT set_config('test.atlas', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'Atlas Danışmanlık')::TEXT, TRUE);
@@ -151,6 +151,44 @@ SELECT is(
     (SELECT count(*)::INT FROM public.media WHERE id = current_setting('test.m241')::UUID),
     0,
     'another tenant cannot read the media'
+);
+
+SELECT is(
+    (SELECT count(*)::INT FROM storage.objects
+     WHERE bucket_id = 'media' AND name LIKE current_setting('test.moesa') || '/%'),
+    0,
+    'another tenant cannot read the files either'
+);
+
+RESET ROLE;
+
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+
+SELECT ok(
+    (SELECT count(*) FROM storage.objects
+     WHERE bucket_id = 'media' AND name LIKE current_setting('test.moesa') || '/%') > 0,
+    'the company reads its own files'
+);
+
+RESET ROLE;
+
+-- Management deletes a file: the row first, then its object, which the policy now lets go.
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+
+DELETE FROM public.media WHERE id = current_setting('test.m241')::UUID;
+
+SELECT results_eq(
+    $$
+        WITH removed AS (
+            DELETE FROM storage.objects
+            WHERE bucket_id = 'media'
+              AND name = current_setting('test.moesa') || '/' || current_setting('test.m241') || '/a.png'
+            RETURNING 1
+        )
+        SELECT count(*)::INT FROM removed
+    $$,
+    ARRAY[1],
+    'once its row is gone, management deletes the file'
 );
 
 SELECT * FROM finish();
