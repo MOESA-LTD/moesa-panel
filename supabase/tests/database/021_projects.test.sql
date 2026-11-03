@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 BEGIN;
 
-SELECT plan(24);
+SELECT plan(31);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'Atlas Danışmanlık')::TEXT, TRUE);
 
@@ -240,6 +240,40 @@ SELECT lives_ok(
     $$,
     'a rolled-back gate can be passed again'
 );
+
+-- Projects that are not new products start in the phase their first gate closes.
+INSERT INTO public.project (id, tenant_id, customer_id, display_name, type, packages)
+VALUES ('00000000-0000-4000-8000-000000000218', current_setting('test.tenant_id')::UUID,
+        '00000000-0000-4000-8000-000000000212', 'Hose reorder', 'reorder', ARRAY['A1']),
+       ('00000000-0000-4000-8000-000000000219', current_setting('test.tenant_id')::UUID,
+        '00000000-0000-4000-8000-000000000212', 'Hose 20 m variant', 'variant', ARRAY['A1']);
+
+SELECT is(
+    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000218'),
+    'P3',
+    'a reorder project starts at P3'
+);
+
+SELECT is(
+    (SELECT array_agg(DISTINCT t.phase)::TEXT || ':' || count(*) FROM public.project_task t
+     WHERE t.project_id = '00000000-0000-4000-8000-000000000218'),
+    '{P3}:' || (SELECT count(*) FROM public.task_template tt WHERE tt.phase = 'P3'),
+    'a reorder project gets the P3 checklist, not P1''s'
+);
+
+SELECT is(
+    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000219'),
+    'P2',
+    'a variant project starts at P2'
+);
+
+SELECT is(public.initial_phase('npi', 'a_sourcing', ARRAY['A0'])::TEXT, 'PL1', 'an A0-only project starts at PL1');
+
+SELECT is(public.initial_phase('reorder', NULL, ARRAY['B'])::TEXT, 'P5', 'a B-only project starts at P5');
+
+SELECT is(public.phase_after('PL_G2', 'a_sourcing', ARRAY['A0'])::TEXT, 'closed', 'an A0-only project closes after PL-G2');
+
+SELECT is(public.phase_after('PL_G2', 'b_private_label', ARRAY['A2'])::TEXT, 'PL4', 'a private label project goes on to PL4 after PL-G2');
 
 -- Another company sees none of it.
 RESET ROLE;

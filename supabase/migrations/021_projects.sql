@@ -17,7 +17,8 @@
 --                  migrations, not audited.
 --
 -- Gate model (spec M5, K3). The gate set follows from the project's type, path and packages
--- (public.gates_for); gates are passed in their order (position). Passing a gate moves the
+-- (public.gates_for); a project starts in the phase its first gate closes (public.initial_phase),
+-- with that phase's checklist. Gates are passed in their order (position). Passing a gate moves the
 -- project to the phase after it (public.phase_after) and adds that phase's checklist. Rules
 -- enforced by pass_gate, in order, each a check_violation whose message is the rule's code:
 --   gate_not_pending                 the gate is already passed
@@ -33,7 +34,7 @@
 -- is reopened in place: pass_gate accepts it like a pending one, so the UI simply passes it again.
 -- In Phase 2 a rollback is tied to an incident (M10).
 --
--- gates_for, phase_after and phase_before are pure functions in public: pass_gate and
+-- gates_for, initial_phase, phase_after and phase_before are pure functions in public: pass_gate and
 -- rollback_gate are SECURITY INVOKER and signed-in users have no USAGE on schema private, and the
 -- UI uses them too (the phase strip). The trigger functions are in private and not executable by
 -- users. The code trigger runs as the caller: it reads the customer through RLS and gets the code
@@ -111,7 +112,8 @@ SET
     SELECT (CASE phase_after.code
         WHEN 'G1' THEN CASE WHEN phase_after.path = 'b_private_label' THEN 'PL1' ELSE 'P2' END
         WHEN 'PL_G1' THEN 'PL3'
-        WHEN 'PL_G2' THEN 'PL4'
+        -- An A0-only project ends with the concept and brand approved.
+        WHEN 'PL_G2' THEN CASE WHEN phase_after.packages = ARRAY['A0'] THEN 'closed' ELSE 'PL4' END
         WHEN 'PL_G3' THEN 'PL6'
         WHEN 'PL_G4' THEN 'P3'
         WHEN 'G2' THEN 'P3'
@@ -141,6 +143,24 @@ SET
         WHEN 'L_G2' THEN 'L5'
     END)::public.project_phase;
 $$;
+
+-- The phase a new project starts in: the phase its first gate closes. A0 covers PL1–PL3 (PL_G1
+-- closes PL2, after PL1), B covers P5–P6.
+CREATE OR REPLACE FUNCTION public.initial_phase (type public.project_type, path public.project_path, packages TEXT[]) RETURNS public.project_phase LANGUAGE sql IMMUTABLE
+SET
+   search_path = '' AS $$
+    SELECT (CASE
+        WHEN initial_phase.packages = ARRAY['A0'] THEN 'PL1'
+        WHEN initial_phase.packages = ARRAY['B'] THEN 'P5'
+        WHEN initial_phase.type = 'npi' THEN 'P1'
+        WHEN initial_phase.type IN ('variant', 'revision') THEN 'P2'
+        ELSE 'P3'
+    END)::public.project_phase;
+$$;
+
+REVOKE ALL ON FUNCTION public.initial_phase (public.project_type, public.project_path, TEXT[]) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.initial_phase (public.project_type, public.project_path, TEXT[]) TO authenticated;
 
 REVOKE ALL ON FUNCTION public.gates_for (public.project_type, public.project_path, TEXT[]) FROM PUBLIC, anon;
 
@@ -290,7 +310,8 @@ CREATE OR REPLACE TRIGGER set_updated_at BEFORE
 UPDATE ON public.project FOR EACH ROW
 EXECUTE FUNCTION private.set_updated_at ();
 
--- The project's code: the customer's code, the year and the customer's next number. A customer
+-- The project's code: the customer's code, the year and the customer's next number; and its
+-- starting phase (public.initial_phase), whatever the client sends. A customer
 -- the caller cannot see in the project's tenant is a missing customer (23503), as the foreign key
 -- would report it.
 CREATE OR REPLACE FUNCTION private.project_set_code () RETURNS TRIGGER LANGUAGE plpgsql
@@ -308,6 +329,7 @@ BEGIN
     END IF;
 
     NEW.code := public.next_code('project', customer_code);
+    NEW.current_phase := public.initial_phase(NEW.type, NEW.path, NEW.packages);
     RETURN NEW;
 END;
 $$;

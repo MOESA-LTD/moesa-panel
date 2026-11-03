@@ -2060,6 +2060,14 @@ export type Database = {
         }
         Returns: Json
       }
+      initial_phase: {
+        Args: {
+          type: Database["public"]["Enums"]["project_type"]
+          path: Database["public"]["Enums"]["project_path"]
+          packages: string[]
+        }
+        Returns: Database["public"]["Enums"]["project_phase"]
+      }
       is_super_admin: {
         Args: {
           user_id: string
