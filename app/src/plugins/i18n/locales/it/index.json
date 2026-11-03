@@ -591,7 +591,8 @@
             "email_confirmed_at": "Email confermata il",
             "last_sign_in_at": "Ultimo accesso il"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "Aggiornato",

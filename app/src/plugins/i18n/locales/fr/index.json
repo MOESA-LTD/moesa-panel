@@ -432,7 +432,8 @@
             "email_confirmed_at": "E-mail confirmé le",
             "last_sign_in_at": "Dernière connexion"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "Mis à jour",

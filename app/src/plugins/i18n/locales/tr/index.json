@@ -302,6 +302,7 @@
       "document_file_required": "Drive bağlantısı ya da dosya ekleyin."
    },
    "account": {
+      "logout": "Çıkış yap",
       "profile": {
          "user_info": "Kullanıcı Bilgisi",
          "name": "Ad Soyad",

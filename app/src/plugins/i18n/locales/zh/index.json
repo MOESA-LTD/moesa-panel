@@ -432,7 +432,8 @@
             "email_confirmed_at": "电子邮件确认时间",
             "last_sign_in_at": "最近登录时间"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "已更新",

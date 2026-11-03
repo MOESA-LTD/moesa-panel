@@ -421,6 +421,7 @@
       "document_file_required": "Add a Drive link or a file."
    },
    "account": {
+      "logout": "Log out",
       "profile": {
          "user_info": "User Information",
          "name": "Full Name",

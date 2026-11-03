@@ -1,7 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
-import { useConfirm } from 'primevue';
-import router from '..';
 
 const routes: RouteRecordRaw[] = [
    {
@@ -68,42 +66,6 @@ const routes: RouteRecordRaw[] = [
                   }
                }
             ]
-         },
-         {
-            meta: {
-               label: 'route.label.logout',
-               icon: PrimeIcons.SIGN_OUT
-            },
-            async beforeEnter() {
-               const res = new Promise<boolean>((resolve) => {
-                  useConfirm().require({
-                     icon: PrimeIcons.EXCLAMATION_TRIANGLE,
-                     message: i18n.t('auth.confirm.logout.question'),
-                     header: i18n.t('auth.confirm.logout.header'),
-                     acceptProps: {
-                        label: i18n.t('action.yes'),
-                        outlined: true
-                     },
-                     rejectProps: {
-                        label: i18n.t('action.no'),
-                        severity: 'secondary',
-                        outlined: true
-                     },
-                     accept: () => resolve(true),
-                     reject: async () => {
-                        if (router.options.history.state.back) {
-                           return resolve(false);
-                        }
-                        await router.replace({ name: 'account-profile' });
-                        resolve(false);
-                     }
-                  });
-               });
-               return await res;
-            },
-            path: 'logout',
-            name: 'logout',
-            component: () => import('@/views/pages/auth/Logout.vue')
          }
       ]
    }

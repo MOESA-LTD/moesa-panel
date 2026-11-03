@@ -58,10 +58,7 @@ export function useAuthUi() {
             summary: i18n.t('auth.toast.goodby')
          });
 
-         if (route.meta?.requiresAuth) {
-            if (route.name === 'logout') await router.replace({ name: 'auth-login' });
-            else await router.push({ name: 'auth-login' });
-         }
+         if (route.meta?.requiresAuth) await router.push({ name: 'auth-login' });
       }
    });
 }

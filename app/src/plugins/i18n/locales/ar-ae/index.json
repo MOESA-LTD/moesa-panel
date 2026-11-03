@@ -591,7 +591,8 @@
             "email_confirmed_at": "تم تأكيد البريد الإلكتروني في",
             "last_sign_in_at": "آخر تسجيل دخول في"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "تم التحديث",

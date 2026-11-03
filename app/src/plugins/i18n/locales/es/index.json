@@ -505,7 +505,8 @@
             "email_confirmed_at": "Correo electrónico confirmado en",
             "last_sign_in_at": "Último inicio de sesión"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "Actualizado",

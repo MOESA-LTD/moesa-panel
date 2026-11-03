@@ -10,8 +10,6 @@ import type { NavigationGuardWithThis, RouteLocationRaw } from 'vue-router';
  * or quarter (see openRouteDialog).
  */
 export const dialogBeforeEach: NavigationGuardWithThis<undefined> = async (to, from) => {
-   if (to.name == 'logout') return;
-
    const position = to.query?.showDialog as DialogPosition | undefined;
    if (!position || !to.matched.at(-1)?.components) return;
 

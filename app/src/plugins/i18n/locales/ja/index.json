@@ -432,7 +432,8 @@
             "email_confirmed_at": "電子メール確認日時",
             "last_sign_in_at": "最後のログイン日時"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "更新されました",

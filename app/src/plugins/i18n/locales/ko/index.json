@@ -432,7 +432,8 @@
             "email_confirmed_at": "이메일 인증일",
             "last_sign_in_at": "최근 로그인일"
          }
-      }
+      },
+      "logout": "Log out"
    },
    "toast": {
       "updated": "수정됨",
