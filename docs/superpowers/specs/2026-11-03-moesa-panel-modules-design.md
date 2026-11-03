@@ -140,6 +140,8 @@ Banka, vergi/EORI, şifre, platform vaka numarası için alan yoktur. Müşteri 
 | M17 | Listing içeriği (EN ana set, çeviriler, platform attribute katmanı, dışa aktarım) | L2–L4 | T10, S13 | 3 |
 | M18 | Platform entegrasyonları (SP-API rapor okuma, sonra yayınlama; diğer pazar yerleri adaptör olarak) | L4, O1–O2 | — | 4 |
 | M19 | Ortam yönetimi (fotoğraf, görsel, dosya; her kayda bağlanır) | §7.6 fotoğraf/video kanıtı, PL7, L2 | — | **2 (ilk görev)** |
+| M20 | Rehber ve sözlük (alan ipuçları, seçenek açıklamaları, sayfa başına rol duyarlı yan panel) | tüm süreç; terimler A1/B/C/E, kapılar, belge türleri | 06 §1, §2, S12 | **2 (son görev)** |
+| M21 | Kiracılar arası veri aktarımı (müşteri paketi; kopyala / taşı; prova raporu) | — | — | **3 (ilk görev)** |
 
 Faz 1 "tek doğru kaynak", Faz 2 "operasyon", Faz 3 "sürekli yönetim ve müşteri", Faz 4 "entegrasyonlar" (ikinci müşteriden sonra, çok kanallı araç satın almakla karşılaştırılarak karar verilir). Faz 3 modülleri Faz 2 bitince yeniden önceliklenir; bu belge onların yalnızca sınırını çizer.
 
@@ -330,9 +332,50 @@ C-G1 müşteri kaydındadır (M1). (M) işaretli kapılar 06 §2'deki gibi: G1, 
 
 **Ekranlar:** Ortam kütüphanesi (ızgara, filtre: müşteri, tür, etiket, bağlı kayıt); her kartta "Ortam" sekmesi (sürükle-bırak yükleme, çoklu seçim, birincil görsel işareti, kütüphaneden bağla); ürün listesinde küçük resim sütunu.
 
-**Kurallar:** Kabul edilen türler görsel (png/jpg/webp), pdf, video (mp4) — SVG yok; boyut sınırı ayarda (`media_max_mb`, varsayılan 25). Yazma izni ilgili kaydın `update` iznine bağlı (tenant-logo kalıbı); silme yalnız bağlantısı olmayan ortamda ve `management` rolünde. Ürün başına tek `primary_image`. Faz 2'deki "kanıt belgeleri için yükleme" bu modül üzerinden yapılır: kanıt türü belgeler bir `media` dosyasına bağlanır, Drive bağlantısı opsiyonel kalır.
+**Kurallar:** Kabul edilen türler görsel (png/jpg/webp), pdf, video (mp4) — SVG yok; boyut sınırı ayarda (`media_max_mb`, varsayılan 25). Yazma izni ilgili kaydın `update` iznine bağlı (tenant-logo kalıbı); silme yalnız bağlantısı olmayan ortamda ve `management` rolünde. Ürün başına tek `primary_image`. Faz 2'deki belge yükleme bu modül üzerinden yapılır: **her belge türü** (kanıt türleri ve spec sheet, SDS, DoC gibi ürün belgeleri dahil) bir `media` dosyasına bağlanabilir ya da Drive bağlantısıyla kalır; belge formunda "Drive bağlantısı" yanında "dosya yükle / kütüphaneden seç" bulunur (§11 madde 4'ün genişletilmiş hali, 03.11.2026 **[benim kararım]**). Belge kaydı (M4) ortam modülüne taşınmaz; ürün kartının Belgeler sekmesi aynı kalır, Ortam sekmesi fotoğraf ve görseller için ayrıca gelir. Kiracılar arası aktarım (M21) için `media` satırı ve dosyası birlikte hedef kiracının klasörüne kopyalanır; bu modül o kopyayı baştan destekler.
 
 **Faz 3 bağlantısı:** M17 listing içeriği görsel setini `media_link` rolleriyle (`primary_image`, `gallery`) okur; dışa aktarım için herkese açık URL gerekirse kovanın okuma politikası ürün görselleri için açılır (ayrı karar).
+
+### M20 Rehber ve sözlük (Faz 2, son görev) — eklendi 03.11.2026
+
+**Amaç:** Kullanıcı paketlerin (A1, B, C, E), kapıların, belge türlerinin ne olduğunu bilmeden paneli açabilmeli. İki soru, iki katman: "bu alan ne?" (ipucu, seçeneğin yanında) ve "bu sayfada ne yapacağım?" (sayfa rehberi). Sihirbaz ve adım adım ekran turu kapsam dışı; ilk gerçek kullanıcı geri bildiriminden sonra ayrı karar.
+
+**Katman 1 — sözlük ve ipuçları.** Her enum değeri için bir satır açıklama, i18n'de tek anahtar altında (`glossary.<enum>.<value>`): paketler, proje tipi ve yolu, kapı kodları, belge türleri ve durumları, tedarikçi ve müşteri durumları, ürün durumları, görev durumları. `select-enum` bileşeni açıklamayı seçenek satırının altında küçük yazıyla ve seçili değerin yanında bilgi simgesiyle gösterir. Alan ipuçları mevcut `*_hint` kalıbıyla büyür. Sözlük rol bağımsızdır.
+
+**Katman 2 — sayfa rehberi.** Her iş sayfasının başlığında "?" düğmesi; sağdan açılan yan panel (modal değil: kullanıcı okurken sayfayı kullanabilmeli). İçerik: bu sayfa ne için (2–3 cümle), sık yapılan işler adım adım (3–5 madde), ilgili sayfalara bağlantı, bu sayfanın terimleri (Katman 1'den otomatik). "Sık yapılan işler" rol duyarlıdır: koordinatör ve management aynı sayfada farklı liste görür; CASL yetkisine göre süzülür, ayrı içerik yazılmaz, her maddenin gerektirdiği yetki belirtilir. Panel ilk ziyarette bir kez kendiliğinden açılır; "bir daha gösterme" kullanıcı tercihi olarak saklanır (`localStorage`, hesaba bağlı değil). Giriş noktası dashboard: her kartın rehberi "bu kartı nasıl kapatırım" adımlarına bağlanır.
+
+**İçerik:** TR ve EN elle yazılır (K7); diğer diller `pnpm i18n-sync` ile İngilizce kopya. İçerik i18n'de Markdown değil düz metin ve madde listesi (çeviri sağlığı için). Sözlük metinlerinin kaynağı 06 §1–§2 ve S12.
+
+**İçerik sahipliği [benim kararım]:** sözlük ve rehber metinlerinin ilk taslağını geliştirici `ABOUT MOESA` belgelerinden (06 §1–§2, S12; repo dışında, `A:\job\e-commerce\moesa\ABOUT MOESA`) çıkarır; ürün sahibi TR metni gözden geçirir, EN geliştiricinindir. "Bir daha gösterme" tercihi sayfa başınadır (`guide.dismissed.<route>`), tek global bayrak değil.
+
+**Sıra:** sözlük ve ipuçları M19 ile birlikte Faz 2 başında (küçük, bağımsız); sayfa rehberleri Faz 2 sonunda, ekranlar oturduktan sonra (her ekran değişimi rehber metnini de değiştirir).
+
+### M21 Kiracılar arası veri aktarımı (Faz 3, ilk görev) — eklendi 03.11.2026
+
+**Amaç:** İki kiracıda da yetkili bir kullanıcı, seçtiği veriyi bir kiracıdan diğerine aktarabilsin: şube ↔ merkez, iki ayrı şirket, ya da kapanan (salt okunur) bir kiracıdan aktif olana. Ham `tenant_id` güncellemesi yetmez: salt okunur kiracıda UPDATE geçmez, bileşik FK'ler `ON UPDATE CASCADE` değildir, tedarikçi birden çok müşteriyle paylaşılır, belgeler polimorfik bağlıdır, geçmiş kapılar dondurulmuştur, kodlar kiracı başına tekildir, GTIN globaldir.
+
+**Birim: müşteri paketi.** Bir müşteri seçilir; onunla kişileri, depoları, platform hesapları, markaları, ürünleri (varyantlarıyla), projeleri (kapı, görev, proje-ürün satırları), bağlı belgeleri ve ürünlerin tedarikçileri (kişileriyle) gider. Ürün listesinden seçili ürünler de aktarılabilir; ürün tek başına gidemez, müşterisi hedefte yoksa müşteri kaydı onunla gider. Tedarikçi hiçbir modda kaynaktan çıkmaz (paylaşılan kayıt): her zaman kopyalanır ya da hedefteki mevcut tedarikçiye eşlenir.
+
+**İki mod.** *Kopyala:* kaynak dokunulmaz kalır. *Taşı:* hedefe yazılır, kaynaktan silinir (tedarikçi hariç); silme audit log'da eski satırla kalır, kod sayaçları ilerlemiş kalır (kod yeniden üretilmez), kaynaktaki GTIN serbest kalır. Taşı yalnız kaynak yazılabilirken; kaynak salt okunursa yalnız Kopyala sunulur. Kaydın kaynaktaki değişiklik geçmişi hedefe gitmez; hedefte kayıt "aktarımla geldi" audit girdisiyle başlar.
+
+**Prova raporu (kuru çalıştırma), aktarımdan önce zorunlu:** tablo başına kayıt sayısı; hedefte çakışan müşteri/tedarikçi/proje kodları ve `(customer, sku)` çiftleri; aktif GTIN çakışmaları; hedefte üye olmayan kullanıcılar (`created_by`, `assignee_id`); belge sürüm çakışmaları; hedefin ayarlarına göre eksik kalacaklar (örn. spec sheet zorunluluğu). Her çakışma için kullanıcı kararı: *eşle* (hedefteki mevcut kayda bağla; müşteri ve tedarikçi için), *yeni kod ver* (proje/müşteri/tedarikçi kodu hedef sayacından üretilir), *GTIN'i boş bırak*, *atla*. Eşleşmeyen kullanıcı → `created_by` aktarımı yapan, `assignee_id` NULL.
+
+**Uygulama:** tek `SECURITY DEFINER` fonksiyon `transfer_customer(source_tenant, target_tenant, customer_id, mode, decisions JSONB, dry_run BOOLEAN)`; tek işlem, hata olursa hiçbir şey yazılmaz. Kaynak ve hedef aynı şirket ağacındaysa, kaynak yazılabilirse ve prova çakışma göstermiyorsa fonksiyon `tenant_id` güncelleyerek taşır (ucuz yol; bileşik FK'lere `ON UPDATE CASCADE` eklenir, polimorfik belgeler ayrıca güncellenir); aksi halde yeni id'lerle kopyalar, Taşı modunda kaynakta FK sırasına göre siler. Geçmiş kapılar dondurma tetikleyicisini atlayarak yazılır; fonksiyon kapı sırasını ve durumunu kendisi doğrular. Sonuç `transfer` tablosu: kim, ne zaman, kaynak, hedef, mod, kararlar, eski→yeni id eşlemesi, rapor.
+
+**Yetki:** her iki kiracıda da yetki şart (kaynakta ilgili tabloların `select`, hedefte `insert`). Aynı şirket ağacı içinde `management` yeter; iki ayrı şirket arasında yalnız her ikisinin de owner'ı. Hedef kiracı salt okunursa ya da planı iş modüllerini içermiyorsa aktarım reddedilir. Bu modül çapraz kiracı veri hareketinin tek yoludur; RLS politikaları değişmez.
+
+**Aktarılmayanlar:** ayarlar, roller, kod sayaçları, audit geçmişi, dashboard okuma durumları. Drive bağlantıları olduğu gibi gider; M19 Storage dosyaları hedef kiracının klasörüne kopyalanır (M19 bu kopyayı baştan destekler: `media` satırı ve dosya birlikte).
+
+**Kenar durumları (gözden geçirici sorularına kararlar, 03.11.2026) [benim kararım]:**
+- *Tedarikçi her iki yolda da aynı adımdan geçer:* önce hedefte eşle-ya-da-kopyala, sonra ürünlerin `supplier_id`'si yeni id'ye çevrilir. Ucuz yol (`tenant_id` güncellemesi) yalnız müşteri köklü satırlara uygulanır; tedarikçi satırı hiçbir zaman `tenant_id` değiştirmez.
+- *Paket dışına işaret eden satırlar:* tedarikçiye bağlı belgeler tedarikçi kopyasıyla birlikte **kopyalanır** (taşınmaz). Paylaşılan ortam (`customer_id` NULL) aktarılan ürüne bağlıysa `media` satırı ve dosyası kopyalanır, kaynaktaki kalır. Yalnız ürün aktarımında ürün geride kalan bir projede kullanılıyorsa Taşı **reddedilir** (prova raporu projeyi listeler; Kopyala serbesttir). Hiçbir durumda bağlantı sessizce düşürülmez.
+- *Sonraki modüllerin tabloları:* fonksiyon bir tablo kayıt listesi (registry) üzerinden çalışır: hangi tablo, hangi FK ile müşteri/ürün/proje köküne bağlı, hangi sırada. pgTAP testi, `customer`/`product`/`project`'e FK'si olup listede olmayan bir tablo bulursa başarısız olur; M7–M16 her yeni tablosunu listeye ekler. M21 ilk sürümde Faz 1 ve Faz 2 tablolarını kapsar.
+- *Storage dosyaları işlemsel değildir:* satırlar tek işlemde yazılır ve commit edilir; dosyalar sonra uygulama tarafından kopyalanır. `transfer.files_status` (`pending` / `done` / `partial`) ve eksik dosya listesi tutulur; "Dosyaları yeniden kopyala" düğmesiyle tekrar denenir. Taşı modunda kaynak dosyalar ancak kopya tamamlanınca silinir. İlk sürüm senkron RPC; paket büyüklüğü sorun olursa Edge Function'a taşınır (ayrı karar).
+- *Prova ve uygulama arası tutarlılık:* uygulama çağrısı analizi yeniden çalıştırır ve çakışma kümesinin özetini (hash) prova raporuyla karşılaştırır; değiştiyse `transfer_report_stale` ile reddeder. `decisions` JSONB anahtarı `<tablo>:<kaynak_id>`, değeri `{action: map|new_code|clear_gtin|skip, target_id?}`.
+- *"Aynı şirket ağacı":* `tenant.parent_id` zinciriyle aynı köke ulaşan iki kiracı. "Planı iş modüllerini içeriyor": `private.entitlements(target).modules` iş modüllerini (`ops_setting`, `document`, `supplier`, `customer`, `product`, `project` …) kapsıyor ve `writable` doğru. Bugün iş modülleri `is_core` olduğundan ilk koşul her planda sağlanır; kontrol yine de fonksiyonda durur.
+- *Taşı'da kaynak silme:* gerçek silme, arşivleme değil; müşteri satırı dahil. Çocuklar önce, `ON DELETE RESTRICT` sırasına göre; dondurma tetikleyicileri (geçmiş kapı, proje sabit alanları) yazmada kullanılan aynı işlem-yerel bayrakla atlanır. Audit silme kayıtları olağan şekilde oluşur; kod sayaçları dokunulmaz.
+
+**Ekran:** Müşteri kartı → "Aktar…" (ve ürün listesinde çoklu seçim → "Aktar…"): hedef kiracı seçimi (kullanıcının yetkili olduğu, kaynak dışındaki kiracılar), mod, prova raporu, karar formu, onay. Sonuç ekranı eşleme tablosunu CSV olarak verir.
 
 ### M11–M16 (Faz 3, sınır tanımı)
 
@@ -395,8 +438,8 @@ Süreler tek geliştirici + Claude için; her faz çalışır ve kullanılır du
 | Faz | Süre | Kapsam | Kabul ölçütü |
 |---|---|---|---|
 | **1 — Tek doğru kaynak** | Kasım – Aralık 2026 (≈6 hafta) | M1, M2, M3, M4, M5, M6 (Faz 1 kutuları); ayarlar tablosu; CSV içe aktarma; veri taşıma; roller: management + coordinator | THOMETZKI'nin tüm aktif SKU'ları panelde; çakışan EAN'lar listelenmiş ve her birine karar atanmış (sıfıra indirme yönetimin işidir); her SKU'da spec sheet durumu görünür; en az bir gerçek proje kapılarıyla açık; Pazartesi toplantısı dashboard'dan yapılıyor |
-| **2 — Operasyon** | Ocak – Şubat 2027 (≈7 hafta) | M7, M8, M9, M10; M6 Faz 2 kutuları; Storage ile kanıt yükleme | İlk yeni PO panelde açıldı ve PI aritmetik kontrolü yapıldı; ilk sevkiyat ETD'den teslime panelden izlendi; THOMETZKI mop ailesi için pazar matrisi dolu; ilk olay kaydı S17 ile tutuldu |
-| **3 — Sürekli yönetim ve müşteri** | Mart 2027 → | M11, M12, M13, M14, M15, M16; sıra Faz 2 sonunda yeniden belirlenir | Aylık müşteri raporu panelden üretildi; çok ülke pilotu (Şubat–Nisan) pazar matrisinden yönetildi; müşteri en az bir (M) kapıyı portaldan onayladı |
+| **2 — Operasyon** | Ocak – Şubat 2027 (≈7 hafta) | M19 (ilk), M7, M8, M9, M10; M6 Faz 2 kutuları; Storage ile kanıt yükleme (her belge türü için); M20 (son) | İlk yeni PO panelde açıldı ve PI aritmetik kontrolü yapıldı; ilk sevkiyat ETD'den teslime panelden izlendi; THOMETZKI mop ailesi için pazar matrisi dolu; ilk olay kaydı S17 ile tutuldu |
+| **3 — Sürekli yönetim ve müşteri** | Mart 2027 → | M21 (ilk), M11, M12, M13, M14, M15, M16; sıra Faz 2 sonunda yeniden belirlenir | Aylık müşteri raporu panelden üretildi; çok ülke pilotu (Şubat–Nisan) pazar matrisinden yönetildi; müşteri en az bir (M) kapıyı portaldan onayladı |
 
 **Faz 1 iç sırası:** ayarlar + kod sayaçları → M4 belge (diğerleri ona bağlanır) → M2 tedarikçi → M1 müşteri → M3 ürün (+CSV) → M5 proje/kapı → M6 dashboard → veri taşıma. Her modül: migrasyon → tipler → api → sayfalar → route → i18n → test, tek PR.
 
