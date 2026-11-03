@@ -823,6 +823,193 @@ export type Database = {
         }
         Relationships: []
       }
+      product: {
+        Row: {
+          brand: string | null
+          carton_dims_mm: string | null
+          carton_gross_kg: number | null
+          carton_net_kg: number | null
+          carton_pack_qty: number | null
+          category: string | null
+          compliance_status: Database["public"]["Enums"]["compliance_status"]
+          created_at: string
+          customer_id: string
+          display_name: string | null
+          eu_responsible_person: string | null
+          golden_sample_locations: string | null
+          golden_sample_on: string | null
+          gs1_prefix_owner: string | null
+          gtin: string | null
+          hs_code: string | null
+          id: string
+          is_hazmat: boolean
+          landed_cost_eur: number | null
+          landed_cost_on: string | null
+          lot_rule: string | null
+          manufacturer_art_no: string | null
+          moesa_price_eur: number | null
+          notes: string | null
+          origin_country: string | null
+          pack_dims_mm: string | null
+          pack_gross_g: number | null
+          pack_qty: number | null
+          pallet_carton_qty: number | null
+          pallet_type: string | null
+          parent_id: string | null
+          price_list_version: string | null
+          purchase_currency: string | null
+          purchase_incoterm: string | null
+          purchase_price: number | null
+          sku: string
+          status: Database["public"]["Enums"]["product_status"]
+          supplier_id: string | null
+          supplier_product_code: string | null
+          target_price_eur: number | null
+          tenant_id: string
+          unit_dims_mm: string | null
+          unit_net_g: number | null
+          updated_at: string
+          variant_label: string | null
+        }
+        Insert: {
+          brand?: string | null
+          carton_dims_mm?: string | null
+          carton_gross_kg?: number | null
+          carton_net_kg?: number | null
+          carton_pack_qty?: number | null
+          category?: string | null
+          compliance_status?: Database["public"]["Enums"]["compliance_status"]
+          created_at?: string
+          customer_id: string
+          display_name?: string | null
+          eu_responsible_person?: string | null
+          golden_sample_locations?: string | null
+          golden_sample_on?: string | null
+          gs1_prefix_owner?: string | null
+          gtin?: string | null
+          hs_code?: string | null
+          id?: string
+          is_hazmat?: boolean
+          landed_cost_eur?: number | null
+          landed_cost_on?: string | null
+          lot_rule?: string | null
+          manufacturer_art_no?: string | null
+          moesa_price_eur?: number | null
+          notes?: string | null
+          origin_country?: string | null
+          pack_dims_mm?: string | null
+          pack_gross_g?: number | null
+          pack_qty?: number | null
+          pallet_carton_qty?: number | null
+          pallet_type?: string | null
+          parent_id?: string | null
+          price_list_version?: string | null
+          purchase_currency?: string | null
+          purchase_incoterm?: string | null
+          purchase_price?: number | null
+          sku: string
+          status?: Database["public"]["Enums"]["product_status"]
+          supplier_id?: string | null
+          supplier_product_code?: string | null
+          target_price_eur?: number | null
+          tenant_id: string
+          unit_dims_mm?: string | null
+          unit_net_g?: number | null
+          updated_at?: string
+          variant_label?: string | null
+        }
+        Update: {
+          brand?: string | null
+          carton_dims_mm?: string | null
+          carton_gross_kg?: number | null
+          carton_net_kg?: number | null
+          carton_pack_qty?: number | null
+          category?: string | null
+          compliance_status?: Database["public"]["Enums"]["compliance_status"]
+          created_at?: string
+          customer_id?: string
+          display_name?: string | null
+          eu_responsible_person?: string | null
+          golden_sample_locations?: string | null
+          golden_sample_on?: string | null
+          gs1_prefix_owner?: string | null
+          gtin?: string | null
+          hs_code?: string | null
+          id?: string
+          is_hazmat?: boolean
+          landed_cost_eur?: number | null
+          landed_cost_on?: string | null
+          lot_rule?: string | null
+          manufacturer_art_no?: string | null
+          moesa_price_eur?: number | null
+          notes?: string | null
+          origin_country?: string | null
+          pack_dims_mm?: string | null
+          pack_gross_g?: number | null
+          pack_qty?: number | null
+          pallet_carton_qty?: number | null
+          pallet_type?: string | null
+          parent_id?: string | null
+          price_list_version?: string | null
+          purchase_currency?: string | null
+          purchase_incoterm?: string | null
+          purchase_price?: number | null
+          sku?: string
+          status?: Database["public"]["Enums"]["product_status"]
+          supplier_id?: string | null
+          supplier_product_code?: string | null
+          target_price_eur?: number | null
+          tenant_id?: string
+          unit_dims_mm?: string | null
+          unit_net_g?: number | null
+          updated_at?: string
+          variant_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_supplier_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role: {
         Row: {
           created_at: string | null
@@ -1431,6 +1618,47 @@ export type Database = {
           },
         ]
       }
+      product_evidence: {
+        Row: {
+          compliance_complete: boolean | null
+          compliance_status:
+            | Database["public"]["Enums"]["compliance_status"]
+            | null
+          customer_id: string | null
+          has_signed_spec: boolean | null
+          last_po_code: string | null
+          live_cell_count: number | null
+          product_id: string | null
+          sku: string | null
+          spec_document_id: string | null
+          spec_version: number | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_member: {
         Row: {
           branch_name: string | null
@@ -1600,6 +1828,7 @@ export type Database = {
         | "trading_partner"
         | "commercial_representative"
         | "operations_partner"
+      compliance_status: "none" | "partial" | "complete"
       customer_status: "lead" | "onboarding" | "active" | "paused" | "closed"
       document_entity:
         | "customer"
@@ -1634,6 +1863,14 @@ export type Database = {
         | "certificate"
         | "other"
       platform_access: "authorized_user" | "none"
+      product_status:
+        | "concept"
+        | "development"
+        | "approved"
+        | "ordering"
+        | "on_sale"
+        | "paused"
+        | "archived"
       supplier_status: "candidate" | "approved" | "suspended"
       type_permission_command: "select" | "insert" | "update" | "delete"
       type_permission_kind: "read" | "create" | "modify"
