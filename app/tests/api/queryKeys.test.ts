@@ -47,6 +47,17 @@ describe('affectedTables', () => {
       expect(tables).toContain('tenant_member');
       expect(affectedTables(['role'])).not.toContain('tenant_member');
    });
+
+   it('marks the media library and the product images stale after a media change', () => {
+      expect(affectedTables(['media_link'])).toEqual(
+         expect.arrayContaining(['media_library', 'product_with_evidence', 'media'])
+      );
+      expect(affectedTables(['media'])).toEqual(
+         expect.arrayContaining(['media_library', 'product_with_evidence', 'media_link'])
+      );
+      // A document citing a file counts in the library's document_count.
+      expect(affectedTables(['document'])).toContain('media_library');
+   });
 });
 
 describe('invalidateTables', () => {

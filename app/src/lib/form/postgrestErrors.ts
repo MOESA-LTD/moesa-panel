@@ -33,6 +33,76 @@ const NAMED_ERRORS: { code: string; name: string; field: string; message: string
       message: 'errors.document_signed_incomplete'
    },
    { code: '23514', name: 'document_has_file', field: 'url', message: 'form.required' },
+   {
+      code: '23503',
+      name: 'media_file_missing',
+      field: 'media_id',
+      message: 'errors.media_file_missing'
+   },
+   {
+      code: '23514',
+      name: 'media_type_not_allowed',
+      field: 'media_id',
+      message: 'errors.media_type_not_allowed'
+   },
+   { code: '23514', name: 'media_too_large', field: 'media_id', message: 'errors.media_too_large' },
+   {
+      code: '23514',
+      name: 'media_file_immutable',
+      field: 'media_id',
+      message: 'errors.media_file_immutable'
+   },
+   { code: '23503', name: 'media_in_use', field: 'id', message: 'errors.media_in_use' },
+   {
+      code: '23503',
+      name: 'media_link_entity_missing',
+      field: 'media_id',
+      message: 'errors.media_link_entity_missing'
+   },
+   {
+      code: '42501',
+      name: 'media_link_forbidden',
+      field: 'media_id',
+      message: 'errors.media_link_forbidden'
+   },
+   {
+      code: '23514',
+      name: 'media_link_identity_immutable',
+      field: 'media_id',
+      message: 'errors.media_link_identity_immutable'
+   },
+   {
+      code: '23514',
+      name: 'media_customer_mismatch',
+      field: 'media_id',
+      message: 'errors.media_customer_mismatch'
+   },
+   {
+      code: '23514',
+      name: 'media_customer_locked',
+      field: 'customer_id',
+      message: 'errors.media_customer_locked'
+   },
+   { code: '23503', name: 'media_missing', field: 'media_id', message: 'errors.media_missing' },
+   {
+      code: '23514',
+      name: 'media_primary_not_image',
+      field: 'role',
+      message: 'errors.media_primary_not_image'
+   },
+   {
+      code: '23505',
+      name: 'unique_media_link',
+      field: 'media_id',
+      message: 'errors.media_already_linked'
+   },
+   // The demotion trigger moves the old primary first; this is left to a concurrent race.
+   {
+      code: '23505',
+      name: 'media_link_one_primary',
+      field: 'role',
+      message: 'errors.media_primary_exists'
+   },
    { code: '23505', name: 'product_gtin_active', field: 'gtin', message: 'errors.gtin_in_use' },
    {
       code: '23505',

@@ -95,6 +95,42 @@ describe('mapPostgrestError', () => {
          mapPostgrestError({ code: '23503', message: 'document_entity_missing' }, fields)
       ).toBeNull();
    });
+   it('maps the errors the media tables raise by name', () => {
+      const fields = ['id', 'media_id', 'role', 'customer_id'];
+
+      expect(
+         mapPostgrestError({ code: '23514', message: 'media_too_large' }, ['media_id'])
+      ).toEqual({
+         media_id: i18n.t('errors.media_too_large')
+      });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "unique_media_link"'
+            },
+            fields
+         )
+      ).toEqual({ media_id: i18n.t('errors.media_already_linked') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "media_link_one_primary"'
+            },
+            fields
+         )
+      ).toEqual({ role: i18n.t('errors.media_primary_exists') });
+      expect(mapPostgrestError({ code: '23503', message: 'media_in_use' }, fields)).toEqual({
+         id: i18n.t('errors.media_in_use')
+      });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'media_customer_locked' }, fields)
+      ).toEqual({ customer_id: i18n.t('errors.media_customer_locked') });
+      expect(mapPostgrestError({ code: '23503', message: 'media_missing' }, fields)).toEqual({
+         media_id: i18n.t('errors.media_missing')
+      });
+   });
    it('maps the duplicate GTIN and SKU of a product to their fields', () => {
       const fields = ['customer_id', 'sku', 'gtin', 'display_name'];
 

@@ -158,7 +158,9 @@
       "project": "Project",
       "project_product": "Project product",
       "project_gate": "Project gate",
-      "project_task": "Project task"
+      "project_task": "Project task",
+      "media": "Media",
+      "media_link": "Media link"
    },
    "input": {
       "select_or_write": "選択または入力してください"
@@ -410,7 +412,10 @@
       "media_customer_mismatch": "This file belongs to another customer.",
       "media_primary_not_image": "Only an image can be the primary image.",
       "media_customer_locked": "The file's customer cannot change while it is linked.",
-      "media_missing": "The media file does not exist."
+      "media_missing": "The media file does not exist.",
+      "media_already_linked": "The file is already linked to this record.",
+      "media_primary_exists": "The record already has a primary image.",
+      "document_file_required": "Add a Drive link or a file."
    },
    "account": {
       "profile": {
@@ -1213,6 +1218,26 @@
             "L_G1": "L-G1",
             "L_G2": "L-G2"
          }
+      },
+      "media": {
+         "title": "Media",
+         "library": "Media library",
+         "upload": "Upload file",
+         "pick": "Pick from library",
+         "link_from_library": "Link from library",
+         "primary": "Primary image",
+         "role": {
+            "primary_image": "Primary image",
+            "gallery": "Gallery",
+            "evidence_photo": "Evidence photo",
+            "attachment": "Attachment"
+         },
+         "kind": {
+            "image": "Image",
+            "pdf": "PDF",
+            "video": "Video"
+         },
+         "upload_hint": "PNG, JPEG, WebP, PDF or MP4, up to {mb} MB."
       }
    }
 }

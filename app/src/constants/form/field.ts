@@ -25,5 +25,6 @@ export const fieldRoutes: FieldRoutes = {
    product: { name: 'ops-product-manage' },
    project: { name: 'ops-project-manage' },
    project_task: { name: 'ops-project-task-edit' },
-   project_gate: { name: 'ops-project-manage', field: 'project_id' }
+   project_gate: { name: 'ops-project-manage', field: 'project_id' },
+   media: { name: 'ops-media-edit' }
 };

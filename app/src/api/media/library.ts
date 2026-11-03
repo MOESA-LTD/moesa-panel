@@ -1,0 +1,73 @@
+import type { DocumentEntity } from '@/api/document';
+import type { MediaKind, MediaLibraryRow } from '@/api/media';
+import { queryKeys } from '@/api/queryKeys';
+import { useTenantKey } from '@/api/useTenantKey';
+import { supabase } from '@/lib/supabase';
+import { useInfiniteQuery } from '@tanstack/vue-query';
+import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+
+export type MediaLibraryFilters = {
+   customerId?: string | null;
+   /** With customerId, also the files of no customer (shared by every customer). */
+   includeShared?: boolean;
+   /** Empty: every kind. */
+   kind?: MediaKind[] | null;
+   tag?: string | null;
+   /** The type of record a file is linked to, or 'none' for files linked and cited nowhere. */
+   linkedType?: DocumentEntity | 'none' | null;
+   /** With linkedType, the one record. */
+   entityId?: string | null;
+};
+
+type FilterBuilder<Q> = {
+   eq(column: string, value: unknown): Q;
+   or(filters: string): Q;
+   in(column: string, values: readonly unknown[]): Q;
+   contains(column: string, value: readonly unknown[]): Q;
+};
+
+/** Adds the library's filters to a query of media_library; empty ones add nothing. */
+export function applyMediaLibraryFilters<Q extends FilterBuilder<Q>>(
+   query: Q,
+   { customerId, includeShared, kind, tag, linkedType, entityId }: MediaLibraryFilters
+): Q {
+   let q = query;
+   if (customerId)
+      q = includeShared
+         ? q.or(`customer_id.eq.${customerId},customer_id.is.null`)
+         : q.eq('customer_id', customerId);
+   if (kind?.length) q = q.in('kind', kind);
+   if (tag) q = q.contains('tags', [tag]);
+   if (linkedType === 'none') q = q.eq('link_count', 0).eq('document_count', 0);
+   else if (linkedType) {
+      q = q.contains('linked_types', [linkedType]);
+      if (entityId) q = q.contains('linked_entities', [`${linkedType}:${entityId}`]);
+   }
+   return q;
+}
+
+export const MEDIA_PAGE_SIZE = 48;
+
+/** The library's files, newest first, a page at a time. */
+export function useMediaLibrary(filters: MaybeRefOrGetter<MediaLibraryFilters>) {
+   const tenantId = useTenantKey();
+
+   return useInfiniteQuery({
+      queryKey: computed(() => queryKeys.list(tenantId.value, 'media_library', toValue(filters))),
+      queryFn: async ({ pageParam, signal }) => {
+         const from = pageParam * MEDIA_PAGE_SIZE;
+         const { data } = await applyMediaLibraryFilters(
+            supabase.from('media_library').select('*'),
+            toValue(filters)
+         )
+            .order('created_at', { ascending: false })
+            .range(from, from + MEDIA_PAGE_SIZE - 1)
+            .abortSignal(signal)
+            .throwOnError();
+         return (data ?? []) as MediaLibraryRow[];
+      },
+      initialPageParam: 0,
+      getNextPageParam: (lastPage, pages) =>
+         lastPage.length === MEDIA_PAGE_SIZE ? pages.length : undefined
+   });
+}

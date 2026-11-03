@@ -23,9 +23,19 @@ const OPS_TABLES = [
    'project',
    'project_product',
    'project_gate',
-   'project_task'
+   'project_task',
+   'media',
+   'media_link'
 ];
-const OPS_MODULES = ['ops_setting', 'document', 'supplier', 'customer', 'product', 'project'];
+const OPS_MODULES = [
+   'ops_setting',
+   'document',
+   'supplier',
+   'customer',
+   'product',
+   'project',
+   'media'
+];
 
 describe('field names of the business modules', () => {
    it.each(['en', 'tr'])('%s names every business table and module', (locale) => {

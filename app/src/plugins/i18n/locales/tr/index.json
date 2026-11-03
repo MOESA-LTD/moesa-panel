@@ -293,7 +293,10 @@
       "media_customer_mismatch": "Bu dosya başka bir müşteriye ait.",
       "media_primary_not_image": "Birincil görsel yalnızca bir resim olabilir.",
       "media_customer_locked": "Dosya bağlıyken müşterisi değiştirilemez.",
-      "media_missing": "Ortam dosyası bulunamadı."
+      "media_missing": "Ortam dosyası bulunamadı.",
+      "media_already_linked": "Dosya bu kayda zaten bağlı.",
+      "media_primary_exists": "Kaydın zaten bir birincil görseli var.",
+      "document_file_required": "Drive bağlantısı ya da dosya ekleyin."
    },
    "account": {
       "profile": {
@@ -471,7 +474,9 @@
       "project": "Proje",
       "project_product": "Proje ürünü",
       "project_gate": "Proje kapısı",
-      "project_task": "Proje görevi"
+      "project_task": "Proje görevi",
+      "media": "Ortam",
+      "media_link": "Ortam bağlantısı"
    },
    "dashboard": {
       "statistics": {
@@ -1213,6 +1218,26 @@
             "L_G1": "L-G1",
             "L_G2": "L-G2"
          }
+      },
+      "media": {
+         "title": "Ortam",
+         "library": "Ortam kütüphanesi",
+         "upload": "Dosya yükle",
+         "pick": "Kütüphaneden seç",
+         "link_from_library": "Kütüphaneden bağla",
+         "primary": "Birincil görsel",
+         "role": {
+            "primary_image": "Birincil görsel",
+            "gallery": "Galeri",
+            "evidence_photo": "Kanıt fotoğrafı",
+            "attachment": "Ek"
+         },
+         "kind": {
+            "image": "Görsel",
+            "pdf": "PDF",
+            "video": "Video"
+         },
+         "upload_hint": "PNG, JPEG, WebP, PDF ya da MP4, en fazla {mb} MB."
       }
    }
 }
