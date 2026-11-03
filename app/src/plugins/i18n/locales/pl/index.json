@@ -398,7 +398,11 @@
       "customer_code_immutable": "A customer's code cannot be changed.",
       "tenant_required": "Choose a branch first.",
       "invalid_code_kind_or_scope": "This kind of code cannot be generated for that scope.",
-      "rows_must_be_an_array": "The import file could not be read as a list of rows."
+      "rows_must_be_an_array": "The import file could not be read as a list of rows.",
+      "media_file_missing": "The file was not uploaded. Try again.",
+      "media_type_not_allowed": "Only PNG, JPEG, WebP, PDF and MP4 files can be uploaded.",
+      "media_too_large": "The file is larger than the upload limit in the settings.",
+      "media_file_immutable": "A media file cannot be replaced; upload a new one."
    },
    "account": {
       "profile": {
@@ -733,7 +737,8 @@
             "s1_customer_notify_hours": "Hours to notify the customer at S1",
             "spec_sheet_required_from": "Spec sheet required from",
             "wip_limit_per_role": "Work-in-progress limit per role",
-            "gate_evidence_blocking": "Missing gate evidence blocks the step"
+            "gate_evidence_blocking": "Missing gate evidence blocks the step",
+            "media_max_mb": "Largest upload (MB)"
          }
       },
       "customer_filter": {

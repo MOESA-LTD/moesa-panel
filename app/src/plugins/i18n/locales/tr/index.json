@@ -281,7 +281,11 @@
       "customer_code_immutable": "Müşteri kodu değiştirilemez.",
       "tenant_required": "Önce bir şube seçin.",
       "invalid_code_kind_or_scope": "Bu tür kod bu kapsam için üretilemez.",
-      "rows_must_be_an_array": "İçe aktarma dosyası satır listesi olarak okunamadı."
+      "rows_must_be_an_array": "İçe aktarma dosyası satır listesi olarak okunamadı.",
+      "media_file_missing": "Dosya yüklenmedi. Tekrar deneyin.",
+      "media_type_not_allowed": "Yalnızca PNG, JPEG, WebP, PDF ve MP4 dosyaları yüklenebilir.",
+      "media_too_large": "Dosya, ayarlardaki yükleme sınırından büyük.",
+      "media_file_immutable": "Ortam dosyası değiştirilemez; yenisini yükleyin."
    },
    "account": {
       "profile": {
@@ -733,7 +737,8 @@
             "s1_customer_notify_hours": "S1’de müşteriye bildirim süresi (saat)",
             "spec_sheet_required_from": "Teknik şartname zorunluluk tarihi",
             "wip_limit_per_role": "Rol başına devam eden iş sınırı",
-            "gate_evidence_blocking": "Eksik kapı kanıtı adımı engeller"
+            "gate_evidence_blocking": "Eksik kapı kanıtı adımı engeller",
+            "media_max_mb": "En büyük yükleme (MB)"
          }
       },
       "customer_filter": {

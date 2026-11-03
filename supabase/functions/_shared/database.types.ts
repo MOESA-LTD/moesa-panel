@@ -618,6 +618,85 @@ export type Database = {
           },
         ]
       }
+      media: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          customer_id: string | null
+          file_name: string
+          height: number | null
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          tags: string[]
+          tenant_id: string
+          thumbnail_path: string | null
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          customer_id?: string | null
+          file_name: string
+          height?: number | null
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          tags?: string[]
+          tenant_id: string
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          customer_id?: string | null
+          file_name?: string
+          height?: number | null
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          tags?: string[]
+          tenant_id?: string
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module: {
         Row: {
           created_at: string | null
@@ -2354,6 +2433,10 @@ export type Database = {
           "": unknown
         }
         Returns: string
+      }
+      media_max_bytes: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       my_access: {
         Args: {
