@@ -30,7 +30,13 @@ const CASCADES: Partial<Record<TableName, TableName[]>> = {
    user: ['tenant_owner', 'tenant_user', 'user_role'],
    permission: ['role_permission'],
    role: ['role_permission', 'user_role'],
-   supplier: ['supplier_contact']
+   supplier: ['supplier_contact'],
+   customer: [
+      'customer_contact',
+      'customer_warehouse',
+      'customer_platform_account',
+      'customer_brand'
+   ]
 };
 
 // Every authenticated write is recorded by the audit trigger.

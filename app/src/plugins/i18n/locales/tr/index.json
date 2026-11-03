@@ -334,7 +334,24 @@
          "ops_supplier_contacts": "Kişiler",
          "ops_supplier_documents": "Belgeler",
          "ops_supplier_contact_add": "Kişi ekle",
-         "ops_supplier_contact_edit": "Kişiyi düzenle"
+         "ops_supplier_contact_edit": "Kişiyi düzenle",
+         "ops_customer": "Müşteriler",
+         "ops_customer_list": "Müşteri listesi",
+         "ops_customer_manage": "Müşteri kartı",
+         "ops_customer_general": "Genel",
+         "ops_customer_contacts": "Kişiler",
+         "ops_customer_warehouses": "Depolar",
+         "ops_customer_platforms": "Platformlar",
+         "ops_customer_brands": "Markalar",
+         "ops_customer_documents": "Belgeler",
+         "ops_customer_contact_add": "Kişi ekle",
+         "ops_customer_contact_edit": "Kişiyi düzenle",
+         "ops_customer_warehouse_add": "Depo ekle",
+         "ops_customer_warehouse_edit": "Depoyu düzenle",
+         "ops_customer_platform_add": "Platform hesabı ekle",
+         "ops_customer_platform_edit": "Platform hesabını düzenle",
+         "ops_customer_brand_add": "Marka ekle",
+         "ops_customer_brand_edit": "Markayı düzenle"
       }
    },
    "fields": {
@@ -748,6 +765,106 @@
                "email": "E-posta",
                "phone": "Telefon",
                "is_primary": "Birincil kişi"
+            }
+         }
+      },
+      "customer": {
+         "title": "Müşteriler",
+         "select": "Müşteri seçin",
+         "tabs": {
+            "general": "Genel",
+            "contacts": "Kişiler",
+            "warehouses": "Depolar",
+            "platforms": "Platformlar",
+            "brands": "Markalar",
+            "documents": "Belgeler"
+         },
+         "sections": {
+            "general": "Müşteri",
+            "service": "Hizmet",
+            "contract": "Sözleşme"
+         },
+         "fields": {
+            "code": "Kod",
+            "display_name": "Ad",
+            "country": "Ülke",
+            "website": "Web sitesi",
+            "commercial_model": "Ticari model",
+            "packages": "Paketler",
+            "status": "Durum",
+            "contract_accepted_on": "Sözleşme kabul tarihi",
+            "contract_document_id": "Sözleşme belgesi",
+            "start_on": "Başlangıç tarihi",
+            "deposit_rate": "Kapora oranı (%)",
+            "extra_cost_rule": "Ek masraflar",
+            "eu_responsible_person": "AB sorumlu kişisi",
+            "restricted_drive_url": "Kısıtlı Drive klasörü",
+            "notes": "Notlar"
+         },
+         "status": {
+            "lead": "Aday",
+            "onboarding": "Başlangıç",
+            "active": "Aktif",
+            "paused": "Durduruldu",
+            "closed": "Kapandı"
+         },
+         "commercial_model": {
+            "trading_partner": "Ticari ortak",
+            "commercial_representative": "Ticari temsilci",
+            "operations_partner": "Operasyon ortağı"
+         },
+         "errors": {
+            "invalid_code": "Üç büyük harf, ör. THO"
+         },
+         "contact": {
+            "fields": {
+               "name": "Ad",
+               "role": "Görev",
+               "email": "E-posta",
+               "phone": "Telefon",
+               "can_approve": "Onay verebilir"
+            }
+         },
+         "warehouse": {
+            "fields": {
+               "display_name": "Ad",
+               "type": "Tür",
+               "country": "Ülke",
+               "city": "Şehir",
+               "address": "Adres",
+               "postal_code": "Posta kodu",
+               "dock_hours": "Rampa saatleri",
+               "appointment_rule": "Teslimat randevusu",
+               "pallet_standard": "Palet standardı",
+               "receiving_person": "Teslim alan kişi",
+               "is_default": "Varsayılan depo"
+            },
+            "type": {
+               "own": "Kendi deposu",
+               "third_party": "Üçüncü taraf",
+               "fba": "FBA"
+            }
+         },
+         "platform": {
+            "select": "Platform seçin",
+            "fields": {
+               "platform_id": "Platform",
+               "countries": "Ülkeler",
+               "account_holder": "Hesap sahibi",
+               "access": "Erişimimiz",
+               "notes": "Notlar"
+            },
+            "access": {
+               "authorized_user": "Yetkili kullanıcı",
+               "none": "Yok"
+            }
+         },
+         "brand": {
+            "fields": {
+               "name": "Marka",
+               "registration_status": "Tescil durumu",
+               "brand_program_status": "Marka programı durumu",
+               "gs1_prefix_owner": "GS1 önek sahibi"
             }
          }
       }

@@ -16,5 +16,10 @@ export const fieldRoutes: FieldRoutes = {
    tenant_owner: { name: 'branch-user-manage', field: 'user_id' },
    document: { name: 'ops-document-edit' },
    supplier: { name: 'ops-supplier-manage' },
-   supplier_contact: { name: 'ops-supplier-contact-edit' }
+   supplier_contact: { name: 'ops-supplier-contact-edit' },
+   customer: { name: 'ops-customer-manage' },
+   customer_contact: { name: 'ops-customer-contact-edit' },
+   customer_warehouse: { name: 'ops-customer-warehouse-edit' },
+   customer_platform_account: { name: 'ops-customer-platform-edit' },
+   customer_brand: { name: 'ops-customer-brand-edit' }
 };

@@ -1,7 +1,11 @@
 <script setup>
 import { logoUrl } from '@/api/branch';
 import BranchPicker from '@/components/service-components/branch-picker/BranchPicker.vue';
+import CustomerFilter from '@/components/service-components/customer-filter/CustomerFilter.vue';
+import { useCustomerFilter } from '@/store/customerFilter';
+import { useCustomerOptions } from '@/store/customerFilter/useCustomerOptions';
 import { useSidebar } from '@/composables/useSidebar';
+import { useAbility } from '@casl/vue';
 
 const { isSignedIn, currentLogoPath, currentTenant } = storeToRefs(useAuthStore());
 const logo = computed(() => (isSignedIn.value ? logoUrl(currentLogoPath.value) : null));
@@ -9,6 +13,12 @@ const appConfigurator = ref();
 const sidebar = useSidebar();
 
 const version = import.meta.env.PACKAGE_VERSION;
+
+// The customer filter, for those who may read customers.
+const ability = useAbility();
+const showCustomerFilter = computed(() => isSignedIn.value && ability.can('read', 'customer'));
+const customerFilter = useCustomerFilter();
+const { data: customers } = useCustomerOptions(showCustomerFilter);
 </script>
 
 <template>
@@ -47,6 +57,12 @@ const version = import.meta.env.PACKAGE_VERSION;
 
    <div class="layout-topbar-actions">
       <BranchPicker v-if="isSignedIn" />
+      <CustomerFilter
+         v-if="showCustomerFilter"
+         :model-value="customerFilter.customerId"
+         @update:model-value="customerFilter.set"
+         :options="customers ?? []"
+      />
       <AccountPopover v-if="isSignedIn" class="mt-auto" />
       <Button
          :aria-label="'App configurator toggle button'"

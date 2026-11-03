@@ -200,6 +200,336 @@ export type Database = {
           },
         ]
       }
+      customer: {
+        Row: {
+          code: string
+          commercial_model: Database["public"]["Enums"]["commercial_model"]
+          contract_accepted_on: string | null
+          contract_document_id: string | null
+          country: string | null
+          created_at: string
+          deposit_rate: number | null
+          display_name: string
+          eu_responsible_person: string | null
+          extra_cost_rule: string | null
+          id: string
+          notes: string | null
+          packages: string[]
+          restricted_drive_url: string | null
+          start_on: string | null
+          status: Database["public"]["Enums"]["customer_status"]
+          tenant_id: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          code: string
+          commercial_model: Database["public"]["Enums"]["commercial_model"]
+          contract_accepted_on?: string | null
+          contract_document_id?: string | null
+          country?: string | null
+          created_at?: string
+          deposit_rate?: number | null
+          display_name: string
+          eu_responsible_person?: string | null
+          extra_cost_rule?: string | null
+          id?: string
+          notes?: string | null
+          packages?: string[]
+          restricted_drive_url?: string | null
+          start_on?: string | null
+          status?: Database["public"]["Enums"]["customer_status"]
+          tenant_id: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          code?: string
+          commercial_model?: Database["public"]["Enums"]["commercial_model"]
+          contract_accepted_on?: string | null
+          contract_document_id?: string | null
+          country?: string | null
+          created_at?: string
+          deposit_rate?: number | null
+          display_name?: string
+          eu_responsible_person?: string | null
+          extra_cost_rule?: string | null
+          id?: string
+          notes?: string | null
+          packages?: string[]
+          restricted_drive_url?: string | null
+          start_on?: string | null
+          status?: Database["public"]["Enums"]["customer_status"]
+          tenant_id?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contract_document_fkey"
+            columns: ["contract_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_brand: {
+        Row: {
+          brand_program_status: string | null
+          customer_id: string
+          gs1_prefix_owner: string | null
+          id: string
+          name: string
+          registration_status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          brand_program_status?: string | null
+          customer_id: string
+          gs1_prefix_owner?: string | null
+          id?: string
+          name: string
+          registration_status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          brand_program_status?: string | null
+          customer_id?: string
+          gs1_prefix_owner?: string | null
+          id?: string
+          name?: string
+          registration_status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_brand_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_brand_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_brand_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_contact: {
+        Row: {
+          can_approve: boolean
+          customer_id: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          role: string | null
+          tenant_id: string
+        }
+        Insert: {
+          can_approve?: boolean
+          customer_id: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          role?: string | null
+          tenant_id: string
+        }
+        Update: {
+          can_approve?: boolean
+          customer_id?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contact_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_platform_account: {
+        Row: {
+          access: Database["public"]["Enums"]["platform_access"]
+          account_holder: string | null
+          countries: string[]
+          customer_id: string
+          id: string
+          notes: string | null
+          platform_id: string
+          tenant_id: string
+        }
+        Insert: {
+          access?: Database["public"]["Enums"]["platform_access"]
+          account_holder?: string | null
+          countries?: string[]
+          customer_id: string
+          id?: string
+          notes?: string | null
+          platform_id: string
+          tenant_id: string
+        }
+        Update: {
+          access?: Database["public"]["Enums"]["platform_access"]
+          account_holder?: string | null
+          countries?: string[]
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          platform_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_platform_account_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_platform_account_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_platform_account_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_platform_account_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_warehouse: {
+        Row: {
+          address: string | null
+          appointment_rule: string | null
+          city: string | null
+          country: string | null
+          customer_id: string
+          display_name: string
+          dock_hours: string | null
+          id: string
+          is_default: boolean
+          pallet_standard: string | null
+          postal_code: string | null
+          receiving_person: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["warehouse_type"]
+        }
+        Insert: {
+          address?: string | null
+          appointment_rule?: string | null
+          city?: string | null
+          country?: string | null
+          customer_id: string
+          display_name: string
+          dock_hours?: string | null
+          id?: string
+          is_default?: boolean
+          pallet_standard?: string | null
+          postal_code?: string | null
+          receiving_person?: string | null
+          tenant_id: string
+          type?: Database["public"]["Enums"]["warehouse_type"]
+        }
+        Update: {
+          address?: string | null
+          appointment_rule?: string | null
+          city?: string | null
+          country?: string | null
+          customer_id?: string
+          display_name?: string
+          dock_hours?: string | null
+          id?: string
+          is_default?: boolean
+          pallet_standard?: string | null
+          postal_code?: string | null
+          receiving_person?: string | null
+          tenant_id?: string
+          type?: Database["public"]["Enums"]["warehouse_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_warehouse_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_warehouse_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_warehouse_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document: {
         Row: {
           created_at: string
@@ -265,6 +595,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "document_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
           {
             foreignKeyName: "document_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -1259,6 +1596,11 @@ export type Database = {
       }
     }
     Enums: {
+      commercial_model:
+        | "trading_partner"
+        | "commercial_representative"
+        | "operations_partner"
+      customer_status: "lead" | "onboarding" | "active" | "paused" | "closed"
       document_entity:
         | "customer"
         | "supplier"
@@ -1291,9 +1633,11 @@ export type Database = {
         | "contract"
         | "certificate"
         | "other"
+      platform_access: "authorized_user" | "none"
       supplier_status: "candidate" | "approved" | "suspended"
       type_permission_command: "select" | "insert" | "update" | "delete"
       type_permission_kind: "read" | "create" | "modify"
+      warehouse_type: "own" | "third_party" | "fba"
     }
     CompositeTypes: {
       [_ in never]: never

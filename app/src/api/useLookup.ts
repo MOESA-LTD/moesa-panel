@@ -19,7 +19,9 @@ export type LookupOptions = {
  */
 export function useLookup<Row = Record<string, any>>(
    table: TableName,
-   options: MaybeRefOrGetter<LookupOptions> = {}
+   options: MaybeRefOrGetter<LookupOptions> = {},
+   /** Loads only while true, e.g. while the picker is shown. */
+   enabled: MaybeRefOrGetter<boolean> = true
 ) {
    const tenantKey = useTenantKey();
    // Inside a form, the form's tenant alone (see provideFormTenant).
@@ -45,6 +47,7 @@ export function useLookup<Row = Record<string, any>>(
 
          const { data } = await query.throwOnError();
          return data as Row[];
-      }
+      },
+      enabled: computed(() => toValue(enabled))
    });
 }
