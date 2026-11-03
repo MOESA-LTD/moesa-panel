@@ -1,7 +1,7 @@
 <script setup></script>
 
 <template>
-   EchoChart by
+   Moesa Panel by
    <a
       href="https://akifaycicek.com.tr"
       target="_blank"

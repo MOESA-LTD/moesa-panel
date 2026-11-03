@@ -12,16 +12,16 @@ NOTIFY pgrst,
 -- members.
 --
 -- Demo accounts (local only), all with the password Demo1234!
---   admin@echochart.test    super admin (manages plans and subscriptions, no company)
---   ayse@echochart.test     owner of Atlas Danışmanlık (Pro, branch limit reached: 3/3)
---   mehmet@echochart.test   branch manager, Atlas Avcılar
---   zeynep@echochart.test   staff, Atlas Kadıköy and Atlas Moda (two memberships)
---   can@echochart.test      auditor, Atlas Danışmanlık
---   ali@echochart.test      owner of Nova Yazılım (Basic trial ending in 5 days)
---   elif@echochart.test     staff, Nova Yazılım
---   deniz@echochart.test    owner of Kuzey Holding (Enterprise, branches two levels deep)
---   burak@echochart.test    branch manager, Kuzey Ankara
---   selin@echochart.test    owner of Eski Ticaret (Pro, expired: read-only)
+--   admin@moesa-panel.test    super admin (manages plans and subscriptions, no company)
+--   ayse@moesa-panel.test     owner of Atlas Danışmanlık (Pro, branch limit reached: 3/3)
+--   mehmet@moesa-panel.test   branch manager, Atlas Avcılar
+--   zeynep@moesa-panel.test   staff, Atlas Kadıköy and Atlas Moda (two memberships)
+--   can@moesa-panel.test      auditor, Atlas Danışmanlık
+--   ali@moesa-panel.test      owner of Nova Yazılım (Basic trial ending in 5 days)
+--   elif@moesa-panel.test     staff, Nova Yazılım
+--   deniz@moesa-panel.test    owner of Kuzey Holding (Enterprise, branches two levels deep)
+--   burak@moesa-panel.test    branch manager, Kuzey Ankara
+--   selin@moesa-panel.test    owner of Eski Ticaret (Pro, expired: read-only)
 
 -- Demo helpers, dropped at the end.
 
@@ -118,16 +118,16 @@ $$;
 -- subscriptions are set last, so the branches and members go in while the plan allows them.
 DO $$
 DECLARE
-    admin_id UUID := private.seed_user('admin@echochart.test', 'System Admin', TRUE);
-    ayse UUID := private.seed_user('ayse@echochart.test', 'Ayşe Yılmaz');
-    mehmet UUID := private.seed_user('mehmet@echochart.test', 'Mehmet Avcı');
-    zeynep UUID := private.seed_user('zeynep@echochart.test', 'Zeynep Kaya');
-    can UUID := private.seed_user('can@echochart.test', 'Can Demir');
-    ali UUID := private.seed_user('ali@echochart.test', 'Ali Şahin');
-    elif UUID := private.seed_user('elif@echochart.test', 'Elif Çelik');
-    deniz UUID := private.seed_user('deniz@echochart.test', 'Deniz Arslan');
-    burak UUID := private.seed_user('burak@echochart.test', 'Burak Doğan');
-    selin UUID := private.seed_user('selin@echochart.test', 'Selin Aydın');
+    admin_id UUID := private.seed_user('admin@moesa-panel.test', 'System Admin', TRUE);
+    ayse UUID := private.seed_user('ayse@moesa-panel.test', 'Ayşe Yılmaz');
+    mehmet UUID := private.seed_user('mehmet@moesa-panel.test', 'Mehmet Avcı');
+    zeynep UUID := private.seed_user('zeynep@moesa-panel.test', 'Zeynep Kaya');
+    can UUID := private.seed_user('can@moesa-panel.test', 'Can Demir');
+    ali UUID := private.seed_user('ali@moesa-panel.test', 'Ali Şahin');
+    elif UUID := private.seed_user('elif@moesa-panel.test', 'Elif Çelik');
+    deniz UUID := private.seed_user('deniz@moesa-panel.test', 'Deniz Arslan');
+    burak UUID := private.seed_user('burak@moesa-panel.test', 'Burak Doğan');
+    selin UUID := private.seed_user('selin@moesa-panel.test', 'Selin Aydın');
     atlas UUID;
     kadikoy UUID;
     nova UUID;

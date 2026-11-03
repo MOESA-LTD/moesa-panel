@@ -38,7 +38,7 @@ const version = import.meta.env.PACKAGE_VERSION;
                class="h-10 max-w-32 object-contain"
             />
             <span class="flex flex-col">
-               <span class="font-mono text-primary text-3xl" v-text="'EchoChart'" />
+               <span class="font-mono text-primary text-3xl" v-text="'Moesa Panel'" />
                <small v-if="version" class="text-xs text-muted-color" v-text="`v${version}`" />
             </span>
          </router-link>

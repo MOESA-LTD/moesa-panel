@@ -7,17 +7,17 @@ const payload = (values: Parameters<typeof toUserFormValues>[0]) =>
 describe('toUserPayload', () => {
    it('sends the email to invite a new member', () => {
       expect(
-         payload({ email: 'new@echochart.test', user_metadata: { display_name: 'New' } })
+         payload({ email: 'new@moesa-panel.test', user_metadata: { display_name: 'New' } })
       ).toMatchObject({
          id: undefined,
-         attributes: { email: 'new@echochart.test', user_metadata: { display_name: 'New' } }
+         attributes: { email: 'new@moesa-panel.test', user_metadata: { display_name: 'New' } }
       });
    });
 
    it('never sends sign-in details for an existing member', () => {
       const { attributes } = payload({
          id: 'user',
-         email: 'member@echochart.test',
+         email: 'member@moesa-panel.test',
          phone: '+905550000000',
          user_metadata: { display_name: 'Member' }
       });

@@ -1,4 +1,4 @@
-// Comma separated list, e.g. "https://app.echochart.com,http://localhost:5173". Defaults to "*".
+// Comma separated list, e.g. "https://app.moesa-panel.com,http://localhost:5173". Defaults to "*".
 const allowedOrigins = (Deno.env.get('ALLOWED_ORIGINS') ?? '*')
    .split(',')
    .map((origin) => origin.trim())
