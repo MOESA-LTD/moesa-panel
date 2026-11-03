@@ -247,6 +247,8 @@
    "errors": {
       "audit_already_reverted": "This change has already been reverted.",
       "audit_conflict": "This change cannot be reverted: the record was changed afterwards. Revert the later changes first.",
+      "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
+      "avatar_size": "The photo must be at most 1 MB.",
       "access_denied": "Access denied",
       "confirmation_required": "Confirmation required",
       "email_change_required": "Email change required",

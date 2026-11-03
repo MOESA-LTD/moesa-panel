@@ -416,7 +416,9 @@
       "media_already_linked": "The file is already linked to this record.",
       "media_primary_exists": "The record already has a primary image.",
       "document_file_required": "Add a Drive link or a file.",
-      "MediaFileError": "File not uploaded"
+      "MediaFileError": "File not uploaded",
+      "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
+      "avatar_size": "The photo must be at most 1 MB."
    },
    "account": {
       "profile": {

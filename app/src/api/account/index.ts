@@ -48,3 +48,9 @@ export async function updatePassword({ password }: z.output<typeof passwordSchem
    const { error } = await supabase.auth.updateUser({ password });
    if (error) throw error;
 }
+
+/** Ends every session of the user except this one. */
+export async function signOutOtherSessions() {
+   const { error } = await supabase.auth.signOut({ scope: 'others' });
+   if (error) throw error;
+}
