@@ -508,7 +508,9 @@
          "ops_project_products": "Products",
          "ops_project_documents": "Documents",
          "ops_project_task_add": "New task",
-         "ops_project_task_edit": "Edit task"
+         "ops_project_task_edit": "Edit task",
+         "ops_document": "Documents",
+         "ops_document_list": "Document list"
       }
    },
    "dashboard": {
@@ -745,7 +747,9 @@
             "is_signed": "Signed",
             "is_stamped": "Stamped",
             "sent_from_official_email": "Sent from the official e-mail",
-            "notes": "Notes"
+            "notes": "Notes",
+            "customer": "Customer",
+            "entity_type": "Record"
          },
          "type": {
             "spec_sheet": "Spec sheet",

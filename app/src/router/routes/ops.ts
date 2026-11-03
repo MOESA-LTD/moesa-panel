@@ -705,6 +705,35 @@ const routes: RouteRecordRaw[] = [
             ]
          },
          {
+            // Every document of the tenant, narrowed by type, status, record kind and customer.
+            path: 'documents',
+            name: 'ops-document',
+            meta: {
+               label: 'route.label.ops_document',
+               icon: PrimeIcons.FILE,
+               requiredPermissions: [{ action: 'select', subject: 'document' }]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-document-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-document-list',
+                  meta: {
+                     label: 'route.label.ops_document_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'document' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/document/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/document/Index.vue')
+                  }
+               }
+            ]
+         },
+         {
             // An S10 product file, imported whole or not at all (see public.import_products).
             path: 'product/import',
             name: 'ops-product-import',

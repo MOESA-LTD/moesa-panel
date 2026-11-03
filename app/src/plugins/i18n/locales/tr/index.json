@@ -391,7 +391,9 @@
          "ops_project_products": "Ürünler",
          "ops_project_documents": "Belgeler",
          "ops_project_task_add": "Yeni görev",
-         "ops_project_task_edit": "Görevi düzenle"
+         "ops_project_task_edit": "Görevi düzenle",
+         "ops_document": "Belgeler",
+         "ops_document_list": "Belge listesi"
       }
    },
    "fields": {
@@ -745,7 +747,9 @@
             "is_signed": "İmzalı",
             "is_stamped": "Kaşeli",
             "sent_from_official_email": "Resmi e-postadan gönderildi",
-            "notes": "Notlar"
+            "notes": "Notlar",
+            "customer": "Müşteri",
+            "entity_type": "Kayıt"
          },
          "type": {
             "spec_sheet": "Teknik şartname",
