@@ -1,3 +1,4 @@
+import { allValues } from '@/lib/enumValues';
 import { defineResource, type ResourceInput } from '@/api/defineResource';
 import { useLookup } from '@/api/useLookup';
 import {
@@ -24,13 +25,13 @@ export type CustomerWarehouseRow = Tables['customer_warehouse']['Row'];
 export type CustomerPlatformAccountRow = Tables['customer_platform_account']['Row'];
 export type CustomerBrandRow = Tables['customer_brand']['Row'];
 
-export const CUSTOMER_STATUSES = [
+export const CUSTOMER_STATUSES = allValues<CustomerStatus>()([
    'lead',
    'onboarding',
    'active',
    'paused',
    'closed'
-] as const satisfies readonly CustomerStatus[];
+]);
 
 export const COMMERCIAL_MODELS = [
    'trading_partner',

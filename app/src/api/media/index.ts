@@ -1,3 +1,4 @@
+import { allValues } from '@/lib/enumValues';
 import { defineResource, type ResourceInput } from '@/api/defineResource';
 import type { DocumentEntity } from '@/api/document';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
@@ -27,12 +28,12 @@ export const MEDIA_TYPES = [
    'application/pdf',
    'video/mp4'
 ] as const;
-export const MEDIA_ROLES = [
+export const MEDIA_ROLES = allValues<MediaRole>()([
    'primary_image',
    'gallery',
    'evidence_photo',
    'attachment'
-] as const satisfies readonly MediaRole[];
+]);
 export const MEDIA_KINDS = ['image', 'pdf', 'video'] as const satisfies readonly MediaKind[];
 /** The setting media_max_mb's default, and the bucket's ceiling it is clamped to. */
 export const MEDIA_MAX_MB_DEFAULT = 25;

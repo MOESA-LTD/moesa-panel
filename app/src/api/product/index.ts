@@ -1,3 +1,4 @@
+import { allValues } from '@/lib/enumValues';
 import { defineResource, type ResourceInput } from '@/api/defineResource';
 import { dateOnly, optional, parseDateOnly, required, requiredText } from '@/lib/form/fields';
 import { gtinValid } from '@/lib/gtin';
@@ -24,7 +25,7 @@ export const specFilterFromQuery = (query: Record<string, unknown>): boolean | n
    return null;
 };
 
-export const PRODUCT_STATUSES = [
+export const PRODUCT_STATUSES = allValues<ProductStatus>()([
    'concept',
    'development',
    'approved',
@@ -32,7 +33,7 @@ export const PRODUCT_STATUSES = [
    'on_sale',
    'paused',
    'archived'
-] as const satisfies readonly ProductStatus[];
+]);
 
 export const COMPLIANCE_STATUSES = [
    'none',

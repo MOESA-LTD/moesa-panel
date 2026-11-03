@@ -1,3 +1,4 @@
+import { allValues } from '@/lib/enumValues';
 import { PACKAGES } from '@/api/customer';
 import { defineResource, type ResourceInput } from '@/api/defineResource';
 import { invalidateTables } from '@/api/queryKeys';
@@ -31,17 +32,9 @@ export type ProjectCard = ProjectRow & {
    }[];
 };
 
-export const PROJECT_TYPES = [
-   'npi',
-   'variant',
-   'revision',
-   'reorder'
-] as const satisfies readonly ProjectType[];
+export const PROJECT_TYPES = allValues<ProjectType>()(['npi', 'variant', 'revision', 'reorder']);
 
-export const PROJECT_PATHS = [
-   'a_sourcing',
-   'b_private_label'
-] as const satisfies readonly ProjectPath[];
+export const PROJECT_PATHS = allValues<ProjectPath>()(['a_sourcing', 'b_private_label']);
 
 export const PROJECT_STATUSES = [
    'active',
@@ -50,12 +43,7 @@ export const PROJECT_STATUSES = [
    'cancelled'
 ] as const satisfies readonly ProjectStatus[];
 
-export const TASK_STATUSES = [
-   'todo',
-   'doing',
-   'done',
-   'blocked'
-] as const satisfies readonly TaskStatus[];
+export const TASK_STATUSES = allValues<TaskStatus>()(['todo', 'doing', 'done', 'blocked']);
 
 /** Who does a task (checked by the database too). */
 export const TASK_ROLES = [
@@ -115,6 +103,9 @@ export const GATE_CLOSES_PHASE: Record<GateCode, ProjectPhase> = {
    L_G1: 'L3',
    L_G2: 'L5'
 };
+
+/** Every gate code (the keys above), for the glossary and pickers. */
+export const GATE_CODES = Object.keys(GATE_CLOSES_PHASE) as [GateCode, ...GateCode[]];
 
 /** Where a project whose first gate this is starts, when not the phase it closes (initial_phase). */
 const STARTS_AT: Partial<Record<GateCode, ProjectPhase>> = { PL_G1: 'PL1', G5: 'P5' };

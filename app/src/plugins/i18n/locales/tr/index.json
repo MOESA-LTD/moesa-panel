@@ -1273,5 +1273,95 @@
             "file_name": "Dosya"
          }
       }
+   },
+   "glossary": {
+      "package": {
+         "A0": "Pazar araştırması, konsept ve tasarım (PL1–PL3): araştırma raporu, onaylı konsept, tasarım ve marka dosyası.",
+         "A1": "Marka sourcing (P1–P4): mevcut bir markanın ya da üreticinin ürünü; onaylı, kalite kontrolünden geçmiş.",
+         "A2": "Private label geliştirme (P1 → PL1–PL7 → P3–P4): müşterinin markasıyla konseptten itibaren geliştirilen ürün; A0'ı içerir.",
+         "B": "Lojistik ve teslim (P5–P6): ürün gümrüklenmiş, müşterinin deposunda.",
+         "C": "Listing ve pazara açılış (L1–L5): ürün seçilen platform ve ülkelerde yayında.",
+         "D": "Uçtan uca: A1 veya A2 + B + C; fikirden satışa hazır ürüne tek muhatap.",
+         "E": "Sürekli yönetim (O1–O3): yeniden sipariş, listing bakımı, raporlama. Proje açılmaz; yeniden sipariş reorder projesi olur."
+      },
+      "project_type": {
+         "npi": "Yeni ürün: yolunun tam kapı setinden geçer.",
+         "variant": "Mevcut üründen yeni varyant (G2 → G5).",
+         "revision": "Değişiklik talebi sonucu spec ya da ambalaj değişikliği (G2 → G5).",
+         "reorder": "Onaylı ürünün tekrar siparişi (G3 → G5)."
+      },
+      "project_path": {
+         "a_sourcing": "A yolu, marka sourcing: mevcut markanın ürünü için tedarikçi ve numune (P2).",
+         "b_private_label": "B yolu, private label: müşterinin markasıyla konseptten baskı onayına (PL1–PL7)."
+      },
+      "gate_code": {
+         "G1": "Proje başlatma (M): brief ve fizibilite onaylı.",
+         "G2": "Numune, spec sheet ve NPDS onayı (M); imzalı spec sheet olmadan geçilmez.",
+         "G3": "PI, fiyat ve baskı onayı (M).",
+         "G4": "Sevkiyat izni (iç kapı): PSI geçti, belgeler tam; onay uyum ve kalite sorumlusunda.",
+         "G5": "Teslim kabulü (M), müşterinin deposunda.",
+         "PL_G1": "Konsept ve tasarım onayı (M), yazılı.",
+         "PL_G2": "Marka ve kimlik onayı (M).",
+         "PL_G3": "Altın numune onayı (M).",
+         "PL_G4": "Baskıya onay (M).",
+         "L_G1": "İçerik onayı (M).",
+         "L_G2": "Proje kapanışı (M)."
+      },
+      "document_type": {
+         "spec_sheet": "Üreticinin imzalı ve kaşeli ürün spesifikasyonu: ürünün kanıtı.",
+         "tech_pack": "Üreticiye tasarım paketi: çizim, malzeme, ölçüler.",
+         "sample_report": "Numune değerlendirmesi: numunenin spec'e göre durumu.",
+         "pi": "Tedarikçinin proforma faturası: adet, fiyat, şartlar.",
+         "po": "Tedarikçiye gönderilen satın alma siparişi.",
+         "psi_report": "Yükleme öncesi kontrol raporu (AQL), fotoğraflı ve videolu.",
+         "test_report": "Ürün uyumu için laboratuvar test raporu.",
+         "sds": "Güvenlik bilgi formu; kimyasallarda zorunlu.",
+         "doc_of_conformity": "AB uygunluk beyanı (DoC).",
+         "technical_file": "Piyasa gözetimi için tutulan teknik dosya.",
+         "label_artwork": "Etiket ve ambalaj baskı dosyası: dieline, GTIN, uyarılar.",
+         "packing_list": "Sevkiyatın çeki listesi: koli, adet, ağırlık.",
+         "commercial_invoice": "Gümrük için ticari fatura.",
+         "bill_of_lading": "Taşıyıcının konşimentosu (B/L).",
+         "customs": "Gümrük beyannamesi ve işlem belgeleri.",
+         "delivery_receipt": "Depoda imzalanan teslim tutanağı; G5 kanıtı.",
+         "gate_approval": "Kapının yazılı müşteri onayı (e-posta ya da e-imza).",
+         "change_request": "Değişiklik talebi (CR): spec, tasarım, ambalaj ya da fiyatta sürümlü değişiklik.",
+         "contract": "Müşteri ya da tedarikçiyle sözleşme (MSA, SOW, NNN).",
+         "certificate": "Tedarikçi ya da ürün sertifikası.",
+         "other": "Diğer belgeler."
+      },
+      "document_status": {
+         "draft": "Henüz kesin değil; değişebilir.",
+         "signed": "İmzalı, kaşeli, resmî e-postadan gönderilmiş ve tarihli.",
+         "approved": "Kabul edildi; onaylı spec sheet ayrıca imzalı olmalı.",
+         "superseded": "Yeni sürümle değiştirildi; saklanır, silinmez."
+      },
+      "supplier_status": {
+         "candidate": "Değerlendiriliyor; henüz sipariş yok.",
+         "approved": "Değerlendirildi, siparişe onaylı.",
+         "suspended": "Sorun çözülene kadar yeni sipariş verilmez."
+      },
+      "customer_status": {
+         "lead": "Potansiyel müşteri, henüz sözleşme yok (C1–C2).",
+         "onboarding": "Sözleşme imzalandı, onboarding sürüyor (C3).",
+         "active": "Projeleri yürüyor.",
+         "paused": "İş şimdilik beklemede.",
+         "closed": "İlişki sona erdi; yeni proje açılamaz."
+      },
+      "product_status": {
+         "concept": "Fikir ya da konsept; henüz geliştirilmedi.",
+         "development": "Tedarikçiyle geliştiriliyor ya da numunede.",
+         "approved": "Numune ve spec onaylı; siparişe hazır.",
+         "ordering": "Sipariş verildi; üretimde ya da yolda.",
+         "on_sale": "Yayında, satışta.",
+         "paused": "Satış şimdilik durduruldu.",
+         "archived": "Artık kullanılmıyor; GTIN'i yeniden verilebilir."
+      },
+      "task_status": {
+         "todo": "Başlanmadı.",
+         "doing": "Sürüyor.",
+         "done": "Bitti.",
+         "blocked": "Başka bir şey çözülmeden ilerleyemiyor."
+      }
    }
 }
