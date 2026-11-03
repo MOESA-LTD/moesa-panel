@@ -460,7 +460,8 @@
       "project_immutable_field": "A project's customer, type, path and packages cannot be changed.",
       "project_code_immutable": "A project's code cannot be changed.",
       "document_superseded_sticky": "A superseded document stays superseded; add a new version instead.",
-      "document_identity_immutable": "A saved document's record, type and version cannot be changed; add a new version instead."
+      "document_identity_immutable": "A saved document's record, type and version cannot be changed; add a new version instead.",
+      "customer_closed": "The customer is closed: it gets no new projects."
    },
    "account": {
       "profile": {

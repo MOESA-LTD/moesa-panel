@@ -1,10 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- The Phase 1 fixes on the MOESA demo company of seed.sql: approved documents need signatures,
--- superseded ones stay superseded and documents keep their identity. What it writes is rolled back.
+-- superseded ones stay superseded and documents keep their identity; closed customers get no projects. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(6);
+SELECT plan(7);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 SELECT set_config('test.tho', (SELECT c.id FROM public.customer c
@@ -69,6 +69,22 @@ SELECT throws_ok(
 SELECT lives_ok(
     $$ UPDATE public.document SET notes = 'kept for the record' WHERE id = '00000000-0000-4000-8000-000000000231' $$,
     'a superseded document''s notes can still be edited'
+);
+
+-- A closed customer gets no new projects.
+INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model, status)
+VALUES ('00000000-0000-4000-8000-000000000232', current_setting('test.tenant_id')::UUID, 'CLS', 'Closed Trading',
+        'trading_partner', 'closed');
+
+SELECT throws_ok(
+    $$
+        INSERT INTO public.project (tenant_id, customer_id, display_name, type, path, packages)
+        VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000232', 'Too late', 'npi',
+                'a_sourcing', ARRAY['A1'])
+    $$,
+    '23514',
+    'customer_closed',
+    'a closed customer gets no new projects'
 );
 
 SELECT * FROM finish();

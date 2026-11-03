@@ -274,7 +274,8 @@
       "project_immutable_field": "Projenin müşterisi, tipi, yolu ve paketleri değiştirilemez.",
       "project_code_immutable": "Proje kodu değiştirilemez.",
       "document_superseded_sticky": "Eskimiş bir belge eski kalır; bunun yerine yeni bir sürüm ekleyin.",
-      "document_identity_immutable": "Kaydedilmiş bir belgenin kaydı, türü ve sürümü değiştirilemez; bunun yerine yeni bir sürüm ekleyin."
+      "document_identity_immutable": "Kaydedilmiş bir belgenin kaydı, türü ve sürümü değiştirilemez; bunun yerine yeni bir sürüm ekleyin.",
+      "customer_closed": "Müşteri kapalı: yeni proje açılamaz."
    },
    "account": {
       "profile": {

@@ -71,7 +71,12 @@ const DATES = ['target_delivery_on', 'target_live_on'] as const;
             :readonly="readonly || !!id"
             v-slot="slotProps"
          >
-            <SelectCustomer v-bind="slotProps" v-model="values.customer_id" :disabled="!!id" />
+            <SelectCustomer
+               v-bind="slotProps"
+               v-model="values.customer_id"
+               :disabled="!!id"
+               hide-closed
+            />
          </FormField>
          <FormField
             fluid

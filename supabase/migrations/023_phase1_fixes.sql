@@ -6,6 +6,7 @@
 --                        counts as product evidence. A superseded document stays superseded, and
 --                        what a document is (its record, type, version and tenant) never changes
 --                        (private.document_transition).
+-- project                A closed customer gets no new projects (private.project_set_code).
 --
 -- Each rule is a check_violation whose message is the rule's code:
 --   document_signed_incomplete    a signed or approved document lacks signature, stamp, official
@@ -13,6 +14,7 @@
 --   document_superseded_sticky    a superseded document cannot get another status
 --   document_identity_immutable   a document's entity_type, entity_id, type, version or tenant
 --                                 changed
+--   customer_closed               a project for a closed customer
 
 -- Signed or approved means signed, stamped, sent from the official e-mail and dated.
 CREATE OR REPLACE FUNCTION private.document_signed_requires () RETURNS TRIGGER LANGUAGE plpgsql
@@ -52,4 +54,30 @@ UPDATE ON public.document FOR EACH ROW
 EXECUTE FUNCTION private.document_transition ();
 
 REVOKE ALL ON FUNCTION private.document_transition () FROM PUBLIC, anon, authenticated;
+
+-- The project's code and starting phase (see 021_projects.sql); a closed customer gets no new
+-- projects.
+CREATE OR REPLACE FUNCTION private.project_set_code () RETURNS TRIGGER LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    customer_code TEXT;
+    customer_status public.customer_status;
+BEGIN
+    SELECT c.code, c.status INTO customer_code, customer_status
+    FROM public.customer c
+    WHERE c.id = NEW.customer_id AND c.tenant_id = NEW.tenant_id;
+
+    IF customer_code IS NULL THEN
+        RAISE EXCEPTION 'project_customer_missing' USING ERRCODE = 'foreign_key_violation';
+    END IF;
+    IF customer_status = 'closed' THEN
+        RAISE EXCEPTION 'customer_closed' USING ERRCODE = 'check_violation';
+    END IF;
+
+    NEW.code := public.next_code('project', customer_code);
+    NEW.current_phase := public.initial_phase(NEW.type, NEW.path, NEW.packages);
+    RETURN NEW;
+END;
+$$;
 
