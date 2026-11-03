@@ -542,10 +542,10 @@ export type Database = {
           is_signed: boolean
           is_stamped: boolean
           issued_on: string | null
+          media_id: string | null
           notes: string | null
           sent_from_official_email: boolean
           status: Database["public"]["Enums"]["document_status"]
-          storage_path: string | null
           tenant_id: string
           type: Database["public"]["Enums"]["document_type"]
           updated_at: string
@@ -563,10 +563,10 @@ export type Database = {
           is_signed?: boolean
           is_stamped?: boolean
           issued_on?: string | null
+          media_id?: string | null
           notes?: string | null
           sent_from_official_email?: boolean
           status?: Database["public"]["Enums"]["document_status"]
-          storage_path?: string | null
           tenant_id: string
           type: Database["public"]["Enums"]["document_type"]
           updated_at?: string
@@ -584,10 +584,10 @@ export type Database = {
           is_signed?: boolean
           is_stamped?: boolean
           issued_on?: string | null
+          media_id?: string | null
           notes?: string | null
           sent_from_official_email?: boolean
           status?: Database["public"]["Enums"]["document_status"]
-          storage_path?: string | null
           tenant_id?: string
           type?: Database["public"]["Enums"]["document_type"]
           updated_at?: string
@@ -600,6 +600,20 @@ export type Database = {
             columns: ["customer_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "document_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "document_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media_library"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -2267,6 +2281,7 @@ export type Database = {
           alt_text: string | null
           created_at: string | null
           customer_id: string | null
+          document_count: number | null
           file_name: string | null
           height: number | null
           id: string | null

@@ -292,7 +292,8 @@
       "media_link_identity_immutable": "Bağlantı başka bir dosyaya ya da kayda taşınamaz.",
       "media_customer_mismatch": "Bu dosya başka bir müşteriye ait.",
       "media_primary_not_image": "Birincil görsel yalnızca bir resim olabilir.",
-      "media_customer_locked": "Dosya bağlıyken müşterisi değiştirilemez."
+      "media_customer_locked": "Dosya bağlıyken müşterisi değiştirilemez.",
+      "media_missing": "Ortam dosyası bulunamadı."
    },
    "account": {
       "profile": {

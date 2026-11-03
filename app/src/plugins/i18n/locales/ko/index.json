@@ -409,7 +409,8 @@
       "media_link_identity_immutable": "A link cannot be moved to another file or record.",
       "media_customer_mismatch": "This file belongs to another customer.",
       "media_primary_not_image": "Only an image can be the primary image.",
-      "media_customer_locked": "The file's customer cannot change while it is linked."
+      "media_customer_locked": "The file's customer cannot change while it is linked.",
+      "media_missing": "The media file does not exist."
    },
    "account": {
       "profile": {
