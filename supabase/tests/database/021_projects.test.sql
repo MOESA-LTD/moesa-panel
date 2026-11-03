@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 BEGIN;
 
-SELECT plan(41);
+SELECT plan(46);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'Atlas Danışmanlık')::TEXT, TRUE);
 
@@ -53,6 +53,7 @@ FROM (VALUES ('g1', '00000000-0000-4000-8000-000000000214'::UUID, 'G1'::public.g
              ('g3', '00000000-0000-4000-8000-000000000214', 'G3'),
              ('g4', '00000000-0000-4000-8000-000000000214', 'G4'),
              ('c1', '00000000-0000-4000-8000-000000000215', 'G1'),
+             ('c2', '00000000-0000-4000-8000-000000000215', 'G2'),
              ('v2', '00000000-0000-4000-8000-000000000219', 'G2'),
              ('b1', '00000000-0000-4000-8000-000000000220', 'G1')) AS x (name, project_id, code);
 
@@ -357,6 +358,68 @@ SELECT is(
                WHERE t.project_id = '00000000-0000-4000-8000-000000000214'),
     'P5 {P1,P2,P3,P4,P5,P6}',
     'after G4 the project is in P5 with the checklists of P5 and P6 (G5 closes P6)'
+);
+
+-- Un-passing a gate directly: only a rollback, with a reason, from the last passed gate back.
+SELECT throws_ok(
+    $$ UPDATE public.project_gate SET status = 'pending' WHERE id = current_setting('test.g4')::UUID $$,
+    '23514',
+    'gate_not_pending',
+    'a passed gate cannot be set back to pending'
+);
+
+SELECT throws_ok(
+    $$ UPDATE public.project_gate SET status = 'rolled_back' WHERE id = current_setting('test.g4')::UUID $$,
+    '23514',
+    'gate_reason_required',
+    'a direct rollback needs a reason'
+);
+
+SELECT throws_ok(
+    $$
+        UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'brief changed'
+        WHERE id = current_setting('test.g1')::UUID
+    $$,
+    '23514',
+    'gate_rollback_order',
+    'a gate cannot be rolled back directly while a later gate is still passed'
+);
+
+UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'PSI to be redone'
+WHERE id = current_setting('test.g4')::UUID;
+
+SELECT is(
+    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
+    'P4',
+    'a direct rollback of the last passed gate takes the project back to the phase it closes'
+);
+
+-- One pass per project per statement.
+UPDATE public.project SET status = 'active' WHERE id = '00000000-0000-4000-8000-000000000215';
+
+UPDATE public.project_task SET status = 'done'
+WHERE project_id = '00000000-0000-4000-8000-000000000215' AND blocks_gate;
+
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+SELECT x.id, current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'project_gate',
+       current_setting('test.' || x.gate)::UUID, 'gate_approval', 'approved', 'https://example.test/' || x.gate || '.pdf'
+FROM (VALUES ('00000000-0000-4000-8000-000000000227'::UUID, 'c1'),
+             ('00000000-0000-4000-8000-000000000228', 'c2')) AS x (id, gate);
+
+SELECT throws_ok(
+    $$
+        UPDATE public.project_gate
+        SET status = 'passed',
+            customer_approved_on = '2026-11-03',
+            approval_document_id = CASE code
+                WHEN 'G1' THEN '00000000-0000-4000-8000-000000000227'::UUID
+                ELSE '00000000-0000-4000-8000-000000000228'::UUID
+            END
+        WHERE project_id = '00000000-0000-4000-8000-000000000215' AND code IN ('G1', 'G2')
+    $$,
+    '23514',
+    'gate_one_at_a_time',
+    'two gates of a project cannot pass in one statement'
 );
 
 -- Path B: G1 leads to PL1, and PL_G1 closes PL2.

@@ -30,7 +30,8 @@
 -- Rules, checked by the BEFORE UPDATE trigger private.project_gate_guard whenever a gate is set
 -- to passed, in order, each a check_violation whose message is the rule's code:
 --   gate_not_pending                 the gate is already passed
---   project_not_active               the project is on hold, closed or cancelled
+--   gate_one_at_a_time               another gate of the project was passed in the same statement
+--   project_not_active              the project is on hold, closed or cancelled
 --   gate_order                       an earlier gate of the project is not passed
 --   gate_customer_approval_required  an (M) gate (every gate but G4) needs the customer's approval
 --                                    date and approval document
@@ -44,11 +45,14 @@
 --                                    is not done (only while the setting gate_evidence_blocking
 --                                    is true)
 -- The AFTER UPDATE trigger private.project_gate_advance then moves the phase and adds the
--- checklists. rollback_gate (reason required) sets the gate and every later passed gate to
--- rolled_back and takes the project back to the phase the gate closes (public.phase_before). A
--- rolled-back gate is reopened in place: the guard accepts it like a pending one, so the UI simply
--- passes it again. In Phase 2 a rollback is tied to an incident (M10). pass_gate and
--- rollback_gate lock the project row first, so the decisions on one project run one at a time.
+-- checklists. A passed gate can only be un-passed as a rollback: status rolled_back
+-- (gate_not_pending otherwise), with a rolled_back_reason (gate_reason_required), and only when no
+-- later gate is still passed (gate_rollback_order); project_gate_advance then takes the project
+-- back to the phase the gate closes (public.phase_before). rollback_gate (reason required) rolls
+-- back the gate and every later passed gate, from the last one backwards. A rolled-back gate is
+-- reopened in place: the guard accepts it like a pending one, so the UI simply passes it again.
+-- In Phase 2 a rollback is tied to an incident (M10). Every pass or rollback, direct or through
+-- the RPCs, locks the project row first, so the decisions on one project run one at a time.
 --
 -- gates_for, initial_phase, phase_after and phase_before are pure functions in public: pass_gate
 -- and rollback_gate are SECURITY INVOKER and signed-in users have no USAGE on schema private, and
@@ -523,13 +527,49 @@ SET
 DECLARE
     state public.project_status;
     blocking JSONB;
+    pass_flag TEXT := 'moesa.gate_pass_' || replace(NEW.project_id::TEXT, '-', '_');
 BEGIN
+    -- Un-passing: only a rollback, with a reason, from the last passed gate backwards (rollback_gate
+    -- goes from the highest position down). The phase moves back in project_gate_advance.
+    IF OLD.status = 'passed' AND NEW.status <> 'passed' THEN
+        PERFORM 1 FROM public.project p WHERE p.id = NEW.project_id AND p.tenant_id = NEW.tenant_id FOR UPDATE;
+
+        IF NEW.status <> 'rolled_back' THEN
+            RAISE EXCEPTION 'gate_not_pending' USING ERRCODE = 'check_violation';
+        END IF;
+
+        IF nullif(btrim(NEW.rolled_back_reason), '') IS NULL THEN
+            RAISE EXCEPTION 'gate_reason_required' USING ERRCODE = 'check_violation';
+        END IF;
+
+        IF EXISTS (
+            SELECT 1 FROM public.project_gate g
+            WHERE g.project_id = NEW.project_id AND g.tenant_id = NEW.tenant_id
+              AND g.position > NEW.position AND g.status = 'passed'
+        ) THEN
+            RAISE EXCEPTION 'gate_rollback_order' USING ERRCODE = 'check_violation';
+        END IF;
+
+        RETURN NEW;
+    END IF;
+
     IF NEW.status <> 'passed' THEN
         RETURN NEW;
     END IF;
 
     IF OLD.status = 'passed' THEN
         RAISE EXCEPTION 'gate_not_pending' USING ERRCODE = 'check_violation';
+    END IF;
+
+    -- Every pass of a project, through pass_gate or not, waits for the project row (pass_gate and
+    -- rollback_gate already hold it).
+    PERFORM 1 FROM public.project p WHERE p.id = NEW.project_id AND p.tenant_id = NEW.tenant_id FOR UPDATE;
+
+    -- One pass per project per statement: within one UPDATE, a later row would see an earlier
+    -- row's pass and the order rule would let a whole chain of gates through at once. The flag is
+    -- transaction-local; project_gate_advance clears it once the pass is done.
+    IF current_setting(pass_flag, TRUE) = '1' THEN
+        RAISE EXCEPTION 'gate_one_at_a_time' USING ERRCODE = 'check_violation';
     END IF;
 
     SELECT p.status INTO state
@@ -605,6 +645,8 @@ BEGIN
         RAISE EXCEPTION 'gate_blocked_by_task' USING ERRCODE = 'check_violation';
     END IF;
 
+    PERFORM set_config(pass_flag, '1', TRUE);
+
     NEW.passed_at := coalesce(NEW.passed_at, now());
     RETURN NEW;
 END;
@@ -615,8 +657,9 @@ UPDATE ON public.project_gate FOR EACH ROW
 EXECUTE FUNCTION private.project_gate_guard ();
 
 -- A passed gate moves its project to the next phase (public.phase_after) and adds the
--- checklists of the phases entered. SECURITY DEFINER, in the gate's own tenant: the move is part
--- of passing the gate, not a separate edit of the project.
+-- checklists of the phases entered; a rolled-back gate moves it back to the phase the gate closes
+-- (public.phase_before). SECURITY DEFINER, in the gate's own tenant: the move is part of deciding
+-- the gate, not a separate edit of the project.
 CREATE OR REPLACE FUNCTION private.project_gate_advance () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -626,11 +669,19 @@ DECLARE
 BEGIN
     SELECT * INTO target FROM public.project p WHERE p.id = NEW.project_id AND p.tenant_id = NEW.tenant_id;
 
+    IF NEW.status = 'rolled_back' THEN
+        UPDATE public.project p SET current_phase = public.phase_before(NEW.code) WHERE p.id = target.id;
+        RETURN NULL;
+    END IF;
+
     next_phase := public.phase_after(NEW.code, target.path, target.packages);
 
     UPDATE public.project p SET current_phase = next_phase WHERE p.id = target.id;
 
     PERFORM private.project_copy_checklists(target.id, target.tenant_id, next_phase, NEW.code = 'PL_G4');
+
+    -- The pass is done: the next statement may pass the next gate (project_gate_guard).
+    PERFORM set_config('moesa.gate_pass_' || replace(NEW.project_id::TEXT, '-', '_'), '', TRUE);
 
     RETURN NULL;
 END;
@@ -639,8 +690,14 @@ $$;
 CREATE OR REPLACE TRIGGER project_gate_advance
 AFTER UPDATE ON public.project_gate FOR EACH ROW
 WHEN (
-   NEW.status = 'passed'
-   AND OLD.status <> 'passed'
+   (
+      NEW.status = 'passed'
+      AND OLD.status <> 'passed'
+   )
+   OR (
+      OLD.status = 'passed'
+      AND NEW.status = 'rolled_back'
+   )
 )
 EXECUTE FUNCTION private.project_gate_advance ();
 
@@ -728,7 +785,8 @@ END;
 $$;
 
 -- Rolls a passed gate back, with every gate passed after it, and takes the project back to the
--- phase the gate closes. The gates stay rolled_back until passed again. The project row is locked
+-- phase the gate closes (through project_gate_advance). The gates stay rolled_back until passed
+-- again. The project row is locked
 -- before any gate is touched, so a rollback and a pass of the same project cannot interleave.
 CREATE OR REPLACE FUNCTION public.rollback_gate (gate_id UUID, reason TEXT) RETURNS public.project_gate LANGUAGE plpgsql SECURITY INVOKER
 SET
@@ -736,6 +794,7 @@ SET
 DECLARE
     gate_project UUID;
     gate public.project_gate;
+    later UUID;
     result public.project_gate;
 BEGIN
     IF nullif(btrim(rollback_gate.reason), '') IS NULL THEN
@@ -746,6 +805,13 @@ BEGIN
 
     IF gate_project IS NOT NULL THEN
         PERFORM 1 FROM public.project p WHERE p.id = gate_project FOR UPDATE;
+
+        IF NOT FOUND THEN
+            RAISE SQLSTATE 'PGRST' USING
+                MESSAGE = json_build_object('code', 'P0002', 'message', 'project not found')::TEXT,
+                DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
+        END IF;
+
         SELECT * INTO gate FROM public.project_gate g WHERE g.id = rollback_gate.gate_id FOR UPDATE;
     END IF;
 
@@ -759,11 +825,17 @@ BEGIN
         RAISE EXCEPTION 'gate_not_passed' USING ERRCODE = 'check_violation';
     END IF;
 
-    UPDATE public.project_gate g
-    SET status = 'rolled_back', rolled_back_reason = rollback_gate.reason
-    WHERE g.project_id = gate.project_id AND g.position >= gate.position AND g.status = 'passed';
-
-    UPDATE public.project p SET current_phase = public.phase_before(gate.code) WHERE p.id = gate.project_id;
+    -- One gate at a time from the last passed one back to this one, as project_gate_guard requires;
+    -- project_gate_advance moves the phase back with each, ending at the phase this gate closes.
+    FOR later IN
+        SELECT g.id FROM public.project_gate g
+        WHERE g.project_id = gate.project_id AND g.position >= gate.position AND g.status = 'passed'
+        ORDER BY g.position DESC
+    LOOP
+        UPDATE public.project_gate g
+        SET status = 'rolled_back', rolled_back_reason = rollback_gate.reason
+        WHERE g.id = later;
+    END LOOP;
 
     SELECT * INTO result FROM public.project_gate g WHERE g.id = gate.id;
     RETURN result;
