@@ -16,7 +16,7 @@
 
 ## Global Constraints
 
-- i18n: `en` is the source, `tr` is hand-written, the other locales come from `pnpm i18n-sync` (it adds missing keys with the English text and never overwrites a value, so the other locales keep their old, unmarked guide copy; that is accepted). No user-visible literal in a component.
+- i18n: `en` is the source, `tr` is hand-written, the other locales come from `pnpm i18n-sync` (run without flags; the script has no check mode; it adds missing keys with the English text and never overwrites a value, so the other locales keep their old, unmarked guide copy; that is accepted). No user-visible literal in a component.
 - K7: "Süreç kodları (P1, G2, PL-G3) her dilde aynı kalır." A marker's code is identical in `en` and `tr`; a string that marks codes marks the same multiset of codes in both.
 - Copy is plain text: no Markdown, no HTML. vue-i18n syntax characters `{`, `}`, `@`, `|`, `$` never appear in copy except the named parameters given here (`{code}`).
 - **Marker grammar:** `[[CODE]]`, `CODE` a key of `TERMS` (`[[(M)]]` for the (M) mark). Mark the first occurrence of a code in a string only; a code inside a longer code is not a code (`PL-G4` is not `G4`; `OL-09` is written `[[OL]]-09`); suffixes stay outside (`[[PI]]'ı`, `[[SKU]]s`).
@@ -29,7 +29,7 @@
 
 ## Review Focus
 
-1. **Raw `[[…]]` leaking into plain text** — a tooltip, `aria-label`, `title`, toast or a select option showing `[[PSI]]` after a glossary line is marked. Expected: every plain consumer shows `PSI`. Tests: Task 1 "marks codes only in guide, glossary, term and hint copy"; Task 7 SelectEnum, StatusActions and PhaseStrip cases on marked lines.
+1. **Raw `[[…]]` leaking into plain text** — a tooltip, `aria-label`, `title`, toast or a select option showing `[[PSI]]` after a glossary line is marked. Expected: every plain consumer shows `PSI`. Tests: Task 1 "marks codes only in guide, glossary, term and hint copy"; Task 7 SelectEnum, StatusActions, GatePanel and PhaseStrip cases on marked lines.
 2. **A term click doing its parent's job** — clicking a term inside a `<label>` focuses the input, inside an accordion header toggles the task, inside a row opens the record. Expected: the click only opens the term. Tests: Task 2 "stops the click at the term"; accordion titles render `static` terms (Task 5 "renders the guide copy with its terms").
 3. **EN/TR drift** — a translator marks `[[PI]]` in EN but not in TR, or types an unknown code (`[[S9]]`). Expected: the test suite fails, and at runtime the unknown code shows as plain text. Tests: Task 1 parity and unknown-token cases; Task 2 "leaves an unknown code as text".
 4. **A term clicked where the page has no guide** (account pages, the system guide itself, a card opened from another page) or **after navigating with the panel closed**. Expected: the panel opens on the term of the current route (or the term alone), never on a stale page; on the system guide page the click jumps to the entry. Tests: Task 2 store cases; Task 4 "moves to a term clicked on the page"; Task 5 "shows a term on a route without a guide".
@@ -66,7 +66,8 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
 
 **Files:**
 - Create: `app/src/constants/terms.ts`, `app/tests/constants/terms.test.ts`, `app/tests/plugins/i18n/terms.test.ts`
-- Modify: `app/src/plugins/i18n/locales/en/index.json`, `tr/index.json` (new top-level `terms`), the other locales by sync
+- Modify: `app/src/plugins/i18n/locales/en/index.json`, `tr/index.json` (new top-level `terms`), the other locales by `pnpm i18n-sync`
+- New i18n keys: `terms.<slug>.short` (the 31 hand-listed terms) and `terms.<slug>.long` (all 53), EN/TR in the copy list of Step 3.
 
 **Interfaces:**
 - Consumes: `GLOSSARY_ENUMS`, `glossaryKey`, `type GlossaryEnum` (`@/api/glossary`); `PACKAGES` (`@/api/customer`), `GATE_CODES` (`@/api/project`), `INCIDENT_FAMILIES`, `INCIDENT_SEVERITIES` (`@/api/incident`) — read through `GLOSSARY_ENUMS.package`, `.gate_code`, `.incident_family`, `.incident_severity`.
@@ -78,11 +79,12 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
     - package: one per `PACKAGES` value (`A0 A1 A2 B C D E`), code = slug = value, `glossary: { enum: 'package', value }`.
     - gate: one per `GATE_CODES` value, code = `value.replaceAll('_', '-')` (`G1`…`G5`, `PL-G1`…`PL-G4`, `L-G1`, `L-G2`), slug = value, `glossary: { enum: 'gate_code', value }`; then `(M)` with slug `M_gate` and no glossary.
     - family: one per `INCIDENT_FAMILIES` value, code = slug = `value.toUpperCase()` (`OL OA OU OT OM`), `glossary: { enum: 'incident_family', value }`; severity likewise from `INCIDENT_SEVERITIES` (`S1 S2 S3`, enum `incident_severity`).
-    - `drive`: from `const DRIVE_LINKS: Partial<Record<string, string>> = {}` (empty until the owner gives the documents' Drive URLs).
+    - `drive`: from `const DRIVE_LINKS: Partial<Record<string, string>> = {}`, which ships empty (owner ruling: no Drive links until the owner gives the documents' URLs); a link is copied onto its term only when `driveLinkValid(url)`.
+  - `driveLinkValid(url: string): boolean` — true only for `https://drive.google.com/…` and `https://docs.google.com/…`.
   - `isTermCode(code: string): boolean`; `termSlug(code: string): string`; `termKeys(code: string): { short: string; long: string }` — short is `glossaryKey(enum, value)` for a term with `glossary`, else `terms.<slug>.short`; long is always `terms.<slug>.long`.
   - `termsOf(category: TermCategory): string[]`; `termOfGlossary(e: GlossaryEnum, value: string): string | undefined` (the code whose `glossary` is that pair).
   - `type TermPart = { text: string } | { code: string }`; `parseTerms(text: string): TermPart[]` (an unknown code becomes `{ text: code }`); `stripTerms(text: string): string`; `markLabel(label: string, code: string): string` (wraps the first occurrence of `code` bounded by `(?<![A-Za-z0-9])…(?![A-Za-z0-9])`, regex-escaped; without one, appends `' [[code]]'`).
-  - Task 4 adds `TERM_SECTIONS`, `SYSTEM_GUIDE_TOPICS`, `TERM_SELECT` to this file.
+  - Task 2 adds `TERM_SELECT` and Task 4 adds `TERM_SECTIONS`, `SYSTEM_GUIDE_TOPICS` to this file.
 
 - [ ] **Step 1: Write the tests.**
   - `app/tests/constants/terms.test.ts`:
@@ -91,7 +93,8 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
     - `it('finds the copy of a term')`: `termKeys('S09')` → `{ short: 'terms.S09.short', long: 'terms.S09.long' }`; `termKeys('A0').short === 'glossary.package.A0'`; `termKeys('L-G1')` → `{ short: 'glossary.gate_code.L_G1', long: 'terms.L_G1.long' }`; `termKeys('(M)')` → `{ short: 'terms.M_gate.short', long: 'terms.M_gate.long' }`; `termKeys('OL').short === 'glossary.incident_family.ol'`; `termKeys('S1').short === 'glossary.incident_severity.s1'`.
     - `it('marks a code in a label')`: `markLabel('PI document', 'PI') === '[[PI]] document'`; `markLabel('Incident type (Y10)', 'Y10') === 'Incident type ([[Y10]])'`; `markLabel('Platform SKU', 'SKU') === 'Platform [[SKU]]'`; `markLabel('EPI number', 'PI') === 'EPI number [[PI]]'`; `markLabel('ASIN', 'ASIN') === '[[ASIN]]'`.
     - `it('derives packages, gates, families and severities from the enums')`: `termsOf('package')` equals `[...GLOSSARY_ENUMS.package]`; `termsOf('gate')` equals `[...GLOSSARY_ENUMS.gate_code.map((g) => g.replaceAll('_', '-')), '(M)']`; `termsOf('family')` equals `['OL', 'OA', 'OU', 'OT', 'OM']`; `termsOf('severity')` equals `['S1', 'S2', 'S3']`; `termsOf('process')` equals the thirteen process codes in order; `termOfGlossary('gate_code', 'PL_G4') === 'PL-G4'`.
-    - `it('gives every term its own slug')`: `new Set(TERM_CODES.map(termSlug)).size === TERM_CODES.length`; every `TERMS[c].drive` that is set starts with `https://drive.google.com/` or `https://docs.google.com/`.
+    - `it('gives every term its own slug')`: `new Set(TERM_CODES.map(termSlug)).size === TERM_CODES.length`.
+    - `it('accepts only Google Drive links')`: `driveLinkValid('https://drive.google.com/file/d/abc/view') === true`, `driveLinkValid('https://docs.google.com/spreadsheets/d/abc/edit') === true`, `driveLinkValid('http://drive.google.com/file/d/abc') === false`, `driveLinkValid('https://example.com/drive.google.com/x') === false`, `driveLinkValid('') === false`.
   - `app/tests/plugins/i18n/terms.test.ts` (reads the JSON files as `guide.test.ts` does; `LOCALES` = every directory of `locales`; a helper `strings(tree)` yields `[key, value]` for every string leaf; `codesOf(s)` = the codes of `s`'s markers, sorted):
     - `it.each(['en', 'tr'])('%s has the short and long copy of every term')`: codes whose `termKeys(code).short` or `.long` is not a non-empty string → `[]`.
     - `it('has term copy only for registered terms')`: `Object.keys(en.terms)` minus the slugs → `[]`; slugs of terms with `glossary` that have a `short` key → `[]` (their short line is the glossary line).
@@ -189,16 +192,16 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
   - `Term.vue` — props `{ code: string; static?: boolean }`. A known code renders `<abbr :data-term="code" class="underline decoration-dotted underline-offset-2 cursor-help" v-tooltip.top="stripTerms(t(termKeys(code).short))">{{ code }}</abbr>`; unless `static`, it also has `role="button"`, `tabindex="0"`, `aria-label` `t('guide.panel.term_open', { code })`, and `@click.prevent.stop` / `@keydown.enter.prevent.stop` / `@keydown.space.prevent.stop` call `inject(TERM_SELECT, null) ?? useGuideStore().showTerm` with the code. An unknown code renders the bare code as text.
   - `TermText.vue` — props `{ text: string; static?: boolean }`; renders `<span>` with the `parseTerms(text)` parts: text as text, codes as `<Term :code :static />`.
   - `useGuideStore` gains `focusTerm: Ref<string | null>` and `showTerm(code: string): void` — opens the panel on the current route's page (null when the route has no guide) with `focusTask = null`, `focusTerm = code`. `show(page, task?)` sets `focusTerm = null`. `followRoute(guidePage)` first records `guidePage` as the current route's page (a plain variable, not state), then behaves as today.
-- Copy: `guide.panel.term_open`: What is {code}? / {code} nedir?
+- New i18n key: `guide.panel.term_open`: What is {code}? / {code} nedir?
 
 - [ ] **Step 1: Write the tests.**
-  - `app/tests/components/TermText.test.ts` (fresh pinia, `i18NPlugin`, `PrimeVue`):
+  - `app/tests/components/TermText.test.ts` (fresh pinia, `i18NPlugin`, `PrimeVue`, and `global.directives: { tooltip: Tooltip }` with `import Tooltip from 'primevue/tooltip'`, since the cases read `$_ptooltipValue`; in `beforeEach`, after `setActivePinia`, `showTerm = vi.spyOn(useGuideStore(), 'showTerm')` is installed before any mount, and `Term.vue` calls `useGuideStore().showTerm(code)` at click time rather than capturing the function at setup):
     - `it('renders plain text and marked codes')`: `text: 'Check the [[PI]] ([[S09]]).'` → `wrapper.text() === 'Check the PI (S09).'` and the `abbr[data-term]` values are `['PI', 'S09']`.
     - `it('shows the short line as a tooltip')`: the `PI` abbr's `$_ptooltipValue` equals `stripTerms(i18n.t('terms.PI.short'))`; the `OL` abbr of `'[[OL]]-09'` has `stripTerms(i18n.t('glossary.incident_family.ol'))`.
-    - `it('opens the guide panel on the term')`: clicking the `S09` abbr calls `useGuideStore().showTerm` (spied) with `'S09'`; `keydown.enter` on it does the same.
+    - `it('opens the guide panel on the term')`: clicking the `S09` abbr calls the `showTerm` spy with `'S09'`; `keydown.enter` on it does the same.
     - `it('stops the click at the term')`: mounted inside `h('div', { onClick: parentClick }, h(TermText, { text: '[[PI]]' }))`; a `new MouseEvent('click', { bubbles: true, cancelable: true })` dispatched on the abbr leaves `parentClick` uncalled and `event.defaultPrevented === true`.
     - `it('uses the page handler when one is provided')`: with `global.provide: { [TERM_SELECT as symbol]: select }`, a click calls `select('PI')` and not `showTerm`.
-    - `it('renders static terms without a button')`: `static: true` → the abbr has no `role` and no `tabindex`, and a click calls nothing.
+    - `it('renders static terms without a button')`: `text: 'Close [[PI]]', static: true` → `wrapper.text() === 'Close PI'`, the `abbr[data-term="PI"]` exists with no `role` and no `tabindex`, `wrapper.find('[role="button"]').exists() === false`, and a click on the abbr leaves the `showTerm` spy uncalled.
     - `it('leaves an unknown code as text')`: `'[[XX]] here'` → text `'XX here'`, no `abbr`.
   - `app/tests/store/guide.test.ts` (existing storage stub):
     - `it('opens a term on the page of the route')`: `followRoute('shipment')`, `hide()`, `showTerm('ETA')` → `open === true`, `page === 'shipment'`, `focusTerm === 'ETA'`, `focusTask === null`.
@@ -257,7 +260,7 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
   - Page anchors: sections `section-<id>` (`panel` for the hand-written one), terms `term-<slug>` with `data-term-entry="<code>"`.
   - `buildAccountMenu(items, logout)` returns `[...items, { separator: true }, guideItem, logoutItem]` (no items: `[guideItem, logoutItem]`), `guideItem = { key: 'guide', label: i18n.t('route.label.guide'), icon: PrimeIcons.BOOK, route: { name: 'guide' } }`.
 - Page (`views/pages/guide/Index.vue`): `h1` `system_guide.title`, `p` intro; a `nav` titled `system_guide.contents` linking to `#section-panel` and each `#section-<id>`; the `panel` section (`system_guide.sections.panel.title`) with one `h3` + `TermText` paragraph per topic; then per `TERM_SECTIONS` entry an `h2` title, `TermText` intro and one `<article>` per code of its categories: `h3` the code, `TermText` short, `TermText` long, and when `TERMS[code].drive` is set a link `system_guide.open_document` (`target="_blank" rel="noopener noreferrer"`). It provides `TERM_SELECT` as `(code) => router.replace({ hash: '#term-' + termSlug(code) })` and watches `route.hash` (immediate; after `nextTick`) to scroll `document.getElementById(hash.slice(1))` into view.
-- Copy (`system_guide.*`, EN / TR):
+- New i18n keys (EN / TR): `route.label.guide` and the `system_guide` tree below.
   - `route.label.guide`: System guide / Sistem rehberi; `title`: System guide / Sistem rehberi; `intro`: How the panel works and what its codes mean, the same for every role. A dotted code anywhere in the panel opens its entry. / Panelin nasıl çalıştığı ve kodlarının ne anlama geldiği; her rol için aynı. Panelde noktalı altı çizili her kod kendi kaydını açar.; `contents`: On this page / Bu sayfada; `open_document`: Open the document in Drive / Belgeyi Drive'da aç.
   - `sections.panel.title`: How the panel works / Panel nasıl çalışır (no intro).
   - `sections.process`: Process documents / Süreç belgeleri — The guideline (Y) and template (S) documents of the MOESA workflow that the panel follows. / Panelin izlediği MOESA iş akışının yönerge (Y) ve şablon (S) belgeleri.
@@ -274,10 +277,10 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
   - Shape: `sections.<id>.title`, `sections.<id>.intro` (not for `panel`), `topics.<topic>.title`, `topics.<topic>.text`.
 
 - [ ] **Step 1: Write the tests.**
-  - `app/tests/views/systemGuide.test.ts` (mockMain first; memory router with `/guide` → the page, named `guide`; fresh pinia; `Element.prototype.scrollIntoView = vi.fn()`):
+  - `app/tests/views/systemGuide.test.ts` (mockMain first; memory router with `/guide` → the page, named `guide`; fresh pinia; `Element.prototype.scrollIntoView = vi.fn()`; every mount uses `attachTo: document.body`, because the page looks entries up with `document.getElementById`, and `enableAutoUnmount(afterEach)` unmounts it; each case does its `router.push(…)` and `await router.isReady()` before mounting):
     - `it('lists every term under its section')`: for each `TERM_SECTIONS` entry, `[id="section-<id>"]` contains an `article#term-<slug>` for each code of its categories; the page has `TERM_CODES.length` articles.
     - `it('explains how the panel works')`: the text contains `i18n.t('system_guide.topics.<t>.title')` for each of `SYSTEM_GUIDE_TOPICS`.
-    - `it('opens a term from the address')`: after `router.push('/guide#term-L_G1')`, `scrollIntoView` was called on `#term-L_G1`.
+    - `it('opens a term from the address')`: `await router.push('/guide#term-L_G1')`, `await router.isReady()`, then mount and `await flushPromises()` → `scrollIntoView` was called with `this` being `#term-L_G1`.
     - `it('moves to a term clicked on the page')`: clicking `abbr[data-term="PI"]` inside `#term-S09` sets `router.currentRoute.value.hash` to `'#term-PI'`, and `useGuideStore().open` stays `false`.
     - `it('has no page guide')`: `guideForRoute([{ name: 'guide' }]) === null`.
   - `accountMenu.test.ts`: update the three cases to the new shape; add `it('opens the system guide from the account menu')`: the item before logout matches `{ key: 'guide', label: i18n.t('route.label.guide'), route: { name: 'guide' } }`.
@@ -292,6 +295,7 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
 ### Task 5: Terms section of the page guide panel and its system guide link
 
 **Files:**
+- Create: `app/src/components/service-components/page-guide/GuideTermRow.vue`
 - Modify: `app/src/constants/guide.ts`, `app/src/components/service-components/page-guide/PageGuide.vue`, `app/tests/components/PageGuide.test.ts`, i18n `guide.panel.system_guide`
 
 **Interfaces:**
@@ -300,12 +304,13 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
   - `PageGuide.terms?: readonly string[]` (term codes not already covered by the page's `glossary` enums). Values: `dashboard` `['(M)', 'SKU', 'S12', 'PI', 'S09', 'ETD', 'ETA', 'S15', 'OL']`; `setting` `['K6']`; `customer` `['S14', 'K8', 'K5']`; `product` `['S10', 'SKU', 'GTIN', 'S07']`; `project` `['(M)']`; `document` `['S07', 'S08']`; `purchase_order` `['S09', 'PI', 'PSI', 'G4']`; `shipment` `['S15', 'S16', 'S14', 'ETD', 'ETA']`; `market_matrix` `['S05', 'S12', 'SKU', 'L-G1', 'S13', 'ASIN']`; `incident` `['S17', 'Y10']`; `change_request` `['S08', '(M)']`; `supplier`, `media` none.
   - `PageGuide.vue`:
     - The purpose, related and task sections render while a page is set, as today; the terms section renders whenever it has rows, so a term opens on a route without a guide (header: the title only).
-    - Term rows: the page's `terms`, with `focusTerm` first when it is neither in them nor derived from one of the page's `glossary` enums. Each row: `<dt :id="'guide-term-' + slug" :aria-current="code === focusTerm || undefined">` the code, `<dd>` `TermText` short; the focused row also shows `TermText` long.
-    - Glossary rows (as today) render their line through `TermText`; a value with `termOfGlossary(e, value)` gets the same `id`/`aria-current` on its `dt`.
+  - `GuideTermRow.vue` — the one row of the terms section, used for both kinds of row. Props `{ label: string; text: string; term?: string }`. Root `<div>` with `<dt>` `label` and `<dd>` `<TermText :text />`. When `term` is set, the `dt` has `id="guide-term-" + termSlug(term)` and `aria-current="true"` while `term === useGuideStore().focusTerm`, and the focused row adds a second `<dd>` with `<TermText :text="t(termKeys(term).long)" />`.
+    - Term rows: the page's `terms`, with `focusTerm` first when it is neither in them nor derived from one of the page's `glossary` enums; each is `<GuideTermRow :label="code" :text="t(termKeys(code).short)" :term="code" />`.
+    - Glossary rows (as today): `<GuideTermRow :label="term.label" :text="term.text" :term="termOfGlossary(e, term.value)" />`.
     - Purpose and steps render through `TermText`; task titles in `AccordionHeader` through `TermText static`.
     - When `open` and `focusTerm` change, after `nextTick` the focused `dt` is scrolled into view (`block: 'nearest'`).
     - `#footer`: `CustomLink` to `{ name: 'guide', hash: focusTerm ? '#term-' + termSlug(focusTerm) : undefined }`, text `guide.panel.system_guide`.
-- Copy: `guide.panel.system_guide`: Open the system guide / Sistem rehberini aç.
+- New i18n key: `guide.panel.system_guide`: Open the system guide / Sistem rehberini aç.
 
 - [ ] **Step 1: Write the tests** in `PageGuide.test.ts` (change the `CustomLink` stub to `{ props: ['to'], template: '<a :data-to="JSON.stringify(to)"><slot /></a>' }`):
   - `it("lists the page's terms with their short line")`: `show('purchase_order')` → `#guide-term-S09` exists and the text contains `stripTerms(i18n.t('terms.S09.short'))`; `#guide-term-PI` exists.
@@ -313,11 +318,12 @@ app/tests/views/systemGuide.test.ts; updated: tests/store/guide.test.ts, tests/c
   - `it("focuses a glossary row of the page")`: `followRoute('dashboard')`, `showTerm('G1')` → `#guide-term-G1` is the `gate_code` glossary row's `dt` and has `aria-current="true"`.
   - `it('shows a term on a route without a guide')`: `followRoute(null)`, `showTerm('CMR')` → text contains `stripTerms(i18n.t('terms.CMR.short'))`; no `guide.panel.purpose` heading.
   - `it('links to the system guide on the focused term')`: after `showTerm('S09')` the footer link's `data-to` parses to `{ name: 'guide', hash: '#term-S09' }`; after `show('dashboard')` it has no `hash`.
-  - `it('renders the guide copy with its terms')`: with the en message `guide.pages.dashboard.tasks.close_incident.steps.1` overridden for the test to `'Open the incident; [[S1]] first.'` (`i18n.mergeLocaleMessage`), the steps list has `abbr[data-term="S1"]` with `role="button"`; with the title overridden to `'Close [[S1]]'`, the header's abbr has no `role`; the panel text contains no `[[`.
+  - Message setup: replace the file's `beforeAll(() => i18n.setLocaleMessage('en', en))` with a `beforeEach` that sets a fresh `structuredClone(en)`, so no case sees another case's override.
+  - `it('renders the guide copy with its terms')`: inside `try`, `i18n.mergeLocaleMessage('en', { guide: { pages: { dashboard: { tasks: { close_incident: { title: 'Close [[S1]]', steps: { 1: 'Open the incident; [[S1]] first.' } } } } } } })`, then `show('dashboard', 'close_incident')` with `update incident` allowed → the `close_incident` steps list has `abbr[data-term="S1"]` with `role="button"`; its `AccordionHeader` abbr has no `role`; the panel text contains no `[[`. In `finally`, `i18n.setLocaleMessage('en', structuredClone(en))` restores the two keys `guide.pages.dashboard.tasks.close_incident.title` and `….steps.1`.
 - [ ] **Step 2: Run it and see it fail.** Run: `pnpm test tests/components/PageGuide.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement** the registry lists, the panel changes and the copy; sync.
 - [ ] **Step 4: Run.** Run: `pnpm test && pnpm typecheck && pnpm lint`. Expected: PASS.
-- [ ] **Step 5: Commit.** `git add app/src/constants/guide.ts app/src/components/service-components/page-guide app/src/plugins/i18n/locales app/tests/components/PageGuide.test.ts`; message `feat(guide): the page guide lists its terms, opens on a clicked term and links to the system guide`, then a blank line and the Co-Authored-By trailer your session provides.
+- [ ] **Step 5: Commit.** `git add app/components.d.ts app/src/constants/guide.ts app/src/components/service-components/page-guide app/src/plugins/i18n/locales app/tests/components/PageGuide.test.ts`; message `feat(guide): the page guide lists its terms, opens on a clicked term and links to the system guide`, then a blank line and the Co-Authored-By trailer your session provides.
 
 ---
 
@@ -378,7 +384,7 @@ The new values (`guide.pages.<key>`: EN / TR). Every other guide string is uncha
   - `it('marks the codes of the guides')`: en `guide.pages.purchase_order.tasks.check_pi.title === 'Check the [[PI]] ([[S09]])'`, `guide.pages.dashboard.tasks.close_gates.steps.2` contains `'[[(M)]]'`, `guide.pages.incident.tasks.open_incident.steps.1` contains `'[[Y10]]'`, `guide.pages.dashboard.tasks.track_shipment.steps.3` contains `'[[OL]]-09'`.
   - `it("lists the codes each page marks among its terms")`: for each page, the codes marked in its en `guide.pages.<page>` strings that are neither in `PAGE_GUIDES[page].terms` nor derived from one of its `glossary` enums → `[]`.
 - [ ] **Step 2: Run it and see it fail.** Run: `pnpm test tests/plugins/i18n/guide.test.ts`. Expected: FAIL (`marks the codes of the guides`).
-- [ ] **Step 3: Replace** the 42 values in `en` and `tr`; in `PageGuide.test.ts`, wrap the expected guide strings in `stripTerms(…)` (`close_incident.steps.1`–`3` are now marked).
+- [ ] **Step 3: Replace** the 42 values in `en` and `tr`; in `PageGuide.test.ts`, wrap the expected `close_incident.steps.1` and `close_incident.steps.3` strings in `stripTerms(…)` (those two are now marked; `steps.2` stays plain and is compared as before).
 - [ ] **Step 4: Run.** Run: `pnpm test && pnpm typecheck && pnpm lint`. Expected: PASS (Task 1's parity case now checks these 42 pairs).
 - [ ] **Step 5: Commit.** `git add app/src/plugins/i18n/locales/en/index.json app/src/plugins/i18n/locales/tr/index.json app/tests`; message `feat(guide): the page guides mark the codes they name`, then a blank line and the Co-Authored-By trailer your session provides.
 
@@ -387,7 +393,7 @@ The new values (`guide.pages.<key>`: EN / TR). Every other guide string is uncha
 ### Task 7: Markers in the glossary; plain text where a marker cannot render
 
 **Files:**
-- Modify: `app/src/plugins/i18n/locales/en/index.json`, `tr/index.json` (glossary lines below); `app/src/components/service-components/select-enum/SelectEnum.vue`, `status-actions/StatusActions.vue`, `gate-panel/GatePanel.vue`, `phase-strip/PhaseStrip.vue`; `app/tests/components/{SelectEnum,StatusActions,PhaseStrip}.test.ts`
+- Modify: `app/src/plugins/i18n/locales/en/index.json`, `tr/index.json` (glossary lines below); `app/src/components/service-components/select-enum/SelectEnum.vue`, `status-actions/StatusActions.vue`, `gate-panel/GatePanel.vue`, `phase-strip/PhaseStrip.vue`; `app/tests/components/{SelectEnum,StatusActions,GatePanel,PhaseStrip}.test.ts`
 
 **Interfaces:**
 - Consumes: `stripTerms` (Task 1). The page guide panel (Task 5) and the system guide (Task 4) already render glossary lines through `TermText`.
@@ -407,9 +413,10 @@ The new values (`guide.pages.<key>`: EN / TR). Every other guide string is uncha
 - [ ] **Step 1: Write the tests.**
   - `SelectEnum.test.ts`: `it('shows a marked glossary line as plain text')`: `values: ['pi_received']`, `glossary: 'purchase_order_status'` → the option's `description` equals `stripTerms(i18n.t('glossary.purchase_order_status.pi_received'))` and contains no `[[`; with the value selected, the info icon's `aria-label` equals the same.
   - `StatusActions.test.ts`: change the tooltip case to expect `stripTerms(i18n.t('glossary.shipment_status.accepted'))` and add `expect(element.$_ptooltipValue).not.toContain('[[')`.
+  - `GatePanel.test.ts`: `it('explains the gate in plain text')`: mounted (as the file's existing cases do) on a pending `G3` gate → `[data-test="gate-glossary-info"]` has `aria-label` equal to `stripTerms(i18n.t('glossary.gate_code.G3'))` (`'PI, price and print approval (M).'` in en) and its `aria-label` contains no `[[`.
   - `PhaseStrip.test.ts`: expect `` `${i18n.t('ops.project.gate_status.passed')} — ${stripTerms(i18n.t('glossary.gate_code.G1'))}` `` and no `[[` in the title.
 - [ ] **Step 2: Mark** the en and tr glossary lines by the rule above.
-- [ ] **Step 3: Run the tests and see them fail.** Run: `pnpm test tests/components/SelectEnum.test.ts tests/components/StatusActions.test.ts tests/components/PhaseStrip.test.ts`. Expected: FAIL (the three components still show `[[…]]`).
+- [ ] **Step 3: Run the tests and see them fail.** Run: `pnpm test tests/components/SelectEnum.test.ts tests/components/StatusActions.test.ts tests/components/GatePanel.test.ts tests/components/PhaseStrip.test.ts`. Expected: FAIL (the four components still show `[[…]]`).
 - [ ] **Step 4: Implement** `stripTerms` in the four components.
 - [ ] **Step 5: Run.** Run: `pnpm test && pnpm typecheck && pnpm lint`. Expected: PASS. Hand check: the dashboard guide's terms show G1–G5 with a dotted "(M)"; the gate panel's info tooltip on G3 reads "PI, price and print approval (M)."
 - [ ] **Step 6: Commit.** `git add app/src/plugins/i18n/locales/en/index.json app/src/plugins/i18n/locales/tr/index.json app/src/components/service-components app/tests/components`; message `feat(glossary): glossary lines mark their codes; tooltips and options keep plain text`, then a blank line and the Co-Authored-By trailer your session provides.
@@ -429,7 +436,7 @@ The new values (`guide.pages.<key>`: EN / TR). Every other guide string is uncha
   4. Open your account page (no guide) and click a term from a hint reached there, or call `showTerm` from devtools: the panel shows that term alone. Navigate with the panel closed, then click a term: the panel opens on the new page, not the old one.
   5. "Open the system guide" in the panel footer with S09 focused lands on `/guide#term-S09` scrolled to S09; the account menu's "System guide" opens the top. On the page, clicking PI in S09's text jumps to PI and does not open the panel. Every section lists its terms; there is no "?" button and no sidebar entry.
   6. Tooltips on status buttons, select options and the phase strip show no `[[`; a refused action's toast shows no `[[`.
-- [ ] **Step 3: Push and check CI.** Expected: `app` is green. Commit only if Steps 1–2 needed fixes, with the files of the owning task and a `fix(<scope>): …` subject naming what the walk found, then a blank line and the Co-Authored-By trailer your session provides.
+- [ ] **Step 3: Report.** Do not push (the controller pushes). Report: the Step 1 command output summary (pass/fail per command); for each walk item 1–6, `pass` or `fail` with what was seen (role, language, page, the term clicked and where the panel or page landed); and, for every fix, its owning task, files and commit. Commit only if Steps 1–2 needed fixes, with the files of the owning task and a `fix(<scope>): …` subject naming what the walk found, then a blank line and the Co-Authored-By trailer your session provides.
 
 ---
 
@@ -441,6 +448,6 @@ The new values (`guide.pages.<key>`: EN / TR). Every other guide string is uncha
   - *Formlar*: `FormField.term` in the label slot (T3); enum option hints stay layer 1 (T7 keeps them plain).
   - *Sistem rehberi sayfası*: role-agnostic route, opened from the panel footer and the account menu; sections "panel nasıl çalışır" (customer filter, cards and tabs, status buttons, document versions, branch/tenant), process documents with a Drive link when known, packages, gate set, incident families and severities, abbreviations; generated from the registry; page guides link to it through the panel footer; no guide of its own (T4, T5).
   - *İçerik sahipliği*: TR marked **[owner to confirm]** throughout.
-- **Rulings (spec gaps)**: a "Panel rules" (K5–K8) section is added to the system guide, since the spec names K codes as terms but lists no section for them. Derived terms have no `terms.<slug>.short` (the glossary line is their short copy), so the copy is not duplicated. Only the first occurrence of a code in a string is marked. Form labels keep their plain strings; `markLabel` places the term. Package and gate selects get no label term (their options already carry layer 1 lines). Other locales keep unmarked copies (sync never overwrites). No Drive links ship until the owner provides them.
-- **Type consistency**: `termKeys`, `termSlug`, `termsOf`, `termOfGlossary`, `parseTerms`, `stripTerms`, `markLabel`, `isTermCode` (T1) are the names used in T2–T7; `TERM_SELECT` (T2) is provided in T4; `TERM_SECTIONS`, `SYSTEM_GUIDE_TOPICS` (T4) are read by the T4 test; `focusTerm`/`showTerm` (T2) are read by `PageGuide` (T5); `PageGuide.terms` (T5) is checked in T6; anchors `term-<slug>` (T4) and `guide-term-<slug>` (T5) differ on purpose (page vs panel).
+- **Rulings (spec gaps; the five owner rulings of 2026-11-05 confirm them)**: a "Panel rules" (K5–K8) section is added to the system guide, since the spec names K codes as terms but lists no section for them. Derived terms have no `terms.<slug>.short` (the glossary line is their short copy), so the copy is not duplicated. Only the first occurrence of a code in a string is marked. Form labels keep their plain strings; `markLabel` places the term. Package and gate selects get no label term (their options already carry layer 1 lines). Other locales keep unmarked copies (sync never overwrites). No Drive links ship until the owner provides them.
+- **Type consistency**: `termKeys`, `termSlug`, `termsOf`, `termOfGlossary`, `parseTerms`, `stripTerms`, `markLabel`, `isTermCode`, `driveLinkValid` (T1) are the names used in T2–T7; `GuideTermRow` (T5) is the only renderer of a panel term row, for term and glossary rows alike; `TERM_SELECT` (T2) is provided in T4; `TERM_SECTIONS`, `SYSTEM_GUIDE_TOPICS` (T4) are read by the T4 test; `focusTerm`/`showTerm` (T2) are read by `PageGuide` (T5); `PageGuide.terms` (T5) is checked in T6; anchors `term-<slug>` (T4) and `guide-term-<slug>` (T5) differ on purpose (page vs panel).
 - **Proportion**: no component body is transcribed; code blocks are absent beyond test assertions inline. The bulk is the EN/TR copy (Task 1's 53 entries, Task 4's page copy, Task 6's 42 guide strings), which implementers cannot derive, as in the Phase 2c plan.
