@@ -495,7 +495,19 @@
       "po_project_customer": "The project belongs to another customer.",
       "po_line_product_customer": "The product belongs to another customer.",
       "po_line_product_duplicate": "The product is already on this order.",
-      "pi_check_invalid": "The PI checklist has an unknown item or answer."
+      "pi_check_invalid": "The PI checklist has an unknown item or answer.",
+      "po_status_order": "The order cannot move to this status from its current one.",
+      "po_lines_required": "Add at least one line first.",
+      "po_spec_sheet_required": "Every line needs a signed or approved spec sheet before the order is sent.",
+      "po_line_spec_invalid": "Choose a signed or approved spec sheet of this product.",
+      "po_pi_document_invalid": "Choose a PI document of this order.",
+      "po_pi_required": "Enter the PI document and its total first.",
+      "po_pi_checklist_incomplete": "Every PI check item must be \"OK\" before approval.",
+      "po_pi_mismatch": "The PI figures differ from the recalculated ones; ask for a corrected PI.",
+      "po_deposit_unpaid": "Record the paid deposit first.",
+      "po_balance_unpaid": "Record the paid balance first.",
+      "po_locked": "The PI is approved; lines and terms no longer change.",
+      "po_closed": "The order is closed or cancelled; it no longer changes."
    },
    "account": {
       "profile": {

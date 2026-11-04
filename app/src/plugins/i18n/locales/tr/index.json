@@ -307,7 +307,19 @@
       "po_project_customer": "Proje başka bir müşteriye ait.",
       "po_line_product_customer": "Ürün başka bir müşteriye ait.",
       "po_line_product_duplicate": "Ürün bu siparişte zaten var.",
-      "pi_check_invalid": "PI kontrol listesinde bilinmeyen bir madde ya da cevap var."
+      "pi_check_invalid": "PI kontrol listesinde bilinmeyen bir madde ya da cevap var.",
+      "po_status_order": "Sipariş bu duruma mevcut durumundan geçemez.",
+      "po_lines_required": "Önce en az bir satır ekleyin.",
+      "po_spec_sheet_required": "Sipariş gönderilmeden önce her satırda imzalı ya da onaylı spec sheet olmalı.",
+      "po_line_spec_invalid": "Bu ürünün imzalı ya da onaylı bir spec sheet'ini seçin.",
+      "po_pi_document_invalid": "Bu siparişin bir PI belgesini seçin.",
+      "po_pi_required": "Önce PI belgesini ve toplamını girin.",
+      "po_pi_checklist_incomplete": "Onaydan önce PI kontrol listesinin her maddesi \"Uygun\" olmalı.",
+      "po_pi_mismatch": "PI rakamları yeniden hesaplananlardan farklı; düzeltilmiş PI isteyin.",
+      "po_deposit_unpaid": "Önce ödenen depozitoyu kaydedin.",
+      "po_balance_unpaid": "Önce ödenen bakiyeyi kaydedin.",
+      "po_locked": "PI onaylandı; satırlar ve şartlar artık değişmez.",
+      "po_closed": "Sipariş kapandı ya da iptal edildi; artık değişmez."
    },
    "account": {
       "logout": "Çıkış yap",

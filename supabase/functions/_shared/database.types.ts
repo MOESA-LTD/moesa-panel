@@ -1749,6 +1749,13 @@ export type Database = {
             referencedColumns: ["id", "customer_id", "tenant_id"]
           },
           {
+            foreignKeyName: "purchase_order_line_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
             foreignKeyName: "purchase_order_line_product_fkey"
             columns: ["product_id", "customer_id", "tenant_id"]
             isOneToOne: false
@@ -1844,6 +1851,13 @@ export type Database = {
             referencedColumns: ["id", "tenant_id"]
           },
           {
+            foreignKeyName: "purchase_order_payment_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
             foreignKeyName: "purchase_order_payment_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1896,6 +1910,13 @@ export type Database = {
             columns: ["purchase_order_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "purchase_order"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -2854,6 +2875,127 @@ export type Database = {
           },
           {
             foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_overview: {
+        Row: {
+          balance_paid_on: string | null
+          balance_planned_on: string | null
+          code: string | null
+          created_at: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          deposit_paid_on: string | null
+          deposit_planned_on: string | null
+          deposit_rate: number | null
+          has_approved_psi: boolean | null
+          id: string | null
+          incoterm: string | null
+          incoterm_place: string | null
+          line_count: number | null
+          notes: string | null
+          packing_instruction_document_id: string | null
+          penalty_rule: string | null
+          pi_balance_amount: number | null
+          pi_check: Json | null
+          pi_checked_at: string | null
+          pi_checked_by: string | null
+          pi_deposit_amount: number | null
+          pi_discount_amount: number | null
+          pi_document_id: string | null
+          pi_extra_amount: number | null
+          pi_number: string | null
+          pi_subtotal: number | null
+          pi_total: number | null
+          product_ids: string[] | null
+          project_code: string | null
+          project_id: string | null
+          ready_on: string | null
+          spec_missing_line_ids: string[] | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_code: string | null
+          supplier_id: string | null
+          system_balance: number | null
+          system_deposit: number | null
+          system_subtotal: number | null
+          system_total: number | null
+          tenant_id: string | null
+          tolerance_pct: number | null
+          total_quantity: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_packing_document_fkey"
+            columns: ["packing_instruction_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_pi_checked_by_fkey"
+            columns: ["pi_checked_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_pi_document_fkey"
+            columns: ["pi_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_supplier_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
