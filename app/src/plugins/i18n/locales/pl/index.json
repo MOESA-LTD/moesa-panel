@@ -167,7 +167,12 @@
       "shipment_line": "Shipment line",
       "shipment_event": "Shipment event",
       "market_cell": "Market cell",
-      "market_matrix": "Market matrix"
+      "market_matrix": "Market matrix",
+      "incident": "Incident",
+      "incident_log": "Incident log",
+      "incident_deadline": "Incident deadline",
+      "change_request": "Change request",
+      "change_request_product": "Change request product"
    },
    "input": {
       "select_or_write": "Wybierz lub wpisz"
@@ -490,14 +495,20 @@
       "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
       "gate_incident_invalid": "Pick an open incident of this project's customer.",
       "incident_severity_downgrade_requires_management": "Only management may lower an S1 or S2 incident's severity.",
-      "change_request_customer_missing": "The change request's customer was not found.",
+      "change_request_customer_missing": "The request's customer was not found.",
       "change_request_immutable_field": "A change request's code and customer cannot change.",
-      "change_request_document_invalid": "Choose a document of this customer.",
-      "change_request_approval_document_invalid": "The customer's approval must be a signed or approved document of this change request.",
-      "change_request_status_order": "The change request cannot move to this status from its current one.",
-      "change_request_customer_approval_required": "The gate is already passed and needs the customer's approval: enter the customer's approval date and written approval first (S08).",
-      "change_request_decision_note_required": "Write why the change request is rejected.",
-      "change_request_new_version_required": "Applying needs the changed document's new version: a higher version of the same document."
+      "change_request_document_invalid": "Choose a document of this customer's records.",
+      "change_request_approval_document_invalid": "The customer's approval must be a signed or approved document of this request.",
+      "change_request_status_order": "The request cannot move to this status from its current one.",
+      "change_request_customer_approval_required": "It touches a passed (M) gate: add the customer's written approval date and document first (S08).",
+      "change_request_decision_note_required": "Write why the request is rejected.",
+      "change_request_new_version_required": "Pick the new version of the affected document first.",
+      "incident_type_invalid": "Choose a Y10 card code (e.g. OL-09).",
+      "incident_log_cost_incomplete": "A cost needs its amount, currency and who pays.",
+      "incident_deadline_due_required": "Enter the due time; only the 48-hour, 7-day and document-request deadlines are calculated.",
+      "cr_project_customer": "The project belongs to another customer.",
+      "cr_product_customer": "A product belongs to another customer.",
+      "change_request_kinds_required": "Choose at least one change kind."
    },
    "account": {
       "profile": {
@@ -1937,6 +1948,84 @@
          "en_master": "The English master set is ready.",
          "translated": "Translated into the market's language.",
          "approved": "Content approved (L-G1); needed before live."
+      },
+      "incident_family": {
+         "ol": "Shipment and delivery: trucks, appointments, counts, damage, papers, customs, delays.",
+         "oa": "Platform and Amazon: listings removed or suppressed, document requests, account health.",
+         "ou": "Product and compliance: PSI failures, refusals, recalls, labels, certificates.",
+         "ot": "Supplier: unannounced changes, production delays, PI mismatches, silence, price rises.",
+         "om": "Customer: verbal changes, late payments, disputes, no answer."
+      },
+      "incident_severity": {
+         "s1": "Critical: goods, money or the account at risk; management at once, the customer within 4 hours.",
+         "s2": "Major: a date slips or a cost appears; management the same day, the customer the same business day.",
+         "s3": "Minor: no effect on delivery or cost; reported in the weekly summary."
+      },
+      "incident_status": {
+         "open": "Recorded; being classified and handled.",
+         "contained": "The goods, listing or money are safe; recovery and closure remain.",
+         "closed": "Closed with its root cause, cost and the measure added to the guideline."
+      },
+      "incident_party": {
+         "customer": "The customer is affected.",
+         "supplier": "The supplier is involved.",
+         "forwarder": "The forwarder or customs broker is involved.",
+         "platform": "A marketplace is involved.",
+         "warehouse": "A warehouse is involved."
+      },
+      "incident_root_cause": {
+         "human_error": "Someone made a mistake.",
+         "document_data": "A document or data was wrong or missing.",
+         "communication": "Information did not reach the right party in time.",
+         "supplier": "The supplier caused it.",
+         "carrier": "The carrier or forwarder caused it.",
+         "platform_regulation": "A platform rule or a regulation caused it.",
+         "customer": "The customer caused it."
+      },
+      "incident_outcome": {
+         "full_recovery": "Everything was recovered.",
+         "partial_recovery": "Part was recovered; the impact note says what is left.",
+         "loss": "It could not be recovered."
+      },
+      "incident_deadline_kind": {
+         "supplier_damage": "Damage notice to the supplier: 48 hours under the usual PI terms.",
+         "carrier_claim": "Claim to the carrier: 7 days by road (CMR), 3 days by sea per the B/L; 7 days is assumed.",
+         "demurrage": "The end of the port or detention free days; enter it from the carrier's terms.",
+         "supplier_storage": "When the supplier starts charging storage for goods not collected.",
+         "platform_escalation": "Wait 48 hours for a platform case before escalating.",
+         "document_request": "A platform document request is closed within the business days set by management (5).",
+         "other": "Any other deadline; enter its date."
+      },
+      "cost_payer": {
+         "moesa": "MOESA bears the cost.",
+         "customer": "Charged to the customer; needs the customer's written approval.",
+         "supplier": "Charged to the supplier.",
+         "carrier_insurance": "Claimed from the carrier or the insurance."
+      },
+      "change_request_status": {
+         "open": "Recorded; impact and decision pending.",
+         "approved": "Approved by MOESA (and by the customer when a passed (M) gate is touched); not applied yet.",
+         "rejected": "Rejected; the decision note says why.",
+         "applied": "Applied: the affected document has its new version."
+      },
+      "change_request_source": {
+         "customer": "The customer asked for it.",
+         "supplier": "The supplier asked for it or caused it.",
+         "moesa": "MOESA proposes it.",
+         "regulation": "A regulation or a platform rule requires it."
+      },
+      "change_request_urgency": {
+         "normal": "Decided within 5 business days.",
+         "urgent": "Production or safety is at stake; decided within 24 hours."
+      },
+      "change_kind": {
+         "spec": "Size, material, composition, performance or safety; a new spec version, signed again by the maker.",
+         "design": "Design or tech pack.",
+         "packaging": "Packaging, label or artwork; PL-G4 again.",
+         "price": "Price or quantity; a new PI and PO version, the customer's price approval (G3).",
+         "deadline": "Ready date, booking or launch date.",
+         "supplier": "Another supplier; a new spec sheet and golden sample.",
+         "content": "Listing content; L-G1 again."
       }
    },
    "status_actions": {

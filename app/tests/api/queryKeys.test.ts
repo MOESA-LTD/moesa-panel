@@ -184,3 +184,39 @@ describe('invalidateTables', () => {
       expect(staleKeys(queryClient)).not.toContainEqual(['unrelated']);
    });
 });
+
+describe('affectedTables of incidents and change requests', () => {
+   it('marks the log, deadlines, overview and rolled-back gates stale after an incident change', () => {
+      expect(affectedTables(['incident'])).toEqual(
+         expect.arrayContaining(['incident_log', 'incident_deadline', 'incident_overview'])
+      );
+      expect(affectedTables(['incident'])).toContain('project_gate');
+      expect(affectedTables(['incident_log'])).toContain('incident');
+      expect(affectedTables(['incident_deadline'])).toEqual(
+         expect.arrayContaining(['incident', 'incident_overview'])
+      );
+   });
+
+   it('marks the incident card stale after a gate change', () => {
+      expect(affectedTables(['project_gate'])).toContain('incident');
+   });
+
+   it('marks the overview stale after a change to what it names', () => {
+      for (const table of [
+         'customer',
+         'project',
+         'product',
+         'purchase_order',
+         'shipment',
+         'market_cell'
+      ] as const)
+         expect(affectedTables([table])).toContain('incident_overview');
+   });
+
+   it('marks the change request card stale after a change to what it embeds', () => {
+      expect(affectedTables(['change_request'])).toContain('change_request_product');
+      expect(affectedTables(['change_request_product'])).toContain('change_request');
+      for (const table of ['customer', 'project', 'product', 'document'] as const)
+         expect(affectedTables([table])).toContain('change_request');
+   });
+});

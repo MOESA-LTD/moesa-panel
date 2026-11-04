@@ -35,5 +35,10 @@ export const fieldRoutes: FieldRoutes = {
    shipment_purchase_order: { name: 'ops-shipment-manage', field: 'shipment_id' },
    shipment_line: { name: 'ops-shipment-manage', field: 'shipment_id' },
    shipment_event: { name: 'ops-shipment-manage', field: 'shipment_id' },
-   market_cell: { name: 'ops-market-cell-edit' }
+   market_cell: { name: 'ops-market-cell-edit' },
+   incident: { name: 'ops-incident-manage' },
+   incident_log: { name: 'ops-incident-manage', field: 'incident_id' },
+   incident_deadline: { name: 'ops-incident-manage', field: 'incident_id' },
+   change_request: { name: 'ops-change-request-manage' },
+   change_request_product: { name: 'ops-change-request-manage', field: 'change_request_id' }
 };

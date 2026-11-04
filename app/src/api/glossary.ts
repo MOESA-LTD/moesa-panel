@@ -1,5 +1,21 @@
+import {
+   CHANGE_KINDS,
+   CHANGE_REQUEST_SOURCES,
+   CHANGE_REQUEST_STATUSES,
+   CHANGE_REQUEST_URGENCIES
+} from '@/api/changeRequest';
 import { PACKAGES, CUSTOMER_STATUSES } from '@/api/customer';
 import { DOCUMENT_STATUSES, DOCUMENT_TYPES } from '@/api/document';
+import {
+   COST_PAYERS,
+   INCIDENT_DEADLINE_KINDS,
+   INCIDENT_FAMILIES,
+   INCIDENT_OUTCOMES,
+   INCIDENT_PARTIES,
+   INCIDENT_ROOT_CAUSES,
+   INCIDENT_SEVERITIES,
+   INCIDENT_STATUSES
+} from '@/api/incident';
 import {
    CONTENT_STATUSES,
    MARKET_CELL_STATUSES,
@@ -31,7 +47,19 @@ export const GLOSSARY_ENUMS = {
    market_cell_status: MARKET_CELL_STATUSES,
    market_compliance: MARKET_COMPLIANCES,
    stock_source: STOCK_SOURCES,
-   content_status: CONTENT_STATUSES
+   content_status: CONTENT_STATUSES,
+   incident_family: INCIDENT_FAMILIES,
+   incident_severity: INCIDENT_SEVERITIES,
+   incident_status: INCIDENT_STATUSES,
+   incident_party: INCIDENT_PARTIES,
+   incident_root_cause: INCIDENT_ROOT_CAUSES,
+   incident_outcome: INCIDENT_OUTCOMES,
+   incident_deadline_kind: INCIDENT_DEADLINE_KINDS,
+   cost_payer: COST_PAYERS,
+   change_request_status: CHANGE_REQUEST_STATUSES,
+   change_request_source: CHANGE_REQUEST_SOURCES,
+   change_request_urgency: CHANGE_REQUEST_URGENCIES,
+   change_kind: CHANGE_KINDS
 } as const;
 
 export type GlossaryEnum = keyof typeof GLOSSARY_ENUMS;

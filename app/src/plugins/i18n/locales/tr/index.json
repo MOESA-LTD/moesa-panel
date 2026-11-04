@@ -347,6 +347,7 @@
       "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
       "incident_customer_missing": "Olayın müşterisi bulunamadı.",
       "incident_immutable_field": "Olayın kodu, müşterisi ve ailesi değiştirilemez.",
+      "incident_type_invalid": "Bir Y10 kart kodu seçin (ör. OL-09).",
       "incident_type_family": "Y10 kartı başka bir aileye ait.",
       "incident_entity_invalid": "Bu müşterinin bir projesini, siparişini, sevkiyatını, ürününü ya da pazar hücresini seçin.",
       "incident_status_order": "Olay mevcut durumundan bu duruma geçemez.",
@@ -355,16 +356,21 @@
       "incident_close_management": "S1 olayını yalnızca yönetim kapatır.",
       "incident_severity_downgrade_requires_management": "S1 veya S2 olayının önem derecesini yalnızca yönetim düşürebilir.",
       "incident_closed": "Olay kapandı; günlüğü ve süreleri artık değişmez.",
+      "incident_log_cost_incomplete": "Maliyetin tutarı, para birimi ve ödeyeni olmalı.",
+      "incident_deadline_due_required": "Son zamanı girin; yalnızca 48 saat, 7 gün ve belge talebi süreleri hesaplanır.",
       "gate_rollback_incident_required": "Kapı yalnızca olay üzerinden geri alınır (K3); bir olay seçin ya da açın.",
       "gate_incident_invalid": "Bu projenin müşterisinin açık bir olayını seçin.",
-      "change_request_customer_missing": "Değişiklik talebinin müşterisi bulunamadı.",
+      "change_request_customer_missing": "Talebin müşterisi bulunamadı.",
       "change_request_immutable_field": "Değişiklik talebinin kodu, müşterisi ve oluşturulma zamanı değişmez; onaylandıktan sonra müşteri onayı da değişmez.",
-      "change_request_document_invalid": "Bu müşterinin bir belgesini seçin.",
-      "change_request_approval_document_invalid": "Müşteri onayı bu değişiklik talebinin imzalı ya da onaylı bir belgesi olmalı.",
-      "change_request_status_order": "Değişiklik talebi mevcut durumundan bu duruma geçemez.",
-      "change_request_customer_approval_required": "Kapı zaten geçildi ve müşteri onayı gerekiyor: önce müşteri onay tarihini ve yazılı onayı girin (S08).",
-      "change_request_decision_note_required": "Değişiklik talebinin neden reddedildiğini yazın.",
-      "change_request_new_version_required": "Uygulamak için değişen belgenin yeni sürümü gerekir: aynı belgenin daha yüksek bir sürümü.",
+      "cr_project_customer": "Proje başka bir müşteriye ait.",
+      "cr_product_customer": "Ürünlerden biri başka bir müşteriye ait.",
+      "change_request_kinds_required": "En az bir değişiklik türü seçin.",
+      "change_request_document_invalid": "Bu müşterinin kayıtlarından bir belge seçin.",
+      "change_request_approval_document_invalid": "Müşteri onayı bu talebin imzalı ya da onaylı bir belgesi olmalı.",
+      "change_request_status_order": "Talep mevcut durumundan bu duruma geçemez.",
+      "change_request_customer_approval_required": "Geçmiş bir (M) kapıyı etkiliyor: önce müşterinin yazılı onay tarihini ve belgesini ekleyin (S08).",
+      "change_request_decision_note_required": "Talebin neden reddedildiğini yazın.",
+      "change_request_new_version_required": "Önce etkilenen belgenin yeni sürümünü seçin.",
       "market_cell_reason_required": "Nedeni yazın: askıdaysa açık sorun, kapatıldı ya da çıkarıldıysa not.",
       "market_cell_immutable_field": "Hücrenin ürünü, platformu ve ülkesi değişmez; yeni hücre açın.",
       "market_cell_delete_candidate_only": "Yalnızca aday hücre silinebilir; diğerlerini çıkarın ya da kapatın.",
@@ -631,7 +637,12 @@
       "shipment_line": "Sevkiyat satırı",
       "shipment_event": "Sevkiyat olayı",
       "market_cell": "Pazar hücresi",
-      "market_matrix": "Pazar matrisi"
+      "market_matrix": "Pazar matrisi",
+      "incident": "Olay",
+      "incident_log": "Olay günlüğü",
+      "incident_deadline": "Olay süre sınırı",
+      "change_request": "Değişiklik talebi",
+      "change_request_product": "Değişiklik talebi ürünü"
    },
    "dashboard": {
       "statistics": {
@@ -1937,6 +1948,84 @@
          "en_master": "İngilizce ana set hazır.",
          "translated": "Pazarın diline çevrildi.",
          "approved": "İçerik onaylandı (L-G1); yayından önce şart."
+      },
+      "incident_family": {
+         "ol": "Sevkiyat ve teslim: araç, randevu, sayım, hasar, evrak, gümrük, gecikme.",
+         "oa": "Platform ve Amazon: kaldırılan ya da bastırılan listing, belge talebi, hesap sağlığı.",
+         "ou": "Ürün ve uyum: PSI reddi, kabul etmeme, geri çağırma, etiket, sertifika.",
+         "ot": "Tedarik: habersiz değişiklik, üretim gecikmesi, PI tutarsızlığı, sessizlik, fiyat artışı.",
+         "om": "Müşteri: sözlü değişiklik, geç ödeme, uyuşmazlık, cevapsızlık."
+      },
+      "incident_severity": {
+         "s1": "Kritik: mal, para ya da hesap riski; yönetime hemen, müşteriye 4 saat içinde.",
+         "s2": "Önemli: tarih kayar ya da maliyet çıkar; yönetime aynı gün, müşteriye aynı iş günü.",
+         "s3": "Küçük: teslim ve maliyet etkilenmez; haftalık özette bildirilir."
+      },
+      "incident_status": {
+         "open": "Kayıtlı; sınıflandırılıyor ve ele alınıyor.",
+         "contained": "Mal, listing ya da para güvende; kurtarma ve kapanış kaldı.",
+         "closed": "Kök nedeni, maliyeti ve yönergeye eklenen önlemiyle kapandı."
+      },
+      "incident_party": {
+         "customer": "Müşteri etkileniyor.",
+         "supplier": "Tedarikçi işin içinde.",
+         "forwarder": "Forwarder ya da gümrük müşaviri işin içinde.",
+         "platform": "Bir pazar yeri işin içinde.",
+         "warehouse": "Bir depo işin içinde."
+      },
+      "incident_root_cause": {
+         "human_error": "Biri hata yaptı.",
+         "document_data": "Bir belge ya da veri yanlış veya eksikti.",
+         "communication": "Bilgi doğru tarafa zamanında ulaşmadı.",
+         "supplier": "Tedarikçi kaynaklı.",
+         "carrier": "Taşıyıcı ya da forwarder kaynaklı.",
+         "platform_regulation": "Platform kuralı ya da mevzuat kaynaklı.",
+         "customer": "Müşteri kaynaklı."
+      },
+      "incident_outcome": {
+         "full_recovery": "Her şey kurtarıldı.",
+         "partial_recovery": "Bir kısmı kurtarıldı; etki notu neyin kaldığını söyler.",
+         "loss": "Kurtarılamadı."
+      },
+      "incident_deadline_kind": {
+         "supplier_damage": "Tedarikçiye hasar bildirimi: olağan PI şartlarında 48 saat.",
+         "carrier_claim": "Taşıyıcıya itiraz: kara yolunda 7 gün (CMR), denizde konşimentoya göre 3 gün; 7 gün varsayılır.",
+         "demurrage": "Liman ya da detention serbest günlerinin bitişi; taşıyıcı şartlarından girin.",
+         "supplier_storage": "Çekilmeyen mal için tedarikçinin depolama ücreti başlattığı tarih.",
+         "platform_escalation": "Platform vakasında eskalasyondan önce 48 saat beklenir.",
+         "document_request": "Platformun belge talebi yönetimin belirlediği iş günü içinde (5) kapatılır.",
+         "other": "Diğer süre sınırları; tarihini girin."
+      },
+      "cost_payer": {
+         "moesa": "Maliyeti MOESA üstlenir.",
+         "customer": "Müşteriye yansır; müşterinin yazılı onayı gerekir.",
+         "supplier": "Tedarikçiye yansır.",
+         "carrier_insurance": "Taşıyıcıdan ya da sigortadan talep edilir."
+      },
+      "change_request_status": {
+         "open": "Kayıtlı; etki ve karar bekliyor.",
+         "approved": "MOESA onayladı (geçmiş (M) kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
+         "rejected": "Reddedildi; karar notu nedenini söyler.",
+         "applied": "Uygulandı: etkilenen belge yeni sürümünü aldı."
+      },
+      "change_request_source": {
+         "customer": "Müşteri istedi.",
+         "supplier": "Tedarikçi istedi ya da yol açtı.",
+         "moesa": "MOESA öneriyor.",
+         "regulation": "Mevzuat ya da platform kuralı gerektiriyor."
+      },
+      "change_request_urgency": {
+         "normal": "5 iş günü içinde karar verilir.",
+         "urgent": "Üretim ya da güvenlik söz konusu; 24 saat içinde karar verilir."
+      },
+      "change_kind": {
+         "spec": "Ölçü, malzeme, bileşim, performans ya da güvenlik; üreticinin yeniden imzaladığı yeni spec sürümü.",
+         "design": "Tasarım ya da tech pack.",
+         "packaging": "Ambalaj, etiket ya da artwork; PL-G4 yeniden.",
+         "price": "Fiyat ya da adet; yeni PI ve PO sürümü, müşterinin fiyat onayı (G3).",
+         "deadline": "Termin, booking ya da yayın tarihi.",
+         "supplier": "Başka tedarikçi; yeni spec sheet ve altın numune.",
+         "content": "Listing içeriği; L-G1 yeniden."
       }
    },
    "status_actions": {
