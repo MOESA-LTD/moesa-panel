@@ -365,6 +365,13 @@ export type Database = {
             referencedColumns: ["id", "customer_id", "tenant_id"]
           },
           {
+            foreignKeyName: "change_request_product_cr_fkey"
+            columns: ["change_request_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_change_request"
+            referencedColumns: ["change_request_id", "customer_id", "tenant_id"]
+          },
+          {
             foreignKeyName: "change_request_product_product_fkey"
             columns: ["product_id", "customer_id", "tenant_id"]
             isOneToOne: false
@@ -1052,6 +1059,13 @@ export type Database = {
             foreignKeyName: "incident_deadline_incident_fkey"
             columns: ["incident_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "incident"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -1134,6 +1148,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
           },
           {
             foreignKeyName: "incident_log_incident_fkey"
@@ -2022,6 +2043,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "project"
             referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
           },
           {
             foreignKeyName: "project_gate_rollback_incident_fkey"
@@ -3657,6 +3685,43 @@ export type Database = {
           },
         ]
       }
+      dashboard_change_request: {
+        Row: {
+          change_request_id: string | null
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          decision_due_on: string | null
+          overdue: boolean | null
+          status: Database["public"]["Enums"]["change_request_status"] | null
+          tenant_id: string | null
+          title: string | null
+          urgency: Database["public"]["Enums"]["change_request_urgency"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_gate_pending: {
         Row: {
           customer_code: string | null
@@ -3690,6 +3755,74 @@ export type Database = {
           },
           {
             foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_incident: {
+        Row: {
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notice_late: boolean | null
+          incident_id: string | null
+          management_notice_missing: boolean | null
+          next_deadline_at: string | null
+          opened_at: string | null
+          overdue_deadline_count: number | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_market: {
+        Row: {
+          customer_code: string | null
+          customer_id: string | null
+          live_count: number | null
+          preparing_count: number | null
+          suppressed_count: number | null
+          target_count: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"

@@ -4,14 +4,21 @@ import {
    groupGates,
    groupPurchaseOrders,
    groupShipments,
+   marketSummary,
    splitTasks,
+   useDashboardChangeRequests,
    useDashboardEvidence,
    useDashboardGates,
+   useDashboardIncidents,
+   useDashboardMarket,
    useDashboardPurchaseOrders,
    useDashboardShipments,
    useDashboardTasks,
+   type DashboardChangeRequestRow,
    type DashboardEvidenceRow,
    type DashboardGateRow,
+   type DashboardIncidentRow,
+   type DashboardMarketRow,
    type DashboardPurchaseOrderRow,
    type DashboardShipmentRow,
    type DashboardTaskRow
@@ -158,6 +165,65 @@ const { data: shipmentRows } = useDashboardShipments();
 
 const orders = computed(() => groupPurchaseOrders(orderRows.value ?? []));
 const shipments = computed(() => groupShipments(shipmentRows.value ?? []));
+
+// --- incidents, change requests and the market matrix (M6) ---
+
+/**
+ * An open incident, with its severity, then whether management was not told yet, else its next
+ * deadline.
+ */
+const incidentItem = (row: DashboardIncidentRow): CountListItem => ({
+   label: [row.code, row.title, row.customer_code].filter(Boolean).join(' · '),
+   meta: [
+      row.severity && i18n.t(`ops.incident.severity.${row.severity}`),
+      row.management_notice_missing
+         ? i18n.t('dashboard.ops.meta.notice_missing')
+         : row.next_deadline_at &&
+           i18n.t('dashboard.ops.meta.deadline', { date: dayMonth(row.next_deadline_at) })
+   ]
+      .filter(Boolean)
+      .join(' · '),
+   to: {
+      name: 'ops-incident-manage',
+      params: { id: row.incident_id ?? '' },
+      query: { showDialog: DIALOG_POSITIONS.CENTER }
+   }
+});
+
+/** An open or approved change request, with its status and its decision date. */
+const changeRequestItem = (row: DashboardChangeRequestRow): CountListItem => ({
+   label: [row.code, row.title, row.customer_code].filter(Boolean).join(' · '),
+   meta: [
+      row.status && i18n.t(`ops.change_request.status.${row.status}`),
+      row.decision_due_on &&
+         i18n.t('dashboard.ops.meta.decision_due', { date: dayMonth(row.decision_due_on) })
+   ]
+      .filter(Boolean)
+      .join(' · '),
+   to: {
+      name: 'ops-change-request-manage',
+      params: { id: row.change_request_id ?? '' },
+      query: { showDialog: DIALOG_POSITIONS.CENTER }
+   }
+});
+
+/** A customer's market cells, opening the matrix narrowed to that customer (the customer filter). */
+const marketItem = (row: DashboardMarketRow): CountListItem => ({
+   label: row.customer_code ?? '',
+   meta: i18n.t('dashboard.ops.meta.market', {
+      live: row.live_count ?? 0,
+      preparing: row.preparing_count ?? 0,
+      suppressed: row.suppressed_count ?? 0
+   }),
+   to: { name: 'ops-market-list' },
+   onSelect: () => customerFilter.set(row.customer_id ?? null)
+});
+
+const { data: incidentRows } = useDashboardIncidents();
+const { data: changeRequestRows } = useDashboardChangeRequests();
+const { data: marketRows } = useDashboardMarket();
+
+const market = computed(() => marketSummary(marketRows.value ?? []));
 
 const useDashboardNotifications = () => {
    const getTagProps = (item: Views['dashboard_notification_feed']['Row']) => {
@@ -341,6 +407,30 @@ dashboardNotifications.load();
             :items="shipments.late.map(lateShipmentItem)"
             :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
             severity="danger"
+         />
+         <CountListCard
+            v-if="$can('read', 'incident')"
+            :title="$t('dashboard.ops.incidents_open')"
+            :count="incidentRows?.length ?? 0"
+            :items="(incidentRows ?? []).map(incidentItem)"
+            :icon="PrimeIcons.EXCLAMATION_CIRCLE"
+            severity="danger"
+         />
+         <CountListCard
+            v-if="$can('read', 'change_request')"
+            :title="$t('dashboard.ops.change_requests_open')"
+            :count="changeRequestRows?.length ?? 0"
+            :items="(changeRequestRows ?? []).map(changeRequestItem)"
+            :icon="PrimeIcons.SYNC"
+            severity="warn"
+         />
+         <CountListCard
+            v-if="$can('read', 'market_cell')"
+            :title="$t('dashboard.ops.market_summary')"
+            :count="market.live"
+            :items="market.items.map(marketItem)"
+            :icon="PrimeIcons.TABLE"
+            severity="success"
          />
       </div>
       <div class="w-full flex flex-wrap gap-[inherit]">

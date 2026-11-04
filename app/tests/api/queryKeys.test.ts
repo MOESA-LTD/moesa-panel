@@ -219,4 +219,10 @@ describe('affectedTables of incidents and change requests', () => {
       for (const table of ['customer', 'project', 'product', 'document'] as const)
          expect(affectedTables([table])).toContain('change_request');
    });
+
+   it('refreshes the new dashboard boxes', () => {
+      expect(affectedTables(['market_cell'])).toContain('dashboard_market');
+      expect(affectedTables(['incident_deadline'])).toContain('dashboard_incident');
+      expect(affectedTables(['change_request'])).toContain('dashboard_change_request');
+   });
 });

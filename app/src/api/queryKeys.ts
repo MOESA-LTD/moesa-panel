@@ -36,7 +36,7 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'change_request'
    ],
    // The shipment and order cards embed their customer (the shipment its warehouse too); the
-   // overviews and the dashboard boxes name it.
+   // overviews and the dashboard boxes name it (customer_code).
    customer: [
       'shipment',
       'shipment_overview',
@@ -46,7 +46,10 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'dashboard_shipment',
       'market_cell_overview',
       'incident_overview',
-      'change_request'
+      'change_request',
+      'dashboard_market',
+      'dashboard_incident',
+      'dashboard_change_request'
    ],
    // The order card embeds its supplier (code, terms); the overview and the boxes name it.
    supplier: ['purchase_order', 'purchase_order_overview', 'dashboard_purchase_order'],
@@ -121,19 +124,22 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    shipment_line: ['shipment', 'shipment_overview'],
    shipment_event: ['shipment'],
    // product_evidence counts the live cells (live_cell_count). dashboard_product_evidence reads
-   // product_evidence but none of its columns change with cells.
+   // product_evidence but none of its columns change with cells; dashboard_market counts them.
    market_cell: [
       'market_cell_overview',
       'product_evidence',
       'product_with_evidence',
-      'incident_overview'
+      'incident_overview',
+      'dashboard_market'
    ],
    // The overview names the incident's customer and linked record (codes, entity_label) and
    // reads its deadlines (next_deadline_at, overdue_deadline_count); the card embeds its log,
-   // deadlines and the gates it rolled back.
-   incident: ['incident_overview', 'project_gate'],
+   // deadlines and the gates it rolled back. The dashboard box reads the overview.
+   incident: ['incident_overview', 'project_gate', 'dashboard_incident'],
    incident_log: ['incident'],
-   incident_deadline: ['incident', 'incident_overview'],
+   incident_deadline: ['incident', 'incident_overview', 'dashboard_incident'],
+   // The dashboard box lists the open and approved requests.
+   change_request: ['dashboard_change_request'],
    // The change request card embeds its products.
    change_request_product: ['change_request']
 };

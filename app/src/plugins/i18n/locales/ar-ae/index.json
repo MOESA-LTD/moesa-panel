@@ -246,8 +246,15 @@
             "ready": "Ready {date}",
             "balance": "Balance {date}",
             "eta": "ETA {date}",
-            "late": "{n} days late"
-         }
+            "late": "{n} days late",
+            "notice_missing": "management not told",
+            "deadline": "deadline {date}",
+            "decision_due": "decision {date}",
+            "market": "{live} live · {preparing} preparing · {suppressed} suppressed"
+         },
+         "incidents_open": "Open incidents",
+         "change_requests_open": "Open change requests",
+         "market_summary": "Market matrix: live"
       }
    },
    "input": {

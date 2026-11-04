@@ -709,11 +709,18 @@
          "po_production": "Üretimdeki PO'lar",
          "shipments_in_transit": "Yoldaki sevkiyatlar",
          "shipments_late": "Geciken sevkiyatlar",
+         "incidents_open": "Açık olaylar",
+         "change_requests_open": "Açık CR'ler",
+         "market_summary": "Pazar matrisi özeti",
          "meta": {
             "ready": "Hazır {date}",
             "balance": "Bakiye {date}",
             "eta": "ETA {date}",
-            "late": "{n} gün gecikti"
+            "late": "{n} gün gecikti",
+            "notice_missing": "yönetime bildirilmedi",
+            "deadline": "son tarih {date}",
+            "decision_due": "karar {date}",
+            "market": "{live} yayında · {preparing} hazırlanıyor · {suppressed} askıda"
          }
       }
    },
