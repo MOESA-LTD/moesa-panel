@@ -1349,7 +1349,8 @@ const routes: RouteRecordRaw[] = [
                      label: 'route.label.ops_market_cell_edit',
                      icon: PrimeIcons.FILE_EDIT,
                      visible: false,
-                     requiredPermissions: [{ action: 'modify', subject: 'market_cell' }]
+                     // A record card opens for readers too; the dialog is read-only without update.
+                     requiredPermissions: [{ action: 'select', subject: 'market_cell' }]
                   },
                   components: {
                      default: () => import('@/views/pages/ops/market/CellUpsert.vue'),

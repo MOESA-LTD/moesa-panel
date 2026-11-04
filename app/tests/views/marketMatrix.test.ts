@@ -1,5 +1,6 @@
 import '../setup/mockMain';
 import {
+   marketCellSchema,
    toMarketCellFormValues,
    type MarketCellCard,
    type MarketCellFormValues
@@ -28,6 +29,7 @@ const api = vi.hoisted(() => ({
    addCells: vi.fn(),
    toast: vi.fn(),
    values: null as unknown as Ref<MarketCellFormValues>,
+   options: undefined as undefined | { toPayload: (data: unknown) => Record<string, unknown> },
    row: null as unknown
 }));
 
@@ -60,18 +62,21 @@ vi.mock('@/api/marketMatrix', async (importOriginal) => ({
 vi.mock('@/composables/useUpsertForm', async () => {
    const { ref } = await import('vue');
    return {
-      useUpsertForm: () => ({
-         values: api.values,
-         errors: ref({}),
-         isDirty: ref(false),
-         isSubmitting: ref(false),
-         readonly: ref(false),
-         reset: vi.fn(),
-         save: vi.fn(),
-         ready: Promise.resolve(),
-         draft: {},
-         row: ref(api.row)
-      })
+      useUpsertForm: (options: typeof api.options) => {
+         api.options = options;
+         return {
+            values: api.values,
+            errors: ref({}),
+            isDirty: ref(false),
+            isSubmitting: ref(false),
+            readonly: ref(false),
+            reset: vi.fn(),
+            save: vi.fn(),
+            ready: Promise.resolve(),
+            draft: {},
+            row: ref(api.row)
+         };
+      }
    };
 });
 
@@ -173,6 +178,30 @@ describe('market cell dialogs', () => {
             detail: i18n.t('ops.market.cells_added', { added: 1, skipped: 1 })
          })
       );
+   });
+
+   it('creates a candidate with empty fields as NULL', async () => {
+      const PRODUCT = '00000000-0000-4000-8000-000000000021';
+      api.row = null;
+      api.values = ref(
+         toMarketCellFormValues({ product_id: PRODUCT, platform_id: 'amazon', country: 'DE' })
+      );
+      await mountDialog(CellUpsert, { product_id: PRODUCT, platform_id: 'amazon', country: 'DE' });
+
+      const payload = api.options!.toPayload(marketCellSchema.parse(api.values.value));
+      expect(payload).not.toHaveProperty('status');
+      expect(payload).not.toHaveProperty('customer_id');
+      expect(payload).toMatchObject({
+         product_id: PRODUCT,
+         platform_id: 'amazon',
+         country: 'DE',
+         priority: 2,
+         compliance: 'pending',
+         compliance_note: null,
+         open_issue: null,
+         notes: null,
+         project_id: null
+      });
    });
 
    it('warns what live still needs', async () => {

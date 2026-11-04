@@ -1760,7 +1760,8 @@
             "2": "Yeni platform",
             "3": "Yeni bölge"
          },
-         "live_missing": "Yayın için eksik: {fields}"
+         "live_missing": "Yayın için eksik: {fields}",
+         "load_error": "Pazar hücreleri yüklenemedi."
       }
    },
    "glossary": {

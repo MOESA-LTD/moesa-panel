@@ -26,7 +26,11 @@ const viewOptions = computed(() => [
 /** The matrix narrowed to one platform; none shows every platform. */
 const platformId = ref<string | null>(null);
 
-const { data: cells } = useMarketCells(() => ({
+const {
+   data: cells,
+   isPending,
+   isError
+} = useMarketCells(() => ({
    customerId: customerFilter.customerId,
    platformId: platformId.value
 }));
@@ -94,7 +98,14 @@ const addCells = () => router.push({ name: 'ops-market-cells-add', query: dialog
                severity="secondary"
             />
          </div>
-         <MarketMatrixGrid :cells="cells ?? []" :canCreate @open="openCell" @add="addCell" />
+         <MarketMatrixGrid
+            :cells="cells ?? []"
+            :canCreate
+            :loading="isPending"
+            :error="isError"
+            @open="openCell"
+            @add="addCell"
+         />
       </template>
       <MarketCellTable v-else />
    </section>

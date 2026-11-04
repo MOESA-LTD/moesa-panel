@@ -12,7 +12,14 @@ import { formatEmpty } from '@/constants/format';
 // The S05 matrix: a row per product, a column per platform and country that has a cell. An opened
 // cell shows its status (and a warning when its compliance is red) and opens it; a cell that is not
 // opened shows S05's dash, a button to open it for those who may.
-const props = defineProps<{ cells: MarketCellOverviewRow[]; canCreate: boolean }>();
+const props = defineProps<{
+   cells: MarketCellOverviewRow[];
+   canCreate: boolean;
+   /** The cells are being loaded. */
+   loading?: boolean;
+   /** The cells could not be loaded: says so instead of the empty matrix's hint. */
+   error?: boolean;
+}>();
 const emit = defineEmits<{
    open: [cellId: string];
    add: [cell: { productId: string; platformId: string; country: string }];
@@ -32,7 +39,14 @@ const columnLabel = (column: MarketMatrixColumn) => `${column.platformName} ${co
 </script>
 
 <template>
-   <DataTable :value="matrix.rows" dataKey="productId" scrollable size="small" showGridlines>
+   <DataTable
+      :value="matrix.rows"
+      :loading
+      dataKey="productId"
+      scrollable
+      size="small"
+      showGridlines
+   >
       <Column frozen :header="$t('ops.market.fields.product')" class="min-w-48">
          <template #body="{ data }">
             <div class="font-semibold">{{ data.sku }}</div>
@@ -79,7 +93,10 @@ const columnLabel = (column: MarketMatrixColumn) => `${column.platformName} ${co
          </template>
       </Column>
       <template #empty>
-         <span class="text-muted-color">{{ $t('ops.market.no_cells') }}</span>
+         <small v-if="error" data-test="market-load-error" class="text-red-500">
+            {{ $t('ops.market.load_error') }}
+         </small>
+         <span v-else class="text-muted-color">{{ $t('ops.market.no_cells') }}</span>
       </template>
    </DataTable>
 </template>

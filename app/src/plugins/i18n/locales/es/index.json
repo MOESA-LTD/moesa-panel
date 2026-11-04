@@ -1760,7 +1760,8 @@
             "2": "New platform",
             "3": "New region"
          },
-         "live_missing": "Missing for live: {fields}"
+         "live_missing": "Missing for live: {fields}",
+         "load_error": "Market cells could not be loaded."
       }
    },
    "glossary": {

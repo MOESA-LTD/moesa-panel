@@ -5,6 +5,7 @@ import en from '@/plugins/i18n/locales/en/index.json';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { enableAutoUnmount, mount } from '@vue/test-utils';
 import PrimeVue from 'primevue/config';
+import DataTable from 'primevue/datatable';
 import Tag from 'primevue/tag';
 import Tooltip from 'primevue/tooltip';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -37,9 +38,13 @@ const CELLS = [
    cell('c3', 'p1', 'THO-MOP', 'amazon', 'Amazon', 'DE')
 ];
 
-const mountGrid = (canCreate = true, cells = CELLS) =>
+const mountGrid = (
+   canCreate = true,
+   cells = CELLS,
+   state: { loading?: boolean; error?: boolean } = {}
+) =>
    mount(MarketMatrixGrid, {
-      props: { cells, canCreate },
+      props: { cells, canCreate, ...state },
       global: { plugins: [i18NPlugin, PrimeVue], directives: { tooltip: Tooltip } }
    });
 
@@ -80,6 +85,24 @@ describe('MarketMatrixGrid', () => {
       expect(tag.text()).toBe(i18n.t('ops.market.status.candidate'));
       await tag.trigger('click');
       expect(wrapper.emitted('open')).toEqual([['c3']]);
+   });
+
+   it('shows the loading state', () => {
+      const wrapper = mountGrid(true, [], { loading: true });
+      expect(wrapper.getComponent(DataTable).props('loading')).toBe(true);
+      expect(mountGrid(true, []).getComponent(DataTable).props('loading')).toBe(false);
+   });
+
+   it('says the cells could not be loaded instead of the empty hint', () => {
+      const failed = mountGrid(true, [], { error: true });
+      expect(failed.get('[data-test="market-load-error"]').text()).toBe(
+         i18n.t('ops.market.load_error')
+      );
+      expect(failed.text()).not.toContain(i18n.t('ops.market.no_cells'));
+
+      const empty = mountGrid(true, []);
+      expect(empty.find('[data-test="market-load-error"]').exists()).toBe(false);
+      expect(empty.text()).toContain(i18n.t('ops.market.no_cells'));
    });
 
    it('warns of a red compliance', () => {
