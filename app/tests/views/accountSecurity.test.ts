@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import en from '@/plugins/i18n/locales/en/index.json';
 import Security from '@/views/pages/account/sections/Security.vue';
 import i18n, { i18NPlugin } from '@plugins/i18n';

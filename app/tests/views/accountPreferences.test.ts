@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import { PRIMARY_COLORS } from '@/lib/theme/palettes';
 import en from '@/plugins/i18n/locales/en/index.json';
 import { useThemeStore } from '@/store/theme';

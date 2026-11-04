@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import en from '@/plugins/i18n/locales/en/index.json';
 import MediaUpsert from '@/views/pages/ops/media/Upsert.vue';
 import i18n, { i18NPlugin } from '@plugins/i18n';

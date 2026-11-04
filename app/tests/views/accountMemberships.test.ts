@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import type { Membership } from '@/api/account/memberships';
 import en from '@/plugins/i18n/locales/en/index.json';
 import Memberships from '@/views/pages/account/sections/Memberships.vue';
