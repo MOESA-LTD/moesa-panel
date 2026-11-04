@@ -42,6 +42,17 @@ const orderId = computed(() => props.purchaseOrderId ?? row.value?.purchase_orde
 const { data: order, suspense } = purchaseOrderResource.useOne(orderId);
 
 await ready;
+
+// Every add dialog shares one draft. A draft restored from another order keeps nothing of that
+// order's customer (product, its spec sheet, its price); the line goes to the route's order.
+if (!props.id && props.purchaseOrderId) {
+   if (values.value.purchase_order_id && values.value.purchase_order_id !== props.purchaseOrderId) {
+      values.value.product_id = null;
+      values.value.spec_document_id = null;
+      values.value.unit_price = null;
+   }
+   values.value.purchase_order_id = props.purchaseOrderId;
+}
 if (orderId.value) await suspense();
 
 const nextPosition = () =>

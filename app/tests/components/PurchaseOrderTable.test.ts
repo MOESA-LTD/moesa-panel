@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import en from '@/plugins/i18n/locales/en/index.json';
 import PurchaseOrderTable from '@/components/service-components/purchase-order-table/PurchaseOrderTable.vue';
 import i18n, { i18NPlugin } from '@plugins/i18n';
@@ -13,8 +14,6 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
-// The locale loader reads PrimeVue's config from the app; the app itself (and its router) stays out.
-vi.mock('@/main', () => ({ app: undefined }));
 vi.mock('vue-router', async (importOriginal) => ({
    ...(await importOriginal<typeof import('vue-router')>()),
    useRoute: () => ({ query: {} }),

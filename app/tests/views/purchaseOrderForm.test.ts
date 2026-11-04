@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import {
    toPurchaseOrderFormValues,
    type PurchaseOrderCard,
@@ -37,8 +38,6 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
-// The locale loader reads PrimeVue's config from the app; the app itself (and its router) stays out.
-vi.mock('@/main', () => ({ app: undefined }));
 vi.mock('vue-router', async (importOriginal) => ({
    ...(await importOriginal<typeof import('vue-router')>()),
    useRoute: () => ({ query: api.query }),
