@@ -23,19 +23,38 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    user: ['tenant_member'],
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
-   // The shipment card embeds its orders' products (sku, name, is_hazmat).
-   product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence', 'shipment'],
-   // The shipment card embeds its customer and warehouse; the overview names them.
-   customer: ['shipment', 'shipment_overview'],
+   // The shipment card embeds its orders' products (sku, name, is_hazmat), the order card its
+   // lines' products.
+   product: [
+      'product_evidence',
+      'product_with_evidence',
+      'dashboard_product_evidence',
+      'shipment',
+      'purchase_order'
+   ],
+   // The shipment and order cards embed their customer (the shipment its warehouse too); the
+   // overviews and the dashboard boxes name it.
+   customer: [
+      'shipment',
+      'shipment_overview',
+      'purchase_order',
+      'purchase_order_overview',
+      'dashboard_purchase_order',
+      'dashboard_shipment'
+   ],
+   // The order card embeds its supplier (code, terms); the overview and the boxes name it.
+   supplier: ['purchase_order', 'purchase_order_overview', 'dashboard_purchase_order'],
    customer_warehouse: ['shipment', 'shipment_overview'],
    // A document may cite a media file (the library's document_count); an order's overview reads
-   // its approved PSI and its lines' spec sheets (has_approved_psi, spec_missing_line_ids), a
-   // shipment's the PSI of its orders (psi_missing_po_codes).
+   // its approved PSI and its lines' spec sheets (has_approved_psi, spec_missing_line_ids), and its
+   // card embeds the lines' spec sheets; a shipment's overview the PSI of its orders
+   // (psi_missing_po_codes).
    document: [
       'product_evidence',
       'product_with_evidence',
       'dashboard_product_evidence',
       'media_library',
+      'purchase_order',
       'purchase_order_overview',
       'shipment_overview'
    ],
@@ -45,8 +64,9 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    // The project card embeds its gates.
    project_gate: ['project', 'dashboard_gate_pending'],
    project_task: ['dashboard_task_due'],
-   // A project put on hold or closed leaves the dashboard; management_gates decides who acts.
-   project: ['dashboard_gate_pending', 'dashboard_task_due'],
+   // A project put on hold or closed leaves the dashboard; management_gates decides who acts. The
+   // order overview names the order's project.
+   project: ['dashboard_gate_pending', 'dashboard_task_due', 'purchase_order_overview'],
    // spec_sheet_required_from decides which lines miss a spec sheet.
    setting: ['dashboard_gate_pending', 'purchase_order_overview'],
    // product_evidence names the last order of a product (last_po_code); the shipment card embeds

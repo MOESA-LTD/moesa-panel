@@ -124,6 +124,31 @@ describe('affectedTables', () => {
       expect(affectedTables(['shipment'])).toContain('dashboard_shipment');
       expect(affectedTables(['shipment_purchase_order'])).toContain('dashboard_shipment');
    });
+
+   it('marks the order card, its overview and the boxes stale after a change to what they embed', () => {
+      // The order card embeds its lines' products and spec sheets.
+      expect(affectedTables(['document'])).toContain('purchase_order');
+      expect(affectedTables(['product'])).toContain('purchase_order');
+      // The overview names the project, the supplier and the customer; the boxes show them.
+      expect(affectedTables(['project'])).toContain('purchase_order_overview');
+      expect(affectedTables(['supplier'])).toEqual(
+         expect.arrayContaining([
+            'purchase_order',
+            'purchase_order_overview',
+            'dashboard_purchase_order'
+         ])
+      );
+      expect(affectedTables(['customer'])).toEqual(
+         expect.arrayContaining([
+            'shipment',
+            'shipment_overview',
+            'purchase_order',
+            'purchase_order_overview',
+            'dashboard_purchase_order',
+            'dashboard_shipment'
+         ])
+      );
+   });
 });
 
 describe('invalidateTables', () => {
