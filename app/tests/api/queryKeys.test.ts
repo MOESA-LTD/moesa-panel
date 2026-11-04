@@ -101,6 +101,20 @@ describe('affectedTables', () => {
       // psi_missing_po_codes reads the orders' approved PSI reports.
       expect(affectedTables(['document'])).toContain('shipment_overview');
    });
+
+   it('marks the shipment card stale after a change to what it embeds', () => {
+      // The orders' status and tolerance, their lines and the lines' products.
+      expect(affectedTables(['purchase_order'])).toContain('shipment');
+      expect(affectedTables(['purchase_order_line'])).toContain('shipment');
+      expect(affectedTables(['product'])).toContain('shipment');
+      // The customer and the warehouse, which the overview names too.
+      expect(affectedTables(['customer_warehouse'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+      expect(affectedTables(['customer'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+   });
 });
 
 describe('invalidateTables', () => {

@@ -478,6 +478,16 @@ describe('shipment mutations', () => {
       ]);
    });
 
+   it("links an order in the shipment's tenant when it is given", async () => {
+      const mutation = withSetup(useLinkPurchaseOrder);
+      await mutation.mutateAsync({ shipmentId: SHIPMENT, purchaseOrderId: ORDER, tenantId: 't2' });
+
+      expect(recorded).toContainEqual([
+         'insert',
+         { shipment_id: SHIPMENT, purchase_order_id: ORDER, tenant_id: 't2' }
+      ]);
+   });
+
    it('unlinks an order by its two keys', async () => {
       const mutation = withSetup(useUnlinkPurchaseOrder);
       await mutation.mutateAsync({ shipmentId: SHIPMENT, purchaseOrderId: ORDER });

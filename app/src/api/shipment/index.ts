@@ -428,20 +428,26 @@ export function useSetShipmentStatus() {
 export type ShipmentOrderLink = { shipmentId: string; purchaseOrderId: string };
 
 /**
- * Puts an order on a shipment, in the active tenant (customFetch). The link's customer is the
- * shipment's (set by the database), so it is not sent.
+ * Puts an order on a shipment, in the shipment's tenant (`tenantId`; without it the active tenant,
+ * which customFetch adds). The link's customer is the shipment's (set by the database), so it is
+ * not sent.
  */
 export function useLinkPurchaseOrder() {
    const queryClient = useQueryClient();
 
    return useMutation({
-      mutationFn: async ({ shipmentId, purchaseOrderId }: ShipmentOrderLink) => {
+      mutationFn: async ({
+         shipmentId,
+         purchaseOrderId,
+         tenantId
+      }: ShipmentOrderLink & { tenantId?: string | null }) => {
          await supabase
             .from('shipment_purchase_order')
             .insert({
                shipment_id: shipmentId,
-               purchase_order_id: purchaseOrderId
-               // tenant_id is added by customFetch, customer_id by the database.
+               purchase_order_id: purchaseOrderId,
+               ...(tenantId ? { tenant_id: tenantId } : {})
+               // customer_id is set by the database.
             } as Tables['shipment_purchase_order']['Insert'])
             .throwOnError();
       },

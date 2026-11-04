@@ -23,7 +23,11 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    user: ['tenant_member'],
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
-   product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
+   // The shipment card embeds its orders' products (sku, name, is_hazmat).
+   product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence', 'shipment'],
+   // The shipment card embeds its customer and warehouse; the overview names them.
+   customer: ['shipment', 'shipment_overview'],
+   customer_warehouse: ['shipment', 'shipment_overview'],
    // A document may cite a media file (the library's document_count); an order's overview reads
    // its approved PSI and its lines' spec sheets (has_approved_psi, spec_missing_line_ids), a
    // shipment's the PSI of its orders (psi_missing_po_codes).
@@ -45,14 +49,21 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    project: ['dashboard_gate_pending', 'dashboard_task_due'],
    // spec_sheet_required_from decides which lines miss a spec sheet.
    setting: ['dashboard_gate_pending', 'purchase_order_overview'],
-   // product_evidence names the last order of a product (last_po_code).
-   purchase_order: ['purchase_order_overview', 'product_evidence', 'product_with_evidence'],
+   // product_evidence names the last order of a product (last_po_code); the shipment card embeds
+   // its orders (status, tolerance) and their lines.
+   purchase_order: [
+      'purchase_order_overview',
+      'product_evidence',
+      'product_with_evidence',
+      'shipment'
+   ],
    // The order card embeds its lines and payments; the overview sums them.
    purchase_order_line: [
       'purchase_order',
       'purchase_order_overview',
       'product_evidence',
-      'product_with_evidence'
+      'product_with_evidence',
+      'shipment'
    ],
    purchase_order_payment: ['purchase_order', 'purchase_order_overview'],
    purchase_order_update: ['purchase_order'],
