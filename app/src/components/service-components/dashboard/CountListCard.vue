@@ -18,9 +18,13 @@ const props = withDefaults(
       icon: string;
       severity?: 'danger' | 'warn' | 'info' | 'success' | 'secondary';
       emptyText?: string;
+      /** Whether the box shows "None" instead of its rows; by default when the count is zero. */
+      empty?: boolean;
    }>(),
-   { severity: 'secondary', emptyText: undefined }
+   { severity: 'secondary', emptyText: undefined, empty: undefined }
 );
+
+const isEmpty = computed(() => props.empty ?? props.count === 0);
 
 const MAX_ROWS = 8;
 
@@ -45,7 +49,7 @@ const select = (item: CountListItem, navigate: () => unknown) => {
       </template>
       <template #content>
          <span
-            v-if="count === 0"
+            v-if="isEmpty"
             class="block text-muted-color"
             v-text="emptyText ?? $t('dashboard.ops.none')"
          />

@@ -428,6 +428,7 @@ dashboardNotifications.load();
             v-if="$can('read', 'market_cell')"
             :title="$t('dashboard.ops.market_summary')"
             :count="market.live"
+            :empty="market.items.length === 0"
             :items="market.items.map(marketItem)"
             :icon="PrimeIcons.TABLE"
             severity="success"
