@@ -2052,6 +2052,379 @@ export type Database = {
           },
         ]
       }
+      shipment: {
+        Row: {
+          accepted_by: string | null
+          accepted_on: string | null
+          booking_confirmed_on: string | null
+          carrier: string | null
+          carton_count: number | null
+          code: string | null
+          container_no: string | null
+          created_at: string
+          customer_id: string
+          customs_broker: string | null
+          customs_cleared_on: string | null
+          delivered_at: string | null
+          delivery_warehouse_id: string
+          demurrage_note: string | null
+          dispute_deadline_at: string | null
+          eta: string | null
+          etd: string | null
+          forwarder: string | null
+          free_days_detention: number | null
+          free_days_port: number | null
+          gross_kg: number | null
+          has_damage: boolean | null
+          id: string
+          incoterm_buy: string | null
+          incoterm_sell: string | null
+          is_insured: boolean
+          mode: Database["public"]["Enums"]["shipment_mode"]
+          notes: string | null
+          pallet_count: number | null
+          planned_delivery_on: string | null
+          quantity_matches: boolean | null
+          ready_on: string | null
+          seal_no: string | null
+          status: Database["public"]["Enums"]["shipment_status"]
+          tenant_id: string
+          updated_at: string
+          volume_m3: number | null
+        }
+        Insert: {
+          accepted_by?: string | null
+          accepted_on?: string | null
+          booking_confirmed_on?: string | null
+          carrier?: string | null
+          carton_count?: number | null
+          code?: string | null
+          container_no?: string | null
+          created_at?: string
+          customer_id: string
+          customs_broker?: string | null
+          customs_cleared_on?: string | null
+          delivered_at?: string | null
+          delivery_warehouse_id: string
+          demurrage_note?: string | null
+          dispute_deadline_at?: string | null
+          eta?: string | null
+          etd?: string | null
+          forwarder?: string | null
+          free_days_detention?: number | null
+          free_days_port?: number | null
+          gross_kg?: number | null
+          has_damage?: boolean | null
+          id?: string
+          incoterm_buy?: string | null
+          incoterm_sell?: string | null
+          is_insured?: boolean
+          mode: Database["public"]["Enums"]["shipment_mode"]
+          notes?: string | null
+          pallet_count?: number | null
+          planned_delivery_on?: string | null
+          quantity_matches?: boolean | null
+          ready_on?: string | null
+          seal_no?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          tenant_id: string
+          updated_at?: string
+          volume_m3?: number | null
+        }
+        Update: {
+          accepted_by?: string | null
+          accepted_on?: string | null
+          booking_confirmed_on?: string | null
+          carrier?: string | null
+          carton_count?: number | null
+          code?: string | null
+          container_no?: string | null
+          created_at?: string
+          customer_id?: string
+          customs_broker?: string | null
+          customs_cleared_on?: string | null
+          delivered_at?: string | null
+          delivery_warehouse_id?: string
+          demurrage_note?: string | null
+          dispute_deadline_at?: string | null
+          eta?: string | null
+          etd?: string | null
+          forwarder?: string | null
+          free_days_detention?: number | null
+          free_days_port?: number | null
+          gross_kg?: number | null
+          has_damage?: boolean | null
+          id?: string
+          incoterm_buy?: string | null
+          incoterm_sell?: string | null
+          is_insured?: boolean
+          mode?: Database["public"]["Enums"]["shipment_mode"]
+          notes?: string | null
+          pallet_count?: number | null
+          planned_delivery_on?: string | null
+          quantity_matches?: boolean | null
+          ready_on?: string | null
+          seal_no?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          tenant_id?: string
+          updated_at?: string
+          volume_m3?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_warehouse_fkey"
+            columns: ["delivery_warehouse_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer_warehouse"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+        ]
+      }
+      shipment_event: {
+        Row: {
+          channel: string | null
+          created_at: string
+          created_by: string | null
+          from_party: string | null
+          happened_at: string
+          id: string
+          note: string | null
+          shipment_id: string
+          step: number | null
+          tenant_id: string
+          to_party: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_party?: string | null
+          happened_at?: string
+          id?: string
+          note?: string | null
+          shipment_id: string
+          step?: number | null
+          tenant_id: string
+          to_party?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_party?: string | null
+          happened_at?: string
+          id?: string
+          note?: string | null
+          shipment_id?: string
+          step?: number | null
+          tenant_id?: string
+          to_party?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_event_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_event_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_event_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_event_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_line: {
+        Row: {
+          carton_count: number | null
+          created_at: string
+          id: string
+          purchase_order_id: string
+          purchase_order_line_id: string
+          quantity: number
+          shipment_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          carton_count?: number | null
+          created_at?: string
+          id?: string
+          purchase_order_id: string
+          purchase_order_line_id: string
+          quantity: number
+          shipment_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          carton_count?: number | null
+          created_at?: string
+          id?: string
+          purchase_order_id?: string
+          purchase_order_line_id?: string
+          quantity?: number
+          shipment_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_line_link_fkey"
+            columns: ["shipment_id", "purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_purchase_order"
+            referencedColumns: ["shipment_id", "purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_po_line_fkey"
+            columns: [
+              "purchase_order_line_id",
+              "purchase_order_id",
+              "tenant_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "purchase_order_line"
+            referencedColumns: ["id", "purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_purchase_order: {
+        Row: {
+          created_at: string
+          customer_id: string
+          purchase_order_id: string
+          shipment_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          purchase_order_id: string
+          shipment_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          purchase_order_id?: string
+          shipment_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_purchase_order_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_shipment_fkey"
+            columns: ["shipment_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_shipment_fkey"
+            columns: ["shipment_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_overview"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription: {
         Row: {
           canceled_at: string | null
@@ -3003,6 +3376,83 @@ export type Database = {
           },
         ]
       }
+      shipment_overview: {
+        Row: {
+          accepted_by: string | null
+          accepted_on: string | null
+          booking_confirmed_on: string | null
+          carrier: string | null
+          carton_count: number | null
+          code: string | null
+          container_no: string | null
+          created_at: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customs_broker: string | null
+          customs_cleared_on: string | null
+          delivered_at: string | null
+          delivery_warehouse_id: string | null
+          demurrage_note: string | null
+          dispute_deadline_at: string | null
+          eta: string | null
+          etd: string | null
+          forwarder: string | null
+          free_days_detention: number | null
+          free_days_port: number | null
+          gross_kg: number | null
+          has_damage: boolean | null
+          id: string | null
+          incoterm_buy: string | null
+          incoterm_sell: string | null
+          is_insured: boolean | null
+          mode: Database["public"]["Enums"]["shipment_mode"] | null
+          notes: string | null
+          pallet_count: number | null
+          planned_delivery_on: string | null
+          product_ids: string[] | null
+          psi_missing_po_codes: string[] | null
+          purchase_order_codes: string[] | null
+          purchase_order_ids: string[] | null
+          quantity_matches: boolean | null
+          ready_on: string | null
+          seal_no: string | null
+          status: Database["public"]["Enums"]["shipment_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          volume_m3: number | null
+          warehouse_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_warehouse_fkey"
+            columns: ["delivery_warehouse_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer_warehouse"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+        ]
+      }
       tenant_member: {
         Row: {
           branch_name: string | null
@@ -3376,6 +3826,17 @@ export type Database = {
         | "ready"
         | "balance_paid"
         | "closed"
+        | "cancelled"
+      shipment_mode: "fcl20" | "fcl40" | "lcl" | "road" | "courier" | "air"
+      shipment_status:
+        | "planned"
+        | "booked"
+        | "loaded"
+        | "in_transit"
+        | "at_customs"
+        | "delivered"
+        | "accepted"
+        | "disputed"
         | "cancelled"
       supplier_status: "candidate" | "approved" | "suspended"
       task_status: "todo" | "doing" | "done" | "blocked"

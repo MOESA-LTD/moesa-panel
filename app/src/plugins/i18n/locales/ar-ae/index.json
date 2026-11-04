@@ -506,7 +506,24 @@
       "po_balance_unpaid": "Record the paid balance first.",
       "po_locked": "The PI is approved; lines and terms no longer change.",
       "po_closed": "The order is closed or cancelled; it no longer changes.",
-      "po_line_identity_immutable": "A line cannot move to another order."
+      "po_line_identity_immutable": "A line cannot move to another order.",
+      "shipment_customer_missing": "The shipment's customer was not found.",
+      "shipment_immutable_field": "A shipment's code and customer cannot change.",
+      "shipment_warehouse_customer": "Choose one of this customer's warehouses.",
+      "shipment_status_order": "The shipment cannot move to this status from its current one.",
+      "shipment_po_required": "Add a purchase order to the shipment first.",
+      "shipment_booking_date_required": "Enter the booking confirmation date.",
+      "shipment_eta_required": "Enter ETD and ETA.",
+      "shipment_delivery_time_required": "Enter when the goods were delivered.",
+      "shipment_delivery_receipt_required": "Add the signed delivery receipt (G5 evidence) first.",
+      "shipment_acceptance_issue": "Quantities differ or goods are damaged: mark the shipment disputed.",
+      "shipment_po_not_open": "Only orders with an approved PI that are not closed can be shipped.",
+      "shipment_po_customer": "The order belongs to another customer.",
+      "shipment_po_has_lines": "Remove the order's lines from the shipment first.",
+      "shipment_line_po_not_linked": "Add the line's order to the shipment first.",
+      "shipment_line_duplicate": "This order line is already on the shipment.",
+      "shipment_quantity_exceeds_po": "More than ordered (tolerance included) would be shipped.",
+      "shipment_locked": "The goods are loaded; orders and lines no longer change."
    },
    "route": {
       "label": {
