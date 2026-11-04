@@ -2406,40 +2406,344 @@
             }
          },
          "setting": {
-            "purpose": "Kuralların okuduğu şirket sayıları: varsayılan depozito, spec sheet tarihi, belge talebi süresi ve olay bildirim saatleri. Yalnızca yönetim değiştirir; her değişiklik kayda geçer."
+            "purpose": "Kuralların okuduğu şirket sayıları: varsayılan depozito, spec sheet tarihi, belge talebi süresi ve olay bildirim saatleri. Yalnızca yönetim değiştirir; her değişiklik kayda geçer.",
+            "tasks": {
+               "change_setting": {
+                  "title": "Bir ayarı değiştir",
+                  "steps": {
+                     "1": "Ayarı bulun; satır ne işe yaradığını söyler.",
+                     "2": "Yeni değeri gösterilen biçimde girin.",
+                     "3": "Kaydedin; kurallar bir sonraki kayıttan itibaren kullanır."
+                  }
+               },
+               "read_setting": {
+                  "title": "Bir kuralın neden çalıştığını kontrol et",
+                  "steps": {
+                     "1": "Mesajın andığı ayarı okuyun, ör. spec sheet tarihi.",
+                     "2": "Kaydın tarihi ya da tutarıyla karşılaştırın.",
+                     "3": "Değerin kendisi değişmeliyse yönetime sorun."
+                  }
+               }
+            }
          },
          "customer": {
-            "purpose": "MOESA'nın her müşterisi; sözleşme şartları, depoları, pazar yeri hesapları ve markalarıyla. Üstteki filtreden müşteri seçmek tüm operasyon listelerini o müşteriye daraltır."
+            "purpose": "MOESA'nın her müşterisi; sözleşme şartları, depoları, pazar yeri hesapları ve markalarıyla. Üstteki filtreden müşteri seçmek tüm operasyon listelerini o müşteriye daraltır.",
+            "tasks": {
+               "add_customer": {
+                  "title": "Müşteri ekle",
+                  "steps": {
+                     "1": "Menüden Ekle'yi kullanın; üç harfli kod müşterinin tüm kodlarına girer.",
+                     "2": "Ticari modeli, paketleri ve durumu doldurun (C1–C4).",
+                     "3": "Kaydedin; diğer sekmeler açılır."
+                  }
+               },
+               "add_warehouse": {
+                  "title": "Teslim deposu ekle",
+                  "steps": {
+                     "1": "Müşteriyi, sonra Depolar sekmesini açın.",
+                     "2": "Adresi, rampa saatlerini ve randevu kuralını S14 kartındaki gibi girin.",
+                     "3": "Sevkiyatlar adresi buradan alır; sevkiyatta elle yazılmaz."
+                  }
+               },
+               "add_platform": {
+                  "title": "Pazar yeri hesabı kaydet",
+                  "steps": {
+                     "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
+                     "2": "Platformu ve müşterinin sattığı ülkeleri seçin.",
+                     "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz (K8)."
+                  }
+               }
+            }
          },
          "supplier": {
-            "purpose": "MOESA'nın satın aldığı tedarikçiler; şartları (Incoterm, depozito, hasar bildirimi) ve kişileriyle. Satın alma siparişleri varsayılanlarını buradan alır."
+            "purpose": "MOESA'nın satın aldığı tedarikçiler; şartları (Incoterm, depozito, hasar bildirimi) ve kişileriyle. Satın alma siparişleri varsayılanlarını buradan alır.",
+            "tasks": {
+               "add_supplier": {
+                  "title": "Tedarikçi ekle",
+                  "steps": {
+                     "1": "Menüden Ekle'yi kullanın; kodu ve ülkeyi girin.",
+                     "2": "Şartları doldurun: varsayılan Incoterm, depozito %, hasar bildirim saati.",
+                     "3": "Tedarikçi değerlendirmeyi geçince durumu onaylı yapın."
+                  }
+               },
+               "add_contact": {
+                  "title": "Kişi ekle",
+                  "steps": {
+                     "1": "Tedarikçiyi, sonra Kişiler sekmesini açın.",
+                     "2": "Rolü ve resmî e-postayı girin.",
+                     "3": "Spec sheet yalnızca o e-postadan gelirse resmî sayılır."
+                  }
+               },
+               "see_orders": {
+                  "title": "Tedarikçinin siparişlerini gör",
+                  "steps": {
+                     "1": "Tedarikçiyi açın.",
+                     "2": "Satın alma siparişleri sekmesini açın.",
+                     "3": "Satır sipariş kartını açar."
+                  }
+               }
+            }
          },
          "product": {
-            "purpose": "Ürün ana tablosu (S10): her SKU için bir satır; GTIN, tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir."
+            "purpose": "Ürün ana tablosu (S10): her SKU için bir satır; GTIN, tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir.",
+            "tasks": {
+               "import_products": {
+                  "title": "CSV'den ürün içe aktar",
+                  "steps": {
+                     "1": "Listede İçe aktar'ı kullanın ve S10 CSV'sini seçin.",
+                     "2": "Raporu okuyun: sorunlu her satır nedeniyle listelenir.",
+                     "3": "O satırları düzeltip yeniden aktarın; iki kez kullanılan GTIN reddedilir."
+                  }
+               },
+               "add_spec": {
+                  "title": "Spec sheet ekle",
+                  "steps": {
+                     "1": "Ürünü, sonra Belgeler sekmesini açın.",
+                     "2": "Spec sheet'i sürümü ve tarihiyle ekleyin; yeni sürüm eskisinin yerini alır.",
+                     "3": "İmzalı, kaşeli ve resmî e-postadan geldiyse imzalı yapın."
+                  }
+               },
+               "add_media": {
+                  "title": "Fotoğraf ekle",
+                  "steps": {
+                     "1": "Ürünü, sonra Ortam sekmesini açın.",
+                     "2": "Dosyaları bırakın; ilk görsel birincil görsel olur.",
+                     "3": "Dosyanın rolünü menüsünden değiştirin."
+                  }
+               }
+            }
          },
          "project": {
-            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız G2 ile G3 engeller."
+            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız G2 ile G3 engeller.",
+            "tasks": {
+               "open_project": {
+                  "title": "Proje aç",
+                  "steps": {
+                     "1": "Menüden Ekle'yi kullanın; müşteriyi, tipi, yolu ve paketleri seçin.",
+                     "2": "Kaydedin; kod ve kapı seti oluşur.",
+                     "3": "Ürünleri Ürünler sekmesinde ekleyin."
+                  }
+               },
+               "pass_gate": {
+                  "title": "Kapıyı geçir",
+                  "steps": {
+                     "1": "Genel bakışta aşama şeridindeki kapıyı açın.",
+                     "2": "Kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi ister.",
+                     "3": "Geçirin; aşama ilerler ve sonraki kontrol listesi gelir."
+                  }
+               },
+               "rollback_gate": {
+                  "title": "Kapıyı geri al",
+                  "steps": {
+                     "1": "Önce bunu gerektiren olayı projenin Olaylar sekmesinden açın.",
+                     "2": "Kapı panelinde Geri al'ı seçin, olayı seçin ve sebebi yazın.",
+                     "3": "Sonraki geçmiş kapılar da geri alınır; sorun çözülünce yeniden geçirin."
+                  }
+               }
+            }
          },
          "document": {
-            "purpose": "Her kaydın her belgesi tek listede: tür, sürüm, durum ve bağlantı ya da dosya. \"Spec sheet imzalı mı?\" sorusu dosya açmadan burada cevaplanır."
+            "purpose": "Her kaydın her belgesi tek listede: tür, sürüm, durum ve bağlantı ya da dosya. \"Spec sheet imzalı mı?\" sorusu dosya açmadan burada cevaplanır.",
+            "tasks": {
+               "find_document": {
+                  "title": "Belge bul",
+                  "steps": {
+                     "1": "Tür, durum ya da bağlı kayda göre süzün.",
+                     "2": "Dosyasını ya da bağlantısını görmek için satırı açın.",
+                     "3": "Eski sürümler geçersiz olarak kalır; hiçbir şey silinmez."
+                  }
+               },
+               "new_version": {
+                  "title": "Yeni sürüm ekle",
+                  "steps": {
+                     "1": "Kaydın Belgeler sekmesinden ekleyin.",
+                     "2": "Dosyayı yükleyin ya da Drive bağlantısını yapıştırın.",
+                     "3": "Önceki sürüm kendiliğinden geçersiz olur."
+                  }
+               },
+               "set_status": {
+                  "title": "Belgeyi imzalı ya da onaylı yap",
+                  "steps": {
+                     "1": "Belgeyi açın.",
+                     "2": "İmzalı için imza, kaşe ve resmî e-postayı işaretleyip tarihi girin.",
+                     "3": "Kaydedin; kapılar ve siparişler yeni durumu hemen okur."
+                  }
+               }
+            }
          },
          "media": {
-            "purpose": "Fotoğraf, görsel, PDF ve video kütüphanesi. Dosya bir kez saklanır ve her kayda bağlanır; belge Drive bağlantısı yerine dosyayı gösterebilir."
+            "purpose": "Fotoğraf, görsel, PDF ve video kütüphanesi. Dosya bir kez saklanır ve her kayda bağlanır; belge Drive bağlantısı yerine dosyayı gösterebilir.",
+            "tasks": {
+               "upload": {
+                  "title": "Dosya yükle",
+                  "steps": {
+                     "1": "Kaydın Ortam sekmesini açın.",
+                     "2": "Boyut sınırı içinde PNG, JPG, WebP, PDF ya da MP4 dosyası bırakın.",
+                     "3": "Kütüphanede başlık ve etiket ekleyin."
+                  }
+               },
+               "link": {
+                  "title": "Dosyayı başka kayıtta kullan",
+                  "steps": {
+                     "1": "O kaydın Ortam sekmesini açın.",
+                     "2": "Kütüphaneden seç'i kullanın.",
+                     "3": "Müşteriye ait dosya yalnız o müşterinin kayıtlarına bağlanır."
+                  }
+               },
+               "delete_media": {
+                  "title": "Dosya sil",
+                  "steps": {
+                     "1": "Önce her kayıttan bağlantısını kaldırın.",
+                     "2": "Kütüphanede açıp silin.",
+                     "3": "Dosyaları yalnızca yönetim siler."
+                  }
+               }
+            }
          },
          "purchase_order": {
-            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, S09 PI kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir."
+            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, S09 PI kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir.",
+            "tasks": {
+               "create_po": {
+                  "title": "Sipariş aç",
+                  "steps": {
+                     "1": "Ekle'yi (ya da projede Yeni sipariş'i) kullanın; müşteriyi ve tedarikçiyi seçin.",
+                     "2": "Tedarikçiden gelen Incoterm ve depozitoyu kontrol edip kaydedin.",
+                     "3": "Satırları her biri imzalı ya da onaylı spec sheet'le ekleyin, sonra Gönder."
+                  }
+               },
+               "check_pi": {
+                  "title": "PI'ı kontrol et (S09)",
+                  "steps": {
+                     "1": "PI belgesini ekleyin ve rakamlarını PI kontrol sekmesine girin.",
+                     "2": "30 maddeyi işaretleyin; kırmızı fark düzeltilmiş PI istemek demektir.",
+                     "3": "PI'ı onaylayın; satırlar ve şartlar kilitlenir."
+                  }
+               },
+               "record_payment": {
+                  "title": "Ödeme kaydet",
+                  "steps": {
+                     "1": "Ödemeler sekmesini açın; depozitoyu ve bakiyeyi PI'dan planlayın.",
+                     "2": "Para çıkınca ödeme tarihini girin.",
+                     "3": "Bakiyeyi yalnızca onaylı PSI raporundan sonra ödeyin (G4)."
+                  }
+               }
+            }
          },
          "shipment": {
-            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, S15 olay zinciri, S16 teslim kabulü ve belge kontrol listesi."
+            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, S15 olay zinciri, S16 teslim kabulü ve belge kontrol listesi.",
+            "tasks": {
+               "plan_shipment": {
+                  "title": "Sevkiyat planla",
+                  "steps": {
+                     "1": "Ekle'yi kullanın; müşteriyi, depoyu ve modu seçin.",
+                     "2": "Siparişler sekmesinde siparişleri ve satır adetlerini bağlayın.",
+                     "3": "Booking teyit tarihiyle booked durumuna alın."
+                  }
+               },
+               "log_event": {
+                  "title": "S15 adımı yaz",
+                  "steps": {
+                     "1": "Olaylar sekmesini açıp olay ekleyin.",
+                     "2": "S15 adımını, kimin kime ve hangi kanaldan bildirdiğini seçin.",
+                     "3": "Tarihler sekmesindeki tarihleri olaylarla uyumlu tutun."
+                  }
+               },
+               "accept": {
+                  "title": "Teslimi kabul et (S16)",
+                  "steps": {
+                     "1": "İmzalı teslim tutanağını Belgeler sekmesine ekleyin.",
+                     "2": "Kabul sekmesinde adetlerin tutup tutmadığını ve hasarı kaydedin.",
+                     "3": "Kabul edin; eksik ya da hasar varsa itirazlı olur ve olay açılır."
+                  }
+               }
+            }
          },
          "market_matrix": {
-            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle (S05). Hücreler tek kaynaktır; matris görünümü onlardan türetilir."
+            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle (S05). Hücreler tek kaynaktır; matris görünümü onlardan türetilir.",
+            "tasks": {
+               "add_cells": {
+                  "title": "Ürün ailesi için hücre aç",
+                  "steps": {
+                     "1": "Hücre ekle'yi seçin; müşterinin ürünlerini, bir platformu ve ülkelerini seçin.",
+                     "2": "Önceliği girin: 1 aynı hesapta yeni ülke, 2 yeni platform, 3 yeni bölge.",
+                     "3": "Kaydedin; var olan hücreler atlanır, yeniler aday olarak başlar."
+                  }
+               },
+               "screen_compliance": {
+                  "title": "Uyum taraması yap",
+                  "steps": {
+                     "1": "Matristen bir hücre açın.",
+                     "2": "Yeşil, sarı ya da kırmızı seçin; sarı ve kırmızı not ister (S12).",
+                     "3": "Kırmızı hücre planlanmaz; nedeniyle çıkarın."
+                  }
+               },
+               "go_live": {
+                  "title": "Hücreyi yayına al",
+                  "steps": {
+                     "1": "İş ilerledikçe planlandı, hazırlanıyor ve yüklendi durumlarından geçirin.",
+                     "2": "Platform kimliği, platform SKU, fiyat, para birimi ve stok kaynağını doldurun.",
+                     "3": "İçerik onaylıyken (L-G1) Yayında'yı seçin."
+                  }
+               }
+            }
          },
          "incident": {
-            "purpose": "Olay kayıtları (S17): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır."
+            "purpose": "Olay kayıtları (S17): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır.",
+            "tasks": {
+               "open_incident": {
+                  "title": "Olayı 15 dakikada kaydet",
+                  "steps": {
+                     "1": "Ekle'yi kullanın; müşteriyi, aileyi ve şiddeti seçin (Y10 §4).",
+                     "2": "Ne olduğunu üç cümleyle, şu an durumun ne olduğunu ve hemen ne yapıldığını yazın; tahmin yerine \"bilinmiyor\" yazın.",
+                     "3": "Kaydı bağlayın (sevkiyat, sipariş, ürün, hücre ya da proje) ve ilk kanıtı Ortam'a ekleyin."
+                  }
+               },
+               "keep_log": {
+                  "title": "Günlüğü ve süreleri tut",
+                  "steps": {
+                     "1": "Her olgu, görüşme ya da karar için bir günlük satırı ekleyin; maliyetini ve kimin ödeyeceğini yazın.",
+                     "2": "Geçerli süre sınırlarını ekleyin; 48 saat, 7 gün ve belge talebi tarihleri hesaplanır.",
+                     "3": "Yönetime ve müşteriye ne zaman bildirildiğini girin."
+                  }
+               },
+               "close": {
+                  "title": "Kapat",
+                  "steps": {
+                     "1": "Sonucu, kök nedeni ve yönergeye işlenen önlemi doldurun.",
+                     "2": "Kapandı durumuna alın; S1 olaylarını yönetim kapatır.",
+                     "3": "Kapanan olayın günlüğü ve süreleri artık değişmez."
+                  }
+               }
+            }
          },
          "change_request": {
-            "purpose": "Değişiklik talepleri (S08): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar."
+            "purpose": "Değişiklik talepleri (S08): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar.",
+            "tasks": {
+               "open_cr": {
+                  "title": "Değişiklik talebi aç",
+                  "steps": {
+                     "1": "Ekle'yi kullanın; müşteriyi, projeyi ve etkilenen ürünleri seçin.",
+                     "2": "Eski ve yeni değeri birebir, nedeni ve etkilenen kapıyı yazın.",
+                     "3": "Değişiklik türlerini ve aciliyeti seçin; karar tarihi buna göre gelir."
+                  }
+               },
+               "approve_cr": {
+                  "title": "Onayla ya da reddet",
+                  "steps": {
+                     "1": "Etkiyi doldurun: maliyet ve ödeyen, gecikme, kalite ve listing.",
+                     "2": "Geçmiş (M) kapı için müşterinin yazılı onayını talebin belgesi olarak ekleyin.",
+                     "3": "Onaylayın ya da karar notuyla reddedin."
+                  }
+               },
+               "apply_cr": {
+                  "title": "Uygulandı yap",
+                  "steps": {
+                     "1": "Etkilenen belgenin yeni sürümünü kendi kaydına ekleyin.",
+                     "2": "Karar sekmesinde o sürümü yeni sürüm olarak seçin.",
+                     "3": "Uygulandı yapın; talep kapanır."
+                  }
+               }
+            }
          }
       }
    }

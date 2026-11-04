@@ -2406,40 +2406,344 @@
             }
          },
          "setting": {
-            "purpose": "The company numbers the rules read: the default deposit, the spec sheet date, the document request time and the incident notice hours. Only management changes them; every change is logged."
+            "purpose": "The company numbers the rules read: the default deposit, the spec sheet date, the document request time and the incident notice hours. Only management changes them; every change is logged.",
+            "tasks": {
+               "change_setting": {
+                  "title": "Change a setting",
+                  "steps": {
+                     "1": "Find the setting; the row says what it is for.",
+                     "2": "Enter the new value in the format shown.",
+                     "3": "Save; the rules use it from the next write on."
+                  }
+               },
+               "read_setting": {
+                  "title": "Check why a rule fired",
+                  "steps": {
+                     "1": "Read the setting the message names, e.g. the spec sheet date.",
+                     "2": "Compare it with the record's date or amount.",
+                     "3": "Ask management if the value itself should change."
+                  }
+               }
+            }
          },
          "customer": {
-            "purpose": "Every customer of MOESA with its contract terms, warehouses, marketplace accounts and brands. Choosing a customer in the top filter narrows every operations list to it."
+            "purpose": "Every customer of MOESA with its contract terms, warehouses, marketplace accounts and brands. Choosing a customer in the top filter narrows every operations list to it.",
+            "tasks": {
+               "add_customer": {
+                  "title": "Add a customer",
+                  "steps": {
+                     "1": "Use Add in the menu; the three-letter code goes into every code of the customer.",
+                     "2": "Fill the commercial model, the packages and the status (C1–C4).",
+                     "3": "Save; the other tabs open."
+                  }
+               },
+               "add_warehouse": {
+                  "title": "Add a delivery warehouse",
+                  "steps": {
+                     "1": "Open the customer, then Warehouses.",
+                     "2": "Enter the address, dock hours and appointment rule as on the S14 card.",
+                     "3": "Shipments take the address from here; it is never typed on a shipment."
+                  }
+               },
+               "add_platform": {
+                  "title": "Record a marketplace account",
+                  "steps": {
+                     "1": "Open the customer, then Platforms.",
+                     "2": "Pick the platform and the countries the customer sells in.",
+                     "3": "Note our access; account IDs and passwords are never stored (K8)."
+                  }
+               }
+            }
          },
          "supplier": {
-            "purpose": "The suppliers MOESA buys from, with their terms (Incoterm, deposit, damage notice) and contacts. Purchase orders take their defaults from here."
+            "purpose": "The suppliers MOESA buys from, with their terms (Incoterm, deposit, damage notice) and contacts. Purchase orders take their defaults from here.",
+            "tasks": {
+               "add_supplier": {
+                  "title": "Add a supplier",
+                  "steps": {
+                     "1": "Use Add in the menu; enter the code and the country.",
+                     "2": "Fill the terms: default Incoterm, deposit %, damage notice hours.",
+                     "3": "Set the status to approved once the supplier has passed the evaluation."
+                  }
+               },
+               "add_contact": {
+                  "title": "Add a contact",
+                  "steps": {
+                     "1": "Open the supplier, then Contacts.",
+                     "2": "Enter the role and the official e-mail.",
+                     "3": "A spec sheet counts as official only when it comes from that e-mail."
+                  }
+               },
+               "see_orders": {
+                  "title": "See a supplier's orders",
+                  "steps": {
+                     "1": "Open the supplier.",
+                     "2": "Open the Purchase orders tab.",
+                     "3": "A row opens the order card."
+                  }
+               }
+            }
          },
          "product": {
-            "purpose": "The product master (S10): one row per SKU with its GTIN, supplier, status, compliance and spec sheet. The list shows at a glance which SKUs lack a signed spec sheet."
+            "purpose": "The product master (S10): one row per SKU with its GTIN, supplier, status, compliance and spec sheet. The list shows at a glance which SKUs lack a signed spec sheet.",
+            "tasks": {
+               "import_products": {
+                  "title": "Import products from a CSV",
+                  "steps": {
+                     "1": "Use Import on the list and choose the S10 CSV.",
+                     "2": "Read the report: every row with a problem is listed with its reason.",
+                     "3": "Fix those rows and import again; a GTIN used twice is refused."
+                  }
+               },
+               "add_spec": {
+                  "title": "Add a spec sheet",
+                  "steps": {
+                     "1": "Open the product, then Documents.",
+                     "2": "Add the spec sheet with its version and date; a new version supersedes the old one.",
+                     "3": "Mark it signed once it is signed, stamped and from the official e-mail."
+                  }
+               },
+               "add_media": {
+                  "title": "Add photos",
+                  "steps": {
+                     "1": "Open the product, then Media.",
+                     "2": "Drop the files; the first image becomes the primary image.",
+                     "3": "Change a file's role from its menu."
+                  }
+               }
+            }
          },
          "project": {
-            "purpose": "Projects take a product from brief to delivery and listing. Each gets its gate set from its type, path and packages; a gate passes only with its evidence, and only G2 and G3 block."
+            "purpose": "Projects take a product from brief to delivery and listing. Each gets its gate set from its type, path and packages; a gate passes only with its evidence, and only G2 and G3 block.",
+            "tasks": {
+               "open_project": {
+                  "title": "Open a project",
+                  "steps": {
+                     "1": "Use Add in the menu; pick the customer, type, path and packages.",
+                     "2": "Save; the code and the gate set are created.",
+                     "3": "Add the products on the Products tab."
+                  }
+               },
+               "pass_gate": {
+                  "title": "Pass a gate",
+                  "steps": {
+                     "1": "On Overview, open the gate in the phase strip.",
+                     "2": "Attach the evidence; (M) gates need the customer's approval date and document.",
+                     "3": "Pass it; the phase moves on and the next checklist appears."
+                  }
+               },
+               "rollback_gate": {
+                  "title": "Roll a gate back",
+                  "steps": {
+                     "1": "Open the incident that forces it first, from the project's Incidents tab.",
+                     "2": "In the gate panel choose Roll back, pick the incident and write the reason.",
+                     "3": "Later passed gates roll back too; pass them again once the issue is solved."
+                  }
+               }
+            }
          },
          "document": {
-            "purpose": "Every document of every record in one list: type, version, status and its link or file. \"Is the spec sheet signed?\" is answered here, without opening files."
+            "purpose": "Every document of every record in one list: type, version, status and its link or file. \"Is the spec sheet signed?\" is answered here, without opening files.",
+            "tasks": {
+               "find_document": {
+                  "title": "Find a document",
+                  "steps": {
+                     "1": "Filter by type, status or the linked record.",
+                     "2": "Open the row to see its file or link.",
+                     "3": "Older versions stay as superseded; nothing is deleted."
+                  }
+               },
+               "new_version": {
+                  "title": "Add a new version",
+                  "steps": {
+                     "1": "Add it from the record's Documents tab.",
+                     "2": "Upload the file or paste the Drive link.",
+                     "3": "The previous version becomes superseded by itself."
+                  }
+               },
+               "set_status": {
+                  "title": "Mark a document signed or approved",
+                  "steps": {
+                     "1": "Open the document.",
+                     "2": "For signed, tick signature, stamp and official e-mail and set the date.",
+                     "3": "Save; gates and orders read the new status at once."
+                  }
+               }
+            }
          },
          "media": {
-            "purpose": "The library of photos, images, PDFs and videos. A file is stored once and linked to any record; a document can point to a file instead of a Drive link."
+            "purpose": "The library of photos, images, PDFs and videos. A file is stored once and linked to any record; a document can point to a file instead of a Drive link.",
+            "tasks": {
+               "upload": {
+                  "title": "Upload files",
+                  "steps": {
+                     "1": "Open the record's Media tab.",
+                     "2": "Drop PNG, JPG, WebP, PDF or MP4 files within the size limit.",
+                     "3": "Add a title and tags in the library."
+                  }
+               },
+               "link": {
+                  "title": "Use a file on another record",
+                  "steps": {
+                     "1": "Open that record's Media tab.",
+                     "2": "Choose Pick from the library.",
+                     "3": "A customer's file links only to that customer's records."
+                  }
+               },
+               "delete_media": {
+                  "title": "Delete a file",
+                  "steps": {
+                     "1": "Unlink it from every record first.",
+                     "2": "Open it in the library and delete it.",
+                     "3": "Only management deletes files."
+                  }
+               }
+            }
          },
          "purchase_order": {
-            "purpose": "Purchase orders to suppliers, from draft to closed: lines with their spec sheet versions, the S09 PI check, payments and production. Lines and terms lock once the PI is approved."
+            "purpose": "Purchase orders to suppliers, from draft to closed: lines with their spec sheet versions, the S09 PI check, payments and production. Lines and terms lock once the PI is approved.",
+            "tasks": {
+               "create_po": {
+                  "title": "Open a purchase order",
+                  "steps": {
+                     "1": "Use Add (or New purchase order on a project); pick the customer and the supplier.",
+                     "2": "Check the Incoterm and deposit taken from the supplier, and save.",
+                     "3": "Add the lines, each with a signed or approved spec sheet, then Send."
+                  }
+               },
+               "check_pi": {
+                  "title": "Check the PI (S09)",
+                  "steps": {
+                     "1": "Add the PI document and enter its figures on the PI check tab.",
+                     "2": "Mark the 30 items; a red difference means asking for a corrected PI.",
+                     "3": "Approve the PI; the lines and terms lock."
+                  }
+               },
+               "record_payment": {
+                  "title": "Record a payment",
+                  "steps": {
+                     "1": "Open Payments and plan the deposit and the balance from the PI.",
+                     "2": "Enter the paid date when the money leaves.",
+                     "3": "Pay the balance only after an approved PSI report (G4)."
+                  }
+               }
+            }
          },
          "shipment": {
-            "purpose": "Shipments of a customer's orders to one of its warehouses, from planned to accepted: dates, the S15 event chain, the S16 acceptance and the document checklist."
+            "purpose": "Shipments of a customer's orders to one of its warehouses, from planned to accepted: dates, the S15 event chain, the S16 acceptance and the document checklist.",
+            "tasks": {
+               "plan_shipment": {
+                  "title": "Plan a shipment",
+                  "steps": {
+                     "1": "Use Add; pick the customer, the warehouse and the mode.",
+                     "2": "On Orders, link the orders and the quantities of their lines.",
+                     "3": "Move it to booked with the booking confirmation date."
+                  }
+               },
+               "log_event": {
+                  "title": "Log an S15 step",
+                  "steps": {
+                     "1": "Open Events and add an event.",
+                     "2": "Pick the S15 step, who told whom and the channel.",
+                     "3": "Keep the dates on Dates in line with the events."
+                  }
+               },
+               "accept": {
+                  "title": "Accept the delivery (S16)",
+                  "steps": {
+                     "1": "Add the signed delivery receipt on Documents.",
+                     "2": "On Acceptance, record whether the quantities match and any damage.",
+                     "3": "Accept; a shortage or damage makes it disputed, and an incident follows."
+                  }
+               }
+            }
          },
          "market_matrix": {
-            "purpose": "Where each product is sold: one cell per product, platform and country, with its status, compliance, content and listing data (S05). The cells are the single source; the matrix view is derived from them."
+            "purpose": "Where each product is sold: one cell per product, platform and country, with its status, compliance, content and listing data (S05). The cells are the single source; the matrix view is derived from them.",
+            "tasks": {
+               "add_cells": {
+                  "title": "Open cells for a product family",
+                  "steps": {
+                     "1": "Choose Add cells; pick the customer's products, a platform and its countries.",
+                     "2": "Set the priority: 1 same account new country, 2 new platform, 3 new region.",
+                     "3": "Save; existing cells are skipped and new ones start as candidates."
+                  }
+               },
+               "screen_compliance": {
+                  "title": "Screen compliance",
+                  "steps": {
+                     "1": "Open a cell from the matrix.",
+                     "2": "Set green, yellow or red; yellow and red need a note (S12).",
+                     "3": "A red cell is not planned; remove it with the reason."
+                  }
+               },
+               "go_live": {
+                  "title": "Take a cell live",
+                  "steps": {
+                     "1": "Move it through planned, preparing and uploaded as the work goes.",
+                     "2": "Fill the platform ID, platform SKU, price, currency and stock source.",
+                     "3": "With the content approved (L-G1), choose Live."
+                  }
+               }
+            }
          },
          "incident": {
-            "purpose": "Incident records (S17): what happened, where, how serious, who owns it, the log of every contact and cost, the deadlines that must not slip, and the closure with its lesson. A gate is rolled back only through an incident."
+            "purpose": "Incident records (S17): what happened, where, how serious, who owns it, the log of every contact and cost, the deadlines that must not slip, and the closure with its lesson. A gate is rolled back only through an incident.",
+            "tasks": {
+               "open_incident": {
+                  "title": "Record an incident in 15 minutes",
+                  "steps": {
+                     "1": "Use Add; pick the customer, the family and the severity (Y10 §4).",
+                     "2": "Write what happened in three sentences, where things are now and what was done at once; write \"unknown\" rather than guess.",
+                     "3": "Link the record (shipment, order, product, cell or project) and add the first evidence on Media."
+                  }
+               },
+               "keep_log": {
+                  "title": "Keep the log and the deadlines",
+                  "steps": {
+                     "1": "Add one log line per fact, call or decision, with its cost and who pays.",
+                     "2": "Add the deadlines that apply; 48-hour, 7-day and document-request dates are calculated.",
+                     "3": "Enter when management and the customer were told."
+                  }
+               },
+               "close": {
+                  "title": "Close it",
+                  "steps": {
+                     "1": "Fill the outcome, the root cause and the preventive action written into the guideline.",
+                     "2": "Move it to closed; management closes S1 incidents.",
+                     "3": "A closed incident's log and deadlines no longer change."
+                  }
+               }
+            }
          },
          "change_request": {
-            "purpose": "Change requests (S08): nothing approved changes without one. Each records the old and new value, why, the impact, the approvals and the new document version it produced."
+            "purpose": "Change requests (S08): nothing approved changes without one. Each records the old and new value, why, the impact, the approvals and the new document version it produced.",
+            "tasks": {
+               "open_cr": {
+                  "title": "Open a change request",
+                  "steps": {
+                     "1": "Use Add; pick the customer, the project and the products affected.",
+                     "2": "Write the old and new values word for word, the reason and the affected gate.",
+                     "3": "Choose the kinds of change and the urgency; the decision date follows."
+                  }
+               },
+               "approve_cr": {
+                  "title": "Approve or reject",
+                  "steps": {
+                     "1": "Fill the impact: cost and who pays, delay, quality and listing.",
+                     "2": "For a passed (M) gate, add the customer's written approval as a document of the request.",
+                     "3": "Approve, or reject with the decision note."
+                  }
+               },
+               "apply_cr": {
+                  "title": "Mark it applied",
+                  "steps": {
+                     "1": "Add the new version of the affected document on its record.",
+                     "2": "Pick that version as the new version on Decision.",
+                     "3": "Mark it applied; the request closes."
+                  }
+               }
+            }
          }
       }
    }

@@ -1,4 +1,4 @@
-import { GUIDE_PAGES, PAGE_GUIDES } from '@/constants/guide';
+import { GUIDE_PAGES, PAGE_GUIDES, visibleTasks } from '@/constants/guide';
 import opsRoutes from '@/router/routes/ops';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -57,5 +57,25 @@ describe('page guide copy', () => {
          )
       );
       expect(unlabelled).toEqual([]);
+   });
+
+   it('gives every page at least two tasks', () => {
+      expect(GUIDE_PAGES.filter((p) => PAGE_GUIDES[p].tasks.length < 2)).toEqual([]);
+   });
+
+   it('labels every needed permission', () => {
+      const fields = (lookup(messages('en'), 'fields') ?? {}) as Tree;
+      const missing = GUIDE_PAGES.flatMap((page) =>
+         PAGE_GUIDES[page].tasks
+            .map((t) => t.permission.subject)
+            .filter((subject) => !isText(fields[subject] ?? lookup(fields, `${subject}.label`)))
+      );
+      expect(missing).toEqual([]);
+   });
+
+   it('gives the settings page one task per role', () => {
+      expect(visibleTasks(PAGE_GUIDES.setting, (a) => a === 'read').map((t) => t.id)).toEqual([
+         'read_setting'
+      ]);
    });
 });
