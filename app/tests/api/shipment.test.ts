@@ -62,6 +62,7 @@ const W = '00000000-0000-4000-8000-000000000003';
 const SHIPMENT = '00000000-0000-4000-8000-000000000004';
 const ORDER = '00000000-0000-4000-8000-000000000005';
 const ORDER_LINE = '00000000-0000-4000-8000-000000000006';
+const PRODUCT = '00000000-0000-4000-8000-000000000007';
 
 /** Runs a composable inside a component with its own query client. */
 const withSetup = <T>(composable: () => T): T => {
@@ -113,7 +114,9 @@ describe('nextShipmentStatuses', () => {
 
 describe('shipmentStatusHints', () => {
    const ready = {
+      status: 'delivered' as const,
       purchase_order_ids: [ORDER],
+      product_ids: [PRODUCT],
       booking_confirmed_on: '2027-01-02',
       etd: '2027-01-03',
       eta: '2027-01-20',
@@ -126,6 +129,7 @@ describe('shipmentStatusHints', () => {
       const empty = {
          ...ready,
          purchase_order_ids: [],
+         product_ids: [],
          booking_confirmed_on: null,
          etd: null,
          delivered_at: null
@@ -134,6 +138,7 @@ describe('shipmentStatusHints', () => {
          'shipment_po_required',
          'shipment_booking_date_required'
       ]);
+      expect(shipmentStatusHints('loaded', empty, null)).toEqual(['shipment_lines_required']);
       expect(shipmentStatusHints('in_transit', empty, null)).toEqual(['shipment_eta_required']);
       expect(shipmentStatusHints('delivered', empty, null)).toEqual([
          'shipment_delivery_time_required'
@@ -141,6 +146,16 @@ describe('shipmentStatusHints', () => {
       expect(shipmentStatusHints('accepted', empty, 'draft')).toEqual([
          'shipment_delivery_receipt_required'
       ]);
+   });
+
+   it('asks a clean report only of a shipment accepted straight from delivered', () => {
+      const damaged = { ...ready, quantity_matches: false, has_damage: true };
+      expect(shipmentStatusHints('accepted', damaged, 'signed')).toEqual([
+         'shipment_acceptance_issue'
+      ]);
+      expect(shipmentStatusHints('accepted', { ...damaged, status: 'disputed' }, 'signed')).toEqual(
+         []
+      );
    });
 
    it('names nothing when the data is there or the status needs none', () => {
@@ -219,20 +234,37 @@ describe('documentChecklist', () => {
 
 describe('acceptanceHints', () => {
    it('names what keeps the shipment from being accepted', () => {
-      expect(acceptanceHints({ quantity_matches: true, has_damage: false }, null)).toEqual([
-         'shipment_delivery_receipt_required'
-      ]);
-      expect(acceptanceHints({ quantity_matches: true, has_damage: true }, 'approved')).toEqual([
-         'shipment_acceptance_issue'
-      ]);
-      expect(acceptanceHints({ quantity_matches: null, has_damage: false }, 'signed')).toEqual([
-         'shipment_acceptance_issue'
-      ]);
-      expect(acceptanceHints({ quantity_matches: true, has_damage: false }, 'signed')).toEqual([]);
-      expect(acceptanceHints({ quantity_matches: false, has_damage: null }, 'draft')).toEqual([
-         'shipment_delivery_receipt_required',
-         'shipment_acceptance_issue'
-      ]);
+      const delivered = 'delivered' as const;
+      expect(
+         acceptanceHints({ status: delivered, quantity_matches: true, has_damage: false }, null)
+      ).toEqual(['shipment_delivery_receipt_required']);
+      expect(
+         acceptanceHints(
+            { status: delivered, quantity_matches: true, has_damage: true },
+            'approved'
+         )
+      ).toEqual(['shipment_acceptance_issue']);
+      expect(
+         acceptanceHints({ status: delivered, quantity_matches: null, has_damage: false }, 'signed')
+      ).toEqual(['shipment_acceptance_issue']);
+      expect(
+         acceptanceHints({ status: delivered, quantity_matches: true, has_damage: false }, 'signed')
+      ).toEqual([]);
+      expect(
+         acceptanceHints({ status: delivered, quantity_matches: false, has_damage: null }, 'draft')
+      ).toEqual(['shipment_delivery_receipt_required', 'shipment_acceptance_issue']);
+   });
+
+   it('accepts a disputed shipment with the reservations it records', () => {
+      expect(
+         acceptanceHints(
+            { status: 'disputed', quantity_matches: false, has_damage: true },
+            'signed'
+         )
+      ).toEqual([]);
+      expect(
+         acceptanceHints({ status: 'disputed', quantity_matches: false, has_damage: true }, null)
+      ).toEqual(['shipment_delivery_receipt_required']);
    });
 });
 
@@ -299,6 +331,33 @@ describe('shipment form', () => {
       });
       for (const key of ['customer_id', 'code', 'status', 'accepted_on'])
          expect(payload).not.toHaveProperty(key);
+   });
+
+   it('sends the dispute deadline only when it differs from the loaded one', () => {
+      const loaded = toShipmentFormValues({
+         id: SHIPMENT,
+         customer_id: CUSTOMER,
+         mode: 'road',
+         delivery_warehouse_id: W,
+         dispute_deadline_at: '2027-01-12T10:00:00+00:00'
+      });
+      const save = (deadline: Date | null, base: typeof loaded | null = loaded) =>
+         toShipmentPayload(
+            shipmentSchema.parse({ ...loaded, dispute_deadline_at: deadline }),
+            base
+         );
+
+      // Unchanged: the database's deadline (set on entering delivered) is left alone.
+      expect(save(new Date('2027-01-12T10:00:00Z'))).not.toHaveProperty('dispute_deadline_at');
+      // A form loaded before the deadline existed does not wipe it.
+      expect(save(null, { ...loaded, dispute_deadline_at: null })).not.toHaveProperty(
+         'dispute_deadline_at'
+      );
+      // Edited or cleared: sent.
+      expect(save(new Date('2027-01-13T10:00:00Z'))).toMatchObject({
+         dispute_deadline_at: '2027-01-13T10:00:00.000Z'
+      });
+      expect(save(null)).toMatchObject({ dispute_deadline_at: null });
    });
 
    it('refuses a term that is not Incoterms 2020 and requires the mode and warehouse', () => {

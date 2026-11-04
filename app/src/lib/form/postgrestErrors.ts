@@ -260,6 +260,7 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'shipment_status_order',
       'shipment_po_required',
       'shipment_booking_date_required',
+      'shipment_lines_required',
       'shipment_eta_required',
       'shipment_delivery_time_required',
       'shipment_delivery_receipt_required',

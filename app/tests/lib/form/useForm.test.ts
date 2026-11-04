@@ -101,6 +101,7 @@ describe('useForm', () => {
       await nextTick();
 
       expect(form.values.value).toEqual(saved);
+      expect(form.initialValues.value).toEqual(saved);
       expect(form.isDirty.value).toBe(false);
       expect(form.errors.value).toEqual({});
 

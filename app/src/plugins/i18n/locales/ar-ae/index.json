@@ -538,7 +538,8 @@
       "shipment_line_duplicate": "This order line is already on the shipment.",
       "shipment_quantity_exceeds_po": "More than ordered (tolerance included) would be shipped.",
       "shipment_locked": "The goods are loaded; orders and lines no longer change.",
-      "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved."
+      "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved.",
+      "shipment_lines_required": "Add at least one line before loading."
    },
    "route": {
       "label": {
@@ -1658,6 +1659,9 @@
             "this_week": "This week",
             "later": "Later"
          }
+      },
+      "status_actions": {
+         "dirty_hint": "Save or discard your changes first."
       }
    },
    "glossary": {

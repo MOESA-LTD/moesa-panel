@@ -18,6 +18,11 @@ const props = defineProps<{
    glossary?: GlossaryEnum;
    /** A warning shown in the confirmation of a status, e.g. a missing PSI before the balance. */
    warnings?: Partial<Record<string, string>>;
+   /**
+    * Offers no move, e.g. while the card has unsaved edits: a move reloads the record, and saving
+    * the stale form afterwards would overwrite what the database set. The card says why.
+    */
+   disabled?: boolean;
    /** Makes the move; a rejection is the database's refusal. */
    onChange: (status: string) => Promise<unknown>;
 }>();
@@ -92,7 +97,7 @@ const ask = (status: string) => {
       :severity="status === 'cancelled' ? 'danger' : undefined"
       :variant="status === 'cancelled' ? 'text' : 'outlined'"
       :loading="busy && target === status"
-      :disabled="busy"
+      :disabled="busy || disabled"
       size="small"
       @click="ask(status)"
    />

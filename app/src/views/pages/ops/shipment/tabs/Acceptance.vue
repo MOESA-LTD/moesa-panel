@@ -14,7 +14,8 @@ import {
 // quantities match, whether anything is damaged, and the dispute deadline. Beside it the M8 shipping
 // documents (the SDS only with a hazardous line on the shipment), each with the status of its
 // newest version; they are added on the Documents tab. While accepting is the next step, what the
-// database would refuse it for is named (031, rule 6); only the database decides.
+// database would refuse it for is named (031, rule 6: from disputed, the receipt only); only the
+// database decides.
 const emit = defineEmits<{ openTab: [tab: ShipmentCardTab] }>();
 
 const form = injectShipmentForm();
@@ -31,6 +32,7 @@ const hints = computed(() =>
    shipment.value && nextShipmentStatuses(shipment.value.status).includes('accepted')
       ? acceptanceHints(
            {
+              status: shipment.value.status,
               quantity_matches: values.value.quantity_matches ?? null,
               has_damage: values.value.has_damage ?? null
            },

@@ -1,6 +1,7 @@
 import '../setup/mockMain';
 import {
    shipmentLineSchema,
+   shipmentSchema,
    toShipmentFormValues,
    toShipmentLineFormValues,
    type ShipmentCard,
@@ -35,6 +36,7 @@ import { defineComponent, h, nextTick, ref, Suspense, type Ref } from 'vue';
 // load, so what the shipment card adds (defaults, locks, checklists, payloads) is what is checked.
 const api = vi.hoisted(() => ({
    values: null as unknown as { value: Record<string, unknown> },
+   initialValues: null as unknown as { value: Record<string, unknown> },
    options: undefined as
       | undefined
       | { toPayload: (data: Record<string, unknown>) => Record<string, unknown> },
@@ -64,6 +66,7 @@ vi.mock('@/composables/useUpsertForm', async () => {
          api.options = options;
          return {
             values: api.values,
+            initialValues: api.initialValues,
             errors: ref({}),
             isDirty: ref(false),
             isSubmitting: ref(false),
@@ -262,6 +265,7 @@ beforeEach(() => {
    setActivePinia(createPinia());
    ability.update([{ action: 'manage', subject: 'all' }]);
    api.values = ref(toShipmentFormValues(null));
+   api.initialValues = ref(toShipmentFormValues(null));
    api.options = undefined;
    api.lookups = {};
    api.lookupCalls = [];
@@ -313,6 +317,25 @@ describe('useShipmentForm', () => {
 
       expect(api.values.value.delivery_warehouse_id).toBe('w2');
    });
+
+   it('saves the dispute deadline only when it was edited after loading', () => {
+      const loaded = toShipmentFormValues({
+         id: SHIPMENT,
+         customer_id: CUSTOMER,
+         mode: 'road',
+         delivery_warehouse_id: '00000000-0000-4000-8000-000000000401',
+         dispute_deadline_at: '2027-01-12T10:00:00+00:00'
+      });
+      api.initialValues = ref(loaded);
+      useShipmentForm(() => SHIPMENT);
+      const toPayload = (deadline: Date | null) =>
+         api.options!.toPayload(shipmentSchema.parse({ ...loaded, dispute_deadline_at: deadline }));
+
+      expect(toPayload(new Date('2027-01-12T10:00:00Z'))).not.toHaveProperty('dispute_deadline_at');
+      expect(toPayload(new Date('2027-01-14T10:00:00Z'))).toMatchObject({
+         dispute_deadline_at: '2027-01-14T10:00:00.000Z'
+      });
+   });
 });
 
 describe('status warnings', () => {
@@ -323,6 +346,7 @@ describe('status warnings', () => {
          ['booked', 'loaded', 'cancelled'],
          {
             purchase_order_ids: [],
+            product_ids: ['p1'],
             booking_confirmed_on: null,
             psi_missing_po_codes: ['PO-THO-2026-001']
          } as unknown as ShipmentOverviewRow,
@@ -341,11 +365,21 @@ describe('status warnings', () => {
    it('does not warn on loading when every order has its PSI', () => {
       const warnings = shipmentStatusWarnings(
          ['loaded'],
-         { psi_missing_po_codes: [] } as unknown as ShipmentOverviewRow,
+         { product_ids: ['p1'], psi_missing_po_codes: [] } as unknown as ShipmentOverviewRow,
          null,
          (key) => key
       );
       expect(warnings).toEqual({});
+   });
+
+   it('warns that a shipment without lines is not loaded', () => {
+      const warnings = shipmentStatusWarnings(
+         ['loaded'],
+         { product_ids: [], psi_missing_po_codes: [] } as unknown as ShipmentOverviewRow,
+         null,
+         (key) => key
+      );
+      expect(warnings).toEqual({ loaded: 'errors.shipment_lines_required' });
    });
 });
 

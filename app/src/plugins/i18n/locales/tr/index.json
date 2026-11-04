@@ -328,6 +328,7 @@
       "shipment_status_order": "Sevkiyat bu duruma mevcut durumundan geçemez.",
       "shipment_po_required": "Önce sevkiyata bir PO ekleyin.",
       "shipment_booking_date_required": "Booking teyit tarihini girin.",
+      "shipment_lines_required": "Yüklemeden önce en az bir satır ekleyin.",
       "shipment_eta_required": "ETD ve ETA'yı girin.",
       "shipment_delivery_time_required": "Teslimin gerçekleştiği zamanı girin.",
       "shipment_delivery_receipt_required": "Önce imzalı teslim tutanağını (G5 kanıtı) ekleyin.",
@@ -1658,6 +1659,9 @@
             "this_week": "Bu hafta",
             "later": "Daha sonra"
          }
+      },
+      "status_actions": {
+         "dirty_hint": "Önce değişikliklerinizi kaydedin ya da geri alın."
       }
    },
    "glossary": {

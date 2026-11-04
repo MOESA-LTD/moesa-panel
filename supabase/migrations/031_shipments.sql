@@ -19,10 +19,12 @@
 -- Status flow   planned → booked → loaded → in_transit → (at_customs →) delivered → accepted, or
 --               delivered → disputed → accepted. A planned or booked shipment may be cancelled;
 --               accepted and cancelled are final. A new shipment is planned (the code trigger).
---               booked needs an order and the booking confirmation date; in_transit ETD and ETA;
---               delivered the delivery time; accepted the signed or approved delivery receipt (G5
---               evidence) and no reservation (the quantities match, no damage: S16 says a delivery
---               with reservations, or a refusal, is disputed). Entering delivered fills an empty
+--               booked needs an order and the booking confirmation date; loaded a line; in_transit
+--               ETD and ETA; delivered the delivery time; accepted the signed or approved delivery
+--               receipt (G5 evidence) and, straight from delivered, no reservation (the quantities
+--               match, no damage: S16 says a delivery with reservations, or a refusal, is
+--               disputed); a disputed shipment is accepted with the reservations it records, once
+--               the dispute is settled. Entering delivered fills an empty
 --               dispute deadline: the delivery time plus the shortest damage-notice time of the
 --               orders' suppliers (none when no supplier has one); it stays editable (S16 §F,
 --               "sözleşmeye göre"). Entering accepted dates it today unless a date is given.
@@ -43,10 +45,12 @@
 --   shipment_status_order               not an allowed transition, or out of a final status
 --   shipment_po_required                booked without an order
 --   shipment_booking_date_required      booked without the booking confirmation date
+--   shipment_lines_required             loaded without a line
 --   shipment_eta_required               in_transit without ETD or ETA
 --   shipment_delivery_time_required     delivered without the delivery time
 --   shipment_delivery_receipt_required  accepted without a signed or approved delivery receipt
---   shipment_acceptance_issue           accepted with quantities that differ or damage
+--   shipment_acceptance_issue           accepted from delivered with quantities that differ or
+--                                       damage (from disputed it is accepted as it is)
 --   shipment_locked                     an order or line of a loaded (or later) or cancelled
 --                                       shipment changed
 --   shipment_po_not_open                linking an order outside pi_approved … balance_paid
@@ -242,6 +246,14 @@ BEGIN
             RAISE EXCEPTION 'shipment_booking_date_required' USING ERRCODE = 'check_violation';
         END IF;
 
+    --    Loaded: at least one line (no goods, nothing to load).
+    ELSIF NEW.status = 'loaded' THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM public.shipment_line sl WHERE sl.shipment_id = NEW.id AND sl.tenant_id = NEW.tenant_id
+        ) THEN
+            RAISE EXCEPTION 'shipment_lines_required' USING ERRCODE = 'check_violation';
+        END IF;
+
     -- 4. In transit: ETD and ETA.
     ELSIF NEW.status = 'in_transit' THEN
         IF NEW.etd IS NULL OR NEW.eta IS NULL THEN
@@ -263,7 +275,9 @@ BEGIN
             NEW.dispute_deadline_at := NEW.delivered_at + notice_hours * INTERVAL '1 hour';
         END IF;
 
-    -- 6. Accepted: the signed or approved delivery receipt, and no reservation.
+    -- 6. Accepted: the signed or approved delivery receipt and, straight from delivered, no
+    --    reservation. A disputed shipment is accepted as it is: the dispute settled the reservation
+    --    its quantities and damage record.
     ELSIF NEW.status = 'accepted' THEN
         IF NOT EXISTS (
             SELECT 1
@@ -276,7 +290,7 @@ BEGIN
         ) THEN
             RAISE EXCEPTION 'shipment_delivery_receipt_required' USING ERRCODE = 'check_violation';
         END IF;
-        IF NEW.quantity_matches IS NOT TRUE OR NEW.has_damage IS NOT FALSE THEN
+        IF OLD.status = 'delivered' AND (NEW.quantity_matches IS NOT TRUE OR NEW.has_damage IS NOT FALSE) THEN
             RAISE EXCEPTION 'shipment_acceptance_issue' USING ERRCODE = 'check_violation';
         END IF;
         NEW.accepted_on := coalesce(NEW.accepted_on, current_date);

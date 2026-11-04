@@ -67,6 +67,10 @@ const order = computed(() => form.row.value ?? null);
 
 // --- status actions ---
 
+// No move while the form has unsaved edits: saved afterwards, they would be written over the moved
+// order, or refused by its locks (po_locked from pi_approved on).
+const { isDirty } = form;
+
 const { t } = useI18n();
 const { mutateAsync: setStatus } = useSetPurchaseOrderStatus();
 
@@ -114,7 +118,14 @@ const title = computed(() =>
                i18nPrefix="ops.purchase_order.status"
                glossary="purchase_order_status"
                :warnings="statusWarnings"
+               :disabled="isDirty"
                :onChange="changeStatus"
+            />
+            <small
+               v-if="isDirty && $can('update', 'purchase_order')"
+               class="self-center text-muted-color"
+               data-test="status-dirty-hint"
+               v-text="$t('ops.status_actions.dirty_hint')"
             />
          </slot>
       </span>

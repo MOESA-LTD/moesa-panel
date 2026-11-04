@@ -132,17 +132,23 @@ export const nextShipmentStatuses = (status: ShipmentStatus): ShipmentStatus[] =
 export type AcceptanceHint = 'shipment_delivery_receipt_required' | 'shipment_acceptance_issue';
 
 /**
- * What keeps a delivered shipment from being accepted (031, rule 6): the delivery receipt
- * (`receiptStatus`, signed or approved) and no reservation. A display hint only; the DB decides.
+ * What keeps a shipment from being accepted (031, rule 6): the delivery receipt (`receiptStatus`,
+ * signed or approved) and, straight from delivered, no reservation; a disputed shipment is accepted
+ * with the reservations it records. A display hint only; the DB decides.
  */
 export function acceptanceHints(
-   { quantity_matches, has_damage }: Pick<ShipmentRow, 'quantity_matches' | 'has_damage'>,
+   {
+      status,
+      quantity_matches,
+      has_damage
+   }: Pick<ShipmentRow, 'quantity_matches' | 'has_damage'> & { status: ShipmentStatus | null },
    receiptStatus: DocumentStatus | null
 ): AcceptanceHint[] {
    const hints: AcceptanceHint[] = [];
    if (receiptStatus !== 'signed' && receiptStatus !== 'approved')
       hints.push('shipment_delivery_receipt_required');
-   if (quantity_matches !== true || has_damage !== false) hints.push('shipment_acceptance_issue');
+   if (status === 'delivered' && (quantity_matches !== true || has_damage !== false))
+      hints.push('shipment_acceptance_issue');
    return hints;
 }
 
@@ -150,24 +156,28 @@ export type StatusHint =
    | AcceptanceHint
    | 'shipment_po_required'
    | 'shipment_booking_date_required'
+   | 'shipment_lines_required'
    | 'shipment_eta_required'
    | 'shipment_delivery_time_required';
 
 /**
  * The data the database requires on entering `status` (031, rules 3–6) that the shipment lacks, as
- * errors.<code> keys, in the guard's order. A display hint only; the DB decides.
+ * errors.<code> keys, in the guard's order. A line on the shipment shows as a product in
+ * product_ids. A display hint only; the DB decides.
  */
 export function shipmentStatusHints(
    status: ShipmentStatus,
    shipment: Pick<
       ShipmentOverviewRow,
       | 'purchase_order_ids'
+      | 'product_ids'
       | 'booking_confirmed_on'
       | 'etd'
       | 'eta'
       | 'delivered_at'
       | 'quantity_matches'
       | 'has_damage'
+      | 'status'
    >,
    receiptStatus: DocumentStatus | null
 ): StatusHint[] {
@@ -177,6 +187,8 @@ export function shipmentStatusHints(
             ...(shipment.purchase_order_ids?.length ? [] : ['shipment_po_required' as const]),
             ...(shipment.booking_confirmed_on ? [] : ['shipment_booking_date_required' as const])
          ];
+      case 'loaded':
+         return shipment.product_ids?.length ? [] : ['shipment_lines_required'];
       case 'in_transit':
          return shipment.etd && shipment.eta ? [] : ['shipment_eta_required'];
       case 'delivered':
@@ -389,22 +401,27 @@ export const toShipmentFormValues = (
    notes: shipment?.notes ?? ''
 });
 
+const instantTime = (value: unknown) => (value instanceof Date ? value.getTime() : null);
+
 /**
  * The row to save, empty fields as null. The customer never changes, so it goes with a new
  * shipment only; the code, the status (useSetShipmentStatus) and the acceptance date are the
- * database's.
+ * database's. The dispute deadline goes only when it differs from `loaded` (the form's values as
+ * loaded, none for a new shipment): entering delivered fills it in the database, and a form loaded
+ * before that must not write its empty one back.
  */
-export function toShipmentPayload({
-   id,
-   customer_id,
-   ...values
-}: ShipmentValues): ResourceInput<'shipment'> {
+export function toShipmentPayload(
+   { id, customer_id, dispute_deadline_at, ...values }: ShipmentValues,
+   loaded?: Pick<ShipmentFormValues, 'dispute_deadline_at'> | null
+): ResourceInput<'shipment'> {
+   const deadlineChanged =
+      instantTime(dispute_deadline_at) !== instantTime(loaded?.dispute_deadline_at);
    const editable = {
       ...values,
       incoterm_buy: values.incoterm_buy ?? null,
       incoterm_sell: values.incoterm_sell ?? null,
       delivered_at: values.delivered_at?.toISOString() ?? null,
-      dispute_deadline_at: values.dispute_deadline_at?.toISOString() ?? null,
+      ...(deadlineChanged && { dispute_deadline_at: dispute_deadline_at?.toISOString() ?? null }),
       quantity_matches: values.quantity_matches ?? null,
       has_damage: values.has_damage ?? null
    };

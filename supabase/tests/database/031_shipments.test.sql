@@ -3,13 +3,14 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Shipments (031) on the MOESA demo company of seed.sql: the code from next_code, the customer's own
 -- warehouse and orders, the open orders only, the lines of linked orders, the quantity cap with the
 -- order's tolerance (a cancelled shipment frees its quantity), the status flow and what each status
--- needs, the lock from loaded, the dispute deadline from the supplier's damage notice, acceptance
--- (the delivery receipt, no reservations), the overview's orders, products and PSI warning, the
+-- needs (a line before loading), the lock from loaded, the dispute deadline from the supplier's
+-- damage notice, acceptance (the delivery receipt, no reservations straight from delivered, a
+-- settled dispute as it is), the overview's orders, products and PSI warning, the
 -- share lock on the shipment, the rules_bypass flag a user cannot use, and the cascade of a removed
 -- shipment. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(36);
+SELECT plan(38);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -47,7 +48,7 @@ SELECT set_config('moesa.rules_bypass', '', TRUE);
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'fcl20', current_setting('test.rosbach')::UUID
-FROM (VALUES ('00000000-0000-4000-8000-000000031031'::UUID), ('00000000-0000-4000-8000-000000031032'), ('00000000-0000-4000-8000-000000031033'), ('00000000-0000-4000-8000-000000031034')) AS x (id);
+FROM (VALUES ('00000000-0000-4000-8000-000000031031'::UUID), ('00000000-0000-4000-8000-000000031032'), ('00000000-0000-4000-8000-000000031033'), ('00000000-0000-4000-8000-000000031034'), ('00000000-0000-4000-8000-000000031036')) AS x (id);
 
 SELECT is((SELECT code FROM public.shipment WHERE id = '00000000-0000-4000-8000-000000031031'),
           'SHP-THO-' || extract(year FROM now())::INT || '-001', 'the code comes from next_code');
@@ -75,6 +76,12 @@ SELECT throws_ok($$ UPDATE public.shipment SET status = 'booked' WHERE id = '000
                  '23514', 'shipment_booking_date_required', 'booking needs its confirmation date');
 SELECT throws_ok($$ UPDATE public.shipment SET status = 'booked', booking_confirmed_on = current_date WHERE id = '00000000-0000-4000-8000-000000031034' $$,
                  '23514', 'shipment_po_required', 'booking needs an order');
+
+INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id) VALUES ('00000000-0000-4000-8000-000000031036', '00000000-0000-4000-8000-000000031011', current_setting('test.moesa')::UUID);
+UPDATE public.shipment SET status = 'booked', booking_confirmed_on = current_date WHERE id = '00000000-0000-4000-8000-000000031036';
+
+SELECT throws_ok($$ UPDATE public.shipment SET status = 'loaded' WHERE id = '00000000-0000-4000-8000-000000031036' $$,
+                 '23514', 'shipment_lines_required', 'nothing is loaded without a line');
 
 UPDATE public.shipment SET status = 'booked', booking_confirmed_on = current_date WHERE id = '00000000-0000-4000-8000-000000031031';
 UPDATE public.shipment SET status = 'loaded' WHERE id = '00000000-0000-4000-8000-000000031031';
@@ -104,9 +111,11 @@ SELECT throws_ok($$ UPDATE public.shipment SET status = 'accepted' WHERE id = '0
                  '23514', 'shipment_acceptance_issue', 'damage means disputed, not accepted');
 
 UPDATE public.shipment SET status = 'disputed' WHERE id = '00000000-0000-4000-8000-000000031031';
-UPDATE public.shipment SET has_damage = FALSE WHERE id = '00000000-0000-4000-8000-000000031031';
 
-SELECT lives_ok($$ UPDATE public.shipment SET status = 'accepted' WHERE id = '00000000-0000-4000-8000-000000031031' $$, 'a settled dispute is accepted');
+SELECT lives_ok($$ UPDATE public.shipment SET status = 'accepted' WHERE id = '00000000-0000-4000-8000-000000031031' $$,
+                'a settled dispute is accepted with the damage it records');
+SELECT is((SELECT has_damage FROM public.shipment WHERE id = '00000000-0000-4000-8000-000000031031'), TRUE,
+          'the damage stays on record');
 
 -- Beyond the brief: acceptance date, final status, the overview, the other guards, the share lock,
 -- the bypass flag and the cascade.

@@ -452,6 +452,7 @@
       "shipment_status_order": "The shipment cannot move to this status from its current one.",
       "shipment_po_required": "Add a purchase order to the shipment first.",
       "shipment_booking_date_required": "Enter the booking confirmation date.",
+      "shipment_lines_required": "Add at least one line before loading.",
       "shipment_eta_required": "Enter ETD and ETA.",
       "shipment_delivery_time_required": "Enter when the goods were delivered.",
       "shipment_delivery_receipt_required": "Add the signed delivery receipt (G5 evidence) first.",
@@ -1658,6 +1659,9 @@
             "this_week": "This week",
             "later": "Later"
          }
+      },
+      "status_actions": {
+         "dirty_hint": "Save or discard your changes first."
       }
    },
    "glossary": {

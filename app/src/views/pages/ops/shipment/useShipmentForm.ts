@@ -93,7 +93,8 @@ export function useShipmentForm(
       subject: 'shipment',
       schema: shipmentSchema,
       toFormValues: toShipmentFormValues,
-      toPayload: toShipmentPayload,
+      // The deadline goes only when edited: compared with the values the form was loaded with.
+      toPayload: (values) => toShipmentPayload(values, form.initialValues.value),
       onSaved: (shipment) => {
          if (isNew) form.discardDraft();
          onSaved?.(shipment);

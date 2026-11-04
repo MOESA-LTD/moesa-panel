@@ -18,6 +18,7 @@ const mountActions = (props: {
    next: readonly string[];
    glossary?: GlossaryEnum;
    warnings?: Partial<Record<string, string>>;
+   disabled?: boolean;
    onChange?: (status: string) => Promise<unknown>;
 }) =>
    mount(StatusActions, {
@@ -109,5 +110,16 @@ describe('StatusActions', () => {
 
       await button(wrapper, 'balance_paid').trigger('click');
       expect(wrapper.get('[data-test="status-warning"]').text()).toBe('X-WARNING');
+   });
+
+   it('offers no move while disabled (e.g. unsaved edits on the card)', async () => {
+      const onChange = vi.fn(() => Promise.resolve());
+      const wrapper = mountActions({ next: ['sent', 'cancelled'], disabled: true, onChange });
+
+      for (const status of ['sent', 'cancelled'])
+         expect(button(wrapper, status).attributes('disabled')).toBeDefined();
+      await button(wrapper, 'sent').trigger('click');
+      expect(wrapper.find('.p-confirmdialog-accept-button').exists()).toBe(false);
+      expect(onChange).not.toHaveBeenCalled();
    });
 });

@@ -62,6 +62,10 @@ const shipment = computed(() => form.row.value ?? null);
 
 // --- status actions ---
 
+// No move while the form has unsaved edits: saved afterwards, they would overwrite what the move
+// set (e.g. the dispute deadline of a delivered shipment).
+const { isDirty } = form;
+
 const { t } = useI18n();
 const { mutateAsync: setStatus } = useSetShipmentStatus();
 const documents = useShipmentDocuments(() => props.id);
@@ -106,7 +110,14 @@ const title = computed(() =>
                i18nPrefix="ops.shipment.status"
                glossary="shipment_status"
                :warnings="statusWarnings"
+               :disabled="isDirty"
                :onChange="changeStatus"
+            />
+            <small
+               v-if="isDirty && $can('update', 'shipment')"
+               class="self-center text-muted-color"
+               data-test="status-dirty-hint"
+               v-text="$t('ops.status_actions.dirty_hint')"
             />
          </slot>
       </span>
