@@ -15,6 +15,7 @@ import {
    useSetChangeRequestStatus,
    type ChangeRequestCard
 } from '@/api/changeRequest';
+import { useEntityDocumentOptions } from '@/api/purchaseOrder';
 import i18n from '@plugins/i18n';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -345,6 +346,46 @@ describe('change request mutations', () => {
       const mutation = withSetup(useSetChangeRequestProducts);
       await mutation.mutateAsync({ id: R, before: [P1], after: [P1] });
       expect(recorded).toEqual([]);
+   });
+});
+
+describe('affected document options', () => {
+   it("offers the record's documents of every type, each named by its type", async () => {
+      response = [
+         { id: D, type: 'spec_sheet', version: 2, status: 'approved' },
+         { id: R, type: 'label_artwork', version: 2, status: 'approved' }
+      ];
+      const options = withSetup(() =>
+         useEntityDocumentOptions({ entityType: 'product', entityId: P1 })
+      );
+      await flushPromises();
+
+      expect(recorded).toEqual([
+         ['from', 'document'],
+         ['select', 'id, type, version, status'],
+         ['eq', 'entity_type', 'product'],
+         ['eq', 'entity_id', P1],
+         ['order', 'version', { ascending: false }],
+         ['abortSignal', expect.anything()],
+         ['throwOnError']
+      ]);
+      const approved = `v02 — ${i18n.t('ops.document.status.approved')}`;
+      expect(options.value).toEqual([
+         { value: D, label: `${i18n.t('ops.document.type.spec_sheet')} · ${approved}` },
+         { value: R, label: `${i18n.t('ops.document.type.label_artwork')} · ${approved}` }
+      ]);
+   });
+
+   it('keeps the plain version labels when a type is asked for', async () => {
+      response = [{ id: D, type: 'spec_sheet', version: 2, status: 'approved' }];
+      const options = withSetup(() =>
+         useEntityDocumentOptions({ entityType: 'product', entityId: P1, type: 'spec_sheet' })
+      );
+      await flushPromises();
+
+      expect(options.value).toEqual([
+         { value: D, label: `v02 — ${i18n.t('ops.document.status.approved')}` }
+      ]);
    });
 });
 

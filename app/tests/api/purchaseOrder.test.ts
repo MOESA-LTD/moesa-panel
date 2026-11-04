@@ -451,4 +451,14 @@ describe('document options', () => {
          { value: 'd1', label: `v03 — ${i18n.t('ops.document.status.signed')}` }
       ]);
    });
+
+   it('names the type of each document when asked', () => {
+      const docs = [{ id: 'd1', type: 'spec_sheet', version: 3, status: 'signed' }] as const;
+      const version = `v03 — ${i18n.t('ops.document.status.signed')}`;
+
+      expect(toDocumentOptions(docs, { withType: true })).toEqual([
+         { value: 'd1', label: `${i18n.t('ops.document.type.spec_sheet')} · ${version}` }
+      ]);
+      expect(toDocumentOptions(docs)).toEqual([{ value: 'd1', label: version }]);
+   });
 });

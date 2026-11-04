@@ -37,10 +37,12 @@ const api = vi.hoisted(() => ({
    save: undefined as undefined | ((payload: unknown) => Promise<unknown>),
    saveRow: vi.fn(),
    setProducts: vi.fn(),
-   setStatus: vi.fn()
+   setStatus: vi.fn(),
+   reportError: vi.fn()
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+vi.mock('@/lib/appErrorHandler', () => ({ appErrorHandler: api.reportError }));
 vi.mock('vue-router', async (importOriginal) => ({
    ...(await importOriginal<typeof import('vue-router')>()),
    useRoute: () => ({ query: {} }),
@@ -190,6 +192,18 @@ const mountDecision = (row: ChangeRequestCard) =>
       }
    });
 
+/** Sets up the card's form outside a card, for its save. */
+const mountForm = (id: string | null) =>
+   mount(
+      defineComponent({
+         setup() {
+            useChangeRequestForm(() => id);
+            return () => h('div');
+         }
+      }),
+      { global: { plugins: plugins() as never } }
+   );
+
 enableAutoUnmount(afterEach);
 beforeAll(() => i18n.setLocaleMessage('en', en));
 beforeEach(() => {
@@ -201,6 +215,7 @@ beforeEach(() => {
    api.saveRow.mockReset();
    api.setProducts.mockReset().mockResolvedValue(undefined);
    api.setStatus.mockReset();
+   api.reportError.mockReset();
 });
 
 describe('change request card', () => {
@@ -283,6 +298,56 @@ describe('change request card', () => {
          before: ['p1', 'p2'],
          after: ['p2', 'p3']
       });
+   });
+
+   it("saves a new request's products once it has its id", async () => {
+      const saved = card({ change_request_product: [] });
+      api.saveRow.mockResolvedValue(saved);
+      mountForm(null);
+
+      const values = { ...toChangeRequestFormValues(null), product_ids: ['p1'] };
+      const result = await api.save!(api.options!.toPayload(values as ChangeRequestValues));
+
+      expect(api.saveRow.mock.calls[0]![0]).not.toHaveProperty('id');
+      expect(api.setProducts).toHaveBeenCalledExactlyOnceWith({
+         id: CR,
+         before: [],
+         after: ['p1']
+      });
+      expect(result).toMatchObject({
+         id: CR,
+         change_request_product: [{ product_id: 'p1', product: null }]
+      });
+   });
+
+   it('keeps a new request when its products fail, so a retry does not insert it again', async () => {
+      const saved = card({ change_request_product: [] });
+      const refused = Object.assign(new Error('refused'), { code: '42501' });
+      api.saveRow.mockResolvedValue(saved);
+      api.setProducts.mockRejectedValue(refused);
+      mountForm(null);
+
+      const values = { ...toChangeRequestFormValues(null), product_ids: ['p1'] };
+      const result = await api.save!(api.options!.toPayload(values as ChangeRequestValues));
+
+      // The saved request comes back (the card moves to its id); the error is shown.
+      expect(result).toBe(saved);
+      expect(api.reportError).toHaveBeenCalledExactlyOnceWith(refused);
+   });
+
+   it("lets an existing request's failed products fail the save", async () => {
+      const loaded = card();
+      const refused = new Error('refused');
+      api.row = loaded;
+      api.saveRow.mockResolvedValue(loaded);
+      api.setProducts.mockRejectedValue(refused);
+      mountForm(CR);
+
+      const values = { ...toChangeRequestFormValues(loaded), product_ids: ['p1'] };
+      await expect(api.save!(api.options!.toPayload(values as ChangeRequestValues))).rejects.toBe(
+         refused
+      );
+      expect(api.reportError).not.toHaveBeenCalled();
    });
 
    it('joins the hints of a status', async () => {

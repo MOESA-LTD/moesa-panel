@@ -12,6 +12,7 @@ import type { ResourceInput } from '@/api/defineResource';
 import { GATE_CODES } from '@/api/project';
 import { useLookup } from '@/api/useLookup';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useCustomerFilter } from '@/store/customerFilter';
 import { useMutation } from '@tanstack/vue-query';
 import { computed, inject, type InjectionKey } from 'vue';
@@ -63,7 +64,9 @@ const productIdsOf = (cr: Pick<ChangeRequestCard, 'change_request_product'> | nu
 /**
  * Saves the row, then sets its products (the saved row's products before, the form's after). The
  * products need the request's id, so a new request's go once it is saved. The result carries the
- * new products, so the form is reset to them, not to the ones the row was saved with.
+ * new products, so the form is reset to them, not to the ones the row was saved with. When a new
+ * request's products fail, the error is shown and the saved request returned as it is, so the card
+ * moves to its id instead of inserting it again on the next save.
  */
 function useSaveChangeRequest() {
    const { mutateAsync: saveRow } = changeRequestResource.useSave();
@@ -74,7 +77,17 @@ function useSaveChangeRequest() {
          const saved = await saveRow(row);
          if (!saved) return saved;
          const embed = saved.change_request_product ?? [];
-         await setProducts({ id: saved.id, before: productIdsOf(saved), after: productIds });
+         const before = productIdsOf(saved);
+         try {
+            await setProducts({ id: saved.id, before, after: productIds });
+         } catch (error) {
+            // An existing request's save can simply be retried. A new one is inserted by now: it
+            // must go on under its id, or the retry would insert a second request (requests are
+            // never deleted). Its products stay as saved; the form shows that, and the error.
+            if (row.id) throw error;
+            void appErrorHandler(error);
+            return saved;
+         }
          return {
             ...saved,
             change_request_product: productIds.map(
