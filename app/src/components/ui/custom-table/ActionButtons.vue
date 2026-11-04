@@ -30,6 +30,14 @@ type RowButton = {
 
 const buttons = computed<RowButton[]>(() => {
    const row = (props.body as { data?: { tenant_id?: string | null } }).data;
+   // Loading skeleton rows carry no data: row callbacks cannot run, so the buttons stay disabled.
+   if (row == null) {
+      return (props.items ?? []).map(({ icon, label }) => ({
+         icon: typeof icon === 'string' ? icon : undefined,
+         label: typeof label === 'string' ? label : undefined,
+         disabled: true
+      }));
+   }
    return props.items
       ? props.items.map(({ requires, ...item }) => {
            const pairs = _toPairs(item);
