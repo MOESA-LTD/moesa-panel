@@ -458,6 +458,11 @@
             "question": "Every other device signed in to your account will be signed out. Continue?"
          },
          "signed_out_others": "Other devices were signed out."
+      },
+      "preferences": {
+         "language_legend": "Language",
+         "appearance_legend": "Appearance",
+         "stored_locally": "These settings are kept in this browser."
       }
    },
    "toast": {
@@ -566,7 +571,8 @@
          "ops_document_list": "Document list",
          "ops_media": "Media library",
          "ops_media_edit": "Edit file",
-         "security": "Security"
+         "security": "Security",
+         "preferences": "Preferences"
       }
    },
    "dashboard": {

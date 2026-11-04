@@ -339,6 +339,11 @@
             "question": "Hesabınıza giriş yapmış diğer tüm cihazlarda oturum kapatılacak. Devam edilsin mi?"
          },
          "signed_out_others": "Diğer cihazlarda oturum kapatıldı."
+      },
+      "preferences": {
+         "language_legend": "Dil",
+         "appearance_legend": "Görünüm",
+         "stored_locally": "Bu ayarlar bu tarayıcıda saklanır."
       }
    },
    "toast": {
@@ -447,7 +452,8 @@
          "ops_document_list": "Belge listesi",
          "ops_media": "Ortam kütüphanesi",
          "ops_media_edit": "Dosyayı düzenle",
-         "security": "Güvenlik"
+         "security": "Güvenlik",
+         "preferences": "Tercihler"
       }
    },
    "fields": {

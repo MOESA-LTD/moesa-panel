@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
             meta: { label: 'route.label.security', icon: PrimeIcons.LOCK, index: 2 },
             component: () => import('@/views/pages/account/sections/Security.vue')
          },
+         {
+            path: 'preferences',
+            name: 'account-preferences',
+            meta: { label: 'route.label.preferences', icon: PrimeIcons.SLIDERS_H, index: 3 },
+            component: () => import('@/views/pages/account/sections/Preferences.vue')
+         },
          // Old links (bookmarks, e-mails) still open the right section; hidden from every menu.
          { path: 'settings', redirect: { name: 'account-profile' }, meta: { visible: false } },
          {

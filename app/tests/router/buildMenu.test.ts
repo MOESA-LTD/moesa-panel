@@ -186,11 +186,12 @@ describe('account section', () => {
    });
    const routeAt = (path: string) => router.getRoutes().find((route) => route.path === path)!;
 
-   it('has the Profile and Security sections, without the old settings links', () => {
+   it('has the Profile, Security and Preferences sections, without the old settings links', () => {
       const account = build(router.getRoutes()).find((item) => item.name === 'account')!;
       expect(account.items?.map((item) => item.name)).toEqual([
          'account-profile',
-         'account-security'
+         'account-security',
+         'account-preferences'
       ]);
    });
 
