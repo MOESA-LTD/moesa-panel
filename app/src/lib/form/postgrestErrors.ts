@@ -192,6 +192,79 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'po_balance_unpaid',
       'po_closed',
       'po_line_identity_immutable'
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
+   // Shipments (031_shipments.sql).
+   {
+      code: '23503',
+      name: 'shipment_customer_missing',
+      field: 'customer_id',
+      message: 'errors.shipment_customer_missing'
+   },
+   {
+      code: '23514',
+      name: 'shipment_immutable_field',
+      field: 'customer_id',
+      message: 'errors.shipment_immutable_field'
+   },
+   {
+      code: '23503',
+      name: 'shipment_warehouse_fkey',
+      field: 'delivery_warehouse_id',
+      message: 'errors.shipment_warehouse_customer'
+   },
+   {
+      code: '23514',
+      name: 'shipment_incoterm_buy_valid',
+      field: 'incoterm_buy',
+      message: 'errors.incoterm_invalid'
+   },
+   {
+      code: '23514',
+      name: 'shipment_incoterm_sell_valid',
+      field: 'incoterm_sell',
+      message: 'errors.incoterm_invalid'
+   },
+   {
+      code: '23514',
+      name: 'shipment_po_not_open',
+      field: 'purchase_order_id',
+      message: 'errors.shipment_po_not_open'
+   },
+   {
+      code: '23503',
+      name: 'shipment_purchase_order_po_fkey',
+      field: 'purchase_order_id',
+      message: 'errors.shipment_po_customer'
+   },
+   {
+      code: '23503',
+      name: 'shipment_line_link_fkey',
+      field: 'purchase_order_line_id',
+      message: 'errors.shipment_line_po_not_linked'
+   },
+   {
+      code: '23505',
+      name: 'unique_shipment_line',
+      field: 'purchase_order_line_id',
+      message: 'errors.shipment_line_duplicate'
+   },
+   {
+      code: '23514',
+      name: 'shipment_quantity_exceeds_po',
+      field: 'quantity',
+      message: 'errors.shipment_quantity_exceeds_po'
+   },
+   { code: '23514', name: 'shipment_locked', field: 'quantity', message: 'errors.shipment_locked' },
+   // Raised by a status change or by unlinking an order: shown as a toast.
+   ...[
+      'shipment_status_order',
+      'shipment_po_required',
+      'shipment_booking_date_required',
+      'shipment_eta_required',
+      'shipment_delivery_time_required',
+      'shipment_delivery_receipt_required',
+      'shipment_acceptance_issue',
+      'shipment_po_has_lines'
    ].map((name) => ({ code: '23514', name, message: `errors.${name}` }))
 ];
 

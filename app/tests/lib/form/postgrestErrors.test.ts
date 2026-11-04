@@ -184,6 +184,84 @@ describe('mapPostgrestError', () => {
          quantity: i18n.t('errors.po_locked')
       });
    });
+   it('maps the errors of the shipment tables to their fields', () => {
+      expect(
+         mapPostgrestError({ code: '23514', message: 'shipment_quantity_exceeds_po' }, ['quantity'])
+      ).toEqual({ quantity: i18n.t('errors.shipment_quantity_exceeds_po') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "shipment" violates foreign key constraint "shipment_warehouse_fkey"'
+            },
+            ['delivery_warehouse_id', 'customer_id']
+         )
+      ).toEqual({ delivery_warehouse_id: i18n.t('errors.shipment_warehouse_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "shipment" violates check constraint "shipment_incoterm_sell_valid"'
+            },
+            ['incoterm_buy', 'incoterm_sell']
+         )
+      ).toEqual({ incoterm_sell: i18n.t('errors.incoterm_invalid') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "shipment_purchase_order" violates foreign key constraint "shipment_purchase_order_po_fkey"'
+            },
+            ['purchase_order_id']
+         )
+      ).toEqual({ purchase_order_id: i18n.t('errors.shipment_po_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "shipment_line" violates foreign key constraint "shipment_line_link_fkey"'
+            },
+            ['purchase_order_line_id', 'quantity']
+         )
+      ).toEqual({ purchase_order_line_id: i18n.t('errors.shipment_line_po_not_linked') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "unique_shipment_line"',
+               details: 'Key (shipment_id, purchase_order_line_id)=(s, l) already exists.'
+            },
+            ['shipment_id', 'purchase_order_line_id']
+         )
+      ).toEqual({ purchase_order_line_id: i18n.t('errors.shipment_line_duplicate') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'shipment_locked' }, ['quantity'])
+      ).toEqual({ quantity: i18n.t('errors.shipment_locked') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'shipment_immutable_field' }, ['customer_id'])
+      ).toEqual({ customer_id: i18n.t('errors.shipment_immutable_field') });
+   });
+   it('never maps a shipment status error to a field', () => {
+      for (const name of [
+         'shipment_status_order',
+         'shipment_po_required',
+         'shipment_booking_date_required',
+         'shipment_eta_required',
+         'shipment_delivery_time_required',
+         'shipment_delivery_receipt_required',
+         'shipment_acceptance_issue',
+         'shipment_po_has_lines'
+      ]) {
+         expect(NAMED_ERRORS.filter((entry) => entry.name === name)).toEqual([
+            { code: '23514', name, message: `errors.${name}` }
+         ]);
+         expect(mapPostgrestError({ code: '23514', message: name }, ['status', 'eta'])).toBeNull();
+      }
+   });
    it('never maps a toast-level error to a field', () => {
       expect(
          mapPostgrestError({ code: '23514', message: 'po_pi_mismatch' }, ['pi_total'])

@@ -30,5 +30,9 @@ export const fieldRoutes: FieldRoutes = {
    purchase_order: { name: 'ops-purchase-order-manage' },
    purchase_order_line: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' },
    purchase_order_payment: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' },
-   purchase_order_update: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' }
+   purchase_order_update: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' },
+   shipment: { name: 'ops-shipment-manage' },
+   shipment_purchase_order: { name: 'ops-shipment-manage', field: 'shipment_id' },
+   shipment_line: { name: 'ops-shipment-manage', field: 'shipment_id' },
+   shipment_event: { name: 'ops-shipment-manage', field: 'shipment_id' }
 };

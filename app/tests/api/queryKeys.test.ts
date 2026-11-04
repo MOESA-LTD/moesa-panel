@@ -79,6 +79,28 @@ describe('affectedTables', () => {
       expect(affectedTables(['document'])).toContain('purchase_order_overview');
       expect(affectedTables(['setting'])).toContain('purchase_order_overview');
    });
+
+   it('marks the shipment card and overview stale after a change to its orders, lines or events', () => {
+      expect(affectedTables(['shipment_line'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+      expect(affectedTables(['shipment_purchase_order'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+      expect(affectedTables(['shipment_event'])).toContain('shipment');
+      expect(affectedTables(['shipment_event'])).not.toContain('shipment_overview');
+      // The links, lines and events go with their shipment (ON DELETE CASCADE).
+      expect(affectedTables(['shipment'])).toEqual(
+         expect.arrayContaining([
+            'shipment_purchase_order',
+            'shipment_line',
+            'shipment_event',
+            'shipment_overview'
+         ])
+      );
+      // psi_missing_po_codes reads the orders' approved PSI reports.
+      expect(affectedTables(['document'])).toContain('shipment_overview');
+   });
 });
 
 describe('invalidateTables', () => {

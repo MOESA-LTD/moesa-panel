@@ -29,7 +29,11 @@ const OPS_TABLES = [
    'purchase_order',
    'purchase_order_line',
    'purchase_order_payment',
-   'purchase_order_update'
+   'purchase_order_update',
+   'shipment',
+   'shipment_purchase_order',
+   'shipment_line',
+   'shipment_event'
 ];
 const OPS_MODULES = [
    'ops_setting',
@@ -39,7 +43,8 @@ const OPS_MODULES = [
    'product',
    'project',
    'media',
-   'purchase_order'
+   'purchase_order',
+   'shipment'
 ];
 
 describe('field names of the business modules', () => {

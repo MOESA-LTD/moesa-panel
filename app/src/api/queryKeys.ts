@@ -25,13 +25,15 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    tenant_owner: ['tenant_member'],
    product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
    // A document may cite a media file (the library's document_count); an order's overview reads
-   // its approved PSI and its lines' spec sheets (has_approved_psi, spec_missing_line_ids).
+   // its approved PSI and its lines' spec sheets (has_approved_psi, spec_missing_line_ids), a
+   // shipment's the PSI of its orders (psi_missing_po_codes).
    document: [
       'product_evidence',
       'product_with_evidence',
       'dashboard_product_evidence',
       'media_library',
-      'purchase_order_overview'
+      'purchase_order_overview',
+      'shipment_overview'
    ],
    // product_with_evidence carries the primary image; a record's media list embeds its files.
    media: ['media_library', 'product_with_evidence', 'media_link'],
@@ -53,7 +55,12 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'product_with_evidence'
    ],
    purchase_order_payment: ['purchase_order', 'purchase_order_overview'],
-   purchase_order_update: ['purchase_order']
+   purchase_order_update: ['purchase_order'],
+   shipment: ['shipment_overview'],
+   // The shipment card embeds its orders and lines; the overview lists their ids and products.
+   shipment_purchase_order: ['shipment', 'shipment_overview'],
+   shipment_line: ['shipment', 'shipment_overview'],
+   shipment_event: ['shipment']
 };
 
 /** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */
@@ -68,8 +75,10 @@ const CASCADES: Partial<Record<TableName, TableName[]>> = {
       'customer_platform_account',
       'customer_brand'
    ],
-   // Orders are never deleted (only cancelled), as customers; the keys mirror the foreign keys.
-   purchase_order: ['purchase_order_line', 'purchase_order_payment', 'purchase_order_update']
+   // Orders and shipments are never deleted (only cancelled), as customers; the keys mirror the
+   // foreign keys.
+   purchase_order: ['purchase_order_line', 'purchase_order_payment', 'purchase_order_update'],
+   shipment: ['shipment_purchase_order', 'shipment_line', 'shipment_event']
 };
 
 // Every authenticated write is recorded by the audit trigger.
