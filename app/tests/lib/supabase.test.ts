@@ -30,6 +30,15 @@ describe('customFetch', () => {
          { country: 'DE', tenant_id: 'tenant-a' },
          { country: 'FR', tenant_id: 'tenant-b' }
       ]);
+      // The named columns carry tenant_id, or PostgREST would drop it.
+      const columns = new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('columns');
+      expect(columns?.split(',')).toContain('"tenant_id"');
+   });
+
+   it('names tenant_id once when every row of a bulk insert lacks it', async () => {
+      await supabase.from('market_cell').insert([{ country: 'DE' }, { country: 'FR' }] as never);
+      const columns = new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('columns');
+      expect(columns).toBe('"country","tenant_id"');
    });
 
    it('leaves an rpc body alone', async () => {

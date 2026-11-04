@@ -39,6 +39,13 @@ const customFetch = async (
       }
       if (changed) {
          options.body = JSON.stringify(body) as BodyInit & ReadableStream<Uint8Array<ArrayBuffer>>;
+         // A bulk insert names its columns (?columns=…); PostgREST ignores any other key.
+         const target = new URL(String(url));
+         const columns = target.searchParams.get('columns');
+         if (columns && !columns.split(',').includes('"tenant_id"')) {
+            target.searchParams.set('columns', `${columns},"tenant_id"`);
+            url = target.toString();
+         }
       }
    }
 
