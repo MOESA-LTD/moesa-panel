@@ -83,6 +83,16 @@ describe('System guide', () => {
       expect(scroll.mock.contexts).toContain(document.getElementById('term-L_G1'));
    });
 
+   it('opens at its top without a term in the address', async () => {
+      await router.push('/guide');
+      await router.isReady();
+      const wrapper = mountGuide();
+      await flushPromises();
+
+      const scroll = vi.mocked(Element.prototype.scrollIntoView);
+      expect(scroll.mock.contexts).toContain(wrapper.element);
+   });
+
    it('moves to a term clicked on the page', async () => {
       await router.push('/guide');
       await router.isReady();

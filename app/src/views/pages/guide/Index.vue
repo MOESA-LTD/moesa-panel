@@ -29,8 +29,11 @@ const contents = computed(() => [
    ...TERM_SECTIONS.map(({ id }) => ({ id, title: t(`system_guide.sections.${id}.title`) }))
 ]);
 
+// Without a hash the page opens at its top: the layout keeps the previous page's scroll.
 const scrollTo = (hash: string) => {
-   if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
+   document
+      .getElementById(hash ? hash.slice(1) : 'system-guide')
+      ?.scrollIntoView({ block: 'start' });
 };
 
 // A term on this page moves to its own entry instead of opening the guide panel.
@@ -52,7 +55,7 @@ watch(
 </script>
 
 <template>
-   <div class="card flex flex-col gap-6">
+   <div id="system-guide" class="card flex flex-col gap-6">
       <header class="flex flex-col gap-2">
          <h1 class="text-2xl font-semibold m-0" v-text="t('system_guide.title')" />
          <p class="m-0 text-muted-color" v-text="t('system_guide.intro')" />
