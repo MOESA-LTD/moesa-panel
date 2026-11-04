@@ -72,3 +72,30 @@ jobs:
             # auth.users/identities and the migrations write storage.buckets.
             - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
             - run: supabase test db
+
+    # Cloudflare Pages previews read the staging project (moesa-panel-staging). After a pull
+    # request's database tests pass, staging is rebuilt from that branch's migrations and seed,
+    # so the newest preview and its database match. Older previews are not kept working.
+    staging:
+        if: github.event_name == 'pull_request'
+        needs: database
+        runs-on: ubuntu-latest
+        concurrency:
+            group: staging-db
+            cancel-in-progress: false
+        env:
+            SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+            SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+            STAGING_PROJECT_REF: tagnpmnmfvfadraubeom
+        steps:
+            - uses: actions/checkout@v4
+
+            # CLI 3.x: `db reset --linked` works on a hosted project (2.x fails on the auth
+            # sequence owner) and the local config needs its mail section under the 3.x name.
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: 3.0.0
+
+            - run: sed -i 's/^\[inbucket\]/[local_smtp]/' supabase/config.toml
+            - run: supabase link --project-ref "$STAGING_PROJECT_REF"
+            - run: supabase db reset --linked --yes
