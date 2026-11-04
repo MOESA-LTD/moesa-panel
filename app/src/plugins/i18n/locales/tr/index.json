@@ -347,7 +347,11 @@
       "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
       "market_cell_reason_required": "Nedeni yazın: askıdaysa açık sorun, kapatıldı ya da çıkarıldıysa not.",
       "market_cell_immutable_field": "Hücrenin ürünü, platformu ve ülkesi değişmez; yeni hücre açın.",
-      "market_cell_delete_candidate_only": "Yalnızca aday hücre silinebilir; diğerlerini çıkarın ya da kapatın."
+      "market_cell_delete_candidate_only": "Yalnızca aday hücre silinebilir; diğerlerini çıkarın ya da kapatın.",
+      "market_cell_duplicate": "Bu ürünün bu platform ve ülke için zaten bir hücresi var.",
+      "market_cell_product_customer": "Ürün başka bir müşteriye ait.",
+      "market_cell_project_customer": "Proje başka bir müşteriye ait.",
+      "market_cell_price_currency": "Fiyatın para birimi olmalı."
    },
    "account": {
       "logout": "Çıkış yap",
@@ -600,7 +604,9 @@
       "shipment": "Sevkiyat",
       "shipment_purchase_order": "Sevkiyat siparişi",
       "shipment_line": "Sevkiyat satırı",
-      "shipment_event": "Sevkiyat olayı"
+      "shipment_event": "Sevkiyat olayı",
+      "market_cell": "Pazar hücresi",
+      "market_matrix": "Pazar matrisi"
    },
    "dashboard": {
       "statistics": {
@@ -945,7 +951,9 @@
             "project_gate": "Proje kapısı",
             "purchase_order": "Satın alma siparişi",
             "shipment": "Sevkiyat",
-            "incident": "Olay"
+            "incident": "Olay",
+            "market_cell": "Pazar hücresi",
+            "change_request": "Değişiklik talebi"
          }
       },
       "supplier": {
@@ -1796,6 +1804,35 @@
          "road": "Kara yolu, kamyon.",
          "courier": "Kurye ya da kargo.",
          "air": "Hava kargo."
+      },
+      "market_cell_status": {
+         "candidate": "PL1/P1'de değerlendiriliyor; henüz karar yok.",
+         "planned": "L1 planında; müşteri yazılı onayladı; tarih var.",
+         "preparing": "L2–L3 içerik ve yerelleştirme sürüyor.",
+         "uploaded": "L4: platforma yüklendi; platform incelemesi veya aktifleşme bekleniyor.",
+         "live": "Aktif ve satın alınabilir; S13 yayın kontrolü geçti.",
+         "suppressed": "Bastırıldı, kategori onayı bekliyor veya belge talebi var; açık sorun yazılı.",
+         "paused": "Müşteri kararı veya ön koşul (tescil, EPR kaydı, KDV) bekliyor.",
+         "stopped": "Yayından kalıcı kaldırıldı (karar veya platform); neden yazılı.",
+         "removed": "Plandan çıkarıldı (uyum kırmızı, talep yok, müşteri kararı); neden yazılı."
+      },
+      "market_compliance": {
+         "green": "Kısıt yok.",
+         "yellow": "Kısıt, belge veya işaret ihtiyacıyla mümkün; nota bakın (S12).",
+         "red": "Uygun değil; hücre planlanmaz.",
+         "pending": "Henüz taranmadı (PL1/P1)."
+      },
+      "stock_source": {
+         "customer_warehouse": "Müşterinin kendi deposundan gönderilir.",
+         "3pl": "Üçüncü taraf lojistik firmasından gönderilir.",
+         "platform": "Platform deposunda tutulur, platform gönderir (ör. FBA).",
+         "pan_eu": "Amazon Pan-Avrupa FBA stoğu AB ülkelerine dağıtır."
+      },
+      "content_status": {
+         "none": "Henüz listing içeriği yok.",
+         "en_master": "İngilizce ana set hazır.",
+         "translated": "Pazarın diline çevrildi.",
+         "approved": "İçerik onaylandı (L-G1); yayından önce şart."
       }
    },
    "status_actions": {

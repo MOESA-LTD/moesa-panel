@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-   DOCUMENT_ENTITIES,
+   DOCUMENT_ENTITIES_SELECTABLE,
    DOCUMENT_STATUSES,
    DOCUMENT_MEDIA_SELECT,
    DOCUMENT_TYPES,
@@ -147,7 +147,7 @@ const rowActions = computed<Props['rowActions']>(() => [
       <template #entity_type_filter="{ filterModel }">
          <SelectEnum
             v-model="filterModel.value"
-            :values="DOCUMENT_ENTITIES"
+            :values="DOCUMENT_ENTITIES_SELECTABLE"
             i18n-prefix="ops.document.entity"
          />
       </template>

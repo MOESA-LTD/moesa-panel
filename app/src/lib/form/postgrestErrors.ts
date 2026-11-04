@@ -267,6 +267,63 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'shipment_acceptance_issue',
       'shipment_po_has_lines'
    ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
+   // Market cells (034_market_matrix.sql).
+   {
+      code: '23505',
+      name: 'unique_market_cell',
+      field: 'country',
+      message: 'errors.market_cell_duplicate'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_country_invalid',
+      field: 'country',
+      message: 'errors.market_cell_country_invalid'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_country_format',
+      field: 'country',
+      message: 'errors.market_cell_country_invalid'
+   },
+   {
+      code: '23503',
+      name: 'market_cell_product_fkey',
+      field: 'product_id',
+      message: 'errors.market_cell_product_customer'
+   },
+   {
+      code: '23503',
+      name: 'market_cell_project_fkey',
+      field: 'project_id',
+      message: 'errors.market_cell_project_customer'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_price_currency',
+      field: 'currency',
+      message: 'errors.market_cell_price_currency'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_compliance_note_required',
+      field: 'compliance_note',
+      message: 'errors.market_cell_compliance_note_required'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_compliance_red',
+      field: 'compliance',
+      message: 'errors.market_cell_compliance_red'
+   },
+   // Raised by a status change, a delete or a whole-row rule: shown as a toast.
+   ...[
+      'market_cell_live_incomplete',
+      'market_cell_status_order',
+      'market_cell_reason_required',
+      'market_cell_immutable_field',
+      'market_cell_delete_candidate_only'
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
    // Raised by passing G3 (pass_gate): shown as a toast.
    { code: '23514', name: 'gate_pi_required', message: 'errors.gate_pi_required' }
 ];

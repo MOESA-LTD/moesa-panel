@@ -32,10 +32,13 @@ describe('glossary', () => {
 
    it('covers the enums the spec names', () => {
       expect(Object.keys(GLOSSARY_ENUMS).sort()).toEqual([
+         'content_status',
          'customer_status',
          'document_status',
          'document_type',
          'gate_code',
+         'market_cell_status',
+         'market_compliance',
          'package',
          'payment_kind',
          'product_status',
@@ -44,6 +47,7 @@ describe('glossary', () => {
          'purchase_order_status',
          'shipment_mode',
          'shipment_status',
+         'stock_source',
          'supplier_status',
          'task_status'
       ]);

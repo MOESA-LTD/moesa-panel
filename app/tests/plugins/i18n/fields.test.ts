@@ -33,7 +33,8 @@ const OPS_TABLES = [
    'shipment',
    'shipment_purchase_order',
    'shipment_line',
-   'shipment_event'
+   'shipment_event',
+   'market_cell'
 ];
 const OPS_MODULES = [
    'ops_setting',
@@ -44,7 +45,8 @@ const OPS_MODULES = [
    'project',
    'media',
    'purchase_order',
-   'shipment'
+   'shipment',
+   'market_matrix'
 ];
 
 describe('field names of the business modules', () => {

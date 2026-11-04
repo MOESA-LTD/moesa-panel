@@ -1,5 +1,11 @@
 import { PACKAGES, CUSTOMER_STATUSES } from '@/api/customer';
 import { DOCUMENT_STATUSES, DOCUMENT_TYPES } from '@/api/document';
+import {
+   CONTENT_STATUSES,
+   MARKET_CELL_STATUSES,
+   MARKET_COMPLIANCES,
+   STOCK_SOURCES
+} from '@/api/marketMatrix';
 import { PRODUCT_STATUSES } from '@/api/product';
 import { GATE_CODES, PROJECT_PATHS, PROJECT_TYPES, TASK_STATUSES } from '@/api/project';
 import { PAYMENT_KINDS, PURCHASE_ORDER_STATUSES } from '@/api/purchaseOrder';
@@ -21,7 +27,11 @@ export const GLOSSARY_ENUMS = {
    purchase_order_status: PURCHASE_ORDER_STATUSES,
    payment_kind: PAYMENT_KINDS,
    shipment_status: SHIPMENT_STATUSES,
-   shipment_mode: SHIPMENT_MODES
+   shipment_mode: SHIPMENT_MODES,
+   market_cell_status: MARKET_CELL_STATUSES,
+   market_compliance: MARKET_COMPLIANCES,
+   stock_source: STOCK_SOURCES,
+   content_status: CONTENT_STATUSES
 } as const;
 
 export type GlossaryEnum = keyof typeof GLOSSARY_ENUMS;

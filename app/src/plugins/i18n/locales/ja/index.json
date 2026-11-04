@@ -165,7 +165,9 @@
       "shipment": "Shipment",
       "shipment_purchase_order": "Shipment order",
       "shipment_line": "Shipment line",
-      "shipment_event": "Shipment event"
+      "shipment_event": "Shipment event",
+      "market_cell": "Market cell",
+      "market_matrix": "Market matrix"
    },
    "input": {
       "select_or_write": "選択または入力してください"
@@ -471,7 +473,11 @@
       "market_cell_status_order": "The cell cannot move to this status from its current one (S05).",
       "market_cell_reason_required": "Write the reason: the open issue when suppressed, a note when closed or removed.",
       "market_cell_immutable_field": "A cell's product, platform and country do not change; open a new cell.",
-      "market_cell_delete_candidate_only": "Only a candidate cell can be deleted; remove or close the others."
+      "market_cell_delete_candidate_only": "Only a candidate cell can be deleted; remove or close the others.",
+      "market_cell_duplicate": "This product already has a cell for this platform and country.",
+      "market_cell_product_customer": "The product belongs to another customer.",
+      "market_cell_project_customer": "The project belongs to another customer.",
+      "market_cell_price_currency": "A price needs its currency."
    },
    "account": {
       "profile": {
@@ -942,7 +948,9 @@
             "project_gate": "Project gate",
             "purchase_order": "Purchase order",
             "shipment": "Shipment",
-            "incident": "Incident"
+            "incident": "Incident",
+            "market_cell": "Market cell",
+            "change_request": "Change request"
          },
          "drive_link": "Drive link",
          "file": "File",
@@ -1796,6 +1804,35 @@
          "road": "By truck.",
          "courier": "Courier or parcel service.",
          "air": "Air freight."
+      },
+      "market_cell_status": {
+         "candidate": "Being assessed in PL1/P1; no decision yet.",
+         "planned": "In the L1 plan, approved in writing by the customer, with a date.",
+         "preparing": "L2–L3 content and localisation are under way.",
+         "uploaded": "L4: uploaded; waiting for the platform's review or activation.",
+         "live": "Active and buyable; the S13 pre-launch check passed.",
+         "suppressed": "Suppressed, waiting for a category approval or a document request; the open issue is written.",
+         "paused": "Waiting for a customer decision or a prerequisite (registration, EPR, VAT).",
+         "stopped": "Taken down for good (decision or platform); the reason is written.",
+         "removed": "Dropped from the plan (compliance red, no demand, customer decision); the reason is written."
+      },
+      "market_compliance": {
+         "green": "No restriction found.",
+         "yellow": "Possible with a restriction, document or marking; see the note (S12).",
+         "red": "Not allowed; the cell is not planned.",
+         "pending": "Not screened yet (PL1/P1)."
+      },
+      "stock_source": {
+         "customer_warehouse": "Shipped from the customer's own warehouse.",
+         "3pl": "Shipped by a third-party logistics provider.",
+         "platform": "Stored and shipped by the platform (e.g. FBA).",
+         "pan_eu": "Amazon Pan-European FBA spreads the stock across EU countries."
+      },
+      "content_status": {
+         "none": "No listing content yet.",
+         "en_master": "The English master set is ready.",
+         "translated": "Translated into the market's language.",
+         "approved": "Content approved (L-G1); needed before live."
       }
    },
    "status_actions": {

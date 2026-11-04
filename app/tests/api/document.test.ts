@@ -1,4 +1,6 @@
 import {
+   DOCUMENT_ENTITIES,
+   DOCUMENT_ENTITIES_SELECTABLE,
    DOCUMENT_TYPE_CODES,
    DOCUMENT_TYPES,
    documentFileName,
@@ -25,6 +27,22 @@ const formValues = (overrides: object = {}) => ({
    }),
    url: 'drive.google.com/file/d/abc',
    ...overrides
+});
+
+describe('DOCUMENT_ENTITIES', () => {
+   it('names every record a document may belong to, market cells and change requests included', () => {
+      expect(DOCUMENT_ENTITIES).toEqual(expect.arrayContaining(['market_cell', 'change_request']));
+      for (const entity of DOCUMENT_ENTITIES)
+         expect(i18n.t(`ops.document.entity.${entity}`)).not.toBe(`ops.document.entity.${entity}`);
+   });
+
+   it('keeps change requests out of the pickers until their table exists', () => {
+      expect(DOCUMENT_ENTITIES_SELECTABLE).not.toContain('change_request');
+      expect(DOCUMENT_ENTITIES_SELECTABLE).toContain('market_cell');
+      expect(DOCUMENT_ENTITIES_SELECTABLE).toEqual(
+         DOCUMENT_ENTITIES.filter((entity) => entity !== 'change_request')
+      );
+   });
 });
 
 describe('documentFileName', () => {

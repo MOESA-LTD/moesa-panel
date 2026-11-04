@@ -263,6 +263,96 @@ describe('mapPostgrestError', () => {
          expect(mapPostgrestError({ code: '23514', message: name }, ['status', 'eta'])).toBeNull();
       }
    });
+   it('maps the errors of the market cell table to their fields', () => {
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "unique_market_cell"'
+            },
+            ['country']
+         )
+      ).toEqual({ country: i18n.t('errors.market_cell_duplicate') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "market_cell" violates check constraint "market_cell_country_format"'
+            },
+            ['country', 'currency']
+         )
+      ).toEqual({ country: i18n.t('errors.market_cell_country_invalid') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_country_invalid' }, ['country'])
+      ).toEqual({ country: i18n.t('errors.market_cell_country_invalid') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "market_cell" violates foreign key constraint "market_cell_product_fkey"'
+            },
+            ['product_id', 'project_id']
+         )
+      ).toEqual({ product_id: i18n.t('errors.market_cell_product_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "market_cell" violates foreign key constraint "market_cell_project_fkey"'
+            },
+            ['product_id', 'project_id']
+         )
+      ).toEqual({ project_id: i18n.t('errors.market_cell_project_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "market_cell" violates check constraint "market_cell_price_currency"'
+            },
+            ['price', 'currency']
+         )
+      ).toEqual({ currency: i18n.t('errors.market_cell_price_currency') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_compliance_note_required' }, [
+            'compliance',
+            'compliance_note'
+         ])
+      ).toEqual({ compliance_note: i18n.t('errors.market_cell_compliance_note_required') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_compliance_red' }, [
+            'compliance',
+            'compliance_note'
+         ])
+      ).toEqual({ compliance: i18n.t('errors.market_cell_compliance_red') });
+   });
+   it('never maps a market cell status error to a field', () => {
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_live_incomplete' }, ['price'])
+      ).toBeNull();
+      for (const name of [
+         'market_cell_live_incomplete',
+         'market_cell_status_order',
+         'market_cell_reason_required',
+         'market_cell_immutable_field',
+         'market_cell_delete_candidate_only'
+      ]) {
+         expect(NAMED_ERRORS.filter((entry) => entry.name === name)).toEqual([
+            { code: '23514', name, message: `errors.${name}` }
+         ]);
+         expect(
+            mapPostgrestError({ code: '23514', message: name }, [
+               'status',
+               'notes',
+               'open_issue',
+               'country'
+            ])
+         ).toBeNull();
+      }
+   });
    it('never maps a toast-level error to a field', () => {
       expect(
          mapPostgrestError({ code: '23514', message: 'po_pi_mismatch' }, ['pi_total'])

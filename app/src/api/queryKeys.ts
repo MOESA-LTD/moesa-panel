@@ -30,7 +30,8 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'product_with_evidence',
       'dashboard_product_evidence',
       'shipment',
-      'purchase_order'
+      'purchase_order',
+      'market_cell_overview'
    ],
    // The shipment and order cards embed their customer (the shipment its warehouse too); the
    // overviews and the dashboard boxes name it.
@@ -40,7 +41,8 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'purchase_order',
       'purchase_order_overview',
       'dashboard_purchase_order',
-      'dashboard_shipment'
+      'dashboard_shipment',
+      'market_cell_overview'
    ],
    // The order card embeds its supplier (code, terms); the overview and the boxes name it.
    supplier: ['purchase_order', 'purchase_order_overview', 'dashboard_purchase_order'],
@@ -66,7 +68,13 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    project_task: ['dashboard_task_due'],
    // A project put on hold or closed leaves the dashboard; management_gates decides who acts. The
    // order overview names the order's project.
-   project: ['dashboard_gate_pending', 'dashboard_task_due', 'purchase_order_overview'],
+   // The matrix overview names the product (sku, name, gtin), the customer and the project codes.
+   project: [
+      'dashboard_gate_pending',
+      'dashboard_task_due',
+      'purchase_order_overview',
+      'market_cell_overview'
+   ],
    // spec_sheet_required_from decides which lines miss a spec sheet.
    setting: ['dashboard_gate_pending', 'purchase_order_overview'],
    // product_evidence names the last order of a product (last_po_code); the shipment card embeds
@@ -100,7 +108,10 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    // The shipment card embeds its orders and lines; the overview lists their ids and products.
    shipment_purchase_order: ['shipment', 'shipment_overview', 'dashboard_shipment'],
    shipment_line: ['shipment', 'shipment_overview'],
-   shipment_event: ['shipment']
+   shipment_event: ['shipment'],
+   // product_evidence counts the live cells (live_cell_count). dashboard_product_evidence reads
+   // product_evidence but none of its columns change with cells.
+   market_cell: ['market_cell_overview', 'product_evidence', 'product_with_evidence']
 };
 
 /** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */

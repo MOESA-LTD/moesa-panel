@@ -151,6 +151,21 @@ describe('affectedTables', () => {
    });
 });
 
+describe('affectedTables of the market matrix', () => {
+   it('marks the matrix overview and the live cell count stale after a cell change', () => {
+      expect(affectedTables(['market_cell'])).toEqual(
+         expect.arrayContaining(['market_cell_overview', 'product_evidence'])
+      );
+      expect(affectedTables(['market_cell'])).toContain('product_with_evidence');
+      expect(affectedTables(['market_cell'])).not.toContain('dashboard_product_evidence');
+   });
+
+   it('marks the matrix overview stale after a change to what it names', () => {
+      for (const table of ['product', 'project', 'customer'] as const)
+         expect(affectedTables([table])).toContain('market_cell_overview');
+   });
+});
+
 describe('invalidateTables', () => {
    it('invalidates the queries of the given tables and their derived views only', async () => {
       const queryClient = new QueryClient();

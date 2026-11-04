@@ -34,5 +34,6 @@ export const fieldRoutes: FieldRoutes = {
    shipment: { name: 'ops-shipment-manage' },
    shipment_purchase_order: { name: 'ops-shipment-manage', field: 'shipment_id' },
    shipment_line: { name: 'ops-shipment-manage', field: 'shipment_id' },
-   shipment_event: { name: 'ops-shipment-manage', field: 'shipment_id' }
+   shipment_event: { name: 'ops-shipment-manage', field: 'shipment_id' },
+   market_cell: { name: 'ops-market-cell-edit' }
 };

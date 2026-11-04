@@ -62,8 +62,18 @@ export const DOCUMENT_ENTITIES = [
    'project_gate',
    'purchase_order',
    'shipment',
-   'incident'
+   'incident',
+   'market_cell',
+   'change_request'
 ] as const satisfies readonly DocumentEntity[];
+
+/**
+ * The records a picker offers. A change request has no table yet (Task 6 of phase 2c), so a
+ * document cannot be filed under one.
+ */
+export const DOCUMENT_ENTITIES_SELECTABLE = DOCUMENT_ENTITIES.filter(
+   (entity) => entity !== 'change_request'
+);
 
 /**
  * `<code>_<TYPECODE>_v<NN>_<YYYYMMDD>_<status>`, e.g. THO-MOP40-2P_SPEC_v03_20261102_imzali. A
