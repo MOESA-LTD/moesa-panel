@@ -2322,7 +2322,8 @@
          "no_tasks": "Your role has no task on this page; you can read it.",
          "open": "How does this page work?",
          "close_card": "How do I close this card?",
-         "term_open": "What is {code}?"
+         "term_open": "What is {code}?",
+         "system_guide": "Open the system guide"
       },
       "actions": {
          "read": "read",

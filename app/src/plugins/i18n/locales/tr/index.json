@@ -2322,7 +2322,8 @@
          "no_tasks": "Rolünüzün bu sayfada işi yok; okuyabilirsiniz.",
          "open": "Bu sayfa nasıl çalışır?",
          "close_card": "Bu kartı nasıl kapatırım?",
-         "term_open": "{code} nedir?"
+         "term_open": "{code} nedir?",
+         "system_guide": "Sistem rehberini aç"
       },
       "actions": {
          "read": "okuma",
