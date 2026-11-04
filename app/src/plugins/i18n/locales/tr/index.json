@@ -586,7 +586,8 @@
          "ops_change_request_general": "Talep",
          "ops_change_request_impact": "Etki",
          "ops_change_request_decision": "Karar",
-         "ops_change_request_documents": "Belgeler"
+         "ops_change_request_documents": "Belgeler",
+         "guide": "Sistem rehberi"
       }
    },
    "fields": {
@@ -2746,6 +2747,63 @@
                   }
                }
             }
+         }
+      }
+   },
+   "system_guide": {
+      "title": "Sistem rehberi",
+      "intro": "Panelin nasıl çalıştığı ve kodlarının ne anlama geldiği; her rol için aynı. Panelde noktalı altı çizili her kod kendi kaydını açar.",
+      "contents": "Bu sayfada",
+      "open_document": "Belgeyi Drive'da aç",
+      "sections": {
+         "panel": {
+            "title": "Panel nasıl çalışır"
+         },
+         "process": {
+            "title": "Süreç belgeleri",
+            "intro": "Panelin izlediği MOESA iş akışının yönerge (Y) ve şablon (S) belgeleri."
+         },
+         "rules": {
+            "title": "Panel kuralları",
+            "intro": "Her ekranın uyduğu panel tasarım kararları (K)."
+         },
+         "packages": {
+            "title": "Hizmet paketleri",
+            "intro": "MOESA'nın sattığı hizmetler; projenin kapıları paketlerinden gelir."
+         },
+         "gates": {
+            "title": "Kapı seti",
+            "intro": "Aşama bir kapıyla biter; kapı yalnızca kanıtıyla geçer ve sonraki aşama ondan önce başlamaz."
+         },
+         "incidents": {
+            "title": "Olay aileleri ve şiddetler",
+            "intro": "Her olayın kodunu başlatan bir ailesi ve kime ne zaman bildirileceğini belirleyen bir şiddeti vardır ([[Y10]])."
+         },
+         "abbreviations": {
+            "title": "Kısaltmalar",
+            "intro": "Ekranlarda geçen ticari kısaltmalar."
+         }
+      },
+      "topics": {
+         "customer_filter": {
+            "title": "Müşteri filtresi",
+            "text": "Üst çubukta seçilen müşteri tüm operasyon listelerini ve dashboard'u o müşteriye daraltır; 'Tüm müşteriler' rolünüzün görebildiği her şeyi gösterir. Seçim sayfalar arasında geçerken korunur."
+         },
+         "cards_tabs": {
+            "title": "Kartlar ve sekmeler",
+            "text": "Satır, kaydı listenin üstünde sekmeli bir kart olarak açar: genel bilgiler, satırlar, belgeler, ortam, geçmiş. Yeni kayıtta yalnızca ilk sekme görünür; diğerleri kaydedince açılır. Kartın ve sekmenin adresi bağlantı olarak paylaşılabilir."
+         },
+         "status_buttons": {
+            "title": "Durum düğmeleri",
+            "text": "Kaydın durumu yalnızca durum düğmeleriyle değişir; düğmeler mevcut durumdan izin verilen geçişleri sunar. Koşulu eksik geçiş nedeniyle reddedilir; örneğin kanıtı olmayan kapı. Durumu değiştirmeden önce değişikliklerinizi kaydedin ya da vazgeçin."
+         },
+         "document_versions": {
+            "title": "Belgeler ve sürümler",
+            "text": "Belge türü, sürümü ve durumu olan bir bağlantı ya da dosyadır. Yeni sürüm eskisinin yerini kendiliğinden alır; hiçbir şey silinmez, geçmiş okunabilir kalır. Kapılar, siparişler ve sevkiyatlar durumu (imzalı, onaylı) doğrudan okur."
+         },
+         "branches": {
+            "title": "Şirket, şubeler ve roller",
+            "text": "Şirketiniz bir kiracıdır; verisi başka bir şirkete görünmez. Şirketin şubeleri olabilir; sayfalar şube seçicide işaretli şubelerin verisini gösterir, yeni kayıtlar yıldızlı şubeye gider. Her sayfada ne yapabileceğiniz rolünüze bağlıdır."
          }
       }
    },

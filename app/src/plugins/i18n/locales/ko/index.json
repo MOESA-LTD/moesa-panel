@@ -717,7 +717,8 @@
          "ops_change_request_general": "Request",
          "ops_change_request_impact": "Impact",
          "ops_change_request_decision": "Decision",
-         "ops_change_request_documents": "Documents"
+         "ops_change_request_documents": "Documents",
+         "guide": "System guide"
       }
    },
    "dashboard": {
@@ -2935,6 +2936,63 @@
       "SKU": {
          "short": "Stock keeping unit: the seller's own code for one product variant.",
          "long": "One variant is one SKU and one row of the product master ([[S10]]); it holds no platform or country. A marketplace may have its own platform SKU for the same product, kept on the market cell. A SKU is unique."
+      }
+   },
+   "system_guide": {
+      "title": "System guide",
+      "intro": "How the panel works and what its codes mean, the same for every role. A dotted code anywhere in the panel opens its entry.",
+      "contents": "On this page",
+      "open_document": "Open the document in Drive",
+      "sections": {
+         "panel": {
+            "title": "How the panel works"
+         },
+         "process": {
+            "title": "Process documents",
+            "intro": "The guideline (Y) and template (S) documents of the MOESA workflow that the panel follows."
+         },
+         "rules": {
+            "title": "Panel rules",
+            "intro": "Decisions of the panel's design (K) that every screen follows."
+         },
+         "packages": {
+            "title": "Service packages",
+            "intro": "What MOESA sells; a project's gates come from its packages."
+         },
+         "gates": {
+            "title": "Gate set",
+            "intro": "A phase ends at a gate, passed only with its evidence; the next phase does not start before it."
+         },
+         "incidents": {
+            "title": "Incident families and severities",
+            "intro": "Every incident has a family, which starts its code, and a severity, which sets who is told and when ([[Y10]])."
+         },
+         "abbreviations": {
+            "title": "Abbreviations",
+            "intro": "Trade abbreviations used on the screens."
+         }
+      },
+      "topics": {
+         "customer_filter": {
+            "title": "The customer filter",
+            "text": "The customer chosen in the top bar narrows every operations list and the dashboard to that customer; 'All customers' shows everything your role may see. The choice stays as you move between pages."
+         },
+         "cards_tabs": {
+            "title": "Cards and tabs",
+            "text": "A row opens its record as a card over the list, with tabs for its parts: general data, lines, documents, media, history. A new record shows its first tab only; the others open once it is saved. The address of a card and tab can be shared as a link."
+         },
+         "status_buttons": {
+            "title": "Status buttons",
+            "text": "A record's status changes only through its status buttons, which offer the moves allowed from the current status. A move whose conditions are missing is refused with the reason, for example a gate without its evidence. Save or discard your edits before changing the status."
+         },
+         "document_versions": {
+            "title": "Documents and versions",
+            "text": "A document is a link or a file with a type, a version and a status. A new version supersedes the old one by itself; nothing is deleted, so the history stays readable. Gates, orders and shipments read the status (signed, approved) directly."
+         },
+         "branches": {
+            "title": "Company, branches and roles",
+            "text": "Your company is one tenant: its data is never visible to another company. A company can have branches; pages show the data of the branches checked in the branch picker, and new records go to the branch with the star. What you can do on each page depends on your role."
+         }
       }
    }
 }

@@ -1,4 +1,12 @@
-import { isTermCode, TERM_CODES, TERMS, termKeys, termSlug } from '@/constants/terms';
+import {
+   isTermCode,
+   SYSTEM_GUIDE_TOPICS,
+   TERM_CODES,
+   TERM_SECTIONS,
+   TERMS,
+   termKeys,
+   termSlug
+} from '@/constants/terms';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -105,5 +113,25 @@ describe('term copy', () => {
             .map(([key]) => key)
       );
       expect(marked).toEqual([]);
+   });
+   it.each(['en', 'tr'])('%s has the system guide copy', (locale) => {
+      const tree = messages(locale);
+      const keys = [
+         'system_guide.title',
+         'system_guide.intro',
+         'system_guide.contents',
+         'system_guide.open_document',
+         'route.label.guide',
+         'system_guide.sections.panel.title',
+         ...TERM_SECTIONS.flatMap(({ id }) => [
+            `system_guide.sections.${id}.title`,
+            `system_guide.sections.${id}.intro`
+         ]),
+         ...SYSTEM_GUIDE_TOPICS.flatMap((topic) => [
+            `system_guide.topics.${topic}.title`,
+            `system_guide.topics.${topic}.text`
+         ])
+      ];
+      expect(keys.filter((key) => !isText(lookup(tree, key)))).toEqual([]);
    });
 });

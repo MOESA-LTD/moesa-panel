@@ -145,3 +145,22 @@ export const markLabel = (label: string, code: string): string => {
 
 /** A page that handles term clicks itself provides this; otherwise a term opens the guide panel. */
 export const TERM_SELECT: InjectionKey<(code: string) => void> = Symbol('termSelect');
+
+/** The system guide's sections of terms, in page order, with the categories each lists. */
+export const TERM_SECTIONS = [
+   { id: 'process', categories: ['process'] },
+   { id: 'rules', categories: ['rule'] },
+   { id: 'packages', categories: ['package'] },
+   { id: 'gates', categories: ['gate'] },
+   { id: 'incidents', categories: ['family', 'severity'] },
+   { id: 'abbreviations', categories: ['abbreviation'] }
+] as const satisfies readonly { id: string; categories: readonly TermCategory[] }[];
+
+/** The system guide's "how the panel works" topics (i18n `system_guide.topics.<topic>`). */
+export const SYSTEM_GUIDE_TOPICS = [
+   'customer_filter',
+   'cards_tabs',
+   'status_buttons',
+   'document_versions',
+   'branches'
+] as const;
