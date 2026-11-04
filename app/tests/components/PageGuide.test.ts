@@ -3,15 +3,16 @@ import PageGuide from '@/components/service-components/page-guide/PageGuide.vue'
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import { useGuideStore } from '@/store/guide';
+import { PAGE_GUIDES } from '@/constants/guide';
 import { stripTerms } from '@/constants/terms';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { createMemoryHistory, createRouter } from 'vue-router';
+import { createMemoryHistory, createRouter, useRouter, type RouteLocationRaw } from 'vue-router';
 
 const ROUTES = [
    'dashboard',
@@ -56,7 +57,15 @@ const mountPanel = async () => {
          ] as never,
          stubs: {
             teleport: true,
-            CustomLink: { props: ['to'], template: '<a :data-to="JSON.stringify(to)"><slot /></a>' }
+            // Like CustomLink, the stub navigates only through the navigate slot prop.
+            CustomLink: {
+               props: ['to'],
+               setup: (props: Record<string, unknown>) => {
+                  const r = useRouter();
+                  return { navigate: () => r.push(props.to as RouteLocationRaw) };
+               },
+               template: '<a :data-to="JSON.stringify(to)"><slot :navigate="navigate" /></a>'
+            }
          }
       }
    });
@@ -159,6 +168,19 @@ describe('PageGuide', () => {
       store.show('dashboard');
       await nextTick();
       expect(footerHref(wrapper)).toBe('/guide');
+   });
+
+   it('opens a related page on a plain click', async () => {
+      await router.push('/');
+      useGuideStore().show('purchase_order');
+      const wrapper = await mountPanel();
+      const name = PAGE_GUIDES.purchase_order.related[0];
+      const link = wrapper.find(`a[data-to='${JSON.stringify({ name })}'] button`);
+
+      await link.trigger('click');
+      await flushPromises();
+
+      expect(router.currentRoute.value.name).toBe(name);
    });
 
    it('renders the guide copy with its terms', async () => {

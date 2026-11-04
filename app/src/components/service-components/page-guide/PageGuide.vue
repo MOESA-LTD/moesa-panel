@@ -130,8 +130,14 @@ watch(
             <h3 class="m-0 text-base font-semibold">{{ $t('guide.panel.related') }}</h3>
             <ul class="m-0 p-0 list-none flex flex-col gap-1">
                <li v-for="name in guide.related" :key="name">
-                  <CustomLink :to="{ name }" class="text-primary hover:underline">
-                     {{ routeLabel(name) }}
+                  <CustomLink :to="{ name }" v-slot="{ navigate }">
+                     <button
+                        type="button"
+                        class="text-left text-primary cursor-pointer hover:underline"
+                        @click="navigate"
+                     >
+                        {{ routeLabel(name) }}
+                     </button>
                   </CustomLink>
                </li>
             </ul>
