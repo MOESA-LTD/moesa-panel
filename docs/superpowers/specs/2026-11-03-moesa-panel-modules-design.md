@@ -346,9 +346,17 @@ C-G1 müşteri kaydındadır (M1). (M) işaretli kapılar 06 §2'deki gibi: G1, 
 
 **İçerik:** TR ve EN elle yazılır (K7); diğer diller `pnpm i18n-sync` ile İngilizce kopya. İçerik i18n'de Markdown değil düz metin ve madde listesi (çeviri sağlığı için). Sözlük metinlerinin kaynağı 06 §1–§2 ve S12.
 
-**İçerik sahipliği [benim kararım]:** sözlük ve rehber metinlerinin ilk taslağını geliştirici `ABOUT MOESA` belgelerinden (06 §1–§2, S12; repo dışında, `A:\job\e-commerce\moesa\ABOUT MOESA`) çıkarır; ürün sahibi TR metni gözden geçirir, EN geliştiricinindir. "Bir daha gösterme" tercihi sayfa başınadır (`guide.dismissed.<route>`), tek global bayrak değil.
+**İçerik sahipliği [benim kararım]:** sözlük ve rehber metinlerinin ilk taslağını geliştirici `ABOUT MOESA` belgelerinden (06 §1–§2, S12; repo dışında, `A:\job\e-commerce\moesa\ABOUT MOESA`) çıkarır; ürün sahibi TR metni gözden geçirir, EN geliştiricinindir. "Bir daha gösterme" tercihi sayfa başınadır (`guide.dismissed` altında tek bir `{ [route]: true }` objesi — 05.11.2026 sahip kararı), tek global bayrak değil.
 
 **Sıra:** sözlük ve ipuçları M19 ile birlikte Faz 2 başında (küçük, bağımsız); sayfa rehberleri Faz 2 sonunda, ekranlar oturduktan sonra (her ekran değişimi rehber metnini de değiştirir).
+
+**Katman 3 — terimler ve sistem rehberi (eklendi 05.11.2026, onaylandı).** Katman 1 yalnız enum değerlerini açıklar; metin ve etiketlerde geçen süreç kodları (S05, S08, S09, S12, S14–S17, Y10, K5, K6, K8), kısaltmalar (PI, PSI, ETD, ETA, CMR, GTIN, ASIN, OL/OT/OM) ve paket/kapı kodları (A, A0, B, G1–G4, L-G1, (M) kapı) açıklamasızdır.
+- *Terim kayıt defteri:* tek kaynak `TERMS` (kod → kısa açıklama, uzun açıklama, kategori: süreç belgesi / kısaltma / paket / kapı / olay ailesi; varsa Drive belgesi bağlantısı). Paket, kapı ve olay ailesi girdileri Katman 1'in enum sözlüğünden türetilir, süreç kodları ve kısaltmalar eklenir. Metinler i18n'de (`terms.<code>.short`, `terms.<code>.long`), TR ve EN elle (K7).
+- *Metin içi işaretleme:* rehber, sözlük ve ipucu metinlerinde kod `[[S09]]` biçiminde yazılır; bir metin bileşeni bunu noktalı altı çizili `<abbr>` + ipucuna (kısa açıklama) çevirir, tıklanınca rehber panelinin "Terimler" bölümü o kayıtta açılır. Metinler düz string kalır. Bilinmeyen bir token test tarafından yakalanır.
+- *Formlar:* alan etiketinde kod geçen yerlerde (`PI kontrolü (S09)`, kapı, paket) aynı bileşen etiket yuvasında; `FormField`'a opsiyonel `term` prop'u. Enum seçeneklerinin ipuçları Katman 1'de kalır.
+- *Sistem rehberi sayfası:* rol bağımsız tek sayfa, "?" panelinin altından ve kullanıcı menüsünden açılır. Bölümler: panel nasıl çalışır (müşteri filtresi, kartlar ve sekmeler, durum düğmeleri, belge sürümleri, şube/kiracı), süreç belgeleri (her kod bir paragraf + Drive bağlantısı), paketler, kapı seti, olay aileleri ve şiddetler, kısaltmalar. İçerik kayıt defterinden üretilir; sayfa rehberleri "ilgili sayfalar" gibi buna bağlanır. Rehber sayfasının kendi rehberi yoktur.
+- *İçerik sahipliği:* geliştirici `ABOUT MOESA` belgelerinden taslaklar; TR sahibin onayından geçer.
+- *Sıra:* Faz 2c'den sonra bağımsız dal, Faz 3'ten önce.
 
 ### M21 Kiracılar arası veri aktarımı (Faz 3, ilk görev) — eklendi 03.11.2026
 

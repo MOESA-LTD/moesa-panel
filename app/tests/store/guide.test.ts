@@ -113,6 +113,81 @@ describe('page guide store', () => {
       expect(guide.open).toBe(false);
    });
 
+   it('opens a term on the page of the route', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('shipment');
+      guide.hide();
+
+      guide.showTerm('ETA');
+
+      expect(guide.open).toBe(true);
+      expect(guide.page).toBe('shipment');
+      expect(guide.focusTerm).toBe('ETA');
+      expect(guide.focusTask).toBeNull();
+   });
+
+   it('opens a term alone on a route without a guide', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('shipment');
+      guide.hide();
+      guide.followRoute(null);
+
+      guide.showTerm('S09');
+
+      expect(guide.open).toBe(true);
+      expect(guide.page).toBeNull();
+   });
+
+   it('keeps the open task when a term is clicked on the same page', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('dashboard');
+      guide.show('dashboard', 'close_incident');
+
+      guide.showTerm('S1');
+
+      expect(guide.page).toBe('dashboard');
+      expect(guide.focusTerm).toBe('S1');
+      expect(guide.focusTask).toBe('close_incident');
+   });
+
+   it('drops the task when a term opens the guide of another page', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('shipment');
+      guide.show('dashboard', 'close_incident');
+
+      guide.showTerm('ETA');
+
+      expect(guide.page).toBe('shipment');
+      expect(guide.focusTask).toBeNull();
+   });
+
+   it('drops the task when a term reopens a closed panel', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('dashboard');
+      guide.show('dashboard', 'close_incident');
+      guide.hide();
+
+      guide.showTerm('S1');
+
+      expect(guide.focusTask).toBeNull();
+   });
+
+   it('drops the term when a page guide is shown', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.showTerm('PI');
+
+      guide.show('dashboard', 'close_gates');
+
+      expect(guide.focusTerm).toBeNull();
+      expect(guide.focusTask).toBe('close_gates');
+   });
+
    it('finds the page of a route', () => {
       expect(
          guideForRoute([{ name: 'ops' }, { name: 'ops-shipment' }, { name: 'ops-shipment-list' }])

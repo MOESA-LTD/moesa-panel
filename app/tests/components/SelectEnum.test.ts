@@ -1,5 +1,6 @@
 import { PACKAGES } from '@/api/customer';
 import SelectEnum from '@/components/service-components/select-enum/SelectEnum.vue';
+import { stripTerms } from '@/constants/terms';
 import en from '@/plugins/i18n/locales/en/index.json';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { mount } from '@vue/test-utils';
@@ -67,6 +68,22 @@ describe('SelectEnum', () => {
          expect(icon.exists()).toBe(true);
          expect(icon.attributes('aria-label')).toBe(i18n.t('glossary.document_status.signed'));
          expect(wrapper.text()).toContain(i18n.t('ops.document.status.signed'));
+      });
+
+      it('shows a marked glossary line as plain text', () => {
+         const wrapper = mountGlossary({
+            values: ['pi_received'],
+            i18nPrefix: 'ops.purchase_order.status',
+            glossary: 'purchase_order_status',
+            modelValue: 'pi_received'
+         });
+         const plainLine = stripTerms(i18n.t('glossary.purchase_order_status.pi_received'));
+         const description = wrapper.findComponent(Select).props('options')?.[0]?.description;
+         expect(description).toBe(plainLine);
+         expect(description).not.toContain('[[');
+         expect(wrapper.find('[data-test="glossary-info"]').attributes('aria-label')).toBe(
+            plainLine
+         );
       });
 
       it('shows no info icon without a selection or without a glossary', () => {

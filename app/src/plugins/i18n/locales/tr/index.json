@@ -586,7 +586,8 @@
          "ops_change_request_general": "Talep",
          "ops_change_request_impact": "Etki",
          "ops_change_request_decision": "Karar",
-         "ops_change_request_documents": "Belgeler"
+         "ops_change_request_documents": "Belgeler",
+         "guide": "Sistem rehberi"
       }
    },
    "fields": {
@@ -1265,7 +1266,7 @@
             "export": "Dışa aktar",
             "choose": "CSV dosyası seç",
             "submit": "İçe aktar",
-            "hint": "S10 ürün şablonunda (Ürün ana tablosu) bir CSV dosyası seçin. Sütunlar herhangi bir sırada olabilir; virgül ya da noktalı virgül ayırıcı kendiliğinden anlaşılır. Dosya ya bütünüyle aktarılır ya da hiç aktarılmaz.",
+            "hint": "[[S10]] ürün şablonunda (Ürün ana tablosu) bir CSV dosyası seçin. Sütunlar herhangi bir sırada olabilir; virgül ya da noktalı virgül ayırıcı kendiliğinden anlaşılır. Dosya ya bütünüyle aktarılır ya da hiç aktarılmaz.",
             "summary": "{file}: {count} satır hazır",
             "preview": "{count} satırın ilk {shown} satırı",
             "errors_title": "Bunları dosyada düzeltip dosyayı yeniden seçin:",
@@ -2000,7 +2001,7 @@
             "done": "Yapıldı"
          },
          "rolled_back_gates": "Bu olayla geri alınan kapılar",
-         "preventive_hint": "Önlem ilgili yönergeye işlenmeden olay kapanmış sayılmaz (S17).",
+         "preventive_hint": "Önlem ilgili yönergeye işlenmeden olay kapanmış sayılmaz ([[S17]]).",
          "contact_hint": "Rol ve kanal; kişisel iletişim bilgisi yok.",
          "new_for_project": "Yeni olay",
          "no_rows": "Olay yok."
@@ -2068,7 +2069,7 @@
             "result_document": "Yeni sürüm",
             "closed_on": "Kapanış tarihi"
          },
-         "customer_approval_hint": "Geçmiş bir (M) kapıyı etkiliyor: müşterinin yazılı onayı şart (S08).",
+         "customer_approval_hint": "Geçmiş bir [[(M)]] kapıyı etkiliyor: müşterinin yazılı onayı şart ([[S08]]).",
          "overdue": "Karar gecikti",
          "no_rows": "Değişiklik talebi yok."
       }
@@ -2077,34 +2078,34 @@
       "package": {
          "A0": "Pazar araştırması, konsept ve tasarım (PL1–PL3): araştırma raporu, onaylı konsept, tasarım ve marka dosyası.",
          "A1": "Marka sourcing (P1–P4): mevcut bir markanın ya da üreticinin ürünü; onaylı, kalite kontrolünden geçmiş.",
-         "A2": "Private label geliştirme (P1 → PL1–PL7 → P3–P4): müşterinin markasıyla konseptten itibaren geliştirilen ürün; A0'ı içerir.",
+         "A2": "Private label geliştirme (P1 → PL1–PL7 → P3–P4): müşterinin markasıyla konseptten itibaren geliştirilen ürün; [[A0]]'ı içerir.",
          "B": "Lojistik ve teslim (P5–P6): ürün gümrüklenmiş, müşterinin deposunda.",
          "C": "Listing ve pazara açılış (L1–L5): ürün seçilen platform ve ülkelerde yayında.",
-         "D": "Uçtan uca: A1 veya A2 + B + C; fikirden satışa hazır ürüne tek muhatap.",
+         "D": "Uçtan uca: [[A1]] veya [[A2]] + [[B]] + [[C]]; fikirden satışa hazır ürüne tek muhatap.",
          "E": "Sürekli yönetim (O1–O3): yeniden sipariş, listing bakımı, raporlama. Proje açılmaz; yeniden sipariş reorder projesi olur."
       },
       "project_type": {
          "npi": "Yeni ürün: yolunun tam kapı setinden geçer.",
-         "variant": "Mevcut üründen yeni varyant (G2 → G5).",
-         "revision": "Değişiklik talebi sonucu spec ya da ambalaj değişikliği (G2 → G5).",
-         "reorder": "Onaylı ürünün tekrar siparişi (G3 → G5)."
+         "variant": "Mevcut üründen yeni varyant ([[G2]] → [[G5]]).",
+         "revision": "Değişiklik talebi sonucu spec ya da ambalaj değişikliği ([[G2]] → [[G5]]).",
+         "reorder": "Onaylı ürünün tekrar siparişi ([[G3]] → [[G5]])."
       },
       "project_path": {
          "a_sourcing": "A yolu, marka sourcing: mevcut markanın ürünü için tedarikçi ve numune (P2).",
          "b_private_label": "B yolu, private label: müşterinin markasıyla konseptten baskı onayına (PL1–PL7)."
       },
       "gate_code": {
-         "G1": "Proje başlatma (M): brief ve fizibilite onaylı.",
-         "G2": "Numune, spec sheet ve NPDS onayı (M); imzalı spec sheet olmadan geçilmez.",
-         "G3": "PI, fiyat ve baskı onayı (M).",
-         "G4": "Sevkiyat izni (iç kapı): PSI geçti, belgeler tam; onay uyum ve kalite sorumlusunda.",
-         "G5": "Teslim kabulü (M), müşterinin deposunda.",
-         "PL_G1": "Konsept ve tasarım onayı (M), yazılı.",
-         "PL_G2": "Marka ve kimlik onayı (M).",
-         "PL_G3": "Altın numune onayı (M).",
-         "PL_G4": "Baskıya onay (M).",
-         "L_G1": "İçerik onayı (M).",
-         "L_G2": "Proje kapanışı (M)."
+         "G1": "Proje başlatma [[(M)]]: brief ve fizibilite onaylı.",
+         "G2": "Numune, spec sheet ve NPDS onayı [[(M)]]; imzalı spec sheet olmadan geçilmez.",
+         "G3": "[[PI]], fiyat ve baskı onayı [[(M)]].",
+         "G4": "Sevkiyat izni (iç kapı): [[PSI]] geçti, belgeler tam; onay uyum ve kalite sorumlusunda.",
+         "G5": "Teslim kabulü [[(M)]], müşterinin deposunda.",
+         "PL_G1": "Konsept ve tasarım onayı [[(M)]], yazılı.",
+         "PL_G2": "Marka ve kimlik onayı [[(M)]].",
+         "PL_G3": "Altın numune onayı [[(M)]].",
+         "PL_G4": "Baskıya onay [[(M)]].",
+         "L_G1": "İçerik onayı [[(M)]].",
+         "L_G2": "Proje kapanışı [[(M)]]."
       },
       "document_type": {
          "spec_sheet": "Üreticinin imzalı ve kaşeli ürün spesifikasyonu: ürünün kanıtı.",
@@ -2117,12 +2118,12 @@
          "sds": "Güvenlik bilgi formu; kimyasallarda zorunlu.",
          "doc_of_conformity": "AB uygunluk beyanı (DoC).",
          "technical_file": "Piyasa gözetimi için tutulan teknik dosya.",
-         "label_artwork": "Etiket ve ambalaj baskı dosyası: dieline, GTIN, uyarılar.",
+         "label_artwork": "Etiket ve ambalaj baskı dosyası: dieline, [[GTIN]], uyarılar.",
          "packing_list": "Sevkiyatın çeki listesi: koli, adet, ağırlık.",
          "commercial_invoice": "Gümrük için ticari fatura.",
          "bill_of_lading": "Taşıyıcının konşimentosu (B/L).",
          "customs": "Gümrük beyannamesi ve işlem belgeleri.",
-         "delivery_receipt": "Depoda imzalanan teslim tutanağı; G5 kanıtı.",
+         "delivery_receipt": "Depoda imzalanan teslim tutanağı; [[G5]] kanıtı.",
          "gate_approval": "Kapının yazılı müşteri onayı (e-posta ya da e-imza).",
          "change_request": "Değişiklik talebi (CR): spec, tasarım, ambalaj ya da fiyatta sürümlü değişiklik.",
          "contract": "Müşteri ya da tedarikçiyle sözleşme (MSA, SOW, NNN).",
@@ -2154,7 +2155,7 @@
          "ordering": "Sipariş verildi; üretimde ya da yolda.",
          "on_sale": "Yayında, satışta.",
          "paused": "Satış şimdilik durduruldu.",
-         "archived": "Artık kullanılmıyor; GTIN'i yeniden verilebilir."
+         "archived": "Artık kullanılmıyor; [[GTIN]]'i yeniden verilebilir."
       },
       "task_status": {
          "todo": "Başlanmadı.",
@@ -2165,29 +2166,29 @@
       "purchase_order_status": {
          "draft": "Hazırlanıyor; tedarikçiye gönderilmedi.",
          "sent": "Tedarikçiye gönderildi; gereken her satırda imzalı ya da onaylı spec sheet var (K3).",
-         "pi_received": "Tedarikçinin PI'ı geldi, kontrol ediliyor (S09).",
-         "pi_approved": "S09'un 30 maddesi uygun ve rakamlar tutuyor; satırlar ve şartlar sabitlendi.",
+         "pi_received": "Tedarikçinin [[PI]]'ı geldi, kontrol ediliyor ([[S09]]).",
+         "pi_approved": "[[S09]]'un 30 maddesi uygun ve rakamlar tutuyor; satırlar ve şartlar sabitlendi.",
          "deposit_paid": "Depozito ödendi; üretim başlayabilir.",
          "in_production": "Tedarikçi siparişi üretiyor.",
-         "ready": "Üretim bitti; mal PSI ve yüklemeye hazır.",
-         "balance_paid": "Bakiye ödendi; G4'e göre yalnızca onaylı PSI'dan sonra.",
+         "ready": "Üretim bitti; mal [[PSI]] ve yüklemeye hazır.",
+         "balance_paid": "Bakiye ödendi; [[G4]]'e göre yalnızca onaylı [[PSI]]'dan sonra.",
          "closed": "Teslim edildi ve kapandı; yapılacak iş kalmadı.",
          "cancelled": "İptal edildi; kayıt için saklanır."
       },
       "payment_kind": {
          "deposit": "Üretimden önce ödenen avans (depozito %).",
-         "balance": "Toplamın kalanı, PSI'dan sonra.",
+         "balance": "Toplamın kalanı, [[PSI]]'dan sonra.",
          "other": "Diğer ödemeler, ör. kalıp ya da numune."
       },
       "shipment_status": {
          "planned": "Planlandı; henüz booking yok.",
-         "booked": "Forwarder booking'i teyit etti (S15 adım 4).",
-         "loaded": "Yüklendi; siparişler ve adetler sabitlendi (S15 adım 7).",
-         "in_transit": "Yolda; ETD ve ETA belli.",
+         "booked": "Forwarder booking'i teyit etti ([[S15]] adım 4).",
+         "loaded": "Yüklendi; siparişler ve adetler sabitlendi ([[S15]] adım 7).",
+         "in_transit": "Yolda; [[ETD]] ve [[ETA]] belli.",
          "at_customs": "Gümrük çıkışını bekliyor.",
          "delivered": "Depoya teslim edildi; itiraz süresi işliyor.",
-         "accepted": "İmzalı teslim tutanağıyla tam kabul edildi (G5 kanıtı).",
-         "disputed": "Rezervli teslim ya da red: eksik, fazla ya da hasar (S16).",
+         "accepted": "İmzalı teslim tutanağıyla tam kabul edildi ([[G5]] kanıtı).",
+         "disputed": "Rezervli teslim ya da red: eksik, fazla ya da hasar ([[S16]]).",
          "cancelled": "Yüklemeden önce iptal edildi; kayıt için saklanır."
       },
       "shipment_mode": {
@@ -2203,7 +2204,7 @@
          "planned": "L1 planında; müşteri yazılı onayladı; tarih var.",
          "preparing": "L2–L3 içerik ve yerelleştirme sürüyor.",
          "uploaded": "L4: platforma yüklendi; platform incelemesi veya aktifleşme bekleniyor.",
-         "live": "Aktif ve satın alınabilir; S13 yayın kontrolü geçti.",
+         "live": "Aktif ve satın alınabilir; [[S13]] yayın kontrolü geçti.",
          "suppressed": "Bastırıldı, kategori onayı bekliyor veya belge talebi var; açık sorun yazılı.",
          "paused": "Müşteri kararı veya ön koşul (tescil, EPR kaydı, KDV) bekliyor.",
          "stopped": "Yayından kalıcı kaldırıldı (karar veya platform); neden yazılı.",
@@ -2211,7 +2212,7 @@
       },
       "market_compliance": {
          "green": "Kısıt yok.",
-         "yellow": "Kısıt, belge veya işaret ihtiyacıyla mümkün; nota bakın (S12).",
+         "yellow": "Kısıt, belge veya işaret ihtiyacıyla mümkün; nota bakın ([[S12]]).",
          "red": "Uygun değil; hücre planlanmaz.",
          "pending": "Henüz taranmadı (PL1/P1)."
       },
@@ -2225,13 +2226,13 @@
          "none": "Henüz listing içeriği yok.",
          "en_master": "İngilizce ana set hazır.",
          "translated": "Pazarın diline çevrildi.",
-         "approved": "İçerik onaylandı (L-G1); yayından önce şart."
+         "approved": "İçerik onaylandı ([[L-G1]]); yayından önce şart."
       },
       "incident_family": {
          "ol": "Sevkiyat ve teslim: araç, randevu, sayım, hasar, evrak, gümrük, gecikme.",
          "oa": "Platform ve Amazon: kaldırılan ya da bastırılan listing, belge talebi, hesap sağlığı.",
-         "ou": "Ürün ve uyum: PSI reddi, kabul etmeme, geri çağırma, etiket, sertifika.",
-         "ot": "Tedarik: habersiz değişiklik, üretim gecikmesi, PI tutarsızlığı, sessizlik, fiyat artışı.",
+         "ou": "Ürün ve uyum: [[PSI]] reddi, kabul etmeme, geri çağırma, etiket, sertifika.",
+         "ot": "Tedarik: habersiz değişiklik, üretim gecikmesi, [[PI]] tutarsızlığı, sessizlik, fiyat artışı.",
          "om": "Müşteri: sözlü değişiklik, geç ödeme, uyuşmazlık, cevapsızlık."
       },
       "incident_severity": {
@@ -2266,8 +2267,8 @@
          "loss": "Kurtarılamadı."
       },
       "incident_deadline_kind": {
-         "supplier_damage": "Tedarikçiye hasar bildirimi: olağan PI şartlarında 48 saat.",
-         "carrier_claim": "Taşıyıcıya itiraz: kara yolunda 7 gün (CMR), denizde konşimentoya göre 3 gün; 7 gün varsayılır.",
+         "supplier_damage": "Tedarikçiye hasar bildirimi: olağan [[PI]] şartlarında 48 saat.",
+         "carrier_claim": "Taşıyıcıya itiraz: kara yolunda 7 gün ([[CMR]]), denizde konşimentoya göre 3 gün; 7 gün varsayılır.",
          "demurrage": "Liman ya da detention serbest günlerinin bitişi; taşıyıcı şartlarından girin.",
          "supplier_storage": "Çekilmeyen mal için tedarikçinin depolama ücreti başlattığı tarih.",
          "platform_escalation": "Platform vakasında eskalasyondan önce 48 saat beklenir.",
@@ -2282,7 +2283,7 @@
       },
       "change_request_status": {
          "open": "Kayıtlı; etki ve karar bekliyor.",
-         "approved": "MOESA onayladı (geçmiş (M) kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
+         "approved": "MOESA onayladı (geçmiş [[(M)]] kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
          "rejected": "Reddedildi; karar notu nedenini söyler.",
          "applied": "Uygulandı: etkilenen belge yeni sürümünü aldı."
       },
@@ -2299,11 +2300,11 @@
       "change_kind": {
          "spec": "Ölçü, malzeme, bileşim, performans ya da güvenlik; üreticinin yeniden imzaladığı yeni spec sürümü.",
          "design": "Tasarım ya da tech pack.",
-         "packaging": "Ambalaj, etiket ya da artwork; PL-G4 yeniden.",
-         "price": "Fiyat ya da adet; yeni PI ve PO sürümü, müşterinin fiyat onayı (G3).",
+         "packaging": "Ambalaj, etiket ya da artwork; [[PL-G4]] yeniden.",
+         "price": "Fiyat ya da adet; yeni [[PI]] ve PO sürümü, müşterinin fiyat onayı ([[G3]]).",
          "deadline": "Termin, booking ya da yayın tarihi.",
          "supplier": "Başka tedarikçi; yeni spec sheet ve altın numune.",
-         "content": "Listing içeriği; L-G1 yeniden."
+         "content": "Listing içeriği; [[L-G1]] yeniden."
       }
    },
    "status_actions": {
@@ -2320,7 +2321,9 @@
          "needs": "Gerekir: {subject} için {action}",
          "no_tasks": "Rolünüzün bu sayfada işi yok; okuyabilirsiniz.",
          "open": "Bu sayfa nasıl çalışır?",
-         "close_card": "Bu kartı nasıl kapatırım?"
+         "close_card": "Bu kartı nasıl kapatırım?",
+         "term_open": "{code} nedir?",
+         "system_guide": "Sistem rehberini aç"
       },
       "actions": {
          "read": "okuma",
@@ -2336,7 +2339,7 @@
                   "title": "Bekleyen kapıyı kapat",
                   "steps": {
                      "1": "Satırdan projeyi açın; Genel bakış sekmesinde kapı paneli görünür.",
-                     "2": "Kapının istediği kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi de ister.",
+                     "2": "Kapının istediği kanıtı ekleyin; [[(M)]] kapılar müşteri onay tarihi ve belgesi de ister.",
                      "3": "Kapıyı geçirin; proje ilerler ve satır kutudan çıkar."
                   }
                },
@@ -2349,50 +2352,50 @@
                   }
                },
                "sign_spec": {
-                  "title": "SKU'nun spec sheet'ini imzalat",
+                  "title": "[[SKU]]'nun spec sheet'ini imzalat",
                   "steps": {
-                     "1": "Müşteri satırını açın; ürün listesi imzalı spec sheet'i olmayan SKU'ları gösterir.",
+                     "1": "Müşteri satırını açın; ürün listesi imzalı spec sheet'i olmayan [[SKU]]'ları gösterir.",
                      "2": "Ürünün Belgeler sekmesinde spec sheet'i sürümü ve tarihiyle ekleyin.",
                      "3": "İmzalı, kaşeli ve resmî e-postadan geldiyse imzalı yapın."
                   }
                },
                "complete_compliance": {
-                  "title": "SKU'nun uyumunu tamamla",
+                  "title": "[[SKU]]'nun uyumunu tamamla",
                   "steps": {
                      "1": "Müşteri satırını açın; ürün listesi açılır.",
-                     "2": "Ürünün Genel sekmesinde Uyum bölümünü doldurun ve S12'nin istediği belgeleri ekleyin.",
-                     "3": "Uyum durumunu tamamlandı yapın; SKU kutudan çıkar."
+                     "2": "Ürünün Genel sekmesinde Uyum bölümünü doldurun ve [[S12]]'nin istediği belgeleri ekleyin.",
+                     "3": "Uyum durumunu tamamlandı yapın; [[SKU]] kutudan çıkar."
                   }
                },
                "advance_po": {
                   "title": "Satın alma siparişini ilerlet",
                   "steps": {
                      "1": "Satırdan siparişi açın; durumu neyi beklediğini gösterir.",
-                     "2": "Adımı yapın: gönderin, PI'ı kontrol edin (S09), ödemeyi ya da üretim notunu kaydedin.",
+                     "2": "Adımı yapın: gönderin, [[PI]]'ı kontrol edin ([[S09]]), ödemeyi ya da üretim notunu kaydedin.",
                      "3": "Durum düğmesini kullanın; koşulu eksik adım nedeniyle birlikte reddedilir."
                   }
                },
                "track_shipment": {
                   "title": "Sevkiyatı kabule kadar izle",
                   "steps": {
-                     "1": "Satırdan sevkiyatı açın; Tarihler sekmesinde ETD ve ETA'yı kontrol edin.",
-                     "2": "Her S15 adımını Olaylar sekmesine yazın; ETA kayınca güncelleyin.",
-                     "3": "Geciken sevkiyat genelde OL-09 olayı gerektirir; Olaylar sayfasından açın."
+                     "1": "Satırdan sevkiyatı açın; Tarihler sekmesinde [[ETD]] ve [[ETA]]'yı kontrol edin.",
+                     "2": "Her [[S15]] adımını Olaylar sekmesine yazın; [[ETA]] kayınca güncelleyin.",
+                     "3": "Geciken sevkiyat genelde [[OL]]-09 olayı gerektirir; Olaylar sayfasından açın."
                   }
                },
                "close_incident": {
                   "title": "Açık olayı kapat",
                   "steps": {
-                     "1": "Olayı açın; S1 ve S2'de önce yönetime bildirim zamanı girilir.",
+                     "1": "Olayı açın; [[S1]] ve [[S2]]'de önce yönetime bildirim zamanı girilir.",
                      "2": "Mal, listing ya da para güvene alınana kadar günlüğü ve süreleri güncel tutun.",
-                     "3": "Kapanışı doldurun (sonuç, kök neden, önlem) ve kapatın; S1'i yönetim kapatır."
+                     "3": "Kapanışı doldurun (sonuç, kök neden, önlem) ve kapatın; [[S1]]'i yönetim kapatır."
                   }
                },
                "decide_cr": {
                   "title": "Açık değişiklik talebine karar ver",
                   "steps": {
                      "1": "Talebi açın; eski ve yeni değeri ve etkiyi kontrol edin.",
-                     "2": "Geçmiş bir (M) kapıyı etkiliyorsa önce müşterinin yazılı onayını ekleyin.",
+                     "2": "Geçmiş bir [[(M)]] kapıyı etkiliyorsa önce müşterinin yazılı onayını ekleyin.",
                      "3": "Onaylayın ya da reddedin; yeni belge sürümü oluşunca uygulandı yapın."
                   }
                },
@@ -2400,8 +2403,8 @@
                   "title": "Pazar hücrelerini yayına taşı",
                   "steps": {
                      "1": "Müşteri satırını açın; pazar matrisi o müşteri için açılır.",
-                     "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı.",
-                     "3": "İçerik onaylıyken (L-G1) hücreyi yayına alın."
+                     "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform [[SKU]], fiyat, para birimi, stok kaynağı.",
+                     "3": "İçerik onaylıyken ([[L-G1]]) hücreyi yayına alın."
                   }
                }
             }
@@ -2442,7 +2445,7 @@
                   "title": "Teslim deposu ekle",
                   "steps": {
                      "1": "Müşteriyi, sonra Depolar sekmesini açın.",
-                     "2": "Adresi, rampa saatlerini ve randevu kuralını S14 kartındaki gibi girin.",
+                     "2": "Adresi, rampa saatlerini ve randevu kuralını [[S14]] kartındaki gibi girin.",
                      "3": "Sevkiyatlar adresi buradan alır; sevkiyatta elle yazılmaz."
                   }
                },
@@ -2451,7 +2454,7 @@
                   "steps": {
                      "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
                      "2": "Platformu ve müşterinin sattığı ülkeleri seçin.",
-                     "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz (K8)."
+                     "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz ([[K8]])."
                   }
                }
             }
@@ -2486,14 +2489,14 @@
             }
          },
          "product": {
-            "purpose": "Ürün ana tablosu (S10): her SKU için bir satır; GTIN, tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir.",
+            "purpose": "Ürün ana tablosu ([[S10]]): her [[SKU]] için bir satır; [[GTIN]], tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir.",
             "tasks": {
                "import_products": {
                   "title": "CSV'den ürün içe aktar",
                   "steps": {
-                     "1": "Listede İçe aktar'ı kullanın ve S10 CSV'sini seçin.",
+                     "1": "Listede İçe aktar'ı kullanın ve [[S10]] CSV'sini seçin.",
                      "2": "Raporu okuyun: sorunlu her satır nedeniyle listelenir.",
-                     "3": "O satırları düzeltip yeniden aktarın; iki kez kullanılan GTIN reddedilir."
+                     "3": "O satırları düzeltip yeniden aktarın; iki kez kullanılan [[GTIN]] reddedilir."
                   }
                },
                "add_spec": {
@@ -2515,7 +2518,7 @@
             }
          },
          "project": {
-            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız G2 ile G3 engeller.",
+            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız [[G2]] ile [[G3]] engeller.",
             "tasks": {
                "open_project": {
                   "title": "Proje aç",
@@ -2529,7 +2532,7 @@
                   "title": "Kapıyı geçir",
                   "steps": {
                      "1": "Genel bakışta aşama şeridindeki kapıyı açın.",
-                     "2": "Kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi ister.",
+                     "2": "Kanıtı ekleyin; [[(M)]] kapılar müşteri onay tarihi ve belgesi ister.",
                      "3": "Geçirin; aşama ilerler ve sonraki kontrol listesi gelir."
                   }
                },
@@ -2602,7 +2605,7 @@
             }
          },
          "purchase_order": {
-            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, S09 PI kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir.",
+            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, [[S09]] [[PI]] kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir.",
             "tasks": {
                "create_po": {
                   "title": "Sipariş aç",
@@ -2613,25 +2616,25 @@
                   }
                },
                "check_pi": {
-                  "title": "PI'ı kontrol et (S09)",
+                  "title": "[[PI]]'ı kontrol et ([[S09]])",
                   "steps": {
-                     "1": "PI belgesini ekleyin ve rakamlarını PI kontrol sekmesine girin.",
-                     "2": "30 maddeyi işaretleyin; kırmızı fark düzeltilmiş PI istemek demektir.",
-                     "3": "PI'ı onaylayın; satırlar ve şartlar kilitlenir."
+                     "1": "[[PI]] belgesini ekleyin ve rakamlarını PI kontrol sekmesine girin.",
+                     "2": "30 maddeyi işaretleyin; kırmızı fark düzeltilmiş [[PI]] istemek demektir.",
+                     "3": "[[PI]]'ı onaylayın; satırlar ve şartlar kilitlenir."
                   }
                },
                "record_payment": {
                   "title": "Ödeme kaydet",
                   "steps": {
-                     "1": "Ödemeler sekmesini açın; depozitoyu ve bakiyeyi PI'dan planlayın.",
+                     "1": "Ödemeler sekmesini açın; depozitoyu ve bakiyeyi [[PI]]'dan planlayın.",
                      "2": "Para çıkınca ödeme tarihini girin.",
-                     "3": "Bakiyeyi yalnızca onaylı PSI raporundan sonra ödeyin (G4)."
+                     "3": "Bakiyeyi yalnızca onaylı [[PSI]] raporundan sonra ödeyin ([[G4]])."
                   }
                }
             }
          },
          "shipment": {
-            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, S15 olay zinciri, S16 teslim kabulü ve belge kontrol listesi.",
+            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, [[S15]] olay zinciri, [[S16]] teslim kabulü ve belge kontrol listesi.",
             "tasks": {
                "plan_shipment": {
                   "title": "Sevkiyat planla",
@@ -2642,15 +2645,15 @@
                   }
                },
                "log_event": {
-                  "title": "S15 adımı yaz",
+                  "title": "[[S15]] adımı yaz",
                   "steps": {
                      "1": "Olaylar sekmesini açıp olay ekleyin.",
-                     "2": "S15 adımını, kimin kime ve hangi kanaldan bildirdiğini seçin.",
+                     "2": "[[S15]] adımını, kimin kime ve hangi kanaldan bildirdiğini seçin.",
                      "3": "Tarihler sekmesindeki tarihleri olaylarla uyumlu tutun."
                   }
                },
                "accept": {
-                  "title": "Teslimi kabul et (S16)",
+                  "title": "Teslimi kabul et ([[S16]])",
                   "steps": {
                      "1": "İmzalı teslim tutanağını Belgeler sekmesine ekleyin.",
                      "2": "Kabul sekmesinde adetlerin tutup tutmadığını ve hasarı kaydedin.",
@@ -2660,7 +2663,7 @@
             }
          },
          "market_matrix": {
-            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle (S05). Hücreler tek kaynaktır; matris görünümü onlardan türetilir.",
+            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle ([[S05]]). Hücreler tek kaynaktır; matris görünümü onlardan türetilir.",
             "tasks": {
                "add_cells": {
                   "title": "Ürün ailesi için hücre aç",
@@ -2674,7 +2677,7 @@
                   "title": "Uyum taraması yap",
                   "steps": {
                      "1": "Matristen bir hücre açın.",
-                     "2": "Yeşil, sarı ya da kırmızı seçin; sarı ve kırmızı not ister (S12).",
+                     "2": "Yeşil, sarı ya da kırmızı seçin; sarı ve kırmızı not ister ([[S12]]).",
                      "3": "Kırmızı hücre planlanmaz; nedeniyle çıkarın."
                   }
                },
@@ -2682,19 +2685,19 @@
                   "title": "Hücreyi yayına al",
                   "steps": {
                      "1": "İş ilerledikçe planlandı, hazırlanıyor ve yüklendi durumlarından geçirin.",
-                     "2": "Platform kimliği, platform SKU, fiyat, para birimi ve stok kaynağını doldurun.",
-                     "3": "İçerik onaylıyken (L-G1) Yayında'yı seçin."
+                     "2": "Platform kimliği, platform [[SKU]], fiyat, para birimi ve stok kaynağını doldurun.",
+                     "3": "İçerik onaylıyken ([[L-G1]]) Yayında'yı seçin."
                   }
                }
             }
          },
          "incident": {
-            "purpose": "Olay kayıtları (S17): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır.",
+            "purpose": "Olay kayıtları ([[S17]]): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır.",
             "tasks": {
                "open_incident": {
                   "title": "Olayı 15 dakikada kaydet",
                   "steps": {
-                     "1": "Ekle'yi kullanın; müşteriyi, aileyi ve şiddeti seçin (Y10 §4).",
+                     "1": "Ekle'yi kullanın; müşteriyi, aileyi ve şiddeti seçin ([[Y10]] §4).",
                      "2": "Ne olduğunu üç cümleyle, şu an durumun ne olduğunu ve hemen ne yapıldığını yazın; tahmin yerine \"bilinmiyor\" yazın.",
                      "3": "Kaydı bağlayın (sevkiyat, sipariş, ürün, hücre ya da proje) ve ilk kanıtı Ortam'a ekleyin."
                   }
@@ -2711,14 +2714,14 @@
                   "title": "Kapat",
                   "steps": {
                      "1": "Sonucu, kök nedeni ve yönergeye işlenen önlemi doldurun.",
-                     "2": "Kapandı durumuna alın; S1 olaylarını yönetim kapatır.",
+                     "2": "Kapandı durumuna alın; [[S1]] olaylarını yönetim kapatır.",
                      "3": "Kapanan olayın günlüğü ve süreleri artık değişmez."
                   }
                }
             }
          },
          "change_request": {
-            "purpose": "Değişiklik talepleri (S08): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar.",
+            "purpose": "Değişiklik talepleri ([[S08]]): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar.",
             "tasks": {
                "open_cr": {
                   "title": "Değişiklik talebi aç",
@@ -2732,7 +2735,7 @@
                   "title": "Onayla ya da reddet",
                   "steps": {
                      "1": "Etkiyi doldurun: maliyet ve ödeyen, gecikme, kalite ve listing.",
-                     "2": "Geçmiş (M) kapı için müşterinin yazılı onayını talebin belgesi olarak ekleyin.",
+                     "2": "Geçmiş [[(M)]] kapı için müşterinin yazılı onayını talebin belgesi olarak ekleyin.",
                      "3": "Onaylayın ya da karar notuyla reddedin."
                   }
                },
@@ -2746,6 +2749,251 @@
                }
             }
          }
+      }
+   },
+   "system_guide": {
+      "title": "Sistem rehberi",
+      "intro": "Panelin nasıl çalıştığı ve kodlarının ne anlama geldiği; her rol için aynı. Panelde noktalı altı çizili her kod kendi kaydını açar.",
+      "contents": "Bu sayfada",
+      "open_document": "Belgeyi Drive'da aç",
+      "sections": {
+         "panel": {
+            "title": "Panel nasıl çalışır"
+         },
+         "process": {
+            "title": "Süreç belgeleri",
+            "intro": "Panelin izlediği MOESA iş akışının yönerge (Y) ve şablon (S) belgeleri."
+         },
+         "rules": {
+            "title": "Panel kuralları",
+            "intro": "Her ekranın uyduğu panel tasarım kararları (K)."
+         },
+         "packages": {
+            "title": "Hizmet paketleri",
+            "intro": "MOESA'nın sattığı hizmetler; projenin kapıları paketlerinden gelir."
+         },
+         "gates": {
+            "title": "Kapı seti",
+            "intro": "Aşama bir kapıyla biter; kapı yalnızca kanıtıyla geçer ve sonraki aşama ondan önce başlamaz."
+         },
+         "incidents": {
+            "title": "Olay aileleri ve şiddetler",
+            "intro": "Her olayın kodunu başlatan bir ailesi ve kime ne zaman bildirileceğini belirleyen bir şiddeti vardır ([[Y10]])."
+         },
+         "abbreviations": {
+            "title": "Kısaltmalar",
+            "intro": "Ekranlarda geçen ticari kısaltmalar."
+         }
+      },
+      "topics": {
+         "customer_filter": {
+            "title": "Müşteri filtresi",
+            "text": "Üst çubukta seçilen müşteri tüm operasyon listelerini ve dashboard'u o müşteriye daraltır; 'Tüm müşteriler' rolünüzün görebildiği her şeyi gösterir. Seçim sayfalar arasında geçerken korunur."
+         },
+         "cards_tabs": {
+            "title": "Kartlar ve sekmeler",
+            "text": "Satır, kaydı listenin üstünde sekmeli bir kart olarak açar: genel bilgiler, satırlar, belgeler, ortam, geçmiş. Yeni kayıtta yalnızca ilk sekme görünür; diğerleri kaydedince açılır. Kartın ve sekmenin adresi bağlantı olarak paylaşılabilir."
+         },
+         "status_buttons": {
+            "title": "Durum düğmeleri",
+            "text": "Kaydın durumu yalnızca durum düğmeleriyle değişir; düğmeler mevcut durumdan izin verilen geçişleri sunar. Koşulu eksik geçiş nedeniyle reddedilir; örneğin kanıtı olmayan kapı. Durumu değiştirmeden önce değişikliklerinizi kaydedin ya da vazgeçin."
+         },
+         "document_versions": {
+            "title": "Belgeler ve sürümler",
+            "text": "Belge türü, sürümü ve durumu olan bir bağlantı ya da dosyadır. Yeni sürüm eskisinin yerini kendiliğinden alır; hiçbir şey silinmez, geçmiş okunabilir kalır. Kapılar, siparişler ve sevkiyatlar durumu (imzalı, onaylı) doğrudan okur."
+         },
+         "branches": {
+            "title": "Şirket, şubeler ve roller",
+            "text": "Şirketiniz bir kiracıdır; verisi başka bir şirkete görünmez. Şirketin şubeleri olabilir; sayfalar şube seçicide işaretli şubelerin verisini gösterir, yeni kayıtlar yıldızlı şubeye gider. Her sayfada ne yapabileceğiniz rolünüze bağlıdır."
+         }
+      }
+   },
+   "terms": {
+      "S05": {
+         "short": "Pazar matrisi: ürün, platform ve ülke başına bir hücre; durumu, uyumu ve listing verisiyle.",
+         "long": "S05 müşteri başına tek kayıttır; ürün ve pazar eklendikçe büyür, çapraz tablo hücrelerden türetilir. Her hücre adaydan yayına dokuz durumdan geçer; uyumu kırmızı olan hücre nedeniyle çıkarılır. Panelde Pazar matrisi sayfasıdır."
+      },
+      "S07": {
+         "short": "Spec sheet: üreticinin üreteceği ürün için imzaladığı teknik föy.",
+         "long": "Formu MOESA değil üretici doldurur; resmî e-postadan, imzalı, kaşeli, sürüm numaralı ve tarihli gelmezse taslaktır. İmzalı spec sheet olmadan [[G2]] geçilmez, sipariş ve sevkiyat yapılmaz. Her değişiklik [[S08]] ile yeni sürüm ister; eski sürüm geçersiz olarak saklanır."
+      },
+      "S08": {
+         "short": "Değişiklik talebi: onaylanmış hiçbir şey talep olmadan değişmez.",
+         "long": "Eski ve yeni değeri birebir, nedeni, maliyet, süre, kalite ve listing etkisini ve kararı kaydeder. Geçmiş bir [[(M)]] kapıyı etkileyen değişiklik müşterinin yazılı onayını da ister. Uygulanınca etkilenen her belge yeni sürüm alır; talebin kodu CR-müşteri-yıl-sıra biçimindedir."
+      },
+      "S09": {
+         "short": "PI kontrol listesi: tedarikçinin her proforma faturası onaydan önce 30 maddeyle kontrol edilir.",
+         "long": "Her [[PI]] ve her düzeltilmiş sürümü satır satır kontrol edilir; hesaplar kopyalanmaz, yeniden yapılır. Tek bir hatalı ya da eksik madde PI'ı tedarikçiye geri gönderir ve ödeme yapılmaz. Onaylı PI siparişin satırlarını ve şartlarını kilitler ve [[G3]]'ün kanıtıdır."
+      },
+      "S10": {
+         "short": "Ürün ana tablosu: ürün verisinin tek doğru kaynağı; her varyant için bir satır.",
+         "long": "Bir varyant bir [[SKU]], bir [[GTIN]] ve bir satırdır; GTIN doğrulanır ve iki kez kullanılmaz. Siparişler, pazar matrisi, listing'ler ve etiketler ürün verisini buradan alır. Panelde Ürünler sayfasıdır; elle ya da S10 CSV'si içe aktarılarak doldurulur."
+      },
+      "S11": {
+         "short": "PSI kontrol listesi: yükleme öncesi kontrolde ürüne özel neyin kontrol edileceği.",
+         "long": "Uyum ve kalite formu kontrolden önce ürüne özel doldurur; kontrol malın en az %80'i paketlenmişken yapılır. Her ölçüm spec sheet değerinin yanına yazılır, her kusur sınıfı ve fotoğrafıyla girilir. Kontrol firmasının geçti ya da kaldı sonucu karar değildir; kararı uyum ve kalite verir ve rapor [[G4]]'ün kanıtıdır."
+      },
+      "S12": {
+         "short": "Uyum belge seti: her ürün tipinin gerektirdiği belgeler, varyant başına.",
+         "long": "[[G3]]'ten sonraki üç iş günü içinde her model ya da varyant için ayrı doldurulur; bir aile için tek dosya yetmez. Her belge var, eksik ya da gerekçesiyle gerekmiyor olarak işaretlenir; imzasız ya da tarihsiz belge var sayılmaz. [[G4]] için eksik belge sayısı sıfır olmalıdır."
+      },
+      "S13": {
+         "short": "Listing yayın öncesi kontrol: her platform ve ülke hücresi yayına çıkmadan önce doldurulur.",
+         "long": "Bir ülke için doldurulan form başka ülkeye kopyalanmaz. Tek bir 'hayır' düzeltilene ya da değişiklik talebi açılana kadar yayını durdurur; belgeleri ve uyum metnini uyum ve kalite imzalar. Müşterinin [[L-G1]] onayı kaydedilmeden hücre yayında sayılmaz."
+      },
+      "S14": {
+         "short": "Depo teslim kartı: her teslim adresi için müşterinin teyit ettiği bir kart.",
+         "long": "Bir deponun adresini, rampa saatlerini, araç sınırlarını ve randevu kuralını verir; iletişim kişi bilgisi değil rol ve kanaldır. Her sevkiyattan önce yeniden teyit alınır; kartı olmayan depoya sevkiyat planlanmaz. Panelde müşterinin Depolar sekmesidir."
+      },
+      "S15": {
+         "short": "Sevkiyat bildirim zinciri: her sevkiyatta kim kime, ne zaman, hangi kanaldan bildirir.",
+         "long": "Yüklemeden önce forwarder, gümrük müşaviri, müşteri ve depoya tek e-posta zinciriyle gönderilir; sonraki tüm yazışma bu zincirde kalır. Telefonla öğrenilen her bilgi aynı gün zincire yazılır. Panelde adımları sevkiyatın Olaylar sekmesidir."
+      },
+      "S16": {
+         "short": "Teslim kabul formu: sayım, hasar ve rezervler; araç ayrılmadan imzalanır.",
+         "long": "Eksik, fazla ya da hasar sürücünün imzaladığı bir rezerv olarak yazılır; rezervsiz teslimde taşıyıcıya sonradan itiraz zorlaşır. Palet etiketi, konteyner kapısı ve mühür fotoğrafları zorunludur. İmzalı form [[G5]]'in kanıtı ve faturanın şartıdır."
+      },
+      "S17": {
+         "short": "Olay kaydı: ne olduğu, günlüğü ve süreleri, kapanışta çıkan ders.",
+         "long": "Olayı gören kişi 15 dakika içinde açar ve tahmin yerine 'bilinmiyor' yazar; koordinatör 30 dakika içinde sınıflandırır. Her temas, karar ve maliyet günlüğe girer. Önlem ilgili yönergeye işlenmeden kapanmış sayılmaz ([[Y10]])."
+      },
+      "Y10": {
+         "short": "Olay ve kurtarma yönergesi: bir şey ters gittiğinde ilk saatte ne yapılacağı.",
+         "long": "Her olay aynı altı adımı izler: kayda al, sınıflandır, durdur ve koru, haber ver, kurtar, kapat ve öğren. [[S1]]–[[S3]] şiddetlerini bildirim süreleriyle, kaçırılmayacak süre sınırlarını ve aileye göre kodlanmış olay kartlarını (ör. geciken sevkiyat için [[OL]]-09) belirler. Diğer yönergelerin 'Ters giderse' bölümleri bu kartlara bağlanır."
+      },
+      "K5": {
+         "short": "Kodları panel üretir; elle değiştirilmez.",
+         "long": "Müşterinin üç harfli kodu vardır; projeler, siparişler, sevkiyatlar, değişiklik talepleri ve olaylar bundan PO-THO-2026-001 gibi sıralı kodlar alır. Sayaçlar veritabanında müşteri ve yıl bazında tutulur; iki kullanıcı aynı numarayı almaz. Olay kodu ailesiyle başlar ([[OL]], [[OA]], [[OU]], [[OT]], [[OM]])."
+      },
+      "K6": {
+         "short": "Yönetim kararı bekleyen sayılar sabit kural değil, ayardır.",
+         "long": "Varsayılan depozito, spec sheet tarihi, belge talebi süresi ve olay bildirim saatleri Ayarlar sayfasındadır. Yalnızca yönetim değiştirir ve her değişiklik kayda geçer. Kurallar her kayıtta güncel değeri okur."
+      },
+      "K7": {
+         "short": "Panel Türkçe ve İngilizce yazılır; süreç kodları her dilde aynı kalır.",
+         "long": "Ekranlar, ipuçları ve rehberler Türkçe ve İngilizce elle yazılır; diğer diller şimdilik İngilizce metni gösterir. [[G2]], [[S09]] ya da [[L-G1]] gibi kodlar çevrilmez; bir kod her belgede ve konuşmada aynı şeyi anlatır."
+      },
+      "K8": {
+         "short": "Hassas veri panelde saklanmaz.",
+         "long": "Banka bilgisi, vergi ya da EORI numarası, şifre ve platform vaka numarası için alan yoktur. Müşteri ve tedarikçi kartları bunun yerine kısıtlı bir Drive klasörüne bağlanır. İletişim kişisel telefon ya da e-posta değil, rol ve resmî kanaldır."
+      },
+      "A0": {
+         "long": "A0 paketi ürün geliştirilmeden önceki araştırma ve konsept işidir: pazar araştırması, onaylı konsept, tasarım ve marka dosyası. PL1–PL3 aşamalarını kapsar ve konsept onayı [[PL-G1]] ile biter. [[A2]]'nin parçasıdır."
+      },
+      "A1": {
+         "long": "A1 paketi mevcut bir markanın ya da üreticinin ürününü bulur, onaylatır ve kalitesini kontrol eder. P1–P4 aşamalarından [[G1]]–[[G4]] kapılarıyla geçer: brief, numune ve spec sheet, sipariş, kontrol."
+      },
+      "A2": {
+         "long": "A2 paketi müşterinin kendi markasıyla ürünü konseptten itibaren geliştirir; P1 ile P3 arasında [[PL-G1]]–[[PL-G4]] private label kapılarından geçer. [[A0]]'ı içerir ve seri üretimden önce altın numune ister."
+      },
+      "B": {
+         "long": "B paketi malı tedarikçiden müşterinin deposuna getirir: ambalaj, lojistik, gümrük ve teslim (P5–P6). [[G4]]'ten sonra başlar ve [[G5]] teslim kabulüyle biter."
+      },
+      "C": {
+         "long": "C paketi ürünü satışa çıkarır: seçilen platform ve ülkelerde içerik, listing ve açılış (L1–L5). Her platform ve ülke pazar matrisinde bir hücredir ([[S05]]); içerik yayından önce [[L-G1]] ister."
+      },
+      "D": {
+         "long": "D paketi uçtan uca hizmettir: [[A1]] ya da [[A2]], ardından [[B]] ve [[C]]; fikirden satışa hazır ürüne tek muhatap. Projesi tüm parçalarının kapılarını taşır."
+      },
+      "E": {
+         "long": "E paketi açılıştan sonraki sürekli yönetimdir: yeniden sipariş, listing bakımı ve raporlama (O1–O3). Kendi projesini açmaz; her yeniden sipariş [[G3]]'ten başlayan bir reorder projesi açar."
+      },
+      "G1": {
+         "long": "Müşteri brief'i ve fizibiliteyi yazılı onaylar; tedarik çalışması ancak bundan sonra başlar. Kanıt onay e-postası ya da e-imzadır."
+      },
+      "G2": {
+         "long": "Müşteri numuneyi, spec sheet'i ve NPDS'yi yazılı onaylar. İmzalı spec sheet ([[S07]]) olmadan geçilmez; panelde bağlı her ürünün imzalı ya da onaylı spec sheet'i olana kadar engelleyicidir."
+      },
+      "G3": {
+         "long": "Müşteri üretimden önce fiyatı, [[PI]]'ı ve baskı dosyalarını yazılı onaylar. Panelde projenin siparişlerinden birinin PI'ı onaylanana kadar engelleyicidir ([[S09]])."
+      },
+      "G4": {
+         "long": "İç kapı: [[PSI]] geçip belgeler tamamlanınca ([[S12]]) mal sevkiyata bırakılır. Onay uyum ve kalitededir; bakiye bundan önce ödenmez."
+      },
+      "G5": {
+         "long": "Müşteri teslimi kendi deposunda kabul eder. İmzalı teslim tutanağı ([[S16]]) kanıttır ve faturanın şartıdır."
+      },
+      "PL_G1": {
+         "long": "Müşteri araştırma ve konseptin sonunda (PL1–PL2) konsepti ve tasarımı yazılı onaylar. Marka ve ürün geliştirme ancak bundan sonra başlar."
+      },
+      "PL_G2": {
+         "long": "Müşteri markayı ve kimliğini onaylar: ad, logo, renkler ve ton (PL3). Ambalaj ve içerik çalışması bunun üzerine kurulur."
+      },
+      "PL_G3": {
+         "long": "Müşteri seri üretimin referansı olan altın numuneyi onaylar. Fotoğraf ve içerik üretim bitmeden ondan başlar; [[PSI]] malı onunla karşılaştırır."
+      },
+      "PL_G4": {
+         "long": "Müşteri ambalaj artwork'ünü baskıya gitmeden onaylar (PL6). Artwork [[GTIN]]'i, uyarıları ve hedef ülkelerin işaretlerini taşır."
+      },
+      "L_G1": {
+         "long": "Müşteri listing içeriğini yayından önce yazılı onaylar. İçerik onaylı değilse pazar hücresi yayına alınamaz ([[S13]])."
+      },
+      "L_G2": {
+         "long": "Müşteri açılıştan sonra projenin kapanışını kabul eder; pazar matrisinin ([[S05]]) son hâli teslim dosyasına girer."
+      },
+      "M_gate": {
+         "short": "(M) işaretli kapı müşterinin yazılı onayını ister.",
+         "long": "Onay e-posta ya da e-imzayla gelir ve kapının belgesi olarak saklanır; sözlü ya da mesajla verilen onay aynı gün e-postayla teyit ettirilir. Panelde (M) kapı yalnızca müşteri onay tarihi ve belgesiyle geçer. Geçmiş bir (M) kapının onayladığı şeyi değiştirmek müşterinin yazılı onaylı bir değişiklik talebini ister ([[S08]])."
+      },
+      "OL": {
+         "long": "Sevkiyat ve teslim olaylarının kartları OL-01 ile OL-12 arasıdır; yanlış araçtan reddedilen FBA gönderimine kadar. Çoğu bir depoda ya da limanda başlar; [[S14]], [[S15]] ve [[S16]] bunları önlemek içindir."
+      },
+      "OA": {
+         "long": "Platform olaylarının kartları OA-01 ile OA-10 arasıdır: kaldırılan ya da bastırılan listing, belge talebi, [[ASIN]] ya da [[EAN]] çakışması, hesap sağlığı. Platform vaka numarası panele yazılmaz ([[K8]])."
+      },
+      "OU": {
+         "long": "Ürün ve uyum olaylarının kartları OU-01 ile OU-06 arasıdır: geçmeyen [[PSI]], teslimde red, geri çağırma, eksik yasal etiket, geçersiz test raporu. Yeniden yapılması gereken kapı bu tür bir olay üzerinden geri alınır."
+      },
+      "OT": {
+         "long": "Tedarikçi olaylarının kartları OT-01 ile OT-08 arasıdır: habersiz spec değişikliği, üretim gecikmesi, [[PI]] ya da fatura tutarsızlığı, kalıp ya da fikri mülkiyet sorunu, banka bilgisi dolandırıcılığı, yanıtsızlık, fiyat artışı. Tedarikçinin PI şartları 48 saatlik hasar bildirimi gibi süreleri belirler."
+      },
+      "OM": {
+         "long": "Müşteri olaylarının kartları OM-01 ile OM-06 arasıdır: sözlü değişiklik, ödeme gecikmesi, ek maliyet reddi, uyuşmazlık, cevapsızlık, dış hizmet sağlayıcı ya da fikri mülkiyet. Sözlü değişiklik aynı gün yazıya geçer ve değişiklik talebi olarak işlenir ([[S08]])."
+      },
+      "S1": {
+         "long": "Mal, para ya da hesap risk altındadır: hasarlı ya da kayıp mal, gümrükte tutulan mal, kapanan listing ya da hesap, geri çağırma, ödeme kaybı. Yönetime hemen telefonla ve yazılı, müşteriye 4 saat içinde bildirilir. S1 olayını yalnızca yönetim kapatır."
+      },
+      "S2": {
+         "long": "Teslim ya da yayın tarihi kayar veya ek maliyet çıkar: bekleme ücreti, ikinci sefer, yeniden etiketleme, belge talebi. Yönetime aynı gün yazılı, müşteriye aynı iş günü bildirilir. Olay yönetime bildirilmeden açık durumdan çıkmaz."
+      },
+      "S3": {
+         "long": "Teslim ve maliyet etkilenmez: evrak düzeltmesi, küçük sayım farkı, bilgilendirme. Haftalık toplantıda ve müşterinin haftalık özetinde bildirilir."
+      },
+      "PI": {
+         "short": "Proforma fatura: tedarikçinin ürün, fiyat, toplam ve şartları içeren ön faturası.",
+         "long": "Depozito buna göre ödendiği için her ödemeden önce [[S09]] ile kontrol edilir. Bir PI'ın yalnızca tek dosya sürümü geçerlidir; düzeltilmiş PI yeni sürümdür. Onayı [[G3]]'ün kanıtıdır ve satın alma siparişini kilitler."
+      },
+      "PSI": {
+         "short": "Yükleme öncesi kontrol: mal yüklenmeden önce yapılan kalite kontrolü.",
+         "long": "Dış kontrol firması ya da güvenilir yerel temsilci malı AQL standardıyla, [[S11]] listesine göre spec sheet'le karşılaştırır. Bakiye yalnızca onaylı PSI raporundan sonra ödenir ve [[G4]] bu raporu ister. Geçmeyen PSI bir [[OU]] olayıdır."
+      },
+      "ETD": {
+         "short": "Sevkiyatın tahmini çıkış zamanı.",
+         "long": "Forwarder booking'de verir; sevkiyatın Tarihler sekmesinde tutulur. Kayınca müşteriye bildirilir; geciken sevkiyat genelde [[OL]]-09 olayı açar."
+      },
+      "ETA": {
+         "short": "Varış deposuna tahmini varış zamanı.",
+         "long": "Forwarder değişiklik bildirdikçe güncellenir ve her değişiklik müşteriye iletilir ([[S15]]). Dashboard sevkiyatları ETA'larına göre listeler. [[ETD]] ve ETA olmadan sevkiyat yolda durumuna geçmez."
+      },
+      "CMR": {
+         "short": "CMR sözleşmesine göre kara yolu taşıma senedi.",
+         "long": "Her tır sevkiyatında, örneğin Türkiye'den AB'ye, araçla gider. Hasar ya da eksik teslimde üzerine yazılır; gizli hasar taşıyıcıdan 7 gün içinde istenir. Eksik ya da hatalı CMR bir [[OL]]-07 olayıdır."
+      },
+      "GTIN": {
+         "short": "Global Trade Item Number: ürünü dünya genelinde tanımlayan barkod numarası.",
+         "long": "[[EAN]], UPC ve benzerlerinin genel adıdır: kontrol basamaklı 8, 12, 13 ya da 14 hane, GS1'den alınır. Bir varyantın bir GTIN'i olur; panel kontrol basamağını doğrular ve başka aktif üründe kullanılan GTIN'i reddeder. Arşivlenen ürünün GTIN'i yeniden verilebilir."
+      },
+      "EAN": {
+         "short": "European Article Number: barkodun altındaki 13 haneli GTIN.",
+         "long": "Perakende ve Amazon listing açmak için ister. İki farklı pakette aynı EAN listing'leri birleştiren bir hatadır ([[OA]]-05). Panelde ürünün [[GTIN]]'i olarak girilir."
+      },
+      "ASIN": {
+         "short": "Amazon Standard Identification Number: Amazon'daki ürün sayfasının 10 karakterlik kimliği.",
+         "long": "Amazon listing açılınca verir; aynı ASIN'i birden çok satıcı satabilir. Panelde Amazon pazar hücresinin platform ürün kimliğidir; hücre yayına çıkmadan önce gerekir ([[S05]])."
+      },
+      "SKU": {
+         "short": "Stok kodu: satıcının bir ürün varyantı için kendi kodu.",
+         "long": "Bir varyant bir SKU ve ürün ana tablosunda bir satırdır ([[S10]]); platform ya da ülke içermez. Pazar yerinde aynı ürünün kendi platform SKU'su olabilir; pazar hücresinde tutulur. SKU benzersizdir."
       }
    }
 }

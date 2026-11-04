@@ -23,8 +23,15 @@ const logout = () => {
    );
 };
 
+const router = useRouter();
+
+const openGuide = () => {
+   accountMenu.value?.hide();
+   router.push({ name: 'guide' });
+};
+
 const account = useMenuSection('account');
-const accountMenuItems = computed(() => buildAccountMenu(account.value?.items, logout));
+const accountMenuItems = computed(() => buildAccountMenu(account.value?.items, logout, openGuide));
 </script>
 
 <template>

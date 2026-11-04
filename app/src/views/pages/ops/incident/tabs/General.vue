@@ -141,6 +141,7 @@ const rolledBackGates = computed(() => row.value?.project_gate ?? []);
       <FormField
          fluid
          :label="$t('ops.incident.fields.incident_type')"
+         term="Y10"
          :error="errors.incident_type"
          :readonly
          v-slot="slotProps"

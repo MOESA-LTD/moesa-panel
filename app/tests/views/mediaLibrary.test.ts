@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import type { MediaLibraryFilters } from '@/api/media/library';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';

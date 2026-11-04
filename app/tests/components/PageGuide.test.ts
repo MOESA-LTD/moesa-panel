@@ -3,14 +3,16 @@ import PageGuide from '@/components/service-components/page-guide/PageGuide.vue'
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import { useGuideStore } from '@/store/guide';
+import { PAGE_GUIDES } from '@/constants/guide';
+import { stripTerms } from '@/constants/terms';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import PrimeVue from 'primevue/config';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { createMemoryHistory, createRouter } from 'vue-router';
+import { createMemoryHistory, createRouter, useRouter, type RouteLocationRaw } from 'vue-router';
 
 const ROUTES = [
    'dashboard',
@@ -25,6 +27,13 @@ const router = createRouter({
    history: createMemoryHistory(),
    routes: [
       { path: '/', component: { template: '<div />' } },
+      // Kept out of the menu like the real route, which CustomLink would not render.
+      {
+         path: '/guide',
+         name: 'guide',
+         meta: { visible: false },
+         component: { template: '<div />' }
+      },
       ...ROUTES.map((name) => ({
          path: `/${name}`,
          name,
@@ -36,8 +45,7 @@ const router = createRouter({
 
 let pinia: Pinia;
 
-const mountGuide = async (focusTask?: string) => {
-   useGuideStore().show('dashboard', focusTask);
+const mountPanel = async () => {
    const wrapper = mount(PageGuide, {
       global: {
          plugins: [
@@ -47,18 +55,39 @@ const mountGuide = async (focusTask?: string) => {
             PrimeVue,
             [abilitiesPlugin, ability, { useGlobalProperties: true }]
          ] as never,
-         stubs: { teleport: true, CustomLink: { template: '<a><slot /></a>' } }
+         stubs: {
+            teleport: true,
+            // Like CustomLink, the stub navigates only through the navigate slot prop.
+            CustomLink: {
+               props: ['to'],
+               setup: (props: Record<string, unknown>) => {
+                  const r = useRouter();
+                  return { navigate: () => r.push(props.to as RouteLocationRaw) };
+               },
+               template: '<a :data-to="JSON.stringify(to)"><slot :navigate="navigate" /></a>'
+            }
+         }
       }
    });
+   await nextTick();
    await nextTick();
    return wrapper;
 };
 
+const mountGuide = async (focusTask?: string) => {
+   useGuideStore().show('dashboard', focusTask);
+   return mountPanel();
+};
+
+const footerHref = (wrapper: Awaited<ReturnType<typeof mountPanel>>) =>
+   wrapper.find('.p-drawer-footer a').attributes('href');
+
 const DASHBOARD = 'guide.pages.dashboard.tasks';
 
 describe('PageGuide', () => {
-   beforeAll(() => i18n.setLocaleMessage('en', en));
    beforeEach(() => {
+      i18n.setLocaleMessage('en', structuredClone(en));
+      Element.prototype.scrollIntoView = vi.fn();
       pinia = createPinia();
       setActivePinia(pinia);
       ability.update([{ action: 'update', subject: 'incident' }]);
@@ -69,7 +98,7 @@ describe('PageGuide', () => {
 
       expect(text).toContain(i18n.t(`${DASHBOARD}.close_incident.title`));
       const steps = [1, 2, 3].map((n) =>
-         text.indexOf(i18n.t(`${DASHBOARD}.close_incident.steps.${n}`))
+         text.indexOf(stripTerms(i18n.t(`${DASHBOARD}.close_incident.steps.${n}`)))
       );
       expect(steps.every((at) => at >= 0)).toBe(true);
       expect(steps).toEqual([...steps].sort((a, b) => a - b));
@@ -91,5 +120,128 @@ describe('PageGuide', () => {
       const drawer = (await mountGuide()).findComponent({ name: 'Drawer' });
       expect(drawer.props('modal')).toBe(false);
       expect(drawer.props('position')).toBe('right');
+   });
+
+   it("lists the page's terms with their short line", async () => {
+      useGuideStore().show('purchase_order');
+      const wrapper = await mountPanel();
+      expect(wrapper.find('#guide-term-S09').exists()).toBe(true);
+      expect(wrapper.text()).toContain(stripTerms(i18n.t('terms.S09.short')));
+      expect(wrapper.find('#guide-term-PI').exists()).toBe(true);
+   });
+
+   it('opens on a focused term', async () => {
+      const store = useGuideStore();
+      store.followRoute('purchase_order');
+      store.showTerm('PSI');
+      const wrapper = await mountPanel();
+      expect(wrapper.find('#guide-term-PSI').attributes('aria-current')).toBe('true');
+      expect(wrapper.text()).toContain(stripTerms(i18n.t('terms.PSI.long')));
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+   });
+
+   it('focuses a glossary row of the page', async () => {
+      const store = useGuideStore();
+      store.followRoute('dashboard');
+      store.showTerm('G1');
+      const wrapper = await mountPanel();
+      const dt = wrapper.find('#guide-term-G1');
+      expect(dt.element.tagName).toBe('DT');
+      expect(dt.text()).toBe(i18n.t('ops.project.gate.G1'));
+      expect(dt.attributes('aria-current')).toBe('true');
+   });
+
+   it('shows a term on a route without a guide', async () => {
+      const store = useGuideStore();
+      store.followRoute(null);
+      store.showTerm('CMR');
+      const wrapper = await mountPanel();
+      expect(wrapper.text()).toContain(stripTerms(i18n.t('terms.CMR.short')));
+      expect(wrapper.text()).not.toContain(i18n.t('guide.panel.purpose'));
+   });
+
+   it('links to the system guide on the focused term', async () => {
+      const store = useGuideStore();
+      store.showTerm('S09');
+      const wrapper = await mountPanel();
+      expect(footerHref(wrapper)).toBe('/guide#term-S09');
+      store.show('dashboard');
+      await nextTick();
+      expect(footerHref(wrapper)).toBe('/guide');
+   });
+
+   it('opens a related page on a plain click', async () => {
+      await router.push('/');
+      useGuideStore().show('purchase_order');
+      const wrapper = await mountPanel();
+      const name = PAGE_GUIDES.purchase_order.related[0];
+      const link = wrapper.find(`a[data-to='${JSON.stringify({ name })}'] button`);
+
+      await link.trigger('click');
+      await flushPromises();
+
+      expect(router.currentRoute.value.name).toBe(name);
+   });
+
+   it('keeps the task open when a term in its steps is clicked', async () => {
+      try {
+         i18n.mergeLocaleMessage('en', {
+            guide: {
+               pages: {
+                  dashboard: {
+                     tasks: { close_incident: { steps: { 1: 'Open the incident; [[S1]] first.' } } }
+                  }
+               }
+            }
+         });
+         useGuideStore().followRoute('dashboard');
+         const wrapper = await mountGuide('close_incident');
+
+         await wrapper.find('ol abbr[data-term="S1"]').trigger('click');
+
+         expect(useGuideStore().focusTerm).toBe('S1');
+         expect(wrapper.findComponent({ name: 'Accordion' }).props('value')).toBe('close_incident');
+      } finally {
+         i18n.setLocaleMessage('en', structuredClone(en));
+      }
+   });
+
+   it('renders the guide copy with its terms', async () => {
+      try {
+         i18n.mergeLocaleMessage('en', {
+            guide: {
+               pages: {
+                  dashboard: {
+                     tasks: {
+                        close_incident: {
+                           title: 'Close [[S1]]',
+                           steps: { 1: 'Open the incident; [[S1]] first.' }
+                        }
+                     }
+                  }
+               }
+            }
+         });
+         const wrapper = await mountGuide('close_incident');
+         const panel = wrapper
+            .findAllComponents({ name: 'AccordionPanel' })
+            .find((p) => p.props('value') === 'close_incident')!;
+         const step = panel.find('ol abbr[data-term="S1"]');
+         expect(step.attributes('role')).toBe('button');
+         const header = panel
+            .findComponent({ name: 'AccordionHeader' })
+            .find('abbr[data-term="S1"]');
+         expect(header.exists()).toBe(true);
+         expect(header.attributes('role')).toBeUndefined();
+         expect(wrapper.text()).not.toContain('[[');
+      } finally {
+         i18n.setLocaleMessage('en', structuredClone(en));
+      }
+      expect(i18n.t(`${DASHBOARD}.close_incident.title`)).toBe(
+         en.guide.pages.dashboard.tasks.close_incident.title
+      );
+      expect(i18n.t(`${DASHBOARD}.close_incident.steps.1`)).toBe(
+         en.guide.pages.dashboard.tasks.close_incident.steps['1']
+      );
    });
 });

@@ -1,3 +1,4 @@
+import { isTermCode, parseTerms, termOfGlossary } from '@/constants/terms';
 import { GUIDE_PAGES, PAGE_GUIDES, visibleTasks } from '@/constants/guide';
 import opsRoutes from '@/router/routes/ops';
 import { readFileSync } from 'node:fs';
@@ -44,6 +45,40 @@ describe('page guide copy', () => {
          return [...keys.filter((key) => !isText(lookup(tree, key))), ...extra];
       });
       expect(missing).toEqual([]);
+   });
+
+   it('marks the codes of the guides', () => {
+      const en = messages('en');
+      expect(lookup(en, 'guide.pages.purchase_order.tasks.check_pi.title')).toBe(
+         'Check the [[PI]] ([[S09]])'
+      );
+      expect(lookup(en, 'guide.pages.dashboard.tasks.close_gates.steps.2')).toContain('[[(M)]]');
+      expect(lookup(en, 'guide.pages.incident.tasks.open_incident.steps.1')).toContain('[[Y10]]');
+      expect(lookup(en, 'guide.pages.dashboard.tasks.track_shipment.steps.3')).toContain(
+         '[[OL]]-09'
+      );
+   });
+
+   it('lists the codes each page marks among its terms', () => {
+      const en = messages('en');
+      const strings = (node: Tree | string): string[] =>
+         typeof node === 'string' ? [node] : Object.values(node).flatMap(strings);
+      const unlisted = GUIDE_PAGES.flatMap((page) => {
+         const guide = PAGE_GUIDES[page];
+         const derived = guide.glossary.flatMap((e) =>
+            Object.keys((lookup(en, `glossary.${e}`) ?? {}) as Tree).map((v) =>
+               termOfGlossary(e, v)
+            )
+         );
+         const listed = new Set<string | undefined>([...(guide.terms ?? []), ...derived]);
+         const marked = strings(lookup(en, `guide.pages.${page}`) as Tree).flatMap((text) =>
+            parseTerms(text).flatMap((part) => ('code' in part ? [part.code] : []))
+         );
+         return marked
+            .filter((code) => isTermCode(code) && !listed.has(code))
+            .map((c) => `${page}:${c}`);
+      });
+      expect(unlisted).toEqual([]);
    });
 
    it('links only to labelled routes', () => {

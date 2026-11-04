@@ -50,6 +50,16 @@ const router = createRouter({
                               skeleton: () => import('@/views/pages/dashboard/Index.vue')
                            }
                         },
+                        {
+                           path: 'guide',
+                           name: 'guide',
+                           meta: {
+                              label: 'route.label.guide',
+                              icon: PrimeIcons.BOOK,
+                              visible: false
+                           },
+                           component: () => import('@/views/pages/guide/Index.vue')
+                        },
                         ...branchRoutes,
                         ...opsRoutes,
                         ...accountRoutes,

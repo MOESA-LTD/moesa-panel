@@ -7,6 +7,7 @@ import {
    type ProjectPhase
 } from '@/api/project';
 import { glossaryKey } from '@/api/glossary';
+import { stripTerms } from '@/constants/terms';
 
 /**
  * A project's phases in a row: the ones it has gone through, the one it is in, the ones ahead.
@@ -24,7 +25,7 @@ const { t, te } = useI18n();
 const gateTitle = (gate: { code: string; status: GateStatus }) => {
    const status = t(`ops.project.gate_status.${gate.status}`);
    const key = glossaryKey('gate_code', gate.code);
-   return te(key) ? `${status} — ${t(key)}` : status;
+   return te(key) ? `${status} — ${stripTerms(t(key))}` : status;
 };
 
 const GATE_ICON: Record<GateStatus, string> = {

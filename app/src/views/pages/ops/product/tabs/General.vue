@@ -44,6 +44,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
          <FormField
             fluid
             :label="$t('ops.product.fields.sku')"
+            term="SKU"
             :error="errors.sku"
             :readonly
             v-slot="slotProps"
@@ -62,6 +63,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
          <FormField
             fluid
             :label="$t('ops.product.fields.gtin')"
+            term="GTIN"
             :error="errors.gtin"
             :readonly
             v-slot="slotProps"

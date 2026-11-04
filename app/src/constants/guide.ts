@@ -29,12 +29,16 @@ export type GuideTask = {
    permission: { action: 'read' | 'create' | 'update' | 'delete'; subject: string };
 };
 
-/** A page's guide: its route, the tasks, the related pages (route names) and the terms it uses. */
+/**
+ * A page's guide: its route, the tasks, the related pages (route names), the enums whose values it
+ * explains and the term codes it uses that those enums do not already cover.
+ */
 export type PageGuide = {
    route: string;
    tasks: readonly GuideTask[];
    related: readonly string[];
    glossary: readonly GlossaryEnum[];
+   terms?: readonly string[];
 };
 
 const task = (
@@ -58,12 +62,14 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('update_market', 'update', 'market_cell')
       ],
       related: ['ops-project', 'ops-purchase-order', 'ops-shipment', 'ops-incident', 'ops-market'],
+      terms: ['(M)', 'SKU', 'S12', 'PI', 'S09', 'ETD', 'ETA', 'S15', 'OL'],
       glossary: ['gate_code', 'incident_severity']
    },
    setting: {
       route: 'ops-setting',
       tasks: [task('change_setting', 'update', 'setting'), task('read_setting', 'read', 'setting')],
       related: ['dashboard', 'ops-purchase-order', 'ops-incident'],
+      terms: ['K6'],
       glossary: []
    },
    customer: {
@@ -74,6 +80,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('add_platform', 'create', 'customer_platform_account')
       ],
       related: ['ops-project', 'ops-product', 'ops-market'],
+      terms: ['S14', 'K8', 'K5'],
       glossary: ['customer_status', 'package']
    },
    supplier: {
@@ -94,6 +101,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('add_media', 'create', 'media')
       ],
       related: ['ops-document', 'ops-media', 'ops-market'],
+      terms: ['S10', 'SKU', 'GTIN', 'S07'],
       glossary: ['product_status', 'document_status']
    },
    project: {
@@ -104,6 +112,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('rollback_gate', 'update', 'project_gate')
       ],
       related: ['ops-incident', 'ops-purchase-order', 'ops-change-request'],
+      terms: ['(M)'],
       glossary: ['project_type', 'project_path', 'package', 'gate_code', 'task_status']
    },
    document: {
@@ -114,6 +123,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('set_status', 'update', 'document')
       ],
       related: ['ops-product', 'ops-media', 'ops-change-request'],
+      terms: ['S07', 'S08'],
       glossary: ['document_type', 'document_status']
    },
    media: {
@@ -134,6 +144,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('record_payment', 'create', 'purchase_order_payment')
       ],
       related: ['ops-shipment', 'ops-supplier', 'ops-project'],
+      terms: ['S09', 'PI', 'PSI', 'G4'],
       glossary: ['purchase_order_status', 'payment_kind']
    },
    shipment: {
@@ -144,6 +155,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('accept', 'update', 'shipment')
       ],
       related: ['ops-purchase-order', 'ops-incident', 'ops-customer'],
+      terms: ['S15', 'S16', 'S14', 'ETD', 'ETA'],
       glossary: ['shipment_status', 'shipment_mode']
    },
    market_matrix: {
@@ -154,6 +166,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('go_live', 'update', 'market_cell')
       ],
       related: ['ops-product', 'ops-customer', 'ops-incident'],
+      terms: ['S05', 'S12', 'SKU', 'L-G1', 'S13', 'ASIN'],
       glossary: ['market_cell_status', 'market_compliance', 'content_status', 'stock_source']
    },
    incident: {
@@ -164,6 +177,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('close', 'update', 'incident')
       ],
       related: ['ops-shipment', 'ops-project', 'ops-change-request'],
+      terms: ['S17', 'Y10'],
       glossary: [
          'incident_severity',
          'incident_status',
@@ -179,6 +193,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('apply_cr', 'update', 'change_request')
       ],
       related: ['ops-project', 'ops-document', 'ops-incident'],
+      terms: ['S08', '(M)'],
       glossary: ['change_request_status', 'change_request_source', 'change_kind']
    }
 };

@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import { tabForField, useProductForm } from '@/views/pages/ops/product/useProductForm';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

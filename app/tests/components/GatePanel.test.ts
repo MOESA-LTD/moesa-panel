@@ -1,6 +1,7 @@
 import '../setup/mockMain';
 import { gateEvidenceEntityIds, type ProjectCard, type ProjectGateRow } from '@/api/project';
 import GatePanel from '@/components/service-components/gate-panel/GatePanel.vue';
+import { stripTerms } from '@/constants/terms';
 import en from '@/plugins/i18n/locales/en/index.json';
 import { ability } from '@/plugins/casl';
 import i18n, { i18NPlugin } from '@plugins/i18n';
@@ -107,6 +108,29 @@ describe('gate evidence', () => {
       const documents = api.lookupCalls.find(({ table }) => table === 'document');
       const options = toValue(documents!.options as () => { in: { values: unknown[] } });
       expect(options.in.values).toEqual(['g', 'p', 'o', 's']);
+   });
+});
+
+describe('gate glossary', () => {
+   it('explains the gate in plain text', async () => {
+      const wrapper = mount(GatePanel, {
+         props: { gate, project: { ...project, project_gate: [gate] } as ProjectCard },
+         global: {
+            plugins: [
+               i18NPlugin,
+               PrimeVue,
+               ToastService,
+               [abilitiesPlugin, ability, { useGlobalProperties: true }]
+            ] as never,
+            directives: { tooltip: {} },
+            stubs: { EntityDocuments: true, teleport: true }
+         }
+      });
+      await flushPromises();
+      const label = wrapper.find('[data-test="gate-glossary-info"]').attributes('aria-label');
+      expect(label).toBe(stripTerms(i18n.t('glossary.gate_code.G3')));
+      expect(label).toBe('PI, price and print approval (M).');
+      expect(label).not.toContain('[[');
    });
 });
 

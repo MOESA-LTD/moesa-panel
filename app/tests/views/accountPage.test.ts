@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import { AVATAR_MAX_BYTES } from '@/api/account/avatar';
 import { localeDateString } from '@/lib/dayjs';
 import en from '@/plugins/i18n/locales/en/index.json';

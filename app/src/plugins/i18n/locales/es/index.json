@@ -251,7 +251,8 @@
          "ops_change_request_general": "Request",
          "ops_change_request_impact": "Impact",
          "ops_change_request_decision": "Decision",
-         "ops_change_request_documents": "Documents"
+         "ops_change_request_documents": "Documents",
+         "guide": "System guide"
       }
    },
    "auth": {
@@ -2320,7 +2321,9 @@
          "needs": "Needs: {action} on {subject}",
          "no_tasks": "Your role has no task on this page; you can read it.",
          "open": "How does this page work?",
-         "close_card": "How do I close this card?"
+         "close_card": "How do I close this card?",
+         "term_open": "What is {code}?",
+         "system_guide": "Open the system guide"
       },
       "actions": {
          "read": "read",
@@ -2745,6 +2748,251 @@
                   }
                }
             }
+         }
+      }
+   },
+   "terms": {
+      "S05": {
+         "short": "The market matrix: one cell per product, platform and country, with its status, compliance and listing data.",
+         "long": "S05 is kept once per customer and grows as products and markets are added; the cross-table view is derived from the cells. Each cell moves through nine statuses, from candidate to live, and a cell with red compliance is removed with its reason. In the panel it is the Market matrix page."
+      },
+      "S07": {
+         "short": "The spec sheet: the manufacturer's signed technical sheet of the product it will make.",
+         "long": "The manufacturer fills it, not MOESA; unless it comes from the official e-mail, signed, stamped, versioned and dated, it is only a draft. [[G2]] is not passed, and no order or shipment goes ahead, without a signed spec sheet. Every change needs a new version through [[S08]]; the old one is kept as superseded."
+      },
+      "S08": {
+         "short": "The change request: nothing approved changes without one.",
+         "long": "It records the old and new value word for word, the reason, the impact on cost, time, quality and listing, and the decision. A change that touches a passed [[(M)]] gate also needs the customer's written approval. Once applied, every affected document gets a new version; the request's code is CR-customer-year-number."
+      },
+      "S09": {
+         "short": "The PI checklist: 30 checks on every supplier proforma invoice before it is approved.",
+         "long": "Every [[PI]] and every corrected version is checked line by line; the arithmetic is recalculated, never copied. One wrong or missing item sends the PI back to the supplier, and nothing is paid. An approved PI locks the order's lines and terms and is the evidence of [[G3]]."
+      },
+      "S10": {
+         "short": "The product master: the single source of product data, one row per variant.",
+         "long": "One variant is one [[SKU]], one [[GTIN]] and one row; a GTIN is checked and never used twice. Orders, the market matrix, listings and labels take their product data from here. In the panel it is the Products page, filled by hand or by importing the S10 CSV."
+      },
+      "S11": {
+         "short": "The PSI checklist: what the pre-shipment inspection checks, product by product.",
+         "long": "Compliance and quality fill it for the product before the inspection, which is done with at least 80% of the goods packed. Each measurement is written next to the spec sheet's value and each defect is classed with a photo. The inspector's pass or fail is not the decision: compliance and quality decide, and the report is the evidence of [[G4]]."
+      },
+      "S12": {
+         "short": "The compliance document set: the documents each product type needs, per variant.",
+         "long": "It is filled within three business days after [[G3]] for each model or variant; one file for a family is not enough. Each document is present, missing, or not needed with a reason; an unsigned or undated document does not count. [[G4]] needs zero missing documents."
+      },
+      "S13": {
+         "short": "The listing pre-launch check: filled for each platform and country cell before it goes live.",
+         "long": "A form filled for one country is never copied to another. Any 'no' stops the launch until it is fixed or a change request is opened; compliance and quality sign the documents and the compliance text. A cell does not count as live before the customer's [[L-G1]] approval is recorded."
+      },
+      "S14": {
+         "short": "The warehouse delivery card: one card per delivery address, confirmed by the customer.",
+         "long": "It gives one warehouse's address, dock hours, vehicle limits and appointment rule; contacts are a role and a channel, never a person's details. It is confirmed again before every shipment, and no shipment is planned to a warehouse without one. In the panel it is a customer's Warehouses tab."
+      },
+      "S15": {
+         "short": "The shipment notice chain: who tells whom, when and through which channel, for each shipment.",
+         "long": "It is sent before loading as one e-mail thread to the forwarder, the customs broker, the customer and the warehouse, and every later message stays in it. Anything learnt by phone is written into the thread the same day. In the panel its steps are a shipment's Events."
+      },
+      "S16": {
+         "short": "The delivery acceptance form: counts, damage and reservations, signed before the truck leaves.",
+         "long": "A shortage, surplus or damage is written as a reservation the driver signs; without it a later claim against the carrier is hard. Photos of the pallet labels, the container door and the seal are required. The signed form is the evidence of [[G5]] and the condition for the invoice."
+      },
+      "S17": {
+         "short": "The incident record: what happened, its log and deadlines, and the lesson at closure.",
+         "long": "Whoever sees the incident opens it within 15 minutes and writes 'unknown' rather than guess; the coordinator classes it within 30 minutes. Every contact, decision and cost goes into its log. It is not closed until the preventive measure is written into its guideline ([[Y10]])."
+      },
+      "Y10": {
+         "short": "The incident and recovery guideline: what to do in the first hour when something goes wrong.",
+         "long": "Every incident follows the same six steps: record, classify, stop and protect, tell, recover, and close with the lesson. It sets the severities [[S1]] to [[S3]] with their notice times, the deadlines that must not slip, and a card for each known incident coded by family, such as [[OL]]-09 for a late shipment. The 'if it goes wrong' sections of the other guidelines point to these cards."
+      },
+      "K5": {
+         "short": "Codes are generated by the panel and never changed by hand.",
+         "long": "A customer has a three-letter code; projects, orders, shipments, change requests and incidents take numbered codes from it, such as PO-THO-2026-001. The counters run per customer and year in the database, so two users never get the same number. An incident's code starts with its family ([[OL]], [[OA]], [[OU]], [[OT]], [[OM]])."
+      },
+      "K6": {
+         "short": "Numbers awaiting a management decision are settings, not fixed rules.",
+         "long": "The default deposit, the spec sheet date, the document request time and the incident notice hours sit on the Settings page. Only management changes them, and every change is logged. The rules read the current value at each save."
+      },
+      "K7": {
+         "short": "The panel is written in Turkish and English; process codes stay the same in every language.",
+         "long": "Screens, hints and guides are written by hand in Turkish and English; the other languages show the English text for now. Codes such as [[G2]], [[S09]] or [[L-G1]] are never translated, so a code means the same thing in every document and conversation."
+      },
+      "K8": {
+         "short": "Sensitive data is never stored in the panel.",
+         "long": "There is no field for bank details, tax or EORI numbers, passwords or platform case numbers. Customer and supplier cards link to a restricted Drive folder instead. Contacts are a role and an official channel, never a personal phone number or e-mail."
+      },
+      "A0": {
+         "long": "Package A0 is the research and concept work before a product is developed: market research, an approved concept, design and the brand file. It runs through phases PL1–PL3 and ends with the concept approval [[PL-G1]]. It is part of [[A2]]."
+      },
+      "A1": {
+         "long": "Package A1 finds an existing brand's or manufacturer's product, gets it approved and checks its quality. It runs through P1–P4 with the gates [[G1]] to [[G4]]: brief, sample and spec sheet, order, inspection."
+      },
+      "A2": {
+         "long": "Package A2 develops a product under the customer's own brand from the concept on, with the private label gates [[PL-G1]] to [[PL-G4]] between P1 and P3. It includes [[A0]] and needs a golden sample before mass production."
+      },
+      "B": {
+         "long": "Package B brings the goods from the supplier to the customer's warehouse: packing, logistics, customs and delivery (P5–P6). It starts after [[G4]] and ends with the delivery acceptance [[G5]]."
+      },
+      "C": {
+         "long": "Package C puts the product on sale: content, listings and launch on the chosen platforms and countries (L1–L5). Each platform and country is a cell of the market matrix ([[S05]]); content needs [[L-G1]] before it goes live."
+      },
+      "D": {
+         "long": "Package D is the end-to-end offer: [[A1]] or [[A2]], then [[B]] and [[C]], with one contact from the idea to a product ready to sell. Its project carries the gates of all its parts."
+      },
+      "E": {
+         "long": "Package E is the ongoing management after launch: reorders, listing upkeep and reporting (O1–O3). It opens no project of its own; each reorder opens a reorder project that starts at [[G3]]."
+      },
+      "G1": {
+         "long": "The customer approves the brief and the feasibility in writing; sourcing starts only after it. The evidence is the approval e-mail or e-signature."
+      },
+      "G2": {
+         "long": "The customer approves the sample, the spec sheet and the NPDS in writing. It is never passed without a signed spec sheet ([[S07]]); in the panel it blocks until every linked product has a signed or approved spec sheet."
+      },
+      "G3": {
+         "long": "The customer approves the price, the [[PI]] and the print files in writing before production. In the panel it blocks until one of the project's orders has an approved PI ([[S09]])."
+      },
+      "G4": {
+         "long": "An internal gate: the goods are released for shipment once the [[PSI]] has passed and the documents are complete ([[S12]]). Compliance and quality approve it; the balance is not paid before it."
+      },
+      "G5": {
+         "long": "The customer accepts the delivery at its warehouse. The signed delivery receipt ([[S16]]) is the evidence and the condition for the invoice."
+      },
+      "PL_G1": {
+         "long": "The customer approves the concept and the design in writing at the end of research and concept (PL1–PL2). Brand and product development start only after it."
+      },
+      "PL_G2": {
+         "long": "The customer approves the brand and its identity: name, logo, colours and tone (PL3). The packaging and content work builds on it."
+      },
+      "PL_G3": {
+         "long": "The customer approves the golden sample, the reference for mass production. Photos and content start from it before production ends, and the [[PSI]] checks the goods against it."
+      },
+      "PL_G4": {
+         "long": "The customer approves the packaging artwork before it goes to print (PL6). The artwork carries the [[GTIN]], the warnings and the markings of the target countries."
+      },
+      "L_G1": {
+         "long": "The customer approves the listing content in writing before it goes live. A market cell cannot go live without approved content ([[S13]])."
+      },
+      "L_G2": {
+         "long": "The customer accepts the closure of the project after launch; the final market matrix ([[S05]]) goes into the delivery file."
+      },
+      "M_gate": {
+         "short": "A gate marked (M) needs the customer's written approval.",
+         "long": "The approval comes by e-mail or e-signature and is filed as a document of the gate; a verbal or chat approval is confirmed by e-mail the same day. In the panel an (M) gate passes only with the customer's approval date and document. Changing something a passed (M) gate approved needs a change request with the customer's written approval ([[S08]])."
+      },
+      "OL": {
+         "long": "Shipment and delivery incidents have the cards OL-01 to OL-12, from a wrong truck to a refused FBA delivery. Most start at a warehouse or a port; [[S14]], [[S15]] and [[S16]] exist to prevent them."
+      },
+      "OA": {
+         "long": "Platform incidents have the cards OA-01 to OA-10: removed or suppressed listings, document requests, [[ASIN]] or [[EAN]] conflicts, account health. A platform case number is never written in the panel ([[K8]])."
+      },
+      "OU": {
+         "long": "Product and compliance incidents have the cards OU-01 to OU-06: a failed [[PSI]], a refusal at delivery, a recall, a missing legal label, an invalid test report. A gate that has to be redone is rolled back through an incident like these."
+      },
+      "OT": {
+         "long": "Supplier incidents have the cards OT-01 to OT-08: an unannounced spec change, a production delay, a [[PI]] or invoice mismatch, a mould or IP issue, bank detail fraud, no answer, a price rise. The supplier's PI terms set deadlines such as the 48-hour damage notice."
+      },
+      "OM": {
+         "long": "Customer incidents have the cards OM-01 to OM-06: a verbal change, a late payment, a refused extra cost, a dispute, no answer, an outside provider or IP issue. A verbal change is written down the same day and handled as a change request ([[S08]])."
+      },
+      "S1": {
+         "long": "Goods, money or the account are at risk: damaged or lost goods, goods held at customs, a closed listing or account, a recall, a lost payment. Management is told at once by phone and in writing, the customer within 4 hours. Only management closes an S1 incident."
+      },
+      "S2": {
+         "long": "A delivery or launch date slips or an extra cost appears: waiting fees, a second trip, relabelling, a document request. Management is told in writing the same day and the customer the same business day. The incident leaves open only once management has been told."
+      },
+      "S3": {
+         "long": "Delivery and cost are not affected: a document correction, a small count difference, a notice. It is reported at the weekly meeting and in the customer's weekly summary."
+      },
+      "PI": {
+         "short": "Proforma invoice: the supplier's preliminary invoice with products, prices, totals and terms.",
+         "long": "The deposit is paid against it, so it is checked with [[S09]] before anything is paid. Only one file version of a PI is valid; a corrected PI is a new version. Its approval is the evidence of [[G3]] and locks the purchase order."
+      },
+      "PSI": {
+         "short": "Pre-shipment inspection: the quality check before the goods are loaded.",
+         "long": "An outside inspector or a trusted local agent checks the goods against the spec sheet with the AQL standard, using the [[S11]] checklist. The balance is paid only after an approved PSI report, and [[G4]] needs it. A failed PSI is an [[OU]] incident."
+      },
+      "ETD": {
+         "short": "Estimated time of departure of a shipment.",
+         "long": "The forwarder gives it at booking; it is kept on the shipment's Dates tab. When it slips, the customer is told, and a late shipment usually opens an [[OL]]-09 incident."
+      },
+      "ETA": {
+         "short": "Estimated time of arrival at the destination warehouse.",
+         "long": "It is updated whenever the forwarder announces a change, and every change is passed on to the customer ([[S15]]). The dashboard lists shipments by their ETA. A shipment does not go in transit without [[ETD]] and ETA."
+      },
+      "CMR": {
+         "short": "The consignment note of road transport under the CMR convention.",
+         "long": "It travels with every truck shipment, for example from Türkiye to the EU. Damage or a shortage is written on it at delivery; hidden damage is claimed from the carrier within 7 days. A missing or wrong CMR is an [[OL]]-07 incident."
+      },
+      "GTIN": {
+         "short": "Global Trade Item Number: the barcode number that identifies a product worldwide.",
+         "long": "It is the general name of [[EAN]], UPC and similar codes: 8, 12, 13 or 14 digits with a check digit, bought from GS1. One variant has one GTIN; the panel checks the digit and refuses a GTIN used by another active product. An archived product's GTIN can be given again."
+      },
+      "EAN": {
+         "short": "European Article Number: the 13-digit GTIN printed under the barcode.",
+         "long": "Retailers and Amazon need it to open a listing. The same EAN on two different packs is an error that merges listings ([[OA]]-05). In the panel it is entered as the product's [[GTIN]]."
+      },
+      "ASIN": {
+         "short": "Amazon Standard Identification Number: the 10-character ID of a product page on Amazon.",
+         "long": "Amazon gives it when the listing is opened; several sellers can sell under one ASIN. In the panel it is the platform product ID of an Amazon market cell, needed before the cell goes live ([[S05]])."
+      },
+      "SKU": {
+         "short": "Stock keeping unit: the seller's own code for one product variant.",
+         "long": "One variant is one SKU and one row of the product master ([[S10]]); it holds no platform or country. A marketplace may have its own platform SKU for the same product, kept on the market cell. A SKU is unique."
+      }
+   },
+   "system_guide": {
+      "title": "System guide",
+      "intro": "How the panel works and what its codes mean, the same for every role. A dotted code anywhere in the panel opens its entry.",
+      "contents": "On this page",
+      "open_document": "Open the document in Drive",
+      "sections": {
+         "panel": {
+            "title": "How the panel works"
+         },
+         "process": {
+            "title": "Process documents",
+            "intro": "The guideline (Y) and template (S) documents of the MOESA workflow that the panel follows."
+         },
+         "rules": {
+            "title": "Panel rules",
+            "intro": "Decisions of the panel's design (K) that every screen follows."
+         },
+         "packages": {
+            "title": "Service packages",
+            "intro": "What MOESA sells; a project's gates come from its packages."
+         },
+         "gates": {
+            "title": "Gate set",
+            "intro": "A phase ends at a gate, passed only with its evidence; the next phase does not start before it."
+         },
+         "incidents": {
+            "title": "Incident families and severities",
+            "intro": "Every incident has a family, which starts its code, and a severity, which sets who is told and when ([[Y10]])."
+         },
+         "abbreviations": {
+            "title": "Abbreviations",
+            "intro": "Trade abbreviations used on the screens."
+         }
+      },
+      "topics": {
+         "customer_filter": {
+            "title": "The customer filter",
+            "text": "The customer chosen in the top bar narrows every operations list and the dashboard to that customer; 'All customers' shows everything your role may see. The choice stays as you move between pages."
+         },
+         "cards_tabs": {
+            "title": "Cards and tabs",
+            "text": "A row opens its record as a card over the list, with tabs for its parts: general data, lines, documents, media, history. A new record shows its first tab only; the others open once it is saved. The address of a card and tab can be shared as a link."
+         },
+         "status_buttons": {
+            "title": "Status buttons",
+            "text": "A record's status changes only through its status buttons, which offer the moves allowed from the current status. A move whose conditions are missing is refused with the reason, for example a gate without its evidence. Save or discard your edits before changing the status."
+         },
+         "document_versions": {
+            "title": "Documents and versions",
+            "text": "A document is a link or a file with a type, a version and a status. A new version supersedes the old one by itself; nothing is deleted, so the history stays readable. Gates, orders and shipments read the status (signed, approved) directly."
+         },
+         "branches": {
+            "title": "Company, branches and roles",
+            "text": "Your company is one tenant: its data is never visible to another company. A company can have branches; pages show the data of the branches checked in the branch picker, and new records go to the branch with the star. What you can do on each page depends on your role."
          }
       }
    }

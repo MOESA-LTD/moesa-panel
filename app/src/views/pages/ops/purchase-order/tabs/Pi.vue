@@ -12,6 +12,7 @@ import {
 } from '@/api/purchaseOrder';
 import { invalidateTables } from '@/api/queryKeys';
 import { updateRow } from '@/api/saveRow';
+import { markLabel } from '@/constants/terms';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useQueryClient } from '@tanstack/vue-query';
 import dayjs from 'dayjs';
@@ -156,6 +157,7 @@ const checkedAt = computed(() => {
          <FormField
             fluid
             :label="$t('ops.purchase_order.fields.pi_document')"
+            term="PI"
             :error="errors.pi_document_id"
             :readonly="fixed"
             v-slot="slotProps"
@@ -174,6 +176,7 @@ const checkedAt = computed(() => {
          <FormField
             fluid
             :label="$t('ops.purchase_order.fields.pi_number')"
+            term="PI"
             :error="errors.pi_number"
             :readonly="fixed"
             v-slot="slotProps"
@@ -208,7 +211,9 @@ const checkedAt = computed(() => {
 
          <div class="w-full" data-test="pi-checklist">
             <div class="mb-2 flex items-center gap-2">
-               <span class="font-semibold">{{ $t('ops.purchase_order.pi.checklist') }}</span>
+               <span class="font-semibold">
+                  <TermText :text="markLabel($t('ops.purchase_order.pi.checklist'), 'S09')" />
+               </span>
                <Tag
                   :value="`${okCount} / ${PI_CHECK_KEYS.length}`"
                   :severity="checklistComplete ? 'success' : 'secondary'"

@@ -25,16 +25,29 @@ const markDismissed = (route: string) => {
    }
 };
 
-/** The page guide side panel: which page it shows, and the task it opens on. */
+/** The page guide side panel: which page it shows, and the task or term it opens on. */
 export const useGuideStore = defineStore('guide', () => {
    const open = ref(false);
    const page = ref<GuidePage | null>(null);
    const focusTask = ref<string | null>(null);
+   const focusTerm = ref<string | null>(null);
    const shown = new Set<string>();
+   // The guide page of the current route, as the last followRoute recorded it.
+   let routePage: GuidePage | null = null;
 
    const show = (guidePage: GuidePage, task?: string) => {
       page.value = guidePage;
       focusTask.value = task ?? null;
+      focusTerm.value = null;
+      open.value = true;
+   };
+
+   /** Opens the panel on a term, over the current route's guide (or alone on a route without one). */
+   const showTerm = (code: string) => {
+      // A term clicked inside an open task's steps leaves that task open.
+      if (!open.value || page.value !== routePage) focusTask.value = null;
+      page.value = routePage;
+      focusTerm.value = code;
       open.value = true;
    };
 
@@ -56,6 +69,7 @@ export const useGuideStore = defineStore('guide', () => {
     * without one; then the new page's guide opens by itself on its first visit.
     */
    const followRoute = (guidePage: GuidePage | null) => {
+      routePage = guidePage;
       if (open.value) {
          if (guidePage) show(guidePage);
          else hide();
@@ -63,5 +77,5 @@ export const useGuideStore = defineStore('guide', () => {
       if (guidePage) autoOpen(guidePage);
    };
 
-   return { open, page, focusTask, show, hide, autoOpen, followRoute };
+   return { open, page, focusTask, focusTerm, show, showTerm, hide, autoOpen, followRoute };
 });
