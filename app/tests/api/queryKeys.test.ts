@@ -151,6 +151,26 @@ describe('affectedTables', () => {
    });
 });
 
+describe('affectedTables of the market matrix', () => {
+   it('marks the matrix overview and the live cell count stale after a cell change', () => {
+      expect(affectedTables(['market_cell'])).toEqual(
+         expect.arrayContaining(['market_cell_overview', 'product_evidence'])
+      );
+      expect(affectedTables(['market_cell'])).toContain('product_with_evidence');
+      expect(affectedTables(['market_cell'])).not.toContain('dashboard_product_evidence');
+   });
+
+   it('marks the matrix overview stale after a change to what it names', () => {
+      for (const table of ['product', 'project', 'customer'] as const)
+         expect(affectedTables([table])).toContain('market_cell_overview');
+   });
+
+   it('marks the cell card stale after a change to its product or project', () => {
+      for (const table of ['product', 'project'] as const)
+         expect(affectedTables([table])).toContain('market_cell');
+   });
+});
+
 describe('invalidateTables', () => {
    it('invalidates the queries of the given tables and their derived views only', async () => {
       const queryClient = new QueryClient();
@@ -167,5 +187,51 @@ describe('invalidateTables', () => {
       );
       expect(staleKeys(queryClient)).not.toContainEqual(planList);
       expect(staleKeys(queryClient)).not.toContainEqual(['unrelated']);
+   });
+});
+
+describe('affectedTables of incidents and change requests', () => {
+   it('marks the log, deadlines, overview and rolled-back gates stale after an incident change', () => {
+      expect(affectedTables(['incident'])).toEqual(
+         expect.arrayContaining(['incident_log', 'incident_deadline', 'incident_overview'])
+      );
+      expect(affectedTables(['incident'])).toContain('project_gate');
+      expect(affectedTables(['incident_log'])).toContain('incident');
+      expect(affectedTables(['incident_deadline'])).toEqual(
+         expect.arrayContaining(['incident', 'incident_overview'])
+      );
+   });
+
+   it('marks the incident card stale after a gate change', () => {
+      expect(affectedTables(['project_gate'])).toContain('incident');
+   });
+
+   it('marks the incident card stale after a change to its customer', () => {
+      expect(affectedTables(['customer'])).toContain('incident');
+   });
+
+   it('marks the overview stale after a change to what it names', () => {
+      for (const table of [
+         'customer',
+         'project',
+         'product',
+         'purchase_order',
+         'shipment',
+         'market_cell'
+      ] as const)
+         expect(affectedTables([table])).toContain('incident_overview');
+   });
+
+   it('marks the change request card stale after a change to what it embeds', () => {
+      expect(affectedTables(['change_request'])).toContain('change_request_product');
+      expect(affectedTables(['change_request_product'])).toContain('change_request');
+      for (const table of ['customer', 'project', 'product', 'document'] as const)
+         expect(affectedTables([table])).toContain('change_request');
+   });
+
+   it('refreshes the new dashboard boxes', () => {
+      expect(affectedTables(['market_cell'])).toContain('dashboard_market');
+      expect(affectedTables(['incident_deadline'])).toContain('dashboard_incident');
+      expect(affectedTables(['change_request'])).toContain('dashboard_change_request');
    });
 });

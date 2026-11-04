@@ -26,7 +26,7 @@ export type UserAccess = { owned_via?: string[]; tenant_id?: string | null };
 export const USER_ACCESS = 'owned_via, tenant_id:managed_in';
 
 /** Whether the user is listed only as the owner of a tenant above (not managed in this one). */
-export const isOwnerAbove = (user: UserAccess) => user.tenant_id === null;
+export const isOwnerAbove = (user?: UserAccess | null) => !!user && user.tenant_id === null;
 
 /** Requests about a member go to the tenant they are managed in (else the active one). */
 const tenantHeaders = (tenantId?: string | null) =>

@@ -12,6 +12,9 @@ export type DashboardTaskRow = Views['dashboard_task_due']['Row'];
 export type DashboardEvidenceRow = Views['dashboard_product_evidence']['Row'];
 export type DashboardPurchaseOrderRow = Views['dashboard_purchase_order']['Row'];
 export type DashboardShipmentRow = Views['dashboard_shipment']['Row'];
+export type DashboardMarketRow = Views['dashboard_market']['Row'];
+export type DashboardIncidentRow = Views['dashboard_incident']['Row'];
+export type DashboardChangeRequestRow = Views['dashboard_change_request']['Row'];
 
 type DashboardView = Extract<
    TableName,
@@ -20,6 +23,9 @@ type DashboardView = Extract<
    | 'dashboard_product_evidence'
    | 'dashboard_purchase_order'
    | 'dashboard_shipment'
+   | 'dashboard_market'
+   | 'dashboard_incident'
+   | 'dashboard_change_request'
 >;
 
 /** A dashboard view's rows, narrowed to the customer of the global customer filter when one is set. */
@@ -70,6 +76,23 @@ export const useDashboardPurchaseOrders = () =>
 export const useDashboardShipments = () =>
    useDashboardView<DashboardShipmentRow>('dashboard_shipment', {
       column: 'eta',
+      ascending: true
+   });
+
+/** Per customer, its market cells by status (live, preparing, suppressed) and its target. */
+export const useDashboardMarket = () => useDashboardView<DashboardMarketRow>('dashboard_market');
+
+/** The incidents that are not closed, S1 first (the spec's "S1/S2 öne"). */
+export const useDashboardIncidents = () =>
+   useDashboardView<DashboardIncidentRow>('dashboard_incident', {
+      column: 'severity',
+      ascending: true
+   });
+
+/** The open and approved change requests, the earliest decision date first. */
+export const useDashboardChangeRequests = () =>
+   useDashboardView<DashboardChangeRequestRow>('dashboard_change_request', {
+      column: 'decision_due_on',
       ascending: true
    });
 
@@ -148,5 +171,20 @@ export function groupShipments<Row extends Pick<DashboardShipmentRow, 'status' |
    return {
       inTransit: rows.filter((row) => !!row.status && SHIPMENT_IN_TRANSIT.includes(row.status)),
       late: rows.filter((row) => !!row.overdue)
+   };
+}
+
+/**
+ * The market matrix box: the live cells of every customer, and the customers with a target (a
+ * cell in TARGET_STATUSES), the most live first.
+ */
+export function marketSummary<Row extends Pick<DashboardMarketRow, 'live_count' | 'target_count'>>(
+   rows: readonly Row[]
+): { live: number; items: Row[] } {
+   return {
+      live: _sumBy(rows, (row) => row.live_count ?? 0),
+      items: rows
+         .filter((row) => (row.target_count ?? 0) > 0)
+         .sort((a, b) => (b.live_count ?? 0) - (a.live_count ?? 0))
    };
 }

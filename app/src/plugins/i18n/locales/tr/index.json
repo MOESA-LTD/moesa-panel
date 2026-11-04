@@ -339,7 +339,46 @@
       "shipment_line_po_not_linked": "Önce satırın siparişini sevkiyata ekleyin.",
       "shipment_line_duplicate": "Bu sipariş satırı sevkiyatta zaten var.",
       "shipment_quantity_exceeds_po": "Siparişten (tolerans dahil) fazlası sevk edilmiş olur.",
-      "shipment_locked": "Mal yüklendi; siparişler ve satırlar artık değişmez."
+      "shipment_locked": "Mal yüklendi; siparişler ve satırlar artık değişmez.",
+      "market_cell_country_invalid": "Platformun ülkelerinden birini seçin (ISO kodu).",
+      "market_cell_compliance_note_required": "Sarı ve kırmızı uyum not ister (S12).",
+      "market_cell_compliance_red": "Kırmızı hücre planlanamaz ve yayına alınamaz; nedeniyle çıkarın.",
+      "market_cell_live_incomplete": "Yayın için platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı ve onaylı içerik (L-G1) gerekir.",
+      "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
+      "incident_customer_missing": "Olayın müşterisi bulunamadı.",
+      "incident_immutable_field": "Olayın kodu, müşterisi ve ailesi değiştirilemez.",
+      "incident_type_invalid": "Bir Y10 kart kodu seçin (ör. OL-09).",
+      "incident_type_family": "Y10 kartı başka bir aileye ait.",
+      "incident_entity_invalid": "Bu müşterinin bir projesini, siparişini, sevkiyatını, ürününü ya da pazar hücresini seçin.",
+      "incident_status_order": "Olay mevcut durumundan bu duruma geçemez.",
+      "incident_management_notice_required": "S1 ve S2 olaylarda önce yönetime bildirim zamanı girilmeli.",
+      "incident_closure_incomplete": "Kapatmadan önce sonucu, kök nedeni ve önlemi doldurun.",
+      "incident_close_management": "S1 olayını yalnızca yönetim kapatır.",
+      "incident_severity_downgrade_requires_management": "S1 veya S2 olayının önem derecesini yalnızca yönetim düşürebilir.",
+      "incident_closed": "Olay kapandı; günlüğü ve süreleri artık değişmez.",
+      "incident_log_cost_incomplete": "Maliyetin tutarı, para birimi ve ödeyeni olmalı.",
+      "incident_deadline_due_required": "Son zamanı girin; yalnızca 48 saat, 7 gün ve belge talebi süreleri hesaplanır.",
+      "gate_rollback_incident_required": "Kapı yalnızca olay üzerinden geri alınır (K3); bir olay seçin ya da açın.",
+      "gate_incident_invalid": "Bu projenin müşterisinin açık bir olayını seçin.",
+      "gate_rollback_immutable": "Geri almanın gerekçesi ve olayı, kapı yeniden geçilene kadar değişmez.",
+      "change_request_customer_missing": "Talebin müşterisi bulunamadı.",
+      "change_request_immutable_field": "Değişiklik talebinin kodu, müşterisi ve oluşturulma zamanı değişmez; onaylandıktan sonra müşteri onayı da değişmez.",
+      "cr_project_customer": "Proje başka bir müşteriye ait.",
+      "cr_product_customer": "Ürünlerden biri başka bir müşteriye ait.",
+      "change_request_kinds_required": "En az bir değişiklik türü seçin.",
+      "change_request_document_invalid": "Bu müşterinin kayıtlarından bir belge seçin.",
+      "change_request_approval_document_invalid": "Müşteri onayı bu talebin imzalı ya da onaylı bir belgesi olmalı.",
+      "change_request_status_order": "Talep mevcut durumundan bu duruma geçemez.",
+      "change_request_customer_approval_required": "Geçmiş bir (M) kapıyı etkiliyor: önce müşterinin yazılı onay tarihini ve belgesini ekleyin (S08).",
+      "change_request_decision_note_required": "Talebin neden reddedildiğini yazın.",
+      "change_request_new_version_required": "Önce etkilenen belgenin yeni sürümünü seçin.",
+      "market_cell_reason_required": "Nedeni yazın: askıdaysa açık sorun, kapatıldı ya da çıkarıldıysa not.",
+      "market_cell_immutable_field": "Hücrenin ürünü, platformu ve ülkesi değişmez; yeni hücre açın.",
+      "market_cell_delete_candidate_only": "Yalnızca aday hücre silinebilir; diğerlerini çıkarın ya da kapatın.",
+      "market_cell_duplicate": "Bu ürünün bu platform ve ülke için zaten bir hücresi var.",
+      "market_cell_product_customer": "Ürün başka bir müşteriye ait.",
+      "market_cell_project_customer": "Proje başka bir müşteriye ait.",
+      "market_cell_price_currency": "Fiyatın para birimi olmalı."
    },
    "account": {
       "logout": "Çıkış yap",
@@ -482,6 +521,7 @@
          "ops_project_products": "Ürünler",
          "ops_project_purchase_orders": "Satın alma",
          "ops_project_shipments": "Sevkiyatlar",
+         "ops_project_incidents": "Olaylar",
          "ops_project_documents": "Belgeler",
          "ops_project_task_add": "Yeni görev",
          "ops_project_task_edit": "Görevi düzenle",
@@ -521,7 +561,32 @@
          "ops_shipment_line_add": "Yeni sevkiyat satırı",
          "ops_shipment_line_edit": "Sevkiyat satırını düzenle",
          "ops_shipment_event_add": "Yeni sevkiyat olayı",
-         "ops_shipment_event_edit": "Sevkiyat olayını düzenle"
+         "ops_shipment_event_edit": "Sevkiyat olayını düzenle",
+         "ops_market": "Pazar matrisi",
+         "ops_market_list": "Matris",
+         "ops_market_cell_add": "Yeni hücre",
+         "ops_market_cell_edit": "Hücre",
+         "ops_market_cells_add": "Hücre ekle",
+         "ops_incident": "Olaylar",
+         "ops_incident_list": "Liste",
+         "ops_incident_manage": "Olay",
+         "ops_incident_general": "Genel",
+         "ops_incident_log": "Günlük",
+         "ops_incident_deadlines": "Süre sınırları",
+         "ops_incident_closure": "Kapanış",
+         "ops_incident_documents": "Belgeler",
+         "ops_incident_media": "Ortam",
+         "ops_incident_log_add": "Günlük satırı",
+         "ops_incident_log_edit": "Günlük satırı",
+         "ops_incident_deadline_add": "Süre sınırı",
+         "ops_incident_deadline_edit": "Süre sınırı",
+         "ops_change_request": "Değişiklik talepleri",
+         "ops_change_request_list": "Liste",
+         "ops_change_request_manage": "Değişiklik talebi",
+         "ops_change_request_general": "Talep",
+         "ops_change_request_impact": "Etki",
+         "ops_change_request_decision": "Karar",
+         "ops_change_request_documents": "Belgeler"
       }
    },
    "fields": {
@@ -592,7 +657,14 @@
       "shipment": "Sevkiyat",
       "shipment_purchase_order": "Sevkiyat siparişi",
       "shipment_line": "Sevkiyat satırı",
-      "shipment_event": "Sevkiyat olayı"
+      "shipment_event": "Sevkiyat olayı",
+      "market_cell": "Pazar hücresi",
+      "market_matrix": "Pazar matrisi",
+      "incident": "Olay",
+      "incident_log": "Olay günlüğü",
+      "incident_deadline": "Olay süre sınırı",
+      "change_request": "Değişiklik talebi",
+      "change_request_product": "Değişiklik talebi ürünü"
    },
    "dashboard": {
       "statistics": {
@@ -638,11 +710,18 @@
          "po_production": "Üretimdeki PO'lar",
          "shipments_in_transit": "Yoldaki sevkiyatlar",
          "shipments_late": "Geciken sevkiyatlar",
+         "incidents_open": "Açık olaylar",
+         "change_requests_open": "Açık CR'ler",
+         "market_summary": "Pazar matrisi özeti",
          "meta": {
             "ready": "Hazır {date}",
             "balance": "Bakiye {date}",
             "eta": "ETA {date}",
-            "late": "{n} gün gecikti"
+            "late": "{n} gün gecikti",
+            "notice_missing": "yönetime bildirilmedi",
+            "deadline": "son tarih {date}",
+            "decision_due": "karar {date}",
+            "market": "{live} yayında · {preparing} hazırlanıyor · {suppressed} askıda"
          }
       }
    },
@@ -937,7 +1016,9 @@
             "project_gate": "Proje kapısı",
             "purchase_order": "Satın alma siparişi",
             "shipment": "Sevkiyat",
-            "incident": "Olay"
+            "incident": "Olay",
+            "market_cell": "Pazar hücresi",
+            "change_request": "Değişiklik talebi"
          }
       },
       "supplier": {
@@ -1222,6 +1303,7 @@
             "products": "Ürünler",
             "purchase_orders": "Satın alma",
             "shipments": "Sevkiyatlar",
+            "incidents": "Olaylar",
             "documents": "Belgeler"
          },
          "new_purchase_order": "Yeni PO",
@@ -1298,7 +1380,9 @@
             "needs_customer_approval": "Müşteri onayı gerekir",
             "rolled_back_reason": "Geri alma sebebi",
             "passed": "Kapı geçti",
-            "rolled_back": "Kapı geri alındı"
+            "rolled_back": "Kapı geri alındı",
+            "incident": "Olay",
+            "no_incident": "Bu müşterinin açık olayı yok; önce bir olay açın."
          },
          "task": {
             "fields": {
@@ -1662,6 +1746,331 @@
       },
       "status_actions": {
          "dirty_hint": "Önce değişikliklerinizi kaydedin ya da geri alın."
+      },
+      "market": {
+         "title": "Pazar matrisi",
+         "view": {
+            "matrix": "Matris",
+            "list": "Liste"
+         },
+         "counter": "{code}: {live} yayında / {target} hedef",
+         "add_cells": "Hücre ekle",
+         "add_cell": "{sku} için {cell} hücresini ekle",
+         "cells_added": "{added} eklendi, {skipped} zaten vardı",
+         "no_cells": "Henüz hücre yok. Matrisi başlatmak için hücre ekleyin.",
+         "sections": {
+            "status": "Durum",
+            "compliance": "Uyum",
+            "listing": "Listing",
+            "dates": "Tarihler"
+         },
+         "status": {
+            "candidate": "Aday",
+            "planned": "Planlandı",
+            "preparing": "Hazırlanıyor",
+            "uploaded": "Yüklendi",
+            "live": "Yayında",
+            "suppressed": "Askıda",
+            "paused": "Beklemede",
+            "stopped": "Kapatıldı",
+            "removed": "Çıkarıldı"
+         },
+         "compliance": {
+            "green": "Yeşil",
+            "yellow": "Sarı",
+            "red": "Kırmızı",
+            "pending": "Bekliyor"
+         },
+         "stock_source": {
+            "customer_warehouse": "Müşteri deposu",
+            "3pl": "3PL",
+            "platform": "Platform deposu",
+            "pan_eu": "Pan-Avrupa"
+         },
+         "content_status": {
+            "none": "Yok",
+            "en_master": "EN ana set",
+            "translated": "Çevrildi",
+            "approved": "Onaylandı (L-G1)"
+         },
+         "fields": {
+            "customer": "Müşteri",
+            "sku": "SKU",
+            "product": "Ürün",
+            "products": "Ürünler",
+            "project": "Proje",
+            "platform": "Platform",
+            "country": "Ülke",
+            "countries": "Ülkeler",
+            "status": "Durum",
+            "priority": "Öncelik",
+            "compliance": "Uyum durumu",
+            "compliance_note": "Uyum notu",
+            "platform_product_id": "Ürün kimliği",
+            "platform_sku": "Platform SKU",
+            "price": "Fiyat (KDV dahil)",
+            "currency": "Para birimi",
+            "stock_source": "Stok kaynağı",
+            "content_status": "İçerik dil durumu",
+            "target_launch_on": "Hedef yayın tarihi",
+            "launched_on": "Yayın tarihi",
+            "last_checked_on": "Son kontrol",
+            "open_issue": "Açık sorun",
+            "notes": "Not"
+         },
+         "priority": {
+            "1": "Aynı hesapta yeni ülke",
+            "2": "Yeni platform",
+            "3": "Yeni bölge"
+         },
+         "live_missing": "Yayın için eksik: {fields}",
+         "load_error": "Pazar hücreleri yüklenemedi."
+      },
+      "incident": {
+         "title": "Olaylar",
+         "tabs": {
+            "general": "Genel",
+            "log": "Günlük",
+            "deadlines": "Süre sınırları",
+            "closure": "Kapanış",
+            "documents": "Belgeler",
+            "media": "Ortam"
+         },
+         "sections": {
+            "opening": "Açılış (ilk 15 dakika)",
+            "classification": "Sınıflandırma"
+         },
+         "status": {
+            "open": "Açık",
+            "contained": "Kontrol altında",
+            "closed": "Kapandı"
+         },
+         "severity": {
+            "s1": "S1 kritik",
+            "s2": "S2 önemli",
+            "s3": "S3 küçük"
+         },
+         "family": {
+            "ol": "Sevkiyat ve teslim (OL)",
+            "oa": "Platform ve Amazon (OA)",
+            "ou": "Ürün ve uyum (OU)",
+            "ot": "Tedarik (OT)",
+            "om": "Müşteri (OM)"
+         },
+         "types": {
+            "OL-01": "Depoya yanlış araç geldi",
+            "OL-02": "Randevusuz veya randevu dışı geliş; depo kabul etmiyor",
+            "OL-03": "Bekleme, demuraj ve detention",
+            "OL-04": "Palet veya koli sayısı belgelerle tutmuyor",
+            "OL-05": "Hasarlı teslim",
+            "OL-06": "Etiket veya adres hatası",
+            "OL-07": "Eksik veya hatalı evrak",
+            "OL-08": "Gümrükte bekletme, muayene, HS kodu itirazı, ek vergi",
+            "OL-09": "Sevkiyat gecikmesi",
+            "OL-10": "Üretilen mal zamanında çekilmedi",
+            "OL-11": "İletişim kopukluğu: forwarder, broker ve depo birbirini aramıyor, herkes MOESA'yı arıyor",
+            "OL-12": "FBA gönderimi reddedildi veya yanlış gönderim planı",
+            "OA-01": "Listing kaldırıldı: politika ihlali",
+            "OA-02": "Belge talebi: GPSR güvenlik bilgisi, SDS, ürün güvenliği görselleri",
+            "OA-03": "Ana görsel politikası ihlali",
+            "OA-04": "Marka veya ASIN kötüye kullanım uyarısı",
+            "OA-05": "EAN/GTIN çakışması: \"title conflict\", listing birleşmesi, \"already used\"",
+            "OA-06": "Listing bastırıldı: eksik zorunlu alan, ürün ailesi karışması, varyant hatası",
+            "OA-07": "Hesap sağlığı uyarısı, performans bildirimi, hesap askıya alma riski",
+            "OA-08": "Kategori onayı reddi, kısıtlı veya tehlikeli ürün sınıflaması",
+            "OA-09": "Platform erişimi veya marka programı sorunu",
+            "OA-10": "Yanlış fiyat, para birimi veya stok bilgisi yayında",
+            "OU-01": "PSI'da ret veya sapma",
+            "OU-02": "Müşteri teslimde malı kabul etmedi",
+            "OU-03": "Pazar gözetimi, geri çağırma, güvenlik şikâyeti",
+            "OU-04": "Etiket veya ambalaj yasal eksik",
+            "OU-05": "Test raporu veya sertifika geçersiz, süresi dolmuş ya da sahte çıktı",
+            "OU-06": "Müşteri uyum riski yüksek bir ürün için ısrar ediyor",
+            "OT-01": "Tedarikçi haber vermeden malzeme, ölçü veya ambalaj değiştirdi",
+            "OT-02": "Üretim gecikmesi",
+            "OT-03": "Atlatma: tedarikçi müşteriye, müşteri tedarikçiye doğrudan gitti",
+            "OT-04": "PI, fatura veya packing list tutarsızlığı",
+            "OT-05": "Kalıp, tasarım veya fikri mülkiyet uyuşmazlığı",
+            "OT-06": "Tedarikçi banka bilgisi değişikliği bildirdi",
+            "OT-07": "Tedarikçi yanıt vermiyor: belge, spec sheet veya imza gelmiyor, iletişim kesildi, iflas belirtisi",
+            "OT-08": "Tedarikçi fiyat artışı veya teklif geçerliliği bitti",
+            "OM-01": "Müşteri sözlü değişiklik istedi, yazılı onay yok",
+            "OM-02": "Müşteri ödeme gecikmesi: depozito gelmedi, bakiye vadede ödenmedi",
+            "OM-03": "Müşteri ek maliyeti",
+            "OM-04": "Uyuşmazlık, şikâyet veya hukuki talep: \"kanıt gösterin\"",
+            "OM-05": "Müşteri cevap vermiyor: sözleşme imzalanmıyor, kapı onayı gelmiyor, onay yalnızca mesajlaşmada",
+            "OM-06": "Dış hizmet sağlayıcı ve fikri mülkiyet sorunu: tasarımcı teslim etmiyor, telif iddiası, marka tescil itirazı"
+         },
+         "party": {
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "forwarder": "Forwarder",
+            "platform": "Platform",
+            "warehouse": "Depo"
+         },
+         "root_cause": {
+            "human_error": "İnsan hatası",
+            "document_data": "Belge-veri",
+            "communication": "İletişim",
+            "supplier": "Tedarikçi",
+            "carrier": "Taşıyıcı",
+            "platform_regulation": "Platform-mevzuat",
+            "customer": "Müşteri"
+         },
+         "outcome": {
+            "full_recovery": "Tam kurtarma",
+            "partial_recovery": "Kısmi kurtarma",
+            "loss": "Kayıp"
+         },
+         "deadline_kind": {
+            "supplier_damage": "Tedarikçiye hasar bildirimi (48 saat)",
+            "carrier_claim": "Taşıyıcıya itiraz (CMR 7 gün)",
+            "demurrage": "Demuraj / detention serbest gün",
+            "supplier_storage": "Tedarikçi depolama ücreti",
+            "platform_escalation": "Platform eskalasyonu (48 saat)",
+            "document_request": "Belge talebi (iş günü)",
+            "other": "Diğer"
+         },
+         "cost_payer": {
+            "moesa": "MOESA",
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "carrier_insurance": "Taşıyıcı-sigorta"
+         },
+         "fields": {
+            "code": "Olay no",
+            "customer": "Müşteri",
+            "family": "Aile",
+            "incident_type": "Olay tipi (Y10)",
+            "severity": "Şiddet",
+            "status": "Durum",
+            "owner": "Olay sahibi",
+            "title": "Kısa ad",
+            "what_happened": "Ne oldu",
+            "reported_by": "Kim bildirdi, hangi kanaldan",
+            "current_state": "Şu an mal/listing/para nerede",
+            "immediate_action": "Hemen yapılan",
+            "entity_type": "Bağlı kayıt türü",
+            "entity": "Bağlı kayıt",
+            "opened_at": "Açılış",
+            "affected_parties": "Etkilenen taraflar",
+            "management_notified_at": "Yönetime bildirim",
+            "customer_notice_due_at": "Müşteriye ilk bildirim hedefi",
+            "customer_notified_at": "Müşteriye bildirim (gerçekleşen)",
+            "outcome": "Sonuç",
+            "root_cause": "Kök neden",
+            "root_cause_note": "Kök neden açıklaması",
+            "impact_note": "Toplam etki",
+            "lessons": "Alınan ders",
+            "preventive_action": "Eklenen önlem",
+            "customer_closure_notified_on": "Müşteriye kapanış bildirimi",
+            "closed_on": "Kapanış tarihi",
+            "next_deadline_at": "Sıradaki süre sınırı",
+            "is_repeat": "90 gün içinde tekrar"
+         },
+         "log": {
+            "fields": {
+               "logged_at": "Tarih-saat",
+               "author": "Kim",
+               "note": "Ne oldu / ne yapıldı",
+               "counterparty": "Karşı taraf ve kanal",
+               "decision": "Karar / onay",
+               "cost_amount": "Maliyet",
+               "cost_currency": "Para birimi",
+               "cost_payer": "Kim öder",
+               "customer_approved": "Müşteri onayı var"
+            },
+            "needs_customer_approval": "Müşteriye yansıyor, onay yok",
+            "no_rows": "Henüz kayıt yok."
+         },
+         "deadline": {
+            "fields": {
+               "kind": "Süre sınırı",
+               "label": "Not",
+               "due_at": "Son tarih",
+               "met_at": "Karşılandı"
+            },
+            "overdue": "Gecikti",
+            "calculated": "Boş bırakılırsa açılış zamanından hesaplanır.",
+            "no_rows": "Süre sınırı yok."
+         },
+         "notice": {
+            "late": "Gecikti",
+            "due": "Bekliyor",
+            "done": "Yapıldı"
+         },
+         "rolled_back_gates": "Bu olayla geri alınan kapılar",
+         "preventive_hint": "Önlem ilgili yönergeye işlenmeden olay kapanmış sayılmaz (S17).",
+         "contact_hint": "Rol ve kanal; kişisel iletişim bilgisi yok.",
+         "new_for_project": "Yeni olay",
+         "no_rows": "Olay yok."
+      },
+      "change_request": {
+         "title": "Değişiklik talepleri",
+         "tabs": {
+            "general": "Talep",
+            "impact": "Etki",
+            "decision": "Karar",
+            "documents": "Belgeler"
+         },
+         "status": {
+            "open": "Açık",
+            "approved": "Onaylandı",
+            "rejected": "Reddedildi",
+            "applied": "Uygulandı"
+         },
+         "source": {
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "moesa": "MOESA",
+            "regulation": "Mevzuat-platform"
+         },
+         "urgency": {
+            "normal": "Normal (5 iş günü)",
+            "urgent": "Acil (24 saat)"
+         },
+         "kind": {
+            "spec": "Spec",
+            "design": "Tasarım",
+            "packaging": "Ambalaj, etiket, artwork",
+            "price": "Fiyat / adet",
+            "deadline": "Termin",
+            "supplier": "Tedarikçi değişikliği",
+            "content": "İçerik / listing"
+         },
+         "fields": {
+            "code": "Değişiklik talebi no",
+            "customer": "Müşteri",
+            "project": "Proje",
+            "products": "SKU'lar",
+            "title": "Başlık",
+            "source": "Kaynak",
+            "urgency": "Aciliyet",
+            "status": "Durum",
+            "decision_due_on": "Karar tarihi",
+            "change_kinds": "Değişikliğin türü",
+            "current_value": "Mevcut durum (eski değer)",
+            "requested_value": "İstenen durum (yeni değer)",
+            "reason": "Neden",
+            "affected_gate": "Etkilenen kapı",
+            "affected_record": "Etkilenen belgenin kaydı",
+            "affected_document": "Etkilenen belge ve mevcut sürüm",
+            "other_documents": "Etkilenen diğer belgeler",
+            "cost_impact": "Maliyet etkisi",
+            "cost_payer": "Kim öder",
+            "delay_days": "Süre etkisi (gün)",
+            "quality_impact": "Kalite / uyum etkisi",
+            "listing_impact": "Stok / listing etkisi",
+            "decision_note": "Karar notu",
+            "moesa_approved": "MOESA onayı",
+            "customer_approved_on": "Müşteri onay tarihi",
+            "customer_approval_document": "Müşteri onay belgesi",
+            "result_document": "Yeni sürüm",
+            "closed_on": "Kapanış tarihi"
+         },
+         "customer_approval_hint": "Geçmiş bir (M) kapıyı etkiliyor: müşterinin yazılı onayı şart (S08).",
+         "overdue": "Karar gecikti",
+         "no_rows": "Değişiklik talebi yok."
       }
    },
    "glossary": {
@@ -1788,10 +2197,555 @@
          "road": "Kara yolu, kamyon.",
          "courier": "Kurye ya da kargo.",
          "air": "Hava kargo."
+      },
+      "market_cell_status": {
+         "candidate": "PL1/P1'de değerlendiriliyor; henüz karar yok.",
+         "planned": "L1 planında; müşteri yazılı onayladı; tarih var.",
+         "preparing": "L2–L3 içerik ve yerelleştirme sürüyor.",
+         "uploaded": "L4: platforma yüklendi; platform incelemesi veya aktifleşme bekleniyor.",
+         "live": "Aktif ve satın alınabilir; S13 yayın kontrolü geçti.",
+         "suppressed": "Bastırıldı, kategori onayı bekliyor veya belge talebi var; açık sorun yazılı.",
+         "paused": "Müşteri kararı veya ön koşul (tescil, EPR kaydı, KDV) bekliyor.",
+         "stopped": "Yayından kalıcı kaldırıldı (karar veya platform); neden yazılı.",
+         "removed": "Plandan çıkarıldı (uyum kırmızı, talep yok, müşteri kararı); neden yazılı."
+      },
+      "market_compliance": {
+         "green": "Kısıt yok.",
+         "yellow": "Kısıt, belge veya işaret ihtiyacıyla mümkün; nota bakın (S12).",
+         "red": "Uygun değil; hücre planlanmaz.",
+         "pending": "Henüz taranmadı (PL1/P1)."
+      },
+      "stock_source": {
+         "customer_warehouse": "Müşterinin kendi deposundan gönderilir.",
+         "3pl": "Üçüncü taraf lojistik firmasından gönderilir.",
+         "platform": "Platform deposunda tutulur, platform gönderir (ör. FBA).",
+         "pan_eu": "Amazon Pan-Avrupa FBA stoğu AB ülkelerine dağıtır."
+      },
+      "content_status": {
+         "none": "Henüz listing içeriği yok.",
+         "en_master": "İngilizce ana set hazır.",
+         "translated": "Pazarın diline çevrildi.",
+         "approved": "İçerik onaylandı (L-G1); yayından önce şart."
+      },
+      "incident_family": {
+         "ol": "Sevkiyat ve teslim: araç, randevu, sayım, hasar, evrak, gümrük, gecikme.",
+         "oa": "Platform ve Amazon: kaldırılan ya da bastırılan listing, belge talebi, hesap sağlığı.",
+         "ou": "Ürün ve uyum: PSI reddi, kabul etmeme, geri çağırma, etiket, sertifika.",
+         "ot": "Tedarik: habersiz değişiklik, üretim gecikmesi, PI tutarsızlığı, sessizlik, fiyat artışı.",
+         "om": "Müşteri: sözlü değişiklik, geç ödeme, uyuşmazlık, cevapsızlık."
+      },
+      "incident_severity": {
+         "s1": "Kritik: mal, para ya da hesap riski; yönetime hemen, müşteriye 4 saat içinde.",
+         "s2": "Önemli: tarih kayar ya da maliyet çıkar; yönetime aynı gün, müşteriye aynı iş günü.",
+         "s3": "Küçük: teslim ve maliyet etkilenmez; haftalık özette bildirilir."
+      },
+      "incident_status": {
+         "open": "Kayıtlı; sınıflandırılıyor ve ele alınıyor.",
+         "contained": "Mal, listing ya da para güvende; kurtarma ve kapanış kaldı.",
+         "closed": "Kök nedeni, maliyeti ve yönergeye eklenen önlemiyle kapandı."
+      },
+      "incident_party": {
+         "customer": "Müşteri etkileniyor.",
+         "supplier": "Tedarikçi işin içinde.",
+         "forwarder": "Forwarder ya da gümrük müşaviri işin içinde.",
+         "platform": "Bir pazar yeri işin içinde.",
+         "warehouse": "Bir depo işin içinde."
+      },
+      "incident_root_cause": {
+         "human_error": "Biri hata yaptı.",
+         "document_data": "Bir belge ya da veri yanlış veya eksikti.",
+         "communication": "Bilgi doğru tarafa zamanında ulaşmadı.",
+         "supplier": "Tedarikçi kaynaklı.",
+         "carrier": "Taşıyıcı ya da forwarder kaynaklı.",
+         "platform_regulation": "Platform kuralı ya da mevzuat kaynaklı.",
+         "customer": "Müşteri kaynaklı."
+      },
+      "incident_outcome": {
+         "full_recovery": "Her şey kurtarıldı.",
+         "partial_recovery": "Bir kısmı kurtarıldı; etki notu neyin kaldığını söyler.",
+         "loss": "Kurtarılamadı."
+      },
+      "incident_deadline_kind": {
+         "supplier_damage": "Tedarikçiye hasar bildirimi: olağan PI şartlarında 48 saat.",
+         "carrier_claim": "Taşıyıcıya itiraz: kara yolunda 7 gün (CMR), denizde konşimentoya göre 3 gün; 7 gün varsayılır.",
+         "demurrage": "Liman ya da detention serbest günlerinin bitişi; taşıyıcı şartlarından girin.",
+         "supplier_storage": "Çekilmeyen mal için tedarikçinin depolama ücreti başlattığı tarih.",
+         "platform_escalation": "Platform vakasında eskalasyondan önce 48 saat beklenir.",
+         "document_request": "Platformun belge talebi yönetimin belirlediği iş günü içinde (5) kapatılır.",
+         "other": "Diğer süre sınırları; tarihini girin."
+      },
+      "cost_payer": {
+         "moesa": "Maliyeti MOESA üstlenir.",
+         "customer": "Müşteriye yansır; müşterinin yazılı onayı gerekir.",
+         "supplier": "Tedarikçiye yansır.",
+         "carrier_insurance": "Taşıyıcıdan ya da sigortadan talep edilir."
+      },
+      "change_request_status": {
+         "open": "Kayıtlı; etki ve karar bekliyor.",
+         "approved": "MOESA onayladı (geçmiş (M) kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
+         "rejected": "Reddedildi; karar notu nedenini söyler.",
+         "applied": "Uygulandı: etkilenen belge yeni sürümünü aldı."
+      },
+      "change_request_source": {
+         "customer": "Müşteri istedi.",
+         "supplier": "Tedarikçi istedi ya da yol açtı.",
+         "moesa": "MOESA öneriyor.",
+         "regulation": "Mevzuat ya da platform kuralı gerektiriyor."
+      },
+      "change_request_urgency": {
+         "normal": "5 iş günü içinde karar verilir.",
+         "urgent": "Üretim ya da güvenlik söz konusu; 24 saat içinde karar verilir."
+      },
+      "change_kind": {
+         "spec": "Ölçü, malzeme, bileşim, performans ya da güvenlik; üreticinin yeniden imzaladığı yeni spec sürümü.",
+         "design": "Tasarım ya da tech pack.",
+         "packaging": "Ambalaj, etiket ya da artwork; PL-G4 yeniden.",
+         "price": "Fiyat ya da adet; yeni PI ve PO sürümü, müşterinin fiyat onayı (G3).",
+         "deadline": "Termin, booking ya da yayın tarihi.",
+         "supplier": "Başka tedarikçi; yeni spec sheet ve altın numune.",
+         "content": "Listing içeriği; L-G1 yeniden."
       }
    },
    "status_actions": {
       "confirm": "\"{status}\" durumuna geçilsin mi?",
       "done": "Durum değişti."
+   },
+   "guide": {
+      "panel": {
+         "title": "Sayfa rehberi",
+         "purpose": "Bu sayfa ne için",
+         "tasks": "Sık yapılan işler",
+         "related": "İlgili sayfalar",
+         "terms": "Bu sayfanın terimleri",
+         "needs": "Gerekir: {subject} için {action}",
+         "no_tasks": "Rolünüzün bu sayfada işi yok; okuyabilirsiniz.",
+         "open": "Bu sayfa nasıl çalışır?",
+         "close_card": "Bu kartı nasıl kapatırım?"
+      },
+      "actions": {
+         "read": "okuma",
+         "create": "ekleme",
+         "update": "değiştirme",
+         "delete": "silme"
+      },
+      "pages": {
+         "dashboard": {
+            "purpose": "Pazartesi, Çarşamba ve Cuma toplantılarının tek ekranı. Her kutu bekleyen işleri sayar ve ilk kayıtları listeler; satır kaydı açar. Burada veri girilmez.",
+            "tasks": {
+               "close_gates": {
+                  "title": "Bekleyen kapıyı kapat",
+                  "steps": {
+                     "1": "Satırdan projeyi açın; Genel bakış sekmesinde kapı paneli görünür.",
+                     "2": "Kapının istediği kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi de ister.",
+                     "3": "Kapıyı geçirin; proje ilerler ve satır kutudan çıkar."
+                  }
+               },
+               "close_tasks": {
+                  "title": "Geciken ya da yaklaşan görevi kapat",
+                  "steps": {
+                     "1": "Satırdan projeyi açın; Görevler sekmesi açılır.",
+                     "2": "Görevi tamamlandı yapın ya da notla yeni termin verin.",
+                     "3": "Kapıyı bloke eden görev tamamlanana kadar kapı geçmez."
+                  }
+               },
+               "sign_spec": {
+                  "title": "SKU'nun spec sheet'ini imzalat",
+                  "steps": {
+                     "1": "Müşteri satırını açın; ürün listesi imzalı spec sheet'i olmayan SKU'ları gösterir.",
+                     "2": "Ürünün Belgeler sekmesinde spec sheet'i sürümü ve tarihiyle ekleyin.",
+                     "3": "İmzalı, kaşeli ve resmî e-postadan geldiyse imzalı yapın."
+                  }
+               },
+               "complete_compliance": {
+                  "title": "SKU'nun uyumunu tamamla",
+                  "steps": {
+                     "1": "Müşteri satırını açın; ürün listesi açılır.",
+                     "2": "Ürünün Genel sekmesinde Uyum bölümünü doldurun ve S12'nin istediği belgeleri ekleyin.",
+                     "3": "Uyum durumunu tamamlandı yapın; SKU kutudan çıkar."
+                  }
+               },
+               "advance_po": {
+                  "title": "Satın alma siparişini ilerlet",
+                  "steps": {
+                     "1": "Satırdan siparişi açın; durumu neyi beklediğini gösterir.",
+                     "2": "Adımı yapın: gönderin, PI'ı kontrol edin (S09), ödemeyi ya da üretim notunu kaydedin.",
+                     "3": "Durum düğmesini kullanın; koşulu eksik adım nedeniyle birlikte reddedilir."
+                  }
+               },
+               "track_shipment": {
+                  "title": "Sevkiyatı kabule kadar izle",
+                  "steps": {
+                     "1": "Satırdan sevkiyatı açın; Tarihler sekmesinde ETD ve ETA'yı kontrol edin.",
+                     "2": "Her S15 adımını Olaylar sekmesine yazın; ETA kayınca güncelleyin.",
+                     "3": "Geciken sevkiyat genelde OL-09 olayı gerektirir; Olaylar sayfasından açın."
+                  }
+               },
+               "close_incident": {
+                  "title": "Açık olayı kapat",
+                  "steps": {
+                     "1": "Olayı açın; S1 ve S2'de önce yönetime bildirim zamanı girilir.",
+                     "2": "Mal, listing ya da para güvene alınana kadar günlüğü ve süreleri güncel tutun.",
+                     "3": "Kapanışı doldurun (sonuç, kök neden, önlem) ve kapatın; S1'i yönetim kapatır."
+                  }
+               },
+               "decide_cr": {
+                  "title": "Açık değişiklik talebine karar ver",
+                  "steps": {
+                     "1": "Talebi açın; eski ve yeni değeri ve etkiyi kontrol edin.",
+                     "2": "Geçmiş bir (M) kapıyı etkiliyorsa önce müşterinin yazılı onayını ekleyin.",
+                     "3": "Onaylayın ya da reddedin; yeni belge sürümü oluşunca uygulandı yapın."
+                  }
+               },
+               "update_market": {
+                  "title": "Pazar hücrelerini yayına taşı",
+                  "steps": {
+                     "1": "Müşteri satırını açın; pazar matrisi o müşteri için açılır.",
+                     "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı.",
+                     "3": "İçerik onaylıyken (L-G1) hücreyi yayına alın."
+                  }
+               }
+            }
+         },
+         "setting": {
+            "purpose": "Kuralların okuduğu şirket sayıları: varsayılan depozito, spec sheet tarihi, belge talebi süresi ve olay bildirim saatleri. Yalnızca yönetim değiştirir; her değişiklik kayda geçer.",
+            "tasks": {
+               "change_setting": {
+                  "title": "Bir ayarı değiştir",
+                  "steps": {
+                     "1": "Ayarı bulun; satır ne işe yaradığını söyler.",
+                     "2": "Yeni değeri gösterilen biçimde girin.",
+                     "3": "Kaydedin; kurallar bir sonraki kayıttan itibaren kullanır."
+                  }
+               },
+               "read_setting": {
+                  "title": "Bir kuralın neden çalıştığını kontrol et",
+                  "steps": {
+                     "1": "Mesajın andığı ayarı okuyun, ör. spec sheet tarihi.",
+                     "2": "Kaydın tarihi ya da tutarıyla karşılaştırın.",
+                     "3": "Değerin kendisi değişmeliyse yönetime sorun."
+                  }
+               }
+            }
+         },
+         "customer": {
+            "purpose": "MOESA'nın her müşterisi; sözleşme şartları, depoları, pazar yeri hesapları ve markalarıyla. Üstteki filtreden müşteri seçmek tüm operasyon listelerini o müşteriye daraltır.",
+            "tasks": {
+               "add_customer": {
+                  "title": "Müşteri ekle",
+                  "steps": {
+                     "1": "Menüden Ekle'yi kullanın; üç harfli kod müşterinin tüm kodlarına girer.",
+                     "2": "Ticari modeli, paketleri ve durumu doldurun (C1–C4).",
+                     "3": "Kaydedin; diğer sekmeler açılır."
+                  }
+               },
+               "add_warehouse": {
+                  "title": "Teslim deposu ekle",
+                  "steps": {
+                     "1": "Müşteriyi, sonra Depolar sekmesini açın.",
+                     "2": "Adresi, rampa saatlerini ve randevu kuralını S14 kartındaki gibi girin.",
+                     "3": "Sevkiyatlar adresi buradan alır; sevkiyatta elle yazılmaz."
+                  }
+               },
+               "add_platform": {
+                  "title": "Pazar yeri hesabı kaydet",
+                  "steps": {
+                     "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
+                     "2": "Platformu ve müşterinin sattığı ülkeleri seçin.",
+                     "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz (K8)."
+                  }
+               }
+            }
+         },
+         "supplier": {
+            "purpose": "MOESA'nın satın aldığı tedarikçiler; şartları (Incoterm, depozito, hasar bildirimi) ve kişileriyle. Satın alma siparişleri varsayılanlarını buradan alır.",
+            "tasks": {
+               "add_supplier": {
+                  "title": "Tedarikçi ekle",
+                  "steps": {
+                     "1": "Menüden Ekle'yi kullanın; kodu ve ülkeyi girin.",
+                     "2": "Şartları doldurun: varsayılan Incoterm, depozito %, hasar bildirim saati.",
+                     "3": "Tedarikçi değerlendirmeyi geçince durumu onaylı yapın."
+                  }
+               },
+               "add_contact": {
+                  "title": "Kişi ekle",
+                  "steps": {
+                     "1": "Tedarikçiyi, sonra Kişiler sekmesini açın.",
+                     "2": "Rolü ve resmî e-postayı girin.",
+                     "3": "Spec sheet yalnızca o e-postadan gelirse resmî sayılır."
+                  }
+               },
+               "see_orders": {
+                  "title": "Tedarikçinin siparişlerini gör",
+                  "steps": {
+                     "1": "Tedarikçiyi açın.",
+                     "2": "Satın alma siparişleri sekmesini açın.",
+                     "3": "Satır sipariş kartını açar."
+                  }
+               }
+            }
+         },
+         "product": {
+            "purpose": "Ürün ana tablosu (S10): her SKU için bir satır; GTIN, tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir.",
+            "tasks": {
+               "import_products": {
+                  "title": "CSV'den ürün içe aktar",
+                  "steps": {
+                     "1": "Listede İçe aktar'ı kullanın ve S10 CSV'sini seçin.",
+                     "2": "Raporu okuyun: sorunlu her satır nedeniyle listelenir.",
+                     "3": "O satırları düzeltip yeniden aktarın; iki kez kullanılan GTIN reddedilir."
+                  }
+               },
+               "add_spec": {
+                  "title": "Spec sheet ekle",
+                  "steps": {
+                     "1": "Ürünü, sonra Belgeler sekmesini açın.",
+                     "2": "Spec sheet'i sürümü ve tarihiyle ekleyin; yeni sürüm eskisinin yerini alır.",
+                     "3": "İmzalı, kaşeli ve resmî e-postadan geldiyse imzalı yapın."
+                  }
+               },
+               "add_media": {
+                  "title": "Fotoğraf ekle",
+                  "steps": {
+                     "1": "Ürünü, sonra Ortam sekmesini açın.",
+                     "2": "Dosyaları bırakın; ilk görsel birincil görsel olur.",
+                     "3": "Dosyanın rolünü menüsünden değiştirin."
+                  }
+               }
+            }
+         },
+         "project": {
+            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız G2 ile G3 engeller.",
+            "tasks": {
+               "open_project": {
+                  "title": "Proje aç",
+                  "steps": {
+                     "1": "Menüden Ekle'yi kullanın; müşteriyi, tipi, yolu ve paketleri seçin.",
+                     "2": "Kaydedin; kod ve kapı seti oluşur.",
+                     "3": "Ürünleri Ürünler sekmesinde ekleyin."
+                  }
+               },
+               "pass_gate": {
+                  "title": "Kapıyı geçir",
+                  "steps": {
+                     "1": "Genel bakışta aşama şeridindeki kapıyı açın.",
+                     "2": "Kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi ister.",
+                     "3": "Geçirin; aşama ilerler ve sonraki kontrol listesi gelir."
+                  }
+               },
+               "rollback_gate": {
+                  "title": "Kapıyı geri al",
+                  "steps": {
+                     "1": "Önce bunu gerektiren olayı projenin Olaylar sekmesinden açın.",
+                     "2": "Kapı panelinde Geri al'ı seçin, olayı seçin ve sebebi yazın.",
+                     "3": "Sonraki geçmiş kapılar da geri alınır; sorun çözülünce yeniden geçirin."
+                  }
+               }
+            }
+         },
+         "document": {
+            "purpose": "Her kaydın her belgesi tek listede: tür, sürüm, durum ve bağlantı ya da dosya. \"Spec sheet imzalı mı?\" sorusu dosya açmadan burada cevaplanır.",
+            "tasks": {
+               "find_document": {
+                  "title": "Belge bul",
+                  "steps": {
+                     "1": "Tür, durum ya da bağlı kayda göre süzün.",
+                     "2": "Dosyasını ya da bağlantısını görmek için satırı açın.",
+                     "3": "Eski sürümler geçersiz olarak kalır; hiçbir şey silinmez."
+                  }
+               },
+               "new_version": {
+                  "title": "Yeni sürüm ekle",
+                  "steps": {
+                     "1": "Kaydın Belgeler sekmesinden ekleyin.",
+                     "2": "Dosyayı yükleyin ya da Drive bağlantısını yapıştırın.",
+                     "3": "Önceki sürüm kendiliğinden geçersiz olur."
+                  }
+               },
+               "set_status": {
+                  "title": "Belgeyi imzalı ya da onaylı yap",
+                  "steps": {
+                     "1": "Belgeyi açın.",
+                     "2": "İmzalı için imza, kaşe ve resmî e-postayı işaretleyip tarihi girin.",
+                     "3": "Kaydedin; kapılar ve siparişler yeni durumu hemen okur."
+                  }
+               }
+            }
+         },
+         "media": {
+            "purpose": "Fotoğraf, görsel, PDF ve video kütüphanesi. Dosya bir kez saklanır ve her kayda bağlanır; belge Drive bağlantısı yerine dosyayı gösterebilir.",
+            "tasks": {
+               "upload": {
+                  "title": "Dosya yükle",
+                  "steps": {
+                     "1": "Kaydın Ortam sekmesini açın.",
+                     "2": "Boyut sınırı içinde PNG, JPG, WebP, PDF ya da MP4 dosyası bırakın.",
+                     "3": "Kütüphanede başlık ve etiket ekleyin."
+                  }
+               },
+               "link": {
+                  "title": "Dosyayı başka kayıtta kullan",
+                  "steps": {
+                     "1": "O kaydın Ortam sekmesini açın.",
+                     "2": "Kütüphaneden seç'i kullanın.",
+                     "3": "Müşteriye ait dosya yalnız o müşterinin kayıtlarına bağlanır."
+                  }
+               },
+               "delete_media": {
+                  "title": "Dosya sil",
+                  "steps": {
+                     "1": "Önce her kayıttan bağlantısını kaldırın.",
+                     "2": "Kütüphanede açıp silin.",
+                     "3": "Dosyaları yalnızca yönetim siler."
+                  }
+               }
+            }
+         },
+         "purchase_order": {
+            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, S09 PI kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir.",
+            "tasks": {
+               "create_po": {
+                  "title": "Sipariş aç",
+                  "steps": {
+                     "1": "Ekle'yi (ya da projede Yeni sipariş'i) kullanın; müşteriyi ve tedarikçiyi seçin.",
+                     "2": "Tedarikçiden gelen Incoterm ve depozitoyu kontrol edip kaydedin.",
+                     "3": "Satırları her biri imzalı ya da onaylı spec sheet'le ekleyin, sonra Gönder."
+                  }
+               },
+               "check_pi": {
+                  "title": "PI'ı kontrol et (S09)",
+                  "steps": {
+                     "1": "PI belgesini ekleyin ve rakamlarını PI kontrol sekmesine girin.",
+                     "2": "30 maddeyi işaretleyin; kırmızı fark düzeltilmiş PI istemek demektir.",
+                     "3": "PI'ı onaylayın; satırlar ve şartlar kilitlenir."
+                  }
+               },
+               "record_payment": {
+                  "title": "Ödeme kaydet",
+                  "steps": {
+                     "1": "Ödemeler sekmesini açın; depozitoyu ve bakiyeyi PI'dan planlayın.",
+                     "2": "Para çıkınca ödeme tarihini girin.",
+                     "3": "Bakiyeyi yalnızca onaylı PSI raporundan sonra ödeyin (G4)."
+                  }
+               }
+            }
+         },
+         "shipment": {
+            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, S15 olay zinciri, S16 teslim kabulü ve belge kontrol listesi.",
+            "tasks": {
+               "plan_shipment": {
+                  "title": "Sevkiyat planla",
+                  "steps": {
+                     "1": "Ekle'yi kullanın; müşteriyi, depoyu ve modu seçin.",
+                     "2": "Siparişler sekmesinde siparişleri ve satır adetlerini bağlayın.",
+                     "3": "Booking teyit tarihiyle booked durumuna alın."
+                  }
+               },
+               "log_event": {
+                  "title": "S15 adımı yaz",
+                  "steps": {
+                     "1": "Olaylar sekmesini açıp olay ekleyin.",
+                     "2": "S15 adımını, kimin kime ve hangi kanaldan bildirdiğini seçin.",
+                     "3": "Tarihler sekmesindeki tarihleri olaylarla uyumlu tutun."
+                  }
+               },
+               "accept": {
+                  "title": "Teslimi kabul et (S16)",
+                  "steps": {
+                     "1": "İmzalı teslim tutanağını Belgeler sekmesine ekleyin.",
+                     "2": "Kabul sekmesinde adetlerin tutup tutmadığını ve hasarı kaydedin.",
+                     "3": "Kabul edin; eksik ya da hasar varsa itirazlı olur ve olay açılır."
+                  }
+               }
+            }
+         },
+         "market_matrix": {
+            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle (S05). Hücreler tek kaynaktır; matris görünümü onlardan türetilir.",
+            "tasks": {
+               "add_cells": {
+                  "title": "Ürün ailesi için hücre aç",
+                  "steps": {
+                     "1": "Hücre ekle'yi seçin; müşterinin ürünlerini, bir platformu ve ülkelerini seçin.",
+                     "2": "Önceliği girin: 1 aynı hesapta yeni ülke, 2 yeni platform, 3 yeni bölge.",
+                     "3": "Kaydedin; var olan hücreler atlanır, yeniler aday olarak başlar."
+                  }
+               },
+               "screen_compliance": {
+                  "title": "Uyum taraması yap",
+                  "steps": {
+                     "1": "Matristen bir hücre açın.",
+                     "2": "Yeşil, sarı ya da kırmızı seçin; sarı ve kırmızı not ister (S12).",
+                     "3": "Kırmızı hücre planlanmaz; nedeniyle çıkarın."
+                  }
+               },
+               "go_live": {
+                  "title": "Hücreyi yayına al",
+                  "steps": {
+                     "1": "İş ilerledikçe planlandı, hazırlanıyor ve yüklendi durumlarından geçirin.",
+                     "2": "Platform kimliği, platform SKU, fiyat, para birimi ve stok kaynağını doldurun.",
+                     "3": "İçerik onaylıyken (L-G1) Yayında'yı seçin."
+                  }
+               }
+            }
+         },
+         "incident": {
+            "purpose": "Olay kayıtları (S17): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır.",
+            "tasks": {
+               "open_incident": {
+                  "title": "Olayı 15 dakikada kaydet",
+                  "steps": {
+                     "1": "Ekle'yi kullanın; müşteriyi, aileyi ve şiddeti seçin (Y10 §4).",
+                     "2": "Ne olduğunu üç cümleyle, şu an durumun ne olduğunu ve hemen ne yapıldığını yazın; tahmin yerine \"bilinmiyor\" yazın.",
+                     "3": "Kaydı bağlayın (sevkiyat, sipariş, ürün, hücre ya da proje) ve ilk kanıtı Ortam'a ekleyin."
+                  }
+               },
+               "keep_log": {
+                  "title": "Günlüğü ve süreleri tut",
+                  "steps": {
+                     "1": "Her olgu, görüşme ya da karar için bir günlük satırı ekleyin; maliyetini ve kimin ödeyeceğini yazın.",
+                     "2": "Geçerli süre sınırlarını ekleyin; 48 saat, 7 gün ve belge talebi tarihleri hesaplanır.",
+                     "3": "Yönetime ve müşteriye ne zaman bildirildiğini girin."
+                  }
+               },
+               "close": {
+                  "title": "Kapat",
+                  "steps": {
+                     "1": "Sonucu, kök nedeni ve yönergeye işlenen önlemi doldurun.",
+                     "2": "Kapandı durumuna alın; S1 olaylarını yönetim kapatır.",
+                     "3": "Kapanan olayın günlüğü ve süreleri artık değişmez."
+                  }
+               }
+            }
+         },
+         "change_request": {
+            "purpose": "Değişiklik talepleri (S08): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar.",
+            "tasks": {
+               "open_cr": {
+                  "title": "Değişiklik talebi aç",
+                  "steps": {
+                     "1": "Ekle'yi kullanın; müşteriyi, projeyi ve etkilenen ürünleri seçin.",
+                     "2": "Eski ve yeni değeri birebir, nedeni ve etkilenen kapıyı yazın.",
+                     "3": "Değişiklik türlerini ve aciliyeti seçin; karar tarihi buna göre gelir."
+                  }
+               },
+               "approve_cr": {
+                  "title": "Onayla ya da reddet",
+                  "steps": {
+                     "1": "Etkiyi doldurun: maliyet ve ödeyen, gecikme, kalite ve listing.",
+                     "2": "Geçmiş (M) kapı için müşterinin yazılı onayını talebin belgesi olarak ekleyin.",
+                     "3": "Onaylayın ya da karar notuyla reddedin."
+                  }
+               },
+               "apply_cr": {
+                  "title": "Uygulandı yap",
+                  "steps": {
+                     "1": "Etkilenen belgenin yeni sürümünü kendi kaydına ekleyin.",
+                     "2": "Karar sekmesinde o sürümü yeni sürüm olarak seçin.",
+                     "3": "Uygulandı yapın; talep kapanır."
+                  }
+               }
+            }
+         }
+      }
    }
 }

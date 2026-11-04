@@ -161,6 +161,253 @@ export type Database = {
           },
         ]
       }
+      change_request: {
+        Row: {
+          affected_document_id: string | null
+          affected_gate_code: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds: Database["public"]["Enums"]["change_kind"][]
+          closed_on: string | null
+          code: string | null
+          cost_impact: string | null
+          cost_payer: Database["public"]["Enums"]["cost_payer"] | null
+          created_at: string
+          current_value: string
+          customer_approval_document_id: string | null
+          customer_approved_on: string | null
+          customer_id: string
+          decision_due_on: string | null
+          decision_note: string | null
+          delay_days: number | null
+          id: string
+          listing_impact: string | null
+          moesa_approved_by: string | null
+          moesa_approved_on: string | null
+          other_documents: string | null
+          project_id: string | null
+          quality_impact: string | null
+          reason: string
+          requested_value: string
+          result_document_id: string | null
+          source: Database["public"]["Enums"]["change_request_source"]
+          status: Database["public"]["Enums"]["change_request_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+          urgency: Database["public"]["Enums"]["change_request_urgency"]
+        }
+        Insert: {
+          affected_document_id?: string | null
+          affected_gate_code?: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds: Database["public"]["Enums"]["change_kind"][]
+          closed_on?: string | null
+          code?: string | null
+          cost_impact?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          created_at?: string
+          current_value: string
+          customer_approval_document_id?: string | null
+          customer_approved_on?: string | null
+          customer_id: string
+          decision_due_on?: string | null
+          decision_note?: string | null
+          delay_days?: number | null
+          id?: string
+          listing_impact?: string | null
+          moesa_approved_by?: string | null
+          moesa_approved_on?: string | null
+          other_documents?: string | null
+          project_id?: string | null
+          quality_impact?: string | null
+          reason: string
+          requested_value: string
+          result_document_id?: string | null
+          source: Database["public"]["Enums"]["change_request_source"]
+          status?: Database["public"]["Enums"]["change_request_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["change_request_urgency"]
+        }
+        Update: {
+          affected_document_id?: string | null
+          affected_gate_code?: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds?: Database["public"]["Enums"]["change_kind"][]
+          closed_on?: string | null
+          code?: string | null
+          cost_impact?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          created_at?: string
+          current_value?: string
+          customer_approval_document_id?: string | null
+          customer_approved_on?: string | null
+          customer_id?: string
+          decision_due_on?: string | null
+          decision_note?: string | null
+          delay_days?: number | null
+          id?: string
+          listing_impact?: string | null
+          moesa_approved_by?: string | null
+          moesa_approved_on?: string | null
+          other_documents?: string | null
+          project_id?: string | null
+          quality_impact?: string | null
+          reason?: string
+          requested_value?: string
+          result_document_id?: string | null
+          source?: Database["public"]["Enums"]["change_request_source"]
+          status?: Database["public"]["Enums"]["change_request_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["change_request_urgency"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_affected_document_fkey"
+            columns: ["affected_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_approval_document_fkey"
+            columns: ["customer_approval_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_approver_fkey"
+            columns: ["moesa_approved_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_result_document_fkey"
+            columns: ["result_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_request_product: {
+        Row: {
+          change_request_id: string
+          created_at: string
+          customer_id: string
+          product_id: string
+          tenant_id: string
+        }
+        Insert: {
+          change_request_id: string
+          created_at?: string
+          customer_id: string
+          product_id: string
+          tenant_id: string
+        }
+        Update: {
+          change_request_id?: string
+          created_at?: string
+          customer_id?: string
+          product_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_product_cr_fkey"
+            columns: ["change_request_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "change_request"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_cr_fkey"
+            columns: ["change_request_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_change_request"
+            referencedColumns: ["change_request_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       code_sequence: {
         Row: {
           kind: string
@@ -625,6 +872,458 @@ export type Database = {
           },
           {
             foreignKeyName: "document_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident: {
+        Row: {
+          affected_parties: Database["public"]["Enums"]["incident_party"][]
+          closed_by: string | null
+          closed_on: string | null
+          code: string | null
+          created_at: string
+          current_state: string | null
+          customer_closure_notified_on: string | null
+          customer_id: string
+          customer_notice_due_at: string | null
+          customer_notified_at: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"]
+          id: string
+          immediate_action: string | null
+          impact_note: string | null
+          incident_type: string | null
+          lessons: string | null
+          management_notified_at: string | null
+          opened_at: string
+          outcome: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id: string | null
+          preventive_action: string | null
+          reported_by: string | null
+          root_cause: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: Database["public"]["Enums"]["incident_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+          what_happened: string
+        }
+        Insert: {
+          affected_parties?: Database["public"]["Enums"]["incident_party"][]
+          closed_by?: string | null
+          closed_on?: string | null
+          code?: string | null
+          created_at?: string
+          current_state?: string | null
+          customer_closure_notified_on?: string | null
+          customer_id: string
+          customer_notice_due_at?: string | null
+          customer_notified_at?: string | null
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"]
+          id?: string
+          immediate_action?: string | null
+          impact_note?: string | null
+          incident_type?: string | null
+          lessons?: string | null
+          management_notified_at?: string | null
+          opened_at?: string
+          outcome?: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id?: string | null
+          preventive_action?: string | null
+          reported_by?: string | null
+          root_cause?: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note?: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+          what_happened: string
+        }
+        Update: {
+          affected_parties?: Database["public"]["Enums"]["incident_party"][]
+          closed_by?: string | null
+          closed_on?: string | null
+          code?: string | null
+          created_at?: string
+          current_state?: string | null
+          customer_closure_notified_on?: string | null
+          customer_id?: string
+          customer_notice_due_at?: string | null
+          customer_notified_at?: string | null
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["document_entity"] | null
+          family?: Database["public"]["Enums"]["incident_family"]
+          id?: string
+          immediate_action?: string | null
+          impact_note?: string | null
+          incident_type?: string | null
+          lessons?: string | null
+          management_notified_at?: string | null
+          opened_at?: string
+          outcome?: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id?: string | null
+          preventive_action?: string | null
+          reported_by?: string | null
+          root_cause?: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          what_happened?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_owner_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_deadline: {
+        Row: {
+          created_at: string
+          due_at: string
+          id: string
+          incident_id: string
+          kind: Database["public"]["Enums"]["incident_deadline_kind"]
+          label: string | null
+          met_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_at: string
+          id?: string
+          incident_id: string
+          kind: Database["public"]["Enums"]["incident_deadline_kind"]
+          label?: string | null
+          met_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string
+          id?: string
+          incident_id?: string
+          kind?: Database["public"]["Enums"]["incident_deadline_kind"]
+          label?: string | null
+          met_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_log: {
+        Row: {
+          author_id: string | null
+          cost_amount: number | null
+          cost_currency: string | null
+          cost_payer: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty: string | null
+          created_at: string
+          customer_approved: boolean
+          decision: string | null
+          id: string
+          incident_id: string
+          logged_at: string
+          note: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          cost_amount?: number | null
+          cost_currency?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty?: string | null
+          created_at?: string
+          customer_approved?: boolean
+          decision?: string | null
+          id?: string
+          incident_id: string
+          logged_at?: string
+          note: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          cost_amount?: number | null
+          cost_currency?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty?: string | null
+          created_at?: string
+          customer_approved?: boolean
+          decision?: string | null
+          id?: string
+          incident_id?: string
+          logged_at?: string
+          note?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_log_author_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_cell: {
+        Row: {
+          compliance: Database["public"]["Enums"]["market_compliance"]
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at: string
+          currency: string | null
+          customer_id: string
+          id: string
+          last_checked_on: string | null
+          launched_on: string | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number
+          product_id: string
+          project_id: string | null
+          status: Database["public"]["Enums"]["market_cell_status"]
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          compliance?: Database["public"]["Enums"]["market_compliance"]
+          compliance_note?: string | null
+          content_status?: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at?: string
+          currency?: string | null
+          customer_id: string
+          id?: string
+          last_checked_on?: string | null
+          launched_on?: string | null
+          notes?: string | null
+          open_issue?: string | null
+          platform_id: string
+          platform_product_id?: string | null
+          platform_sku?: string | null
+          price?: number | null
+          priority?: number
+          product_id: string
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["market_cell_status"]
+          stock_source?: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          compliance?: Database["public"]["Enums"]["market_compliance"]
+          compliance_note?: string | null
+          content_status?: Database["public"]["Enums"]["content_status"]
+          country?: string
+          created_at?: string
+          currency?: string | null
+          customer_id?: string
+          id?: string
+          last_checked_on?: string | null
+          launched_on?: string | null
+          notes?: string | null
+          open_issue?: string | null
+          platform_id?: string
+          platform_product_id?: string | null
+          platform_sku?: string | null
+          price?: number | null
+          priority?: number
+          product_id?: string
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["market_cell_status"]
+          stock_source?: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_platform_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
@@ -1275,6 +1974,7 @@ export type Database = {
           passed_at: string | null
           position: number
           project_id: string
+          rolled_back_incident_id: string | null
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -1292,6 +1992,7 @@ export type Database = {
           passed_at?: string | null
           position: number
           project_id: string
+          rolled_back_incident_id?: string | null
           rolled_back_reason?: string | null
           status?: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -1309,6 +2010,7 @@ export type Database = {
           passed_at?: string | null
           position?: number
           project_id?: string
+          rolled_back_incident_id?: string | null
           rolled_back_reason?: string | null
           status?: Database["public"]["Enums"]["gate_status"]
           tenant_id?: string
@@ -1340,6 +2042,27 @@ export type Database = {
             columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -2962,6 +3685,43 @@ export type Database = {
           },
         ]
       }
+      dashboard_change_request: {
+        Row: {
+          change_request_id: string | null
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          decision_due_on: string | null
+          overdue: boolean | null
+          status: Database["public"]["Enums"]["change_request_status"] | null
+          tenant_id: string | null
+          title: string | null
+          urgency: Database["public"]["Enums"]["change_request_urgency"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_gate_pending: {
         Row: {
           customer_code: string | null
@@ -2995,6 +3755,74 @@ export type Database = {
           },
           {
             foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_incident: {
+        Row: {
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notice_late: boolean | null
+          incident_id: string | null
+          management_notice_missing: boolean | null
+          next_deadline_at: string | null
+          opened_at: string | null
+          overdue_deadline_count: number | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_market: {
+        Row: {
+          customer_code: string | null
+          customer_id: string | null
+          live_count: number | null
+          preparing_count: number | null
+          suppressed_count: number | null
+          target_count: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
@@ -3182,6 +4010,186 @@ export type Database = {
           },
           {
             foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_overview: {
+        Row: {
+          affected_parties:
+            | Database["public"]["Enums"]["incident_party"][]
+            | null
+          closed_by: string | null
+          closed_on: string | null
+          code: string | null
+          created_at: string | null
+          current_state: string | null
+          customer_closure_notified_on: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notified_at: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"] | null
+          id: string | null
+          immediate_action: string | null
+          impact_note: string | null
+          incident_type: string | null
+          is_repeat: boolean | null
+          lessons: string | null
+          management_notified_at: string | null
+          next_deadline_at: string | null
+          opened_at: string | null
+          outcome: Database["public"]["Enums"]["incident_outcome"] | null
+          overdue_deadline_count: number | null
+          owner_id: string | null
+          preventive_action: string | null
+          reported_by: string | null
+          root_cause: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          what_happened: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_owner_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_cell_overview: {
+        Row: {
+          cell_key: string | null
+          compliance: Database["public"]["Enums"]["market_compliance"] | null
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"] | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          gtin: string | null
+          id: string | null
+          last_checked_on: string | null
+          launched_on: string | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string | null
+          platform_name: string | null
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number | null
+          product_id: string | null
+          product_name: string | null
+          project_code: string | null
+          project_id: string | null
+          sku: string | null
+          status: Database["public"]["Enums"]["market_cell_status"] | null
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_platform_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
@@ -3610,6 +4618,13 @@ export type Database = {
           user_metadata: Json | null
         }[]
       }
+      add_business_days: {
+        Args: {
+          start_on: string
+          days: number
+        }
+        Returns: string
+      }
       create_branch: {
         Args: {
           parent_id: string
@@ -3724,6 +4739,7 @@ export type Database = {
           passed_at: string | null
           position: number
           project_id: string
+          rolled_back_incident_id: string | null
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -3788,6 +4804,7 @@ export type Database = {
         Args: {
           gate_id: string
           reason: string
+          incident_id?: string
         }
         Returns: {
           approval_document_id: string | null
@@ -3802,6 +4819,7 @@ export type Database = {
           passed_at: string | null
           position: number
           project_id: string
+          rolled_back_incident_id: string | null
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -3859,11 +4877,24 @@ export type Database = {
       }
     }
     Enums: {
+      change_kind:
+        | "spec"
+        | "design"
+        | "packaging"
+        | "price"
+        | "deadline"
+        | "supplier"
+        | "content"
+      change_request_source: "customer" | "supplier" | "moesa" | "regulation"
+      change_request_status: "open" | "approved" | "rejected" | "applied"
+      change_request_urgency: "normal" | "urgent"
       commercial_model:
         | "trading_partner"
         | "commercial_representative"
         | "operations_partner"
       compliance_status: "none" | "partial" | "complete"
+      content_status: "none" | "en_master" | "translated" | "approved"
+      cost_payer: "moesa" | "customer" | "supplier" | "carrier_insurance"
       customer_status: "lead" | "onboarding" | "active" | "paused" | "closed"
       document_entity:
         | "customer"
@@ -3874,6 +4905,8 @@ export type Database = {
         | "purchase_order"
         | "shipment"
         | "incident"
+        | "market_cell"
+        | "change_request"
       document_status: "draft" | "signed" | "approved" | "superseded"
       document_type:
         | "spec_sheet"
@@ -3910,6 +4943,43 @@ export type Database = {
         | "L_G1"
         | "L_G2"
       gate_status: "pending" | "passed" | "rolled_back"
+      incident_deadline_kind:
+        | "supplier_damage"
+        | "carrier_claim"
+        | "demurrage"
+        | "supplier_storage"
+        | "platform_escalation"
+        | "document_request"
+        | "other"
+      incident_family: "ol" | "oa" | "ou" | "ot" | "om"
+      incident_outcome: "full_recovery" | "partial_recovery" | "loss"
+      incident_party:
+        | "customer"
+        | "supplier"
+        | "forwarder"
+        | "platform"
+        | "warehouse"
+      incident_root_cause:
+        | "human_error"
+        | "document_data"
+        | "communication"
+        | "supplier"
+        | "carrier"
+        | "platform_regulation"
+        | "customer"
+      incident_severity: "s1" | "s2" | "s3"
+      incident_status: "open" | "contained" | "closed"
+      market_cell_status:
+        | "candidate"
+        | "planned"
+        | "preparing"
+        | "uploaded"
+        | "live"
+        | "suppressed"
+        | "paused"
+        | "stopped"
+        | "removed"
+      market_compliance: "green" | "yellow" | "red" | "pending"
       media_role: "primary_image" | "gallery" | "evidence_photo" | "attachment"
       payment_kind: "deposit" | "balance" | "other"
       payment_payer: "moesa" | "customer"
@@ -3967,6 +5037,7 @@ export type Database = {
         | "accepted"
         | "disputed"
         | "cancelled"
+      stock_source: "customer_warehouse" | "3pl" | "platform" | "pan_eu"
       supplier_status: "candidate" | "approved" | "suspended"
       task_status: "todo" | "doing" | "done" | "blocked"
       type_permission_command: "select" | "insert" | "update" | "delete"

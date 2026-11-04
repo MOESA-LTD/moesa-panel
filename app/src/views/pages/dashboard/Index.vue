@@ -4,14 +4,21 @@ import {
    groupGates,
    groupPurchaseOrders,
    groupShipments,
+   marketSummary,
    splitTasks,
+   useDashboardChangeRequests,
    useDashboardEvidence,
    useDashboardGates,
+   useDashboardIncidents,
+   useDashboardMarket,
    useDashboardPurchaseOrders,
    useDashboardShipments,
    useDashboardTasks,
+   type DashboardChangeRequestRow,
    type DashboardEvidenceRow,
    type DashboardGateRow,
+   type DashboardIncidentRow,
+   type DashboardMarketRow,
    type DashboardPurchaseOrderRow,
    type DashboardShipmentRow,
    type DashboardTaskRow
@@ -159,6 +166,65 @@ const { data: shipmentRows } = useDashboardShipments();
 const orders = computed(() => groupPurchaseOrders(orderRows.value ?? []));
 const shipments = computed(() => groupShipments(shipmentRows.value ?? []));
 
+// --- incidents, change requests and the market matrix (M6) ---
+
+/**
+ * An open incident, with its severity, then whether management was not told yet, else its next
+ * deadline.
+ */
+const incidentItem = (row: DashboardIncidentRow): CountListItem => ({
+   label: [row.code, row.title, row.customer_code].filter(Boolean).join(' · '),
+   meta: [
+      row.severity && i18n.t(`ops.incident.severity.${row.severity}`),
+      row.management_notice_missing
+         ? i18n.t('dashboard.ops.meta.notice_missing')
+         : row.next_deadline_at &&
+           i18n.t('dashboard.ops.meta.deadline', { date: dayMonth(row.next_deadline_at) })
+   ]
+      .filter(Boolean)
+      .join(' · '),
+   to: {
+      name: 'ops-incident-manage',
+      params: { id: row.incident_id ?? '' },
+      query: { showDialog: DIALOG_POSITIONS.CENTER }
+   }
+});
+
+/** An open or approved change request, with its status and its decision date. */
+const changeRequestItem = (row: DashboardChangeRequestRow): CountListItem => ({
+   label: [row.code, row.title, row.customer_code].filter(Boolean).join(' · '),
+   meta: [
+      row.status && i18n.t(`ops.change_request.status.${row.status}`),
+      row.decision_due_on &&
+         i18n.t('dashboard.ops.meta.decision_due', { date: dayMonth(row.decision_due_on) })
+   ]
+      .filter(Boolean)
+      .join(' · '),
+   to: {
+      name: 'ops-change-request-manage',
+      params: { id: row.change_request_id ?? '' },
+      query: { showDialog: DIALOG_POSITIONS.CENTER }
+   }
+});
+
+/** A customer's market cells, opening the matrix narrowed to that customer (the customer filter). */
+const marketItem = (row: DashboardMarketRow): CountListItem => ({
+   label: row.customer_code ?? '',
+   meta: i18n.t('dashboard.ops.meta.market', {
+      live: row.live_count ?? 0,
+      preparing: row.preparing_count ?? 0,
+      suppressed: row.suppressed_count ?? 0
+   }),
+   to: { name: 'ops-market-list' },
+   onSelect: () => customerFilter.set(row.customer_id ?? null)
+});
+
+const { data: incidentRows } = useDashboardIncidents();
+const { data: changeRequestRows } = useDashboardChangeRequests();
+const { data: marketRows } = useDashboardMarket();
+
+const market = computed(() => marketSummary(marketRows.value ?? []));
+
 const useDashboardNotifications = () => {
    const getTagProps = (item: Views['dashboard_notification_feed']['Row']) => {
       switch (_toLower(item?.activity ?? undefined)) {
@@ -257,6 +323,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'project_gate')"
             :title="$t('dashboard.ops.gates_team')"
+            guide-task="close_gates"
             :count="gates.team.length"
             :items="gates.team.map(gateItem)"
             :icon="PrimeIcons.FLAG"
@@ -265,6 +332,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'project_gate')"
             :title="$t('dashboard.ops.gates_management')"
+            guide-task="close_gates"
             :count="gates.management.length"
             :items="gates.management.map(gateItem)"
             :icon="PrimeIcons.BRIEFCASE"
@@ -273,6 +341,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'project_gate')"
             :title="$t('dashboard.ops.gates_customer')"
+            guide-task="close_gates"
             :count="gates.customer.length"
             :items="gates.customer.map(gateItem)"
             :icon="PrimeIcons.USER"
@@ -281,6 +350,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'project_task')"
             :title="$t('dashboard.ops.tasks_overdue')"
+            guide-task="close_tasks"
             :count="tasks.overdue.length"
             :items="tasks.overdue.map(taskItem)"
             :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
@@ -289,6 +359,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'project_task')"
             :title="$t('dashboard.ops.tasks_due_soon')"
+            guide-task="close_tasks"
             :count="tasks.dueSoon.length"
             :items="tasks.dueSoon.map(taskItem)"
             :icon="PrimeIcons.CLOCK"
@@ -297,6 +368,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'product')"
             :title="$t('dashboard.ops.unsigned_skus')"
+            guide-task="sign_spec"
             :count="unsignedSkus.count"
             :items="unsignedSkus.items"
             :icon="PrimeIcons.FILE_EDIT"
@@ -305,6 +377,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'product')"
             :title="$t('dashboard.ops.incomplete_compliance')"
+            guide-task="complete_compliance"
             :count="incompleteCompliance.count"
             :items="incompleteCompliance.items"
             :icon="PrimeIcons.SHIELD"
@@ -313,6 +386,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'purchase_order')"
             :title="$t('dashboard.ops.po_action')"
+            guide-task="advance_po"
             :count="orders.action.length"
             :items="orders.action.map(actionOrderItem)"
             :icon="PrimeIcons.SHOPPING_CART"
@@ -321,6 +395,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'purchase_order')"
             :title="$t('dashboard.ops.po_production')"
+            guide-task="advance_po"
             :count="orders.production.length"
             :items="orders.production.map(productionOrderItem)"
             :icon="PrimeIcons.COG"
@@ -329,6 +404,7 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'shipment')"
             :title="$t('dashboard.ops.shipments_in_transit')"
+            guide-task="track_shipment"
             :count="shipments.inTransit.length"
             :items="shipments.inTransit.map(inTransitShipmentItem)"
             :icon="PrimeIcons.SEND"
@@ -337,10 +413,39 @@ dashboardNotifications.load();
          <CountListCard
             v-if="$can('read', 'shipment')"
             :title="$t('dashboard.ops.shipments_late')"
+            guide-task="track_shipment"
             :count="shipments.late.length"
             :items="shipments.late.map(lateShipmentItem)"
             :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
             severity="danger"
+         />
+         <CountListCard
+            v-if="$can('read', 'incident')"
+            :title="$t('dashboard.ops.incidents_open')"
+            guide-task="close_incident"
+            :count="incidentRows?.length ?? 0"
+            :items="(incidentRows ?? []).map(incidentItem)"
+            :icon="PrimeIcons.EXCLAMATION_CIRCLE"
+            severity="danger"
+         />
+         <CountListCard
+            v-if="$can('read', 'change_request')"
+            :title="$t('dashboard.ops.change_requests_open')"
+            guide-task="decide_cr"
+            :count="changeRequestRows?.length ?? 0"
+            :items="(changeRequestRows ?? []).map(changeRequestItem)"
+            :icon="PrimeIcons.SYNC"
+            severity="warn"
+         />
+         <CountListCard
+            v-if="$can('read', 'market_cell')"
+            :title="$t('dashboard.ops.market_summary')"
+            guide-task="update_market"
+            :count="market.live"
+            :empty="market.items.length === 0"
+            :items="market.items.map(marketItem)"
+            :icon="PrimeIcons.TABLE"
+            severity="success"
          />
       </div>
       <div class="w-full flex flex-wrap gap-[inherit]">

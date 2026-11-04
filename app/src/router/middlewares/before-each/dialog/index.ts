@@ -1,5 +1,6 @@
 import { openRouteDialog } from '@/components/layout/route-dialog/openRouteDialog';
 import type { DialogPosition } from '@/constants/router';
+import { dialogRoute } from './dialogRoute';
 import { useDialog } from 'primevue';
 import type { NavigationGuardWithThis, RouteLocationRaw } from 'vue-router';
 
@@ -19,11 +20,13 @@ export const dialogBeforeEach: NavigationGuardWithThis<undefined> = async (to, f
    // RouteDialog reads the session to close itself on sign-out or tenant change.
    if (to.meta.requiresAuth) await useAuthStore().initialized;
 
-   openRouteDialog(dialogs, to, position);
+   // A card's tab route opens the whole card on that tab.
+   const resolved = dialogRoute(to);
+   openRouteDialog(dialogs, resolved, position);
 
    // Opened directly (page load): show the closest named parent route underneath.
    if (from.matched.length < 1) {
-      const backRoute: RouteLocationRaw = to.matched
+      const backRoute: RouteLocationRaw = resolved.matched
          .slice(0, -2)
          .reverse()
          .find((route) => route.name) ?? { name: 'account-profile' };

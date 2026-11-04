@@ -45,6 +45,12 @@ INSERT INTO public.project_product (project_id, product_id, tenant_id)
 VALUES ('00000000-0000-4000-8000-000000000214', '00000000-0000-4000-8000-000000000213',
         current_setting('test.tenant_id')::UUID);
 
+-- The incident the rollbacks below cite (036: a gate rolls back only through an open incident of
+-- the project's customer).
+INSERT INTO public.incident (id, tenant_id, customer_id, family, severity, title, what_happened)
+VALUES ('00000000-0000-4000-8000-000000036901', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212',
+        'om', 's3', 'Brief changed', 'The customer changed the brief.');
+
 -- The gates the checks below use.
 SELECT set_config('test.' || x.name, (SELECT g.id FROM public.project_gate g
     WHERE g.project_id = x.project_id AND g.code = x.code)::TEXT, TRUE)
@@ -301,7 +307,7 @@ SELECT throws_ok(
     'only a passed gate can be rolled back'
 );
 
-SELECT public.rollback_gate(current_setting('test.g1')::UUID, 'customer changed the brief');
+SELECT public.rollback_gate(current_setting('test.g1')::UUID, 'customer changed the brief', '00000000-0000-4000-8000-000000036901');
 
 SELECT is(
     (SELECT array_agg(g.code || ':' || g.status ORDER BY g.position)::TEXT FROM public.project_gate g
@@ -402,7 +408,8 @@ SELECT throws_ok(
     'a gate cannot be rolled back directly while a later gate is still passed'
 );
 
-UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'PSI to be redone'
+UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'PSI to be redone',
+    rolled_back_incident_id = '00000000-0000-4000-8000-000000036901'
 WHERE id = current_setting('test.g4')::UUID;
 
 SELECT is(

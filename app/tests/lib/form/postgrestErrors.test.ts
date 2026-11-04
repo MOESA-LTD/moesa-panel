@@ -263,6 +263,96 @@ describe('mapPostgrestError', () => {
          expect(mapPostgrestError({ code: '23514', message: name }, ['status', 'eta'])).toBeNull();
       }
    });
+   it('maps the errors of the market cell table to their fields', () => {
+      expect(
+         mapPostgrestError(
+            {
+               code: '23505',
+               message: 'duplicate key value violates unique constraint "unique_market_cell"'
+            },
+            ['country']
+         )
+      ).toEqual({ country: i18n.t('errors.market_cell_duplicate') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "market_cell" violates check constraint "market_cell_country_format"'
+            },
+            ['country', 'currency']
+         )
+      ).toEqual({ country: i18n.t('errors.market_cell_country_invalid') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_country_invalid' }, ['country'])
+      ).toEqual({ country: i18n.t('errors.market_cell_country_invalid') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "market_cell" violates foreign key constraint "market_cell_product_fkey"'
+            },
+            ['product_id', 'project_id']
+         )
+      ).toEqual({ product_id: i18n.t('errors.market_cell_product_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "market_cell" violates foreign key constraint "market_cell_project_fkey"'
+            },
+            ['product_id', 'project_id']
+         )
+      ).toEqual({ project_id: i18n.t('errors.market_cell_project_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "market_cell" violates check constraint "market_cell_price_currency"'
+            },
+            ['price', 'currency']
+         )
+      ).toEqual({ currency: i18n.t('errors.market_cell_price_currency') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_compliance_note_required' }, [
+            'compliance',
+            'compliance_note'
+         ])
+      ).toEqual({ compliance_note: i18n.t('errors.market_cell_compliance_note_required') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_compliance_red' }, [
+            'compliance',
+            'compliance_note'
+         ])
+      ).toEqual({ compliance: i18n.t('errors.market_cell_compliance_red') });
+   });
+   it('never maps a market cell status error to a field', () => {
+      expect(
+         mapPostgrestError({ code: '23514', message: 'market_cell_live_incomplete' }, ['price'])
+      ).toBeNull();
+      for (const name of [
+         'market_cell_live_incomplete',
+         'market_cell_status_order',
+         'market_cell_reason_required',
+         'market_cell_immutable_field',
+         'market_cell_delete_candidate_only'
+      ]) {
+         expect(NAMED_ERRORS.filter((entry) => entry.name === name)).toEqual([
+            { code: '23514', name, message: `errors.${name}` }
+         ]);
+         expect(
+            mapPostgrestError({ code: '23514', message: name }, [
+               'status',
+               'notes',
+               'open_issue',
+               'country'
+            ])
+         ).toBeNull();
+      }
+   });
    it('never maps a toast-level error to a field', () => {
       expect(
          mapPostgrestError({ code: '23514', message: 'po_pi_mismatch' }, ['pi_total'])
@@ -277,5 +367,147 @@ describe('mapPostgrestError', () => {
          (key) => typeof keys(en)[key] !== 'string' || typeof keys(tr)[key] !== 'string'
       );
       expect(missing).toEqual([]);
+   });
+   it('maps the errors of incidents and their log to their fields', () => {
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "incident_log" violates check constraint "incident_log_cost_complete"'
+            },
+            ['cost_amount']
+         )
+      ).toEqual({ cost_amount: i18n.t('errors.incident_log_cost_incomplete') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "incident" violates check constraint "incident_type_format"'
+            },
+            ['incident_type', 'family']
+         )
+      ).toEqual({ incident_type: i18n.t('errors.incident_type_invalid') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'incident_type_family' }, ['incident_type'])
+      ).toEqual({ incident_type: i18n.t('errors.incident_type_family') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'incident_entity_invalid' }, [
+            'entity_type',
+            'entity_id'
+         ])
+      ).toEqual({ entity_id: i18n.t('errors.incident_entity_invalid') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "incident" violates check constraint "incident_entity_kind"'
+            },
+            ['entity_type', 'entity_id']
+         )
+      ).toEqual({ entity_type: i18n.t('errors.incident_entity_invalid') });
+      expect(
+         mapPostgrestError({ code: '23503', message: 'incident_customer_missing' }, ['customer_id'])
+      ).toEqual({ customer_id: i18n.t('errors.incident_customer_missing') });
+      expect(
+         mapPostgrestError(
+            { code: '42501', message: 'incident_severity_downgrade_requires_management' },
+            ['severity']
+         )
+      ).toEqual({ severity: i18n.t('errors.incident_severity_downgrade_requires_management') });
+   });
+   it('never maps an incident status or gate rollback error to a field', () => {
+      expect(
+         mapPostgrestError({ code: '42501', message: 'incident_close_management' }, ['status'])
+      ).toBeNull();
+      for (const name of [
+         'incident_immutable_field',
+         'incident_status_order',
+         'incident_management_notice_required',
+         'incident_closure_incomplete',
+         'incident_closed',
+         'gate_rollback_incident_required',
+         'gate_incident_invalid'
+      ]) {
+         expect(NAMED_ERRORS.filter((entry) => entry.name === name)).toEqual([
+            { code: '23514', name, message: `errors.${name}` }
+         ]);
+         expect(
+            mapPostgrestError({ code: '23514', message: name }, ['status', 'note', 'severity'])
+         ).toBeNull();
+      }
+   });
+   it('maps the errors of change requests to their fields', () => {
+      expect(
+         mapPostgrestError({ code: '23503', message: 'change_request_customer_missing' }, [
+            'customer_id'
+         ])
+      ).toEqual({ customer_id: i18n.t('errors.change_request_customer_missing') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "change_request" violates foreign key constraint "change_request_project_fkey"'
+            },
+            ['project_id', 'customer_id']
+         )
+      ).toEqual({ project_id: i18n.t('errors.cr_project_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "change_request_product" violates foreign key constraint "change_request_product_product_fkey"'
+            },
+            ['product_ids']
+         )
+      ).toEqual({ product_ids: i18n.t('errors.cr_product_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "change_request" violates check constraint "change_request_kinds_required"'
+            },
+            ['change_kinds']
+         )
+      ).toEqual({ change_kinds: i18n.t('errors.change_request_kinds_required') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'change_request_document_invalid' }, [
+            'affected_document_id',
+            'customer_approval_document_id'
+         ])
+      ).toEqual({ affected_document_id: i18n.t('errors.change_request_document_invalid') });
+      expect(
+         mapPostgrestError({ code: '23514', message: 'change_request_approval_document_invalid' }, [
+            'affected_document_id',
+            'customer_approval_document_id'
+         ])
+      ).toEqual({
+         customer_approval_document_id: i18n.t('errors.change_request_approval_document_invalid')
+      });
+   });
+   it('never maps a change request status error to a field', () => {
+      for (const name of [
+         'change_request_immutable_field',
+         'change_request_status_order',
+         'change_request_customer_approval_required',
+         'change_request_decision_note_required',
+         'change_request_new_version_required'
+      ]) {
+         expect(NAMED_ERRORS.filter((entry) => entry.name === name)).toEqual([
+            { code: '23514', name, message: `errors.${name}` }
+         ]);
+         expect(
+            mapPostgrestError({ code: '23514', message: name }, [
+               'decision_note',
+               'result_document_id',
+               'customer_approved_on'
+            ])
+         ).toBeNull();
+      }
    });
 });

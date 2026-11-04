@@ -26,6 +26,33 @@ const purchaseOrderProps = (route: RouteLocationNormalized) => ({
    project_id: route.query.project_id ?? null
 });
 
+// A new market cell opened from an empty matrix cell names its product, platform and country in
+// the query (a route dialog renders the page outside the router, so they come as props).
+export const marketCellProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   product_id: route.query.product_id ?? null,
+   platform_id: route.query.platform_id ?? null,
+   country: route.query.country ?? null
+});
+
+// A new incident opened from a project (its Incidents tab or a gate's rollback) names its customer
+// and linked record in the query; a route dialog renders the page outside the router, so the
+// card gets them as props.
+export const incidentProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   customer_id: route.query.customer_id ?? null,
+   entity_type: route.query.entity_type ?? null,
+   entity_id: route.query.entity_id ?? null
+});
+
+// A new change request opened from a link names its customer and project in the query; a route
+// dialog renders the page outside the router, so the card gets them as props.
+export const changeRequestProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   customer_id: route.query.customer_id ?? null,
+   project_id: route.query.project_id ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -43,7 +70,10 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'shipment' },
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' },
-            { action: 'select', subject: 'media' }
+            { action: 'select', subject: 'media' },
+            { action: 'select', subject: 'market_cell' },
+            { action: 'select', subject: 'incident' },
+            { action: 'select', subject: 'change_request' }
          ]
       },
       components: {
@@ -769,6 +799,21 @@ const routes: RouteRecordRaw[] = [
                         }
                      },
                      {
+                        path: 'incidents',
+                        name: 'ops-project-manage-incidents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_incidents',
+                           icon: PrimeIcons.EXCLAMATION_CIRCLE,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'incident' }]
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Incidents.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Incidents.vue')
+                        }
+                     },
+                     {
                         path: 'documents',
                         name: 'ops-project-manage-documents',
                         props: true,
@@ -1277,6 +1322,412 @@ const routes: RouteRecordRaw[] = [
                      default: () => import('@/views/pages/ops/shipment/EventUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/shipment/EventUpsert.vue')
                   }
+               }
+            ]
+         },
+         {
+            // The S05 market matrix: products by platform and country, or the cells as a list.
+            path: 'market-matrix',
+            name: 'ops-market',
+            meta: {
+               label: 'route.label.ops_market',
+               icon: PrimeIcons.TABLE,
+               requiredPermissions: [{ action: 'select', subject: 'market_cell' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-market-cells-add',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-market-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-market-list',
+                  meta: {
+                     label: 'route.label.ops_market_list',
+                     icon: PrimeIcons.TABLE,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/Index.vue')
+                  }
+               },
+               {
+                  path: 'cell/add',
+                  name: 'ops-market-cell-add',
+                  props: { default: marketCellProps, skeleton: marketCellProps },
+                  meta: {
+                     label: 'route.label.ops_market_cell_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/CellUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/CellUpsert.vue')
+                  }
+               },
+               {
+                  path: 'cell/:id/edit',
+                  name: 'ops-market-cell-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_market_cell_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     // A record card opens for readers too; the dialog is read-only without update.
+                     requiredPermissions: [{ action: 'select', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/CellUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/CellUpsert.vue')
+                  }
+               },
+               {
+                  path: 'cells/add',
+                  name: 'ops-market-cells-add',
+                  meta: {
+                     label: 'route.label.ops_market_cells_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/CellsAdd.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/CellsAdd.vue')
+                  }
+               }
+            ]
+         },
+         {
+            // Incidents (S17, Y10): what went wrong, its log, deadlines and closure.
+            path: 'incidents',
+            name: 'ops-incident',
+            meta: {
+               label: 'route.label.ops_incident',
+               icon: PrimeIcons.EXCLAMATION_CIRCLE,
+               requiredPermissions: [{ action: 'select', subject: 'incident' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-incident-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-incident-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-incident-list',
+                  meta: {
+                     label: 'route.label.ops_incident_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'incident' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/Index.vue')
+                  }
+               },
+               {
+                  // The incident card: its tabs open on their own as these child routes. A record
+                  // card opens for readers too; the form is read-only without update.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-incident-manage',
+                  props: { default: incidentProps, skeleton: incidentProps },
+                  meta: {
+                     label: 'route.label.ops_incident_manage',
+                     icon: PrimeIcons.EXCLAMATION_CIRCLE,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'incident' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-incident-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/General.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'log',
+                        name: 'ops-incident-manage-log',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_log',
+                           icon: PrimeIcons.HISTORY,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Log.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Log.vue')
+                        }
+                     },
+                     {
+                        path: 'deadlines',
+                        name: 'ops-incident-manage-deadlines',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_deadlines',
+                           icon: PrimeIcons.CLOCK,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Deadlines.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Deadlines.vue')
+                        }
+                     },
+                     {
+                        path: 'closure',
+                        name: 'ops-incident-manage-closure',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_closure',
+                           icon: PrimeIcons.CHECK_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Closure.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Closure.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-incident-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Documents.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-incident-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Media.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':incidentId/log/add',
+                  name: 'ops-incident-log-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_log_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'incident_log' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/LogUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/LogUpsert.vue')
+                  }
+               },
+               {
+                  path: 'log/:id/edit',
+                  name: 'ops-incident-log-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_log_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'incident_log' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/LogUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/LogUpsert.vue')
+                  }
+               },
+               {
+                  path: ':incidentId/deadline/add',
+                  name: 'ops-incident-deadline-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_deadline_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'incident_deadline' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue')
+                  }
+               },
+               {
+                  path: 'deadline/:id/edit',
+                  name: 'ops-incident-deadline-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_deadline_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'incident_deadline' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue')
+                  }
+               }
+            ]
+         },
+         {
+            // Change requests (S08): what changes in an approved product or project, its impact,
+            // who approved it and the new document version it produced.
+            path: 'change-requests',
+            name: 'ops-change-request',
+            meta: {
+               label: 'route.label.ops_change_request',
+               icon: PrimeIcons.SYNC,
+               requiredPermissions: [{ action: 'select', subject: 'change_request' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-change-request-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-change-request-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-change-request-list',
+                  meta: {
+                     label: 'route.label.ops_change_request_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'change_request' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/change-request/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/change-request/Index.vue')
+                  }
+               },
+               {
+                  // The change request card: its tabs open on their own as these child routes. A
+                  // record card opens for readers too; the form is read-only without update.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-change-request-manage',
+                  props: { default: changeRequestProps, skeleton: changeRequestProps },
+                  meta: {
+                     label: 'route.label.ops_change_request_manage',
+                     icon: PrimeIcons.SYNC,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'change_request' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/change-request/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/change-request/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-change-request-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/General.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'impact',
+                        name: 'ops-change-request-manage-impact',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_impact',
+                           icon: PrimeIcons.CHART_LINE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/Impact.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/Impact.vue')
+                        }
+                     },
+                     {
+                        path: 'decision',
+                        name: 'ops-change-request-manage-decision',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_decision',
+                           icon: PrimeIcons.CHECK_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/Decision.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/Decision.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-change-request-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/Documents.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/Documents.vue')
+                        }
+                     }
+                  ]
                }
             ]
          },

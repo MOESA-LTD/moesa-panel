@@ -165,7 +165,14 @@
       "shipment": "Shipment",
       "shipment_purchase_order": "Shipment order",
       "shipment_line": "Shipment line",
-      "shipment_event": "Shipment event"
+      "shipment_event": "Shipment event",
+      "market_cell": "Market cell",
+      "market_matrix": "Market matrix",
+      "incident": "Incident",
+      "incident_log": "Incident log",
+      "incident_deadline": "Incident deadline",
+      "change_request": "Change request",
+      "change_request_product": "Change request product"
    },
    "audit_log": {
       "no_changes_detected": "لم يتم اكتشاف أي تغييرات",
@@ -239,8 +246,15 @@
             "ready": "Ready {date}",
             "balance": "Balance {date}",
             "eta": "ETA {date}",
-            "late": "{n} days late"
-         }
+            "late": "{n} days late",
+            "notice_missing": "management not told",
+            "deadline": "deadline {date}",
+            "decision_due": "decision {date}",
+            "market": "{live} live · {preparing} preparing · {suppressed} suppressed"
+         },
+         "incidents_open": "Open incidents",
+         "change_requests_open": "Open change requests",
+         "market_summary": "Market matrix: live"
       }
    },
    "input": {
@@ -539,7 +553,46 @@
       "shipment_quantity_exceeds_po": "More than ordered (tolerance included) would be shipped.",
       "shipment_locked": "The goods are loaded; orders and lines no longer change.",
       "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved.",
-      "shipment_lines_required": "Add at least one line before loading."
+      "shipment_lines_required": "Add at least one line before loading.",
+      "market_cell_country_invalid": "Choose one of the platform's countries (ISO code).",
+      "market_cell_compliance_note_required": "Yellow and red compliance need a note (S12).",
+      "market_cell_compliance_red": "A red cell cannot be planned or live; remove it with the reason.",
+      "market_cell_live_incomplete": "Live needs the platform ID, platform SKU, price, currency, stock source and approved content (L-G1).",
+      "market_cell_status_order": "The cell cannot move to this status from its current one (S05).",
+      "market_cell_reason_required": "Write the reason: the open issue when suppressed, a note when closed or removed.",
+      "market_cell_immutable_field": "A cell's product, platform and country do not change; open a new cell.",
+      "market_cell_delete_candidate_only": "Only a candidate cell can be deleted; remove or close the others.",
+      "market_cell_duplicate": "This product already has a cell for this platform and country.",
+      "market_cell_product_customer": "The product belongs to another customer.",
+      "market_cell_project_customer": "The project belongs to another customer.",
+      "market_cell_price_currency": "A price needs its currency.",
+      "incident_customer_missing": "The incident's customer was not found.",
+      "incident_immutable_field": "An incident's code, customer and family cannot change.",
+      "incident_type_family": "The Y10 card belongs to another family.",
+      "incident_entity_invalid": "Choose a project, order, shipment, product or market cell of this customer.",
+      "incident_status_order": "The incident cannot move to this status from its current one.",
+      "incident_management_notice_required": "S1 and S2 incidents need the time management was told first.",
+      "incident_closure_incomplete": "Fill the outcome, the root cause and the preventive action before closing.",
+      "incident_close_management": "Only management closes an S1 incident.",
+      "incident_closed": "The incident is closed; its log and deadlines no longer change.",
+      "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
+      "gate_incident_invalid": "Pick an open incident of this project's customer.",
+      "incident_severity_downgrade_requires_management": "Only management may lower an S1 or S2 incident's severity.",
+      "change_request_customer_missing": "The request's customer was not found.",
+      "change_request_immutable_field": "A change request's code and customer cannot change.",
+      "change_request_document_invalid": "Choose a document of this customer's records.",
+      "change_request_approval_document_invalid": "The customer's approval must be a signed or approved document of this request.",
+      "change_request_status_order": "The request cannot move to this status from its current one.",
+      "change_request_customer_approval_required": "It touches a passed (M) gate: add the customer's written approval date and document first (S08).",
+      "change_request_decision_note_required": "Write why the request is rejected.",
+      "change_request_new_version_required": "Pick the new version of the affected document first.",
+      "incident_type_invalid": "Choose a Y10 card code (e.g. OL-09).",
+      "incident_log_cost_incomplete": "A cost needs its amount, currency and who pays.",
+      "incident_deadline_due_required": "Enter the due time; only the 48-hour, 7-day and document-request deadlines are calculated.",
+      "cr_project_customer": "The project belongs to another customer.",
+      "cr_product_customer": "A product belongs to another customer.",
+      "change_request_kinds_required": "Choose at least one change kind.",
+      "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again."
    },
    "route": {
       "label": {
@@ -664,7 +717,33 @@
          "ops_supplier_purchase_orders": "Purchase orders",
          "ops_product_orders": "Orders and shipments",
          "ops_project_purchase_orders": "Purchase orders",
-         "ops_project_shipments": "Shipments"
+         "ops_project_shipments": "Shipments",
+         "ops_market": "Market matrix",
+         "ops_market_list": "Matrix",
+         "ops_market_cell_add": "New cell",
+         "ops_market_cell_edit": "Cell",
+         "ops_market_cells_add": "Add cells",
+         "ops_project_incidents": "Incidents",
+         "ops_incident": "Incidents",
+         "ops_incident_list": "List",
+         "ops_incident_manage": "Incident",
+         "ops_incident_general": "General",
+         "ops_incident_log": "Log",
+         "ops_incident_deadlines": "Deadlines",
+         "ops_incident_closure": "Closure",
+         "ops_incident_documents": "Documents",
+         "ops_incident_media": "Media",
+         "ops_incident_log_add": "Log line",
+         "ops_incident_log_edit": "Log line",
+         "ops_incident_deadline_add": "Deadline",
+         "ops_incident_deadline_edit": "Deadline",
+         "ops_change_request": "Change requests",
+         "ops_change_request_list": "List",
+         "ops_change_request_manage": "Change request",
+         "ops_change_request_general": "Request",
+         "ops_change_request_impact": "Impact",
+         "ops_change_request_decision": "Decision",
+         "ops_change_request_documents": "Documents"
       }
    },
    "account": {
@@ -934,7 +1013,9 @@
             "project_gate": "Project gate",
             "purchase_order": "Purchase order",
             "shipment": "Shipment",
-            "incident": "Incident"
+            "incident": "Incident",
+            "market_cell": "Market cell",
+            "change_request": "Change request"
          },
          "drive_link": "Drive link",
          "file": "File",
@@ -1222,7 +1303,8 @@
             "products": "Products",
             "documents": "Documents",
             "purchase_orders": "Purchase orders",
-            "shipments": "Shipments"
+            "shipments": "Shipments",
+            "incidents": "Incidents"
          },
          "sections": {
             "general": "Project",
@@ -1297,7 +1379,9 @@
             "needs_customer_approval": "Needs customer approval",
             "rolled_back_reason": "Rolled back because",
             "passed": "Gate passed",
-            "rolled_back": "Gate rolled back"
+            "rolled_back": "Gate rolled back",
+            "incident": "Incident",
+            "no_incident": "There is no open incident of this customer; open one first."
          },
          "task": {
             "fields": {
@@ -1662,6 +1746,331 @@
       },
       "status_actions": {
          "dirty_hint": "Save or discard your changes first."
+      },
+      "market": {
+         "title": "Market matrix",
+         "view": {
+            "matrix": "Matrix",
+            "list": "List"
+         },
+         "counter": "{code}: {live} live / {target} target",
+         "add_cells": "Add cells",
+         "add_cell": "Add {sku} on {cell}",
+         "cells_added": "{added} added, {skipped} already existed",
+         "no_cells": "No cells yet. Add cells to start the matrix.",
+         "sections": {
+            "status": "Status",
+            "compliance": "Compliance",
+            "listing": "Listing",
+            "dates": "Dates"
+         },
+         "status": {
+            "candidate": "Candidate",
+            "planned": "Planned",
+            "preparing": "Preparing",
+            "uploaded": "Uploaded",
+            "live": "Live",
+            "suppressed": "Suppressed",
+            "paused": "On hold",
+            "stopped": "Closed",
+            "removed": "Removed"
+         },
+         "compliance": {
+            "green": "Green",
+            "yellow": "Yellow",
+            "red": "Red",
+            "pending": "Pending"
+         },
+         "stock_source": {
+            "customer_warehouse": "Customer warehouse",
+            "3pl": "3PL",
+            "platform": "Platform warehouse",
+            "pan_eu": "Pan-European"
+         },
+         "content_status": {
+            "none": "None",
+            "en_master": "EN master",
+            "translated": "Translated",
+            "approved": "Approved (L-G1)"
+         },
+         "fields": {
+            "customer": "Customer",
+            "sku": "SKU",
+            "product": "Product",
+            "products": "Products",
+            "project": "Project",
+            "platform": "Platform",
+            "country": "Country",
+            "countries": "Countries",
+            "status": "Status",
+            "priority": "Priority",
+            "compliance": "Compliance",
+            "compliance_note": "Compliance note",
+            "platform_product_id": "Platform product ID",
+            "platform_sku": "Platform SKU",
+            "price": "Price (incl. VAT)",
+            "currency": "Currency",
+            "stock_source": "Stock source",
+            "content_status": "Content language status",
+            "target_launch_on": "Target launch",
+            "launched_on": "Launched",
+            "last_checked_on": "Last checked",
+            "open_issue": "Open issue",
+            "notes": "Note"
+         },
+         "priority": {
+            "1": "Same account, new country",
+            "2": "New platform",
+            "3": "New region"
+         },
+         "live_missing": "Missing for live: {fields}",
+         "load_error": "Market cells could not be loaded."
+      },
+      "incident": {
+         "title": "Incidents",
+         "tabs": {
+            "general": "General",
+            "log": "Log",
+            "deadlines": "Deadlines",
+            "closure": "Closure",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "sections": {
+            "opening": "Opening (first 15 minutes)",
+            "classification": "Classification"
+         },
+         "status": {
+            "open": "Open",
+            "contained": "Contained",
+            "closed": "Closed"
+         },
+         "severity": {
+            "s1": "S1 critical",
+            "s2": "S2 major",
+            "s3": "S3 minor"
+         },
+         "family": {
+            "ol": "Shipment and delivery (OL)",
+            "oa": "Platform and Amazon (OA)",
+            "ou": "Product and compliance (OU)",
+            "ot": "Supplier (OT)",
+            "om": "Customer (OM)"
+         },
+         "types": {
+            "OL-01": "The wrong vehicle came to the warehouse",
+            "OL-02": "Arrival without or outside the appointment; the warehouse refuses it",
+            "OL-03": "Waiting, demurrage and detention",
+            "OL-04": "Pallet or carton count does not match the documents",
+            "OL-05": "Damaged delivery",
+            "OL-06": "Label or address error",
+            "OL-07": "Missing or wrong documents",
+            "OL-08": "Held at customs, inspection, HS code dispute, extra duty",
+            "OL-09": "Shipment delay",
+            "OL-10": "Finished goods not collected in time",
+            "OL-11": "Broken communication: forwarder, broker and warehouse don't call each other, everyone calls MOESA",
+            "OL-12": "FBA shipment refused or wrong shipment plan",
+            "OA-01": "Listing removed: policy violation",
+            "OA-02": "Document request: GPSR safety information, SDS, product safety images",
+            "OA-03": "Main image policy violation",
+            "OA-04": "Brand or ASIN abuse warning",
+            "OA-05": "EAN/GTIN conflict: \"title conflict\", listings merged, \"already used\"",
+            "OA-06": "Listing suppressed: missing required field, mixed product family, variation error",
+            "OA-07": "Account health warning, performance notice, risk of suspension",
+            "OA-08": "Category approval refused, restricted or dangerous goods classification",
+            "OA-09": "Platform access or brand programme problem",
+            "OA-10": "Wrong price, currency or stock live",
+            "OU-01": "PSI rejection or deviation",
+            "OU-02": "The customer did not accept the goods at delivery",
+            "OU-03": "Market surveillance, recall, safety complaint",
+            "OU-04": "Label or packaging legally incomplete",
+            "OU-05": "Test report or certificate invalid, expired or fake",
+            "OU-06": "The customer insists on a product with a high compliance risk",
+            "OT-01": "The supplier changed material, size or packaging without notice",
+            "OT-02": "Production delay",
+            "OT-03": "Bypass: the supplier went to the customer, or the customer to the supplier, directly",
+            "OT-04": "PI, invoice or packing list mismatch",
+            "OT-05": "Mould, design or intellectual property dispute",
+            "OT-06": "The supplier announced a change of bank details",
+            "OT-07": "The supplier does not answer: no documents, spec sheet or signature, contact lost, signs of insolvency",
+            "OT-08": "Supplier price rise or the offer expired",
+            "OM-01": "The customer asked for a change verbally, no written approval",
+            "OM-02": "Customer payment late: deposit not received, balance not paid when due",
+            "OM-03": "The customer's extra cost",
+            "OM-04": "Dispute, complaint or legal claim: \"show us the proof\"",
+            "OM-05": "The customer does not answer: contract not signed, gate approval missing, approval only in messaging",
+            "OM-06": "External provider and intellectual property problem: designer does not deliver, copyright claim, trademark opposition"
+         },
+         "party": {
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "forwarder": "Forwarder",
+            "platform": "Platform",
+            "warehouse": "Warehouse"
+         },
+         "root_cause": {
+            "human_error": "Human error",
+            "document_data": "Document or data",
+            "communication": "Communication",
+            "supplier": "Supplier",
+            "carrier": "Carrier",
+            "platform_regulation": "Platform or regulation",
+            "customer": "Customer"
+         },
+         "outcome": {
+            "full_recovery": "Full recovery",
+            "partial_recovery": "Partial recovery",
+            "loss": "Loss"
+         },
+         "deadline_kind": {
+            "supplier_damage": "Supplier damage notice (48 h)",
+            "carrier_claim": "Carrier claim (CMR 7 days)",
+            "demurrage": "Demurrage / detention free days",
+            "supplier_storage": "Supplier storage fee",
+            "platform_escalation": "Platform escalation (48 h)",
+            "document_request": "Document request (business days)",
+            "other": "Other"
+         },
+         "cost_payer": {
+            "moesa": "MOESA",
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "carrier_insurance": "Carrier or insurance"
+         },
+         "fields": {
+            "code": "Incident no",
+            "customer": "Customer",
+            "family": "Family",
+            "incident_type": "Incident type (Y10)",
+            "severity": "Severity",
+            "status": "Status",
+            "owner": "Owner",
+            "title": "Short name",
+            "what_happened": "What happened",
+            "reported_by": "Reported by, channel",
+            "current_state": "Where the goods, listing or money are now",
+            "immediate_action": "Done at once",
+            "entity_type": "Linked record kind",
+            "entity": "Linked record",
+            "opened_at": "Opened",
+            "affected_parties": "Affected parties",
+            "management_notified_at": "Management told",
+            "customer_notice_due_at": "Customer notice due",
+            "customer_notified_at": "Customer told",
+            "outcome": "Outcome",
+            "root_cause": "Root cause",
+            "root_cause_note": "Root cause note",
+            "impact_note": "Total impact",
+            "lessons": "Lesson learned",
+            "preventive_action": "Preventive action added",
+            "customer_closure_notified_on": "Customer told of closure",
+            "closed_on": "Closed on",
+            "next_deadline_at": "Next deadline",
+            "is_repeat": "Repeat within 90 days"
+         },
+         "log": {
+            "fields": {
+               "logged_at": "Date and time",
+               "author": "Who",
+               "note": "What happened or was done",
+               "counterparty": "Counterparty and channel",
+               "decision": "Decision or approval",
+               "cost_amount": "Cost",
+               "cost_currency": "Currency",
+               "cost_payer": "Who pays",
+               "customer_approved": "Customer approved"
+            },
+            "needs_customer_approval": "Charged to the customer without approval",
+            "no_rows": "Nothing logged yet."
+         },
+         "deadline": {
+            "fields": {
+               "kind": "Deadline",
+               "label": "Note",
+               "due_at": "Due",
+               "met_at": "Met"
+            },
+            "overdue": "Overdue",
+            "calculated": "Left empty, it is calculated from the opening time.",
+            "no_rows": "No deadlines."
+         },
+         "notice": {
+            "late": "Late",
+            "due": "Due",
+            "done": "Done"
+         },
+         "rolled_back_gates": "Gates rolled back by this incident",
+         "preventive_hint": "An incident is not closed until the measure is written into its guideline (S17).",
+         "contact_hint": "A role and a channel; no personal contact details.",
+         "new_for_project": "New incident",
+         "no_rows": "No incidents."
+      },
+      "change_request": {
+         "title": "Change requests",
+         "tabs": {
+            "general": "Request",
+            "impact": "Impact",
+            "decision": "Decision",
+            "documents": "Documents"
+         },
+         "status": {
+            "open": "Open",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "applied": "Applied"
+         },
+         "source": {
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "moesa": "MOESA",
+            "regulation": "Regulation or platform"
+         },
+         "urgency": {
+            "normal": "Normal (5 business days)",
+            "urgent": "Urgent (24 hours)"
+         },
+         "kind": {
+            "spec": "Spec",
+            "design": "Design",
+            "packaging": "Packaging, label, artwork",
+            "price": "Price or quantity",
+            "deadline": "Deadline",
+            "supplier": "Supplier change",
+            "content": "Content or listing"
+         },
+         "fields": {
+            "code": "Request no",
+            "customer": "Customer",
+            "project": "Project",
+            "products": "SKUs",
+            "title": "Title",
+            "source": "Source",
+            "urgency": "Urgency",
+            "status": "Status",
+            "decision_due_on": "Decision due",
+            "change_kinds": "Kinds of change",
+            "current_value": "Current (old value)",
+            "requested_value": "Requested (new value)",
+            "reason": "Reason",
+            "affected_gate": "Affected gate",
+            "affected_record": "Record of the affected document",
+            "affected_document": "Affected document and version",
+            "other_documents": "Other affected documents",
+            "cost_impact": "Cost impact",
+            "cost_payer": "Who pays",
+            "delay_days": "Delay (days)",
+            "quality_impact": "Quality / compliance impact",
+            "listing_impact": "Stock / listing impact",
+            "decision_note": "Decision note",
+            "moesa_approved": "MOESA approval",
+            "customer_approved_on": "Customer approved on",
+            "customer_approval_document": "Customer approval document",
+            "result_document": "New version",
+            "closed_on": "Closed on"
+         },
+         "customer_approval_hint": "It touches a passed (M) gate: the customer's written approval is required (S08).",
+         "overdue": "Decision overdue",
+         "no_rows": "No change requests."
       }
    },
    "glossary": {
@@ -1788,10 +2197,555 @@
          "road": "By truck.",
          "courier": "Courier or parcel service.",
          "air": "Air freight."
+      },
+      "market_cell_status": {
+         "candidate": "Being assessed in PL1/P1; no decision yet.",
+         "planned": "In the L1 plan, approved in writing by the customer, with a date.",
+         "preparing": "L2–L3 content and localisation are under way.",
+         "uploaded": "L4: uploaded; waiting for the platform's review or activation.",
+         "live": "Active and buyable; the S13 pre-launch check passed.",
+         "suppressed": "Suppressed, waiting for a category approval or a document request; the open issue is written.",
+         "paused": "Waiting for a customer decision or a prerequisite (registration, EPR, VAT).",
+         "stopped": "Taken down for good (decision or platform); the reason is written.",
+         "removed": "Dropped from the plan (compliance red, no demand, customer decision); the reason is written."
+      },
+      "market_compliance": {
+         "green": "No restriction found.",
+         "yellow": "Possible with a restriction, document or marking; see the note (S12).",
+         "red": "Not allowed; the cell is not planned.",
+         "pending": "Not screened yet (PL1/P1)."
+      },
+      "stock_source": {
+         "customer_warehouse": "Shipped from the customer's own warehouse.",
+         "3pl": "Shipped by a third-party logistics provider.",
+         "platform": "Stored and shipped by the platform (e.g. FBA).",
+         "pan_eu": "Amazon Pan-European FBA spreads the stock across EU countries."
+      },
+      "content_status": {
+         "none": "No listing content yet.",
+         "en_master": "The English master set is ready.",
+         "translated": "Translated into the market's language.",
+         "approved": "Content approved (L-G1); needed before live."
+      },
+      "incident_family": {
+         "ol": "Shipment and delivery: trucks, appointments, counts, damage, papers, customs, delays.",
+         "oa": "Platform and Amazon: listings removed or suppressed, document requests, account health.",
+         "ou": "Product and compliance: PSI failures, refusals, recalls, labels, certificates.",
+         "ot": "Supplier: unannounced changes, production delays, PI mismatches, silence, price rises.",
+         "om": "Customer: verbal changes, late payments, disputes, no answer."
+      },
+      "incident_severity": {
+         "s1": "Critical: goods, money or the account at risk; management at once, the customer within 4 hours.",
+         "s2": "Major: a date slips or a cost appears; management the same day, the customer the same business day.",
+         "s3": "Minor: no effect on delivery or cost; reported in the weekly summary."
+      },
+      "incident_status": {
+         "open": "Recorded; being classified and handled.",
+         "contained": "The goods, listing or money are safe; recovery and closure remain.",
+         "closed": "Closed with its root cause, cost and the measure added to the guideline."
+      },
+      "incident_party": {
+         "customer": "The customer is affected.",
+         "supplier": "The supplier is involved.",
+         "forwarder": "The forwarder or customs broker is involved.",
+         "platform": "A marketplace is involved.",
+         "warehouse": "A warehouse is involved."
+      },
+      "incident_root_cause": {
+         "human_error": "Someone made a mistake.",
+         "document_data": "A document or data was wrong or missing.",
+         "communication": "Information did not reach the right party in time.",
+         "supplier": "The supplier caused it.",
+         "carrier": "The carrier or forwarder caused it.",
+         "platform_regulation": "A platform rule or a regulation caused it.",
+         "customer": "The customer caused it."
+      },
+      "incident_outcome": {
+         "full_recovery": "Everything was recovered.",
+         "partial_recovery": "Part was recovered; the impact note says what is left.",
+         "loss": "It could not be recovered."
+      },
+      "incident_deadline_kind": {
+         "supplier_damage": "Damage notice to the supplier: 48 hours under the usual PI terms.",
+         "carrier_claim": "Claim to the carrier: 7 days by road (CMR), 3 days by sea per the B/L; 7 days is assumed.",
+         "demurrage": "The end of the port or detention free days; enter it from the carrier's terms.",
+         "supplier_storage": "When the supplier starts charging storage for goods not collected.",
+         "platform_escalation": "Wait 48 hours for a platform case before escalating.",
+         "document_request": "A platform document request is closed within the business days set by management (5).",
+         "other": "Any other deadline; enter its date."
+      },
+      "cost_payer": {
+         "moesa": "MOESA bears the cost.",
+         "customer": "Charged to the customer; needs the customer's written approval.",
+         "supplier": "Charged to the supplier.",
+         "carrier_insurance": "Claimed from the carrier or the insurance."
+      },
+      "change_request_status": {
+         "open": "Recorded; impact and decision pending.",
+         "approved": "Approved by MOESA (and by the customer when a passed (M) gate is touched); not applied yet.",
+         "rejected": "Rejected; the decision note says why.",
+         "applied": "Applied: the affected document has its new version."
+      },
+      "change_request_source": {
+         "customer": "The customer asked for it.",
+         "supplier": "The supplier asked for it or caused it.",
+         "moesa": "MOESA proposes it.",
+         "regulation": "A regulation or a platform rule requires it."
+      },
+      "change_request_urgency": {
+         "normal": "Decided within 5 business days.",
+         "urgent": "Production or safety is at stake; decided within 24 hours."
+      },
+      "change_kind": {
+         "spec": "Size, material, composition, performance or safety; a new spec version, signed again by the maker.",
+         "design": "Design or tech pack.",
+         "packaging": "Packaging, label or artwork; PL-G4 again.",
+         "price": "Price or quantity; a new PI and PO version, the customer's price approval (G3).",
+         "deadline": "Ready date, booking or launch date.",
+         "supplier": "Another supplier; a new spec sheet and golden sample.",
+         "content": "Listing content; L-G1 again."
       }
    },
    "status_actions": {
       "confirm": "Move to \"{status}\"?",
       "done": "Status changed."
+   },
+   "guide": {
+      "panel": {
+         "title": "Page guide",
+         "purpose": "What this page is for",
+         "tasks": "Common tasks",
+         "related": "Related pages",
+         "terms": "Terms on this page",
+         "needs": "Needs: {action} on {subject}",
+         "no_tasks": "Your role has no task on this page; you can read it.",
+         "open": "How does this page work?",
+         "close_card": "How do I close this card?"
+      },
+      "actions": {
+         "read": "read",
+         "create": "create",
+         "update": "change",
+         "delete": "delete"
+      },
+      "pages": {
+         "dashboard": {
+            "purpose": "The single screen of the Monday, Wednesday and Friday meetings. Each box counts what is waiting and lists the first records; a row opens its record. Nothing is entered here.",
+            "tasks": {
+               "close_gates": {
+                  "title": "Close a waiting gate",
+                  "steps": {
+                     "1": "Open the project from the row; its Overview shows the gate panel.",
+                     "2": "Add the evidence the gate asks for; (M) gates also need the customer's approval date and document.",
+                     "3": "Pass the gate; the project moves on and the row leaves the box."
+                  }
+               },
+               "close_tasks": {
+                  "title": "Clear a late or due task",
+                  "steps": {
+                     "1": "Open the project from the row; the Tasks tab opens.",
+                     "2": "Mark the task done, or give it a new due date with a note.",
+                     "3": "A blocking task holds its gate until it is done."
+                  }
+               },
+               "sign_spec": {
+                  "title": "Get a SKU's spec sheet signed",
+                  "steps": {
+                     "1": "Open the customer's row; the product list shows the SKUs without a signed spec sheet.",
+                     "2": "On the product's Documents tab, add the spec sheet with its version and date.",
+                     "3": "Mark it signed once it is signed, stamped and came from the official e-mail."
+                  }
+               },
+               "complete_compliance": {
+                  "title": "Complete a SKU's compliance",
+                  "steps": {
+                     "1": "Open the customer's row; the product list opens.",
+                     "2": "On the product's General tab, fill the Compliance section and add the documents S12 asks for.",
+                     "3": "Set the compliance status to complete; the SKU leaves the box."
+                  }
+               },
+               "advance_po": {
+                  "title": "Move a purchase order forward",
+                  "steps": {
+                     "1": "Open the order from the row; its status shows what it waits for.",
+                     "2": "Do the step: send it, check the PI (S09), record the payment or the production note.",
+                     "3": "Use the status button; a step whose conditions are missing is refused with the reason."
+                  }
+               },
+               "track_shipment": {
+                  "title": "Follow a shipment to acceptance",
+                  "steps": {
+                     "1": "Open the shipment from the row; check ETD and ETA on Dates.",
+                     "2": "Log each S15 step on Events; update the ETA when it slips.",
+                     "3": "A late shipment usually needs an OL-09 incident; open it on the Incidents page."
+                  }
+               },
+               "close_incident": {
+                  "title": "Close an open incident",
+                  "steps": {
+                     "1": "Open the incident; S1 and S2 need the management notice time first.",
+                     "2": "Keep the log and the deadlines current until the goods, listing or money are safe.",
+                     "3": "Fill the closure (outcome, root cause, preventive action) and close; management closes S1."
+                  }
+               },
+               "decide_cr": {
+                  "title": "Decide an open change request",
+                  "steps": {
+                     "1": "Open the request; check the old and new values and the impact.",
+                     "2": "If it touches a passed (M) gate, add the customer's written approval first.",
+                     "3": "Approve or reject; once the new document version exists, mark it applied."
+                  }
+               },
+               "update_market": {
+                  "title": "Move market cells to live",
+                  "steps": {
+                     "1": "Open the customer's row; the market matrix opens for that customer.",
+                     "2": "Open a cell and fill what live needs: platform ID, platform SKU, price, currency, stock source.",
+                     "3": "With the content approved (L-G1), move the cell to live."
+                  }
+               }
+            }
+         },
+         "setting": {
+            "purpose": "The company numbers the rules read: the default deposit, the spec sheet date, the document request time and the incident notice hours. Only management changes them; every change is logged.",
+            "tasks": {
+               "change_setting": {
+                  "title": "Change a setting",
+                  "steps": {
+                     "1": "Find the setting; the row says what it is for.",
+                     "2": "Enter the new value in the format shown.",
+                     "3": "Save; the rules use it from the next write on."
+                  }
+               },
+               "read_setting": {
+                  "title": "Check why a rule fired",
+                  "steps": {
+                     "1": "Read the setting the message names, e.g. the spec sheet date.",
+                     "2": "Compare it with the record's date or amount.",
+                     "3": "Ask management if the value itself should change."
+                  }
+               }
+            }
+         },
+         "customer": {
+            "purpose": "Every customer of MOESA with its contract terms, warehouses, marketplace accounts and brands. Choosing a customer in the top filter narrows every operations list to it.",
+            "tasks": {
+               "add_customer": {
+                  "title": "Add a customer",
+                  "steps": {
+                     "1": "Use Add in the menu; the three-letter code goes into every code of the customer.",
+                     "2": "Fill the commercial model, the packages and the status (C1–C4).",
+                     "3": "Save; the other tabs open."
+                  }
+               },
+               "add_warehouse": {
+                  "title": "Add a delivery warehouse",
+                  "steps": {
+                     "1": "Open the customer, then Warehouses.",
+                     "2": "Enter the address, dock hours and appointment rule as on the S14 card.",
+                     "3": "Shipments take the address from here; it is never typed on a shipment."
+                  }
+               },
+               "add_platform": {
+                  "title": "Record a marketplace account",
+                  "steps": {
+                     "1": "Open the customer, then Platforms.",
+                     "2": "Pick the platform and the countries the customer sells in.",
+                     "3": "Note our access; account IDs and passwords are never stored (K8)."
+                  }
+               }
+            }
+         },
+         "supplier": {
+            "purpose": "The suppliers MOESA buys from, with their terms (Incoterm, deposit, damage notice) and contacts. Purchase orders take their defaults from here.",
+            "tasks": {
+               "add_supplier": {
+                  "title": "Add a supplier",
+                  "steps": {
+                     "1": "Use Add in the menu; enter the code and the country.",
+                     "2": "Fill the terms: default Incoterm, deposit %, damage notice hours.",
+                     "3": "Set the status to approved once the supplier has passed the evaluation."
+                  }
+               },
+               "add_contact": {
+                  "title": "Add a contact",
+                  "steps": {
+                     "1": "Open the supplier, then Contacts.",
+                     "2": "Enter the role and the official e-mail.",
+                     "3": "A spec sheet counts as official only when it comes from that e-mail."
+                  }
+               },
+               "see_orders": {
+                  "title": "See a supplier's orders",
+                  "steps": {
+                     "1": "Open the supplier.",
+                     "2": "Open the Purchase orders tab.",
+                     "3": "A row opens the order card."
+                  }
+               }
+            }
+         },
+         "product": {
+            "purpose": "The product master (S10): one row per SKU with its GTIN, supplier, status, compliance and spec sheet. The list shows at a glance which SKUs lack a signed spec sheet.",
+            "tasks": {
+               "import_products": {
+                  "title": "Import products from a CSV",
+                  "steps": {
+                     "1": "Use Import on the list and choose the S10 CSV.",
+                     "2": "Read the report: every row with a problem is listed with its reason.",
+                     "3": "Fix those rows and import again; a GTIN used twice is refused."
+                  }
+               },
+               "add_spec": {
+                  "title": "Add a spec sheet",
+                  "steps": {
+                     "1": "Open the product, then Documents.",
+                     "2": "Add the spec sheet with its version and date; a new version supersedes the old one.",
+                     "3": "Mark it signed once it is signed, stamped and from the official e-mail."
+                  }
+               },
+               "add_media": {
+                  "title": "Add photos",
+                  "steps": {
+                     "1": "Open the product, then Media.",
+                     "2": "Drop the files; the first image becomes the primary image.",
+                     "3": "Change a file's role from its menu."
+                  }
+               }
+            }
+         },
+         "project": {
+            "purpose": "Projects take a product from brief to delivery and listing. Each gets its gate set from its type, path and packages; a gate passes only with its evidence, and only G2 and G3 block.",
+            "tasks": {
+               "open_project": {
+                  "title": "Open a project",
+                  "steps": {
+                     "1": "Use Add in the menu; pick the customer, type, path and packages.",
+                     "2": "Save; the code and the gate set are created.",
+                     "3": "Add the products on the Products tab."
+                  }
+               },
+               "pass_gate": {
+                  "title": "Pass a gate",
+                  "steps": {
+                     "1": "On Overview, open the gate in the phase strip.",
+                     "2": "Attach the evidence; (M) gates need the customer's approval date and document.",
+                     "3": "Pass it; the phase moves on and the next checklist appears."
+                  }
+               },
+               "rollback_gate": {
+                  "title": "Roll a gate back",
+                  "steps": {
+                     "1": "Open the incident that forces it first, from the project's Incidents tab.",
+                     "2": "In the gate panel choose Roll back, pick the incident and write the reason.",
+                     "3": "Later passed gates roll back too; pass them again once the issue is solved."
+                  }
+               }
+            }
+         },
+         "document": {
+            "purpose": "Every document of every record in one list: type, version, status and its link or file. \"Is the spec sheet signed?\" is answered here, without opening files.",
+            "tasks": {
+               "find_document": {
+                  "title": "Find a document",
+                  "steps": {
+                     "1": "Filter by type, status or the linked record.",
+                     "2": "Open the row to see its file or link.",
+                     "3": "Older versions stay as superseded; nothing is deleted."
+                  }
+               },
+               "new_version": {
+                  "title": "Add a new version",
+                  "steps": {
+                     "1": "Add it from the record's Documents tab.",
+                     "2": "Upload the file or paste the Drive link.",
+                     "3": "The previous version becomes superseded by itself."
+                  }
+               },
+               "set_status": {
+                  "title": "Mark a document signed or approved",
+                  "steps": {
+                     "1": "Open the document.",
+                     "2": "For signed, tick signature, stamp and official e-mail and set the date.",
+                     "3": "Save; gates and orders read the new status at once."
+                  }
+               }
+            }
+         },
+         "media": {
+            "purpose": "The library of photos, images, PDFs and videos. A file is stored once and linked to any record; a document can point to a file instead of a Drive link.",
+            "tasks": {
+               "upload": {
+                  "title": "Upload files",
+                  "steps": {
+                     "1": "Open the record's Media tab.",
+                     "2": "Drop PNG, JPG, WebP, PDF or MP4 files within the size limit.",
+                     "3": "Add a title and tags in the library."
+                  }
+               },
+               "link": {
+                  "title": "Use a file on another record",
+                  "steps": {
+                     "1": "Open that record's Media tab.",
+                     "2": "Choose Pick from the library.",
+                     "3": "A customer's file links only to that customer's records."
+                  }
+               },
+               "delete_media": {
+                  "title": "Delete a file",
+                  "steps": {
+                     "1": "Unlink it from every record first.",
+                     "2": "Open it in the library and delete it.",
+                     "3": "Only management deletes files."
+                  }
+               }
+            }
+         },
+         "purchase_order": {
+            "purpose": "Purchase orders to suppliers, from draft to closed: lines with their spec sheet versions, the S09 PI check, payments and production. Lines and terms lock once the PI is approved.",
+            "tasks": {
+               "create_po": {
+                  "title": "Open a purchase order",
+                  "steps": {
+                     "1": "Use Add (or New purchase order on a project); pick the customer and the supplier.",
+                     "2": "Check the Incoterm and deposit taken from the supplier, and save.",
+                     "3": "Add the lines, each with a signed or approved spec sheet, then Send."
+                  }
+               },
+               "check_pi": {
+                  "title": "Check the PI (S09)",
+                  "steps": {
+                     "1": "Add the PI document and enter its figures on the PI check tab.",
+                     "2": "Mark the 30 items; a red difference means asking for a corrected PI.",
+                     "3": "Approve the PI; the lines and terms lock."
+                  }
+               },
+               "record_payment": {
+                  "title": "Record a payment",
+                  "steps": {
+                     "1": "Open Payments and plan the deposit and the balance from the PI.",
+                     "2": "Enter the paid date when the money leaves.",
+                     "3": "Pay the balance only after an approved PSI report (G4)."
+                  }
+               }
+            }
+         },
+         "shipment": {
+            "purpose": "Shipments of a customer's orders to one of its warehouses, from planned to accepted: dates, the S15 event chain, the S16 acceptance and the document checklist.",
+            "tasks": {
+               "plan_shipment": {
+                  "title": "Plan a shipment",
+                  "steps": {
+                     "1": "Use Add; pick the customer, the warehouse and the mode.",
+                     "2": "On Orders, link the orders and the quantities of their lines.",
+                     "3": "Move it to booked with the booking confirmation date."
+                  }
+               },
+               "log_event": {
+                  "title": "Log an S15 step",
+                  "steps": {
+                     "1": "Open Events and add an event.",
+                     "2": "Pick the S15 step, who told whom and the channel.",
+                     "3": "Keep the dates on Dates in line with the events."
+                  }
+               },
+               "accept": {
+                  "title": "Accept the delivery (S16)",
+                  "steps": {
+                     "1": "Add the signed delivery receipt on Documents.",
+                     "2": "On Acceptance, record whether the quantities match and any damage.",
+                     "3": "Accept; a shortage or damage makes it disputed, and an incident follows."
+                  }
+               }
+            }
+         },
+         "market_matrix": {
+            "purpose": "Where each product is sold: one cell per product, platform and country, with its status, compliance, content and listing data (S05). The cells are the single source; the matrix view is derived from them.",
+            "tasks": {
+               "add_cells": {
+                  "title": "Open cells for a product family",
+                  "steps": {
+                     "1": "Choose Add cells; pick the customer's products, a platform and its countries.",
+                     "2": "Set the priority: 1 same account new country, 2 new platform, 3 new region.",
+                     "3": "Save; existing cells are skipped and new ones start as candidates."
+                  }
+               },
+               "screen_compliance": {
+                  "title": "Screen compliance",
+                  "steps": {
+                     "1": "Open a cell from the matrix.",
+                     "2": "Set green, yellow or red; yellow and red need a note (S12).",
+                     "3": "A red cell is not planned; remove it with the reason."
+                  }
+               },
+               "go_live": {
+                  "title": "Take a cell live",
+                  "steps": {
+                     "1": "Move it through planned, preparing and uploaded as the work goes.",
+                     "2": "Fill the platform ID, platform SKU, price, currency and stock source.",
+                     "3": "With the content approved (L-G1), choose Live."
+                  }
+               }
+            }
+         },
+         "incident": {
+            "purpose": "Incident records (S17): what happened, where, how serious, who owns it, the log of every contact and cost, the deadlines that must not slip, and the closure with its lesson. A gate is rolled back only through an incident.",
+            "tasks": {
+               "open_incident": {
+                  "title": "Record an incident in 15 minutes",
+                  "steps": {
+                     "1": "Use Add; pick the customer, the family and the severity (Y10 §4).",
+                     "2": "Write what happened in three sentences, where things are now and what was done at once; write \"unknown\" rather than guess.",
+                     "3": "Link the record (shipment, order, product, cell or project) and add the first evidence on Media."
+                  }
+               },
+               "keep_log": {
+                  "title": "Keep the log and the deadlines",
+                  "steps": {
+                     "1": "Add one log line per fact, call or decision, with its cost and who pays.",
+                     "2": "Add the deadlines that apply; 48-hour, 7-day and document-request dates are calculated.",
+                     "3": "Enter when management and the customer were told."
+                  }
+               },
+               "close": {
+                  "title": "Close it",
+                  "steps": {
+                     "1": "Fill the outcome, the root cause and the preventive action written into the guideline.",
+                     "2": "Move it to closed; management closes S1 incidents.",
+                     "3": "A closed incident's log and deadlines no longer change."
+                  }
+               }
+            }
+         },
+         "change_request": {
+            "purpose": "Change requests (S08): nothing approved changes without one. Each records the old and new value, why, the impact, the approvals and the new document version it produced.",
+            "tasks": {
+               "open_cr": {
+                  "title": "Open a change request",
+                  "steps": {
+                     "1": "Use Add; pick the customer, the project and the products affected.",
+                     "2": "Write the old and new values word for word, the reason and the affected gate.",
+                     "3": "Choose the kinds of change and the urgency; the decision date follows."
+                  }
+               },
+               "approve_cr": {
+                  "title": "Approve or reject",
+                  "steps": {
+                     "1": "Fill the impact: cost and who pays, delay, quality and listing.",
+                     "2": "For a passed (M) gate, add the customer's written approval as a document of the request.",
+                     "3": "Approve, or reject with the decision note."
+                  }
+               },
+               "apply_cr": {
+                  "title": "Mark it applied",
+                  "steps": {
+                     "1": "Add the new version of the affected document on its record.",
+                     "2": "Pick that version as the new version on Decision.",
+                     "3": "Mark it applied; the request closes."
+                  }
+               }
+            }
+         }
+      }
    }
 }

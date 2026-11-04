@@ -389,18 +389,29 @@ export type DocumentOptionsParams = {
    statuses?: DocumentStatus[];
 };
 
-/** Document versions as select options: 'v03 — Signed', in the order given. */
+/**
+ * Document versions as select options: 'v03 — Signed', in the order given. With `withType` (a
+ * picker over every type of a record's documents) each is prefixed with its type:
+ * 'Spec sheet · v03 — Signed'.
+ */
 export const toDocumentOptions = (
-   documents: readonly Pick<Tables['document']['Row'], 'id' | 'version' | 'status'>[]
+   documents: readonly (Pick<Tables['document']['Row'], 'id' | 'version' | 'status'> & {
+      type?: DocumentType;
+   })[],
+   { withType = false }: { withType?: boolean } = {}
 ) =>
-   documents.map(({ id, version, status }) => ({
-      value: id,
-      label: `v${String(version).padStart(2, '0')} — ${i18n.t(`ops.document.status.${status}`)}`
-   }));
+   documents.map(({ id, type, version, status }) => {
+      const label = `v${String(version).padStart(2, '0')} — ${i18n.t(`ops.document.status.${status}`)}`;
+      return {
+         value: id,
+         label: withType && type ? `${i18n.t(`ops.document.type.${type}`)} · ${label}` : label
+      };
+   });
 
 /**
  * A record's documents as options, newest version first: the spec sheet picker (a product's
  * signed or approved spec sheets), the PI picker and the packing instruction picker (an order's).
+ * Without a `type`, the record's documents of every type are offered, each labelled with its type.
  */
 export function useEntityDocumentOptions(params: MaybeRefOrGetter<DocumentOptionsParams>) {
    const tenantId = useTenantKey();
@@ -413,7 +424,7 @@ export function useEntityDocumentOptions(params: MaybeRefOrGetter<DocumentOption
          const { entityType, entityId, type, statuses } = toValue(params);
          let query = supabase
             .from('document')
-            .select('id, version, status')
+            .select('id, type, version, status')
             .eq('entity_type', entityType)
             .eq('entity_id', entityId!);
          if (type) query = query.eq('type', type);
@@ -427,7 +438,7 @@ export function useEntityDocumentOptions(params: MaybeRefOrGetter<DocumentOption
       enabled: computed(() => !!toValue(params).entityId)
    });
 
-   return computed(() => toDocumentOptions(data.value ?? []));
+   return computed(() => toDocumentOptions(data.value ?? [], { withType: !toValue(params).type }));
 }
 
 // --- lines ---

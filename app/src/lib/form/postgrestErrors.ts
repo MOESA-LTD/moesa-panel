@@ -267,8 +267,170 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'shipment_acceptance_issue',
       'shipment_po_has_lines'
    ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
+   // Market cells (034_market_matrix.sql).
+   {
+      code: '23505',
+      name: 'unique_market_cell',
+      field: 'country',
+      message: 'errors.market_cell_duplicate'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_country_invalid',
+      field: 'country',
+      message: 'errors.market_cell_country_invalid'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_country_format',
+      field: 'country',
+      message: 'errors.market_cell_country_invalid'
+   },
+   {
+      code: '23503',
+      name: 'market_cell_product_fkey',
+      field: 'product_id',
+      message: 'errors.market_cell_product_customer'
+   },
+   {
+      code: '23503',
+      name: 'market_cell_project_fkey',
+      field: 'project_id',
+      message: 'errors.market_cell_project_customer'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_price_currency',
+      field: 'currency',
+      message: 'errors.market_cell_price_currency'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_compliance_note_required',
+      field: 'compliance_note',
+      message: 'errors.market_cell_compliance_note_required'
+   },
+   {
+      code: '23514',
+      name: 'market_cell_compliance_red',
+      field: 'compliance',
+      message: 'errors.market_cell_compliance_red'
+   },
+   // Raised by a status change, a delete or a whole-row rule: shown as a toast.
+   ...[
+      'market_cell_live_incomplete',
+      'market_cell_status_order',
+      'market_cell_reason_required',
+      'market_cell_immutable_field',
+      'market_cell_delete_candidate_only'
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
    // Raised by passing G3 (pass_gate): shown as a toast.
-   { code: '23514', name: 'gate_pi_required', message: 'errors.gate_pi_required' }
+   { code: '23514', name: 'gate_pi_required', message: 'errors.gate_pi_required' },
+   // Incidents (035_incidents.sql) and the gate rollback through one (036).
+   {
+      code: '23503',
+      name: 'incident_customer_missing',
+      field: 'customer_id',
+      message: 'errors.incident_customer_missing'
+   },
+   {
+      code: '23514',
+      name: 'incident_type_format',
+      field: 'incident_type',
+      message: 'errors.incident_type_invalid'
+   },
+   {
+      code: '23514',
+      name: 'incident_type_family',
+      field: 'incident_type',
+      message: 'errors.incident_type_family'
+   },
+   {
+      code: '23514',
+      name: 'incident_entity_invalid',
+      field: 'entity_id',
+      message: 'errors.incident_entity_invalid'
+   },
+   {
+      code: '23514',
+      name: 'incident_entity_kind',
+      field: 'entity_type',
+      message: 'errors.incident_entity_invalid'
+   },
+   {
+      code: '23514',
+      name: 'incident_log_cost_complete',
+      field: 'cost_amount',
+      message: 'errors.incident_log_cost_incomplete'
+   },
+   {
+      code: '42501',
+      name: 'incident_severity_downgrade_requires_management',
+      field: 'severity',
+      message: 'errors.incident_severity_downgrade_requires_management'
+   },
+   // Raised by a status change, a whole-row rule, a closed incident's log or deadline, or a gate
+   // rollback: shown as a toast.
+   ...[
+      'incident_immutable_field',
+      'incident_status_order',
+      'incident_management_notice_required',
+      'incident_closure_incomplete',
+      'incident_closed',
+      'gate_rollback_incident_required',
+      'gate_incident_invalid',
+      'gate_rollback_immutable'
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
+   {
+      code: '42501',
+      name: 'incident_close_management',
+      message: 'errors.incident_close_management'
+   },
+   // Change requests (037_change_requests.sql).
+   {
+      code: '23503',
+      name: 'change_request_customer_missing',
+      field: 'customer_id',
+      message: 'errors.change_request_customer_missing'
+   },
+   {
+      code: '23503',
+      name: 'change_request_project_fkey',
+      field: 'project_id',
+      message: 'errors.cr_project_customer'
+   },
+   {
+      code: '23503',
+      name: 'change_request_product_product_fkey',
+      field: 'product_ids',
+      message: 'errors.cr_product_customer'
+   },
+   {
+      code: '23514',
+      name: 'change_request_kinds_required',
+      field: 'change_kinds',
+      message: 'errors.change_request_kinds_required'
+   },
+   {
+      code: '23514',
+      name: 'change_request_document_invalid',
+      field: 'affected_document_id',
+      message: 'errors.change_request_document_invalid'
+   },
+   {
+      code: '23514',
+      name: 'change_request_approval_document_invalid',
+      field: 'customer_approval_document_id',
+      message: 'errors.change_request_approval_document_invalid'
+   },
+   // Raised by a status change or a whole-row rule: shown as a toast.
+   ...[
+      'change_request_immutable_field',
+      'change_request_status_order',
+      'change_request_customer_approval_required',
+      'change_request_decision_note_required',
+      'change_request_new_version_required'
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` }))
 ];
 
 /**

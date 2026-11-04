@@ -36,6 +36,20 @@ describe('initialSortMeta', () => {
    });
 });
 
+describe('initialSortMeta priority', () => {
+   it('places a column by its priority, whatever its direction', () => {
+      expect(
+         initialSortMeta([
+            { field: 'opened_at', sortOrder: { value: -1, priority: 2 } },
+            { field: 'severity', sortOrder: { value: 1, priority: 1 } }
+         ])
+      ).toEqual([
+         { field: 'severity', order: 1 },
+         { field: 'opened_at', order: -1 }
+      ]);
+   });
+});
+
 describe('route meta', () => {
    it('round-trips through the compressed query parameter', () => {
       const meta = { 'dt-client': { first: 10, rows: 5, filters: { email: { value: 'a,b' } } } };

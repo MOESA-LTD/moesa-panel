@@ -3,8 +3,10 @@ import {
    groupGates,
    groupPurchaseOrders,
    groupShipments,
+   marketSummary,
    splitTasks,
    type DashboardGateRow,
+   type DashboardMarketRow,
    type DashboardTaskRow
 } from '@/api/dashboard';
 import { affectedTables } from '@/api/queryKeys';
@@ -72,6 +74,18 @@ describe('groupShipments', () => {
       ]);
       expect(inTransit.map((row) => row.status)).toEqual(['in_transit']);
       expect(late.map((row) => row.status)).toEqual(['in_transit', 'booked']);
+   });
+});
+
+describe('marketSummary', () => {
+   it('sums the live cells and keeps the customers with a target', () => {
+      const { live, items } = marketSummary([
+         { customer_code: 'THO', live_count: 1, target_count: 3 },
+         { customer_code: 'ZZZ', live_count: 4, target_count: 4 },
+         { customer_code: 'NIL', live_count: 0, target_count: 0 }
+      ] as DashboardMarketRow[]);
+      expect(live).toBe(5);
+      expect(items.map((row) => row.customer_code)).toEqual(['ZZZ', 'THO']);
    });
 });
 

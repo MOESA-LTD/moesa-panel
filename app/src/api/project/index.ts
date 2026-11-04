@@ -318,18 +318,23 @@ export function usePassGate() {
    });
 }
 
-/** Rolls a gate back, and every later passed gate with it. */
+export type RollbackGateInput = { gateId: string; reason: string; incidentId: string };
+
+/**
+ * Rolls a gate back, and every later passed gate with it, through an open incident of the
+ * project's customer (036): the incident lists the gates it rolled back.
+ */
 export function useRollbackGate() {
    const queryClient = useQueryClient();
 
    return useMutation({
-      mutationFn: async ({ gateId, reason }: { gateId: string; reason: string }) => {
+      mutationFn: async ({ gateId, reason, incidentId }: RollbackGateInput) => {
          const { data } = await supabase
-            .rpc('rollback_gate', { gate_id: gateId, reason })
+            .rpc('rollback_gate', { gate_id: gateId, reason, incident_id: incidentId })
             .throwOnError();
          return data;
       },
-      onSuccess: () => invalidateTables(queryClient, GATE_TABLES)
+      onSuccess: () => invalidateTables(queryClient, [...GATE_TABLES, 'incident'])
    });
 }
 

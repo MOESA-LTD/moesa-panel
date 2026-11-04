@@ -51,7 +51,10 @@ const entityId = computed(() =>
 const applyTag = () => (tag.value = tagInput.value.trim().toLowerCase() || null);
 
 const LINKED_OPTIONS = computed(() => [
-   ...DOCUMENT_ENTITIES.map((value) => ({ value, label: t(`ops.document.entity.${value}`) })),
+   ...DOCUMENT_ENTITIES.map((value) => ({
+      value,
+      label: t(`ops.document.entity.${value}`)
+   })),
    { value: 'none', label: t('ops.media.filter.unlinked') }
 ]);
 

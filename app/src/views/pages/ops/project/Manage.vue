@@ -2,14 +2,15 @@
 import { projectResource, type ProjectStatus } from '@/api/project';
 import { useAbility } from '@casl/vue';
 import Documents from './tabs/Documents.vue';
+import Incidents from './tabs/Incidents.vue';
 import Overview from './tabs/Overview.vue';
 import Products from './tabs/Products.vue';
 import PurchaseOrders from './tabs/PurchaseOrders.vue';
 import Shipments from './tabs/Shipments.vue';
 import Tasks from './tabs/Tasks.vue';
 
-// The project card: phase strip and gates, checklist, products, its purchase orders and shipments
-// (read-only history, shown to those who may read them) and documents of a saved project.
+// The project card: phase strip and gates, checklist, products, its purchase orders, shipments and
+// incidents (each shown to those who may read them) and documents of a saved project.
 const props = defineProps<{
    id: string;
    /** The tab opened first (the route's tab segment). */
@@ -28,6 +29,7 @@ const TABS = [
    'products',
    'purchase_orders',
    'shipments',
+   'incidents',
    'documents'
 ] as const;
 type TabKey = (typeof TABS)[number];
@@ -35,7 +37,8 @@ type TabKey = (typeof TABS)[number];
 const ability = useAbility();
 const TAB_SUBJECT: Partial<Record<TabKey, string>> = {
    purchase_orders: 'purchase_order',
-   shipments: 'shipment'
+   shipments: 'shipment',
+   incidents: 'incident'
 };
 const tabs = computed(() =>
    TABS.filter((key) => !TAB_SUBJECT[key] || ability.can('read', TAB_SUBJECT[key]))
@@ -88,6 +91,9 @@ const STATUS_SEVERITY: Record<ProjectStatus, string> = {
             </TabPanel>
             <TabPanel v-if="tabs.includes('shipments')" value="shipments">
                <Shipments v-if="activeTab === 'shipments'" :id />
+            </TabPanel>
+            <TabPanel v-if="tabs.includes('incidents')" value="incidents">
+               <Incidents v-if="activeTab === 'incidents'" :id />
             </TabPanel>
             <TabPanel value="documents">
                <Documents v-if="activeTab === 'documents'" :id />

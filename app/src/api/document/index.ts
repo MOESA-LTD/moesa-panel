@@ -62,7 +62,9 @@ export const DOCUMENT_ENTITIES = [
    'project_gate',
    'purchase_order',
    'shipment',
-   'incident'
+   'incident',
+   'market_cell',
+   'change_request'
 ] as const satisfies readonly DocumentEntity[];
 
 /**
