@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- rolled back.
 BEGIN;
 
-SELECT plan(19);
+SELECT plan(20);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 
@@ -107,6 +107,7 @@ SELECT ok(cardinality(private.tenants_permitting(
 
 -- Market cells: the coordinator opens them.
 SELECT ok(cardinality(private.tenants_permitting((SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'), ARRAY[(SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')], 'public.market_cell', 'insert')) = 1, 'the coordinator opens market cells');
+SELECT ok(cardinality(private.tenants_permitting((SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'), ARRAY[(SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')], 'public.incident', 'insert')) = 1, 'the coordinator records incidents');
 
 -- Coordinator: the business modules, the settings read-only.
 SELECT private.impersonate(

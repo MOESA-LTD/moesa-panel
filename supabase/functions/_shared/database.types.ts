@@ -632,6 +632,299 @@ export type Database = {
           },
         ]
       }
+      incident: {
+        Row: {
+          affected_parties: Database["public"]["Enums"]["incident_party"][]
+          closed_by: string | null
+          closed_on: string | null
+          code: string | null
+          created_at: string
+          current_state: string | null
+          customer_closure_notified_on: string | null
+          customer_id: string
+          customer_notice_due_at: string | null
+          customer_notified_at: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"]
+          id: string
+          immediate_action: string | null
+          impact_note: string | null
+          incident_type: string | null
+          lessons: string | null
+          management_notified_at: string | null
+          opened_at: string
+          outcome: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id: string | null
+          preventive_action: string | null
+          reported_by: string | null
+          root_cause: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: Database["public"]["Enums"]["incident_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+          what_happened: string
+        }
+        Insert: {
+          affected_parties?: Database["public"]["Enums"]["incident_party"][]
+          closed_by?: string | null
+          closed_on?: string | null
+          code?: string | null
+          created_at?: string
+          current_state?: string | null
+          customer_closure_notified_on?: string | null
+          customer_id: string
+          customer_notice_due_at?: string | null
+          customer_notified_at?: string | null
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"]
+          id?: string
+          immediate_action?: string | null
+          impact_note?: string | null
+          incident_type?: string | null
+          lessons?: string | null
+          management_notified_at?: string | null
+          opened_at?: string
+          outcome?: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id?: string | null
+          preventive_action?: string | null
+          reported_by?: string | null
+          root_cause?: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note?: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+          what_happened: string
+        }
+        Update: {
+          affected_parties?: Database["public"]["Enums"]["incident_party"][]
+          closed_by?: string | null
+          closed_on?: string | null
+          code?: string | null
+          created_at?: string
+          current_state?: string | null
+          customer_closure_notified_on?: string | null
+          customer_id?: string
+          customer_notice_due_at?: string | null
+          customer_notified_at?: string | null
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["document_entity"] | null
+          family?: Database["public"]["Enums"]["incident_family"]
+          id?: string
+          immediate_action?: string | null
+          impact_note?: string | null
+          incident_type?: string | null
+          lessons?: string | null
+          management_notified_at?: string | null
+          opened_at?: string
+          outcome?: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id?: string | null
+          preventive_action?: string | null
+          reported_by?: string | null
+          root_cause?: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          what_happened?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_owner_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_deadline: {
+        Row: {
+          created_at: string
+          due_at: string
+          id: string
+          incident_id: string
+          kind: Database["public"]["Enums"]["incident_deadline_kind"]
+          label: string | null
+          met_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_at: string
+          id?: string
+          incident_id: string
+          kind: Database["public"]["Enums"]["incident_deadline_kind"]
+          label?: string | null
+          met_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string
+          id?: string
+          incident_id?: string
+          kind?: Database["public"]["Enums"]["incident_deadline_kind"]
+          label?: string | null
+          met_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_log: {
+        Row: {
+          author_id: string | null
+          cost_amount: number | null
+          cost_currency: string | null
+          cost_payer: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty: string | null
+          created_at: string
+          customer_approved: boolean
+          decision: string | null
+          id: string
+          incident_id: string
+          logged_at: string
+          note: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          cost_amount?: number | null
+          cost_currency?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty?: string | null
+          created_at?: string
+          customer_approved?: boolean
+          decision?: string | null
+          id?: string
+          incident_id: string
+          logged_at?: string
+          note: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          cost_amount?: number | null
+          cost_currency?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty?: string | null
+          created_at?: string
+          customer_approved?: boolean
+          decision?: string | null
+          id?: string
+          incident_id?: string
+          logged_at?: string
+          note?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_log_author_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_cell: {
         Row: {
           compliance: Database["public"]["Enums"]["market_compliance"]
@@ -1420,6 +1713,7 @@ export type Database = {
           passed_at: string | null
           position: number
           project_id: string
+          rolled_back_incident_id: string | null
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -1437,6 +1731,7 @@ export type Database = {
           passed_at?: string | null
           position: number
           project_id: string
+          rolled_back_incident_id?: string | null
           rolled_back_reason?: string | null
           status?: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -1454,6 +1749,7 @@ export type Database = {
           passed_at?: string | null
           position?: number
           project_id?: string
+          rolled_back_incident_id?: string | null
           rolled_back_reason?: string | null
           status?: Database["public"]["Enums"]["gate_status"]
           tenant_id?: string
@@ -1485,6 +1781,20 @@ export type Database = {
             columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -3334,6 +3644,86 @@ export type Database = {
           },
         ]
       }
+      incident_overview: {
+        Row: {
+          affected_parties:
+            | Database["public"]["Enums"]["incident_party"][]
+            | null
+          closed_by: string | null
+          closed_on: string | null
+          code: string | null
+          created_at: string | null
+          current_state: string | null
+          customer_closure_notified_on: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notified_at: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"] | null
+          id: string | null
+          immediate_action: string | null
+          impact_note: string | null
+          incident_type: string | null
+          is_repeat: boolean | null
+          lessons: string | null
+          management_notified_at: string | null
+          next_deadline_at: string | null
+          opened_at: string | null
+          outcome: Database["public"]["Enums"]["incident_outcome"] | null
+          overdue_deadline_count: number | null
+          owner_id: string | null
+          preventive_action: string | null
+          reported_by: string | null
+          root_cause: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          what_happened: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_owner_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_cell_overview: {
         Row: {
           cell_key: string | null
@@ -3855,6 +4245,13 @@ export type Database = {
           user_metadata: Json | null
         }[]
       }
+      add_business_days: {
+        Args: {
+          start_on: string
+          days: number
+        }
+        Returns: string
+      }
       create_branch: {
         Args: {
           parent_id: string
@@ -3969,6 +4366,7 @@ export type Database = {
           passed_at: string | null
           position: number
           project_id: string
+          rolled_back_incident_id: string | null
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -4033,6 +4431,7 @@ export type Database = {
         Args: {
           gate_id: string
           reason: string
+          incident_id?: string
         }
         Returns: {
           approval_document_id: string | null
@@ -4047,6 +4446,7 @@ export type Database = {
           passed_at: string | null
           position: number
           project_id: string
+          rolled_back_incident_id: string | null
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"]
           tenant_id: string
@@ -4110,6 +4510,7 @@ export type Database = {
         | "operations_partner"
       compliance_status: "none" | "partial" | "complete"
       content_status: "none" | "en_master" | "translated" | "approved"
+      cost_payer: "moesa" | "customer" | "supplier" | "carrier_insurance"
       customer_status: "lead" | "onboarding" | "active" | "paused" | "closed"
       document_entity:
         | "customer"
@@ -4158,6 +4559,32 @@ export type Database = {
         | "L_G1"
         | "L_G2"
       gate_status: "pending" | "passed" | "rolled_back"
+      incident_deadline_kind:
+        | "supplier_damage"
+        | "carrier_claim"
+        | "demurrage"
+        | "supplier_storage"
+        | "platform_escalation"
+        | "document_request"
+        | "other"
+      incident_family: "ol" | "oa" | "ou" | "ot" | "om"
+      incident_outcome: "full_recovery" | "partial_recovery" | "loss"
+      incident_party:
+        | "customer"
+        | "supplier"
+        | "forwarder"
+        | "platform"
+        | "warehouse"
+      incident_root_cause:
+        | "human_error"
+        | "document_data"
+        | "communication"
+        | "supplier"
+        | "carrier"
+        | "platform_regulation"
+        | "customer"
+      incident_severity: "s1" | "s2" | "s3"
+      incident_status: "open" | "contained" | "closed"
       market_cell_status:
         | "candidate"
         | "planned"

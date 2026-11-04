@@ -588,7 +588,18 @@
       "market_cell_duplicate": "This product already has a cell for this platform and country.",
       "market_cell_product_customer": "The product belongs to another customer.",
       "market_cell_project_customer": "The project belongs to another customer.",
-      "market_cell_price_currency": "A price needs its currency."
+      "market_cell_price_currency": "A price needs its currency.",
+      "incident_customer_missing": "The incident's customer was not found.",
+      "incident_immutable_field": "An incident's code, customer and family cannot change.",
+      "incident_type_family": "The Y10 card belongs to another family.",
+      "incident_entity_invalid": "Choose a project, order, shipment, product or market cell of this customer.",
+      "incident_status_order": "The incident cannot move to this status from its current one.",
+      "incident_management_notice_required": "S1 and S2 incidents need the time management was told first.",
+      "incident_closure_incomplete": "Fill the outcome, the root cause and the preventive action before closing.",
+      "incident_close_management": "Only management closes an S1 incident.",
+      "incident_closed": "The incident is closed; its log and deadlines no longer change.",
+      "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
+      "gate_incident_invalid": "Pick an open incident of this project's customer."
    },
    "account": {
       "profile": {
