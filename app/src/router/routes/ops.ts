@@ -12,6 +12,20 @@ const documentProps = (route: RouteLocationNormalized) => ({
    code: route.query.code ?? null
 });
 
+// A shipment line is added for one order line, which the orders tab passes in the query.
+const shipmentLineProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   purchaseOrderLineId: route.query.purchaseOrderLineId ?? null
+});
+
+// A new purchase order opened from a project names its customer and project in the query. A route
+// dialog renders the page outside the router, so the page gets them as props, not from useRoute.
+const purchaseOrderProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   customer_id: route.query.customer_id ?? null,
+   project_id: route.query.project_id ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -25,6 +39,8 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'customer' },
             { action: 'select', subject: 'product' },
             { action: 'select', subject: 'project' },
+            { action: 'select', subject: 'purchase_order' },
+            { action: 'select', subject: 'shipment' },
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' },
             { action: 'select', subject: 'media' }
@@ -417,6 +433,23 @@ const routes: RouteRecordRaw[] = [
                            default: () => import('@/views/pages/ops/supplier/tabs/Documents.vue'),
                            skeleton: () => import('@/views/pages/ops/supplier/tabs/Documents.vue')
                         }
+                     },
+                     {
+                        path: 'purchase_orders',
+                        name: 'ops-supplier-manage-purchase_orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_supplier_purchase_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/supplier/tabs/PurchaseOrders.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/supplier/tabs/PurchaseOrders.vue')
+                        }
                      }
                   ]
                },
@@ -543,6 +576,24 @@ const routes: RouteRecordRaw[] = [
                         components: {
                            default: () => import('@/views/pages/ops/product/tabs/Cost.vue'),
                            skeleton: () => import('@/views/pages/ops/product/tabs/Cost.vue')
+                        }
+                     },
+                     {
+                        path: 'orders',
+                        name: 'ops-product-manage-orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false,
+                           anyPermission: [
+                              { action: 'select', subject: 'purchase_order' },
+                              { action: 'select', subject: 'shipment' }
+                           ]
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Orders.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Orders.vue')
                         }
                      },
                      {
@@ -686,6 +737,38 @@ const routes: RouteRecordRaw[] = [
                         }
                      },
                      {
+                        path: 'purchase_orders',
+                        name: 'ops-project-manage-purchase_orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_purchase_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/project/tabs/PurchaseOrders.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/project/tabs/PurchaseOrders.vue')
+                        }
+                     },
+                     {
+                        path: 'shipments',
+                        name: 'ops-project-manage-shipments',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_shipments',
+                           icon: PrimeIcons.SEND,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'shipment' }]
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Shipments.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Shipments.vue')
+                        }
+                     },
+                     {
                         path: 'documents',
                         name: 'ops-project-manage-documents',
                         props: true,
@@ -729,6 +812,470 @@ const routes: RouteRecordRaw[] = [
                   components: {
                      default: () => import('@/views/pages/ops/project/TaskUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/project/TaskUpsert.vue')
+                  }
+               }
+            ]
+         },
+         {
+            path: 'purchase-orders',
+            name: 'ops-purchase-order',
+            meta: {
+               label: 'route.label.ops_purchase_order',
+               icon: PrimeIcons.SHOPPING_CART,
+               requiredPermissions: [{ action: 'select', subject: 'purchase_order' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-purchase-order-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-purchase-order-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-purchase-order-list',
+                  meta: {
+                     label: 'route.label.ops_purchase_order_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/Index.vue')
+                  }
+               },
+               {
+                  // The purchase order card: its tabs open on their own as these child routes.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-purchase-order-manage',
+                  props: { default: purchaseOrderProps, skeleton: purchaseOrderProps },
+                  meta: {
+                     label: 'route.label.ops_purchase_order_manage',
+                     icon: PrimeIcons.SHOPPING_CART,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-purchase-order-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/General.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'lines',
+                        name: 'ops-purchase-order-manage-lines',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_lines',
+                           icon: PrimeIcons.LIST,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/purchase-order/tabs/Lines.vue'),
+                           skeleton: () => import('@/views/pages/ops/purchase-order/tabs/Lines.vue')
+                        }
+                     },
+                     {
+                        path: 'pi',
+                        name: 'ops-purchase-order-manage-pi',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_pi',
+                           icon: PrimeIcons.CHECK_SQUARE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/purchase-order/tabs/Pi.vue'),
+                           skeleton: () => import('@/views/pages/ops/purchase-order/tabs/Pi.vue')
+                        }
+                     },
+                     {
+                        path: 'payments',
+                        name: 'ops-purchase-order-manage-payments',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_payments',
+                           icon: PrimeIcons.WALLET,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Payments.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Payments.vue')
+                        }
+                     },
+                     {
+                        path: 'production',
+                        name: 'ops-purchase-order-manage-production',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_production',
+                           icon: PrimeIcons.COG,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Production.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Production.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-purchase-order-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Documents.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-purchase-order-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/purchase-order/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/purchase-order/tabs/Media.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':purchaseOrderId/line/add',
+                  name: 'ops-purchase-order-line-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_line_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'purchase_order_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: 'line/:id/edit',
+                  name: 'ops-purchase-order-line-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_line_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'purchase_order_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: ':purchaseOrderId/payment/add',
+                  name: 'ops-purchase-order-payment-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_payment_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'purchase_order_payment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue')
+                  }
+               },
+               {
+                  path: 'payment/:id/edit',
+                  name: 'ops-purchase-order-payment-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_payment_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'purchase_order_payment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue')
+                  }
+               },
+               {
+                  path: ':purchaseOrderId/update/add',
+                  name: 'ops-purchase-order-update-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_update_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'purchase_order_update' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue')
+                  }
+               },
+               {
+                  path: 'update/:id/edit',
+                  name: 'ops-purchase-order-update-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_update_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'purchase_order_update' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue')
+                  }
+               }
+            ]
+         },
+         {
+            path: 'shipments',
+            name: 'ops-shipment',
+            meta: {
+               label: 'route.label.ops_shipment',
+               icon: PrimeIcons.SEND,
+               requiredPermissions: [{ action: 'select', subject: 'shipment' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-shipment-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-shipment-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-shipment-list',
+                  meta: {
+                     label: 'route.label.ops_shipment_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'shipment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/Index.vue')
+                  }
+               },
+               {
+                  // The shipment card: its tabs open on their own as these child routes.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-shipment-manage',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_manage',
+                     icon: PrimeIcons.SEND,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'shipment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-shipment-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/General.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'dates',
+                        name: 'ops-shipment-manage-dates',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_dates',
+                           icon: PrimeIcons.CALENDAR,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Dates.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Dates.vue')
+                        }
+                     },
+                     {
+                        path: 'orders',
+                        name: 'ops-shipment-manage-orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Orders.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Orders.vue')
+                        }
+                     },
+                     {
+                        path: 'events',
+                        name: 'ops-shipment-manage-events',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_events',
+                           icon: PrimeIcons.HISTORY,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Events.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Events.vue')
+                        }
+                     },
+                     {
+                        path: 'acceptance',
+                        name: 'ops-shipment-manage-acceptance',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_acceptance',
+                           icon: PrimeIcons.CHECK_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Acceptance.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Acceptance.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-shipment-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Documents.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-shipment-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Media.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':shipmentId/line/add',
+                  name: 'ops-shipment-line-add',
+                  props: { default: shipmentLineProps, skeleton: shipmentLineProps },
+                  meta: {
+                     label: 'route.label.ops_shipment_line_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'shipment_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: 'line/:id/edit',
+                  name: 'ops-shipment-line-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_line_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'shipment_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: ':shipmentId/event/add',
+                  name: 'ops-shipment-event-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_event_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'shipment_event' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/EventUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/EventUpsert.vue')
+                  }
+               },
+               {
+                  path: 'event/:id/edit',
+                  name: 'ops-shipment-event-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_event_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'shipment_event' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/EventUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/EventUpsert.vue')
                   }
                }
             ]

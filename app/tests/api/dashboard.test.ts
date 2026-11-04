@@ -1,6 +1,8 @@
 import {
    evidenceTarget,
    groupGates,
+   groupPurchaseOrders,
+   groupShipments,
    splitTasks,
    type DashboardGateRow,
    type DashboardTaskRow
@@ -50,6 +52,29 @@ describe('splitTasks', () => {
    });
 });
 
+describe('groupPurchaseOrders', () => {
+   it('puts the orders waiting for action apart from those in production, keeping their order', () => {
+      const { action, production } = groupPurchaseOrders([
+         { status: 'sent' as const },
+         { status: 'ready' as const },
+         { status: 'pi_approved' as const }
+      ]);
+      expect(action.map((row) => row.status)).toEqual(['sent', 'pi_approved']);
+      expect(production.map((row) => row.status)).toEqual(['ready']);
+   });
+});
+
+describe('groupShipments', () => {
+   it('lists the shipments on the way and, apart, every late one', () => {
+      const { inTransit, late } = groupShipments([
+         { status: 'in_transit' as const, overdue: true },
+         { status: 'booked' as const, overdue: true }
+      ]);
+      expect(inTransit.map((row) => row.status)).toEqual(['in_transit']);
+      expect(late.map((row) => row.status)).toEqual(['in_transit', 'booked']);
+   });
+});
+
 describe('evidenceTarget', () => {
    it("opens the product list narrowed to the row's customer", () => {
       expect(evidenceTarget({ customer_id: 'c1' })).toEqual({
@@ -80,6 +105,8 @@ describe('dashboard query invalidation', () => {
       expect(affectedTables(['document'])).toContain('dashboard_product_evidence');
       expect(affectedTables(['product'])).toContain('product_with_evidence');
       expect(affectedTables(['document'])).toContain('product_with_evidence');
+      expect(affectedTables(['purchase_order_line'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['shipment'])).toContain('dashboard_shipment');
    });
 });
 

@@ -12,7 +12,14 @@ import { inject, type InjectionKey } from 'vue';
 export type ProductFormTab = 'general' | 'dimensions' | 'cost';
 
 /** The product card's tabs: the form's, then the documents and the media. */
-export const PRODUCT_CARD_TABS = ['general', 'dimensions', 'cost', 'documents', 'media'] as const;
+export const PRODUCT_CARD_TABS = [
+   'general',
+   'dimensions',
+   'cost',
+   'orders',
+   'documents',
+   'media'
+] as const;
 export type ProductCardTab = (typeof PRODUCT_CARD_TABS)[number];
 
 const DIMENSION_FIELDS = new Set([

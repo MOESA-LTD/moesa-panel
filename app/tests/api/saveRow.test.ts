@@ -1,4 +1,4 @@
-import { saveRow } from '@/api/saveRow';
+import { saveRow, updateRow } from '@/api/saveRow';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The query builder, recording what saveRow asks of it.
@@ -41,5 +41,19 @@ describe('saveRow', () => {
    it('returns the saved row with the requested columns', async () => {
       await expect(saveRow('role', { id: 'r1' }, 'id')).resolves.toEqual({ id: 'saved' });
       expect(calls).toContainEqual({ method: 'select', args: ['id'] });
+   });
+});
+
+describe('updateRow', () => {
+   it('patches one row by id and resolves the returned row', async () => {
+      await expect(updateRow('purchase_order', 'p1', { status: 'sent' })).resolves.toEqual({
+         id: 'saved'
+      });
+      expect(calls).toEqual([
+         { method: 'update', args: [{ status: 'sent' }] },
+         { method: 'eq', args: ['id', 'p1'] },
+         { method: 'select', args: [] },
+         { method: 'single', args: [] }
+      ]);
    });
 });

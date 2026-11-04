@@ -132,6 +132,8 @@ export function useForm<S extends z.ZodType>({ schema, initialValues }: UseFormO
       values,
       errors,
       isDirty,
+      /** The clean state `isDirty` compares with: the loaded or saved values (see `reset`). */
+      initialValues: computed(() => initial.value),
       isSubmitting,
       validate,
       validateFields,

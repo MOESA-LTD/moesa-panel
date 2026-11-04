@@ -10,10 +10,16 @@ import type { RouteLocationRaw } from 'vue-router';
 export type DashboardGateRow = Views['dashboard_gate_pending']['Row'];
 export type DashboardTaskRow = Views['dashboard_task_due']['Row'];
 export type DashboardEvidenceRow = Views['dashboard_product_evidence']['Row'];
+export type DashboardPurchaseOrderRow = Views['dashboard_purchase_order']['Row'];
+export type DashboardShipmentRow = Views['dashboard_shipment']['Row'];
 
 type DashboardView = Extract<
    TableName,
-   'dashboard_gate_pending' | 'dashboard_task_due' | 'dashboard_product_evidence'
+   | 'dashboard_gate_pending'
+   | 'dashboard_task_due'
+   | 'dashboard_product_evidence'
+   | 'dashboard_purchase_order'
+   | 'dashboard_shipment'
 >;
 
 /** A dashboard view's rows, narrowed to the customer of the global customer filter when one is set. */
@@ -52,6 +58,20 @@ export const useDashboardTasks = () =>
 /** Per customer, the evidence behind its active products. */
 export const useDashboardEvidence = () =>
    useDashboardView<DashboardEvidenceRow>('dashboard_product_evidence');
+
+/** The open purchase orders (neither draft, closed nor cancelled), the earliest ready date first. */
+export const useDashboardPurchaseOrders = () =>
+   useDashboardView<DashboardPurchaseOrderRow>('dashboard_purchase_order', {
+      column: 'ready_on',
+      ascending: true
+   });
+
+/** The open shipments (neither accepted nor cancelled), the earliest ETA first. */
+export const useDashboardShipments = () =>
+   useDashboardView<DashboardShipmentRow>('dashboard_shipment', {
+      column: 'eta',
+      ascending: true
+   });
 
 /**
  * Who has to act on each pending gate: management (a management gate), else the customer (an (M)
@@ -93,3 +113,40 @@ export const evidenceTarget = (
          ? { name: 'ops-product-list', query: { spec: 'false' } }
          : { name: 'ops-product-list' }
 });
+
+type PurchaseOrderStatus = NonNullable<DashboardPurchaseOrderRow['status']>;
+type ShipmentStatus = NonNullable<DashboardShipmentRow['status']>;
+
+/** The order statuses that wait for an action of ours (send, chase or approve the PI, pay). */
+const PO_ACTION: readonly PurchaseOrderStatus[] = ['sent', 'pi_received', 'pi_approved'];
+/** The order statuses from the deposit to the balance: the goods are being made or are ready. */
+const PO_PRODUCTION: readonly PurchaseOrderStatus[] = [
+   'deposit_paid',
+   'in_production',
+   'ready',
+   'balance_paid'
+];
+/** The shipment statuses of goods on the way, from the loading to customs. */
+const SHIPMENT_IN_TRANSIT: readonly ShipmentStatus[] = ['loaded', 'in_transit', 'at_customs'];
+
+/** The open orders waiting for action, and those in production. Each group keeps the rows' order. */
+export function groupPurchaseOrders<Row extends Pick<DashboardPurchaseOrderRow, 'status'>>(
+   rows: readonly Row[]
+) {
+   const has = (statuses: readonly PurchaseOrderStatus[]) => (row: Row) =>
+      !!row.status && statuses.includes(row.status);
+   return { action: rows.filter(has(PO_ACTION)), production: rows.filter(has(PO_PRODUCTION)) };
+}
+
+/**
+ * The shipments on the way, and the late ones (ETA passed before delivery, whatever their
+ * status), so a late shipment on the way is in both. Each group keeps the rows' order.
+ */
+export function groupShipments<Row extends Pick<DashboardShipmentRow, 'status' | 'overdue'>>(
+   rows: readonly Row[]
+) {
+   return {
+      inTransit: rows.filter((row) => !!row.status && SHIPMENT_IN_TRANSIT.includes(row.status)),
+      late: rows.filter((row) => !!row.overdue)
+   };
+}

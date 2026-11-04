@@ -20,3 +20,36 @@ export function saveRow<Row>(table: keyof Tables, values: object, select = '*') 
       .throwOnError()
       .then(({ data }: { data: Row }) => data) as Promise<Row>;
 }
+
+type PatchBuilder<Row> = {
+   update(patch: object): {
+      eq(
+         column: 'id',
+         id: string
+      ): {
+         select(): { single(): { throwOnError(): Promise<{ data: Row }> } };
+      };
+   };
+};
+
+/**
+ * Patches some columns of one row: a status, a PI line total, a single field. Unlike saveRow it
+ * takes a partial row, which repository.save (a whole form) cannot carry.
+ */
+export function updateRow<T extends keyof Tables>(
+   table: T,
+   id: string,
+   patch: Tables[T]['Update']
+): Promise<Tables[T]['Row']> {
+   // supabase-js cannot narrow the row type for a table name held in a generic, so the builder is
+   // typed by this function's signature.
+   const query = supabase.from(table as keyof Tables) as unknown as PatchBuilder<Tables[T]['Row']>;
+
+   return query
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single()
+      .throwOnError()
+      .then(({ data }) => data);
+}

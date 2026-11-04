@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- rolled back.
 BEGIN;
 
-SELECT plan(16);
+SELECT plan(18);
 
 SELECT set_config('test.tenant_id', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 
@@ -92,6 +92,18 @@ SELECT ok(
         ARRAY[current_setting('test.tenant_id')::UUID], 'public.media', 'insert')) = 1,
     'a coordinator uploads but does not delete media'
 );
+
+-- Purchase orders: the coordinator creates them.
+SELECT ok(cardinality(private.tenants_permitting(
+    (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'),
+    ARRAY[(SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')], 'public.purchase_order', 'insert')) = 1,
+    'the coordinator creates purchase orders');
+
+-- Shipments: the coordinator creates them.
+SELECT ok(cardinality(private.tenants_permitting(
+    (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'),
+    ARRAY[(SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')], 'public.shipment', 'insert')) = 1,
+    'the coordinator creates shipments');
 
 -- Coordinator: the business modules, the settings read-only.
 SELECT private.impersonate(

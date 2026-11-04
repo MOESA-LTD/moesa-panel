@@ -26,5 +26,13 @@ export const fieldRoutes: FieldRoutes = {
    project: { name: 'ops-project-manage' },
    project_task: { name: 'ops-project-task-edit' },
    project_gate: { name: 'ops-project-manage', field: 'project_id' },
-   media: { name: 'ops-media-edit' }
+   media: { name: 'ops-media-edit' },
+   purchase_order: { name: 'ops-purchase-order-manage' },
+   purchase_order_line: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' },
+   purchase_order_payment: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' },
+   purchase_order_update: { name: 'ops-purchase-order-manage', field: 'purchase_order_id' },
+   shipment: { name: 'ops-shipment-manage' },
+   shipment_purchase_order: { name: 'ops-shipment-manage', field: 'shipment_id' },
+   shipment_line: { name: 'ops-shipment-manage', field: 'shipment_id' },
+   shipment_event: { name: 'ops-shipment-manage', field: 'shipment_id' }
 };

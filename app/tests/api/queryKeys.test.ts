@@ -58,6 +58,97 @@ describe('affectedTables', () => {
       // A document citing a file counts in the library's document_count.
       expect(affectedTables(['document'])).toContain('media_library');
    });
+
+   it('marks the order overview and the product evidence stale after an order change', () => {
+      expect(affectedTables(['purchase_order_line'])).toEqual(
+         expect.arrayContaining([
+            'purchase_order',
+            'purchase_order_overview',
+            'product_evidence',
+            'product_with_evidence'
+         ])
+      );
+      expect(affectedTables(['purchase_order_payment'])).toEqual(
+         expect.arrayContaining(['purchase_order', 'purchase_order_overview'])
+      );
+      expect(affectedTables(['purchase_order_update'])).toContain('purchase_order');
+      expect(affectedTables(['purchase_order'])).toEqual(
+         expect.arrayContaining(['purchase_order_overview', 'product_evidence'])
+      );
+      // The approved PSI and the spec sheets (has_approved_psi, spec_missing_line_ids).
+      expect(affectedTables(['document'])).toContain('purchase_order_overview');
+      expect(affectedTables(['setting'])).toContain('purchase_order_overview');
+   });
+
+   it('marks the shipment card and overview stale after a change to its orders, lines or events', () => {
+      expect(affectedTables(['shipment_line'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+      expect(affectedTables(['shipment_purchase_order'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+      expect(affectedTables(['shipment_event'])).toContain('shipment');
+      expect(affectedTables(['shipment_event'])).not.toContain('shipment_overview');
+      // The links, lines and events go with their shipment (ON DELETE CASCADE).
+      expect(affectedTables(['shipment'])).toEqual(
+         expect.arrayContaining([
+            'shipment_purchase_order',
+            'shipment_line',
+            'shipment_event',
+            'shipment_overview'
+         ])
+      );
+      // psi_missing_po_codes reads the orders' approved PSI reports.
+      expect(affectedTables(['document'])).toContain('shipment_overview');
+   });
+
+   it('marks the shipment card stale after a change to what it embeds', () => {
+      // The orders' status and tolerance, their lines and the lines' products.
+      expect(affectedTables(['purchase_order'])).toContain('shipment');
+      expect(affectedTables(['purchase_order_line'])).toContain('shipment');
+      expect(affectedTables(['product'])).toContain('shipment');
+      // The customer and the warehouse, which the overview names too.
+      expect(affectedTables(['customer_warehouse'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+      expect(affectedTables(['customer'])).toEqual(
+         expect.arrayContaining(['shipment', 'shipment_overview'])
+      );
+   });
+
+   it('marks the dashboard boxes stale after a change to an order or a shipment', () => {
+      // Lines change system_total; payments the planned deposit and balance dates.
+      expect(affectedTables(['purchase_order'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['purchase_order_line'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['purchase_order_payment'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['shipment'])).toContain('dashboard_shipment');
+      expect(affectedTables(['shipment_purchase_order'])).toContain('dashboard_shipment');
+   });
+
+   it('marks the order card, its overview and the boxes stale after a change to what they embed', () => {
+      // The order card embeds its lines' products and spec sheets.
+      expect(affectedTables(['document'])).toContain('purchase_order');
+      expect(affectedTables(['product'])).toContain('purchase_order');
+      // The overview names the project, the supplier and the customer; the boxes show them.
+      expect(affectedTables(['project'])).toContain('purchase_order_overview');
+      expect(affectedTables(['supplier'])).toEqual(
+         expect.arrayContaining([
+            'purchase_order',
+            'purchase_order_overview',
+            'dashboard_purchase_order'
+         ])
+      );
+      expect(affectedTables(['customer'])).toEqual(
+         expect.arrayContaining([
+            'shipment',
+            'shipment_overview',
+            'purchase_order',
+            'purchase_order_overview',
+            'dashboard_purchase_order',
+            'dashboard_shipment'
+         ])
+      );
+   });
 });
 
 describe('invalidateTables', () => {

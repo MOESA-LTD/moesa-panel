@@ -157,7 +157,15 @@
       "project_gate": "Project gate",
       "project_task": "Project task",
       "media": "Media",
-      "media_link": "Media link"
+      "media_link": "Media link",
+      "purchase_order": "Purchase order",
+      "purchase_order_line": "Purchase order line",
+      "purchase_order_payment": "Purchase order payment",
+      "purchase_order_update": "Production update",
+      "shipment": "Shipment",
+      "shipment_purchase_order": "Shipment order",
+      "shipment_line": "Shipment line",
+      "shipment_event": "Shipment event"
    },
    "input": {
       "select_or_write": "Auswählen oder eingeben"
@@ -416,7 +424,46 @@
       "MediaFileError": "File not uploaded",
       "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
       "avatar_size": "The photo must be at most 1 MB.",
-      "unknown": "Something went wrong."
+      "unknown": "Something went wrong.",
+      "purchase_order_customer_missing": "The order's customer was not found.",
+      "purchase_order_immutable_field": "An order's code, customer and supplier cannot change.",
+      "incoterm_invalid": "Choose an Incoterms 2020 term.",
+      "po_project_customer": "The project belongs to another customer.",
+      "po_line_product_customer": "The product belongs to another customer.",
+      "po_line_product_duplicate": "The product is already on this order.",
+      "pi_check_invalid": "The PI checklist has an unknown item or answer.",
+      "po_status_order": "The order cannot move to this status from its current one.",
+      "po_lines_required": "Add at least one line first.",
+      "po_spec_sheet_required": "Every line needs a signed or approved spec sheet before the order is sent.",
+      "po_line_spec_invalid": "Choose a signed or approved spec sheet of this product.",
+      "po_pi_document_invalid": "Choose a PI document of this order.",
+      "po_pi_required": "Enter the PI document and its total first.",
+      "po_pi_checklist_incomplete": "Every PI check item must be \"OK\" before approval.",
+      "po_pi_mismatch": "The PI figures differ from the recalculated ones; ask for a corrected PI.",
+      "po_deposit_unpaid": "Record the paid deposit first.",
+      "po_balance_unpaid": "Record the paid balance first.",
+      "po_locked": "The PI is approved; lines and terms no longer change.",
+      "po_closed": "The order is closed or cancelled; it no longer changes.",
+      "po_line_identity_immutable": "A line cannot move to another order.",
+      "shipment_customer_missing": "The shipment's customer was not found.",
+      "shipment_immutable_field": "A shipment's code and customer cannot change.",
+      "shipment_warehouse_customer": "Choose one of this customer's warehouses.",
+      "shipment_status_order": "The shipment cannot move to this status from its current one.",
+      "shipment_po_required": "Add a purchase order to the shipment first.",
+      "shipment_booking_date_required": "Enter the booking confirmation date.",
+      "shipment_eta_required": "Enter ETD and ETA.",
+      "shipment_delivery_time_required": "Enter when the goods were delivered.",
+      "shipment_delivery_receipt_required": "Add the signed delivery receipt (G5 evidence) first.",
+      "shipment_acceptance_issue": "Quantities differ or goods are damaged: mark the shipment disputed.",
+      "shipment_po_not_open": "Only orders with an approved PI that are not closed can be shipped.",
+      "shipment_po_customer": "The order belongs to another customer.",
+      "shipment_po_has_lines": "Remove the order's lines from the shipment first.",
+      "shipment_line_po_not_linked": "Add the line's order to the shipment first.",
+      "shipment_line_duplicate": "This order line is already on the shipment.",
+      "shipment_quantity_exceeds_po": "More than ordered (tolerance included) would be shipped.",
+      "shipment_locked": "The goods are loaded; orders and lines no longer change.",
+      "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved.",
+      "shipment_lines_required": "Add at least one line before loading."
    },
    "account": {
       "profile": {
@@ -564,7 +611,41 @@
          "ops_media_edit": "Edit file",
          "security": "Security",
          "preferences": "Preferences",
-         "memberships": "Memberships"
+         "memberships": "Memberships",
+         "ops_purchase_order": "Purchase orders",
+         "ops_purchase_order_list": "Purchase order list",
+         "ops_purchase_order_manage": "Purchase order card",
+         "ops_purchase_order_general": "General",
+         "ops_purchase_order_lines": "Lines",
+         "ops_purchase_order_documents": "Documents",
+         "ops_purchase_order_media": "Media",
+         "ops_purchase_order_line_add": "New order line",
+         "ops_purchase_order_line_edit": "Edit order line",
+         "ops_purchase_order_pi": "PI check",
+         "ops_purchase_order_payments": "Payments",
+         "ops_purchase_order_production": "Production",
+         "ops_purchase_order_payment_add": "New payment",
+         "ops_purchase_order_payment_edit": "Edit payment",
+         "ops_purchase_order_update_add": "New production update",
+         "ops_purchase_order_update_edit": "Edit production update",
+         "ops_shipment": "Shipments",
+         "ops_shipment_list": "Shipment list",
+         "ops_shipment_manage": "Shipment card",
+         "ops_shipment_general": "General",
+         "ops_shipment_dates": "Dates",
+         "ops_shipment_orders": "Orders",
+         "ops_shipment_events": "Events",
+         "ops_shipment_acceptance": "Acceptance",
+         "ops_shipment_documents": "Documents",
+         "ops_shipment_media": "Media",
+         "ops_shipment_line_add": "New shipment line",
+         "ops_shipment_line_edit": "Edit shipment line",
+         "ops_shipment_event_add": "New shipment event",
+         "ops_shipment_event_edit": "Edit shipment event",
+         "ops_supplier_purchase_orders": "Purchase orders",
+         "ops_product_orders": "Orders and shipments",
+         "ops_project_purchase_orders": "Purchase orders",
+         "ops_project_shipments": "Shipments"
       }
    },
    "dashboard": {
@@ -606,7 +687,17 @@
          "days_left": "{days} days left",
          "due_today": "Due today",
          "days_overdue": "{days} days late",
-         "open_product_list": "Open the product list"
+         "open_product_list": "Open the product list",
+         "po_action": "Purchase orders waiting for action",
+         "po_production": "Purchase orders in production",
+         "shipments_in_transit": "Shipments on the way",
+         "shipments_late": "Late shipments",
+         "meta": {
+            "ready": "Ready {date}",
+            "balance": "Balance {date}",
+            "eta": "ETA {date}",
+            "late": "{n} days late"
+         }
       }
    },
    "audit_log": {
@@ -855,7 +946,8 @@
          "tabs": {
             "general": "General",
             "contacts": "Contacts",
-            "documents": "Documents"
+            "documents": "Documents",
+            "purchase_orders": "Purchase orders"
          },
          "sections": {
             "general": "Supplier",
@@ -1009,7 +1101,8 @@
             "dimensions": "Dimensions",
             "cost": "Cost",
             "documents": "Documents",
-            "media": "Media"
+            "media": "Media",
+            "orders": "Orders and shipments"
          },
          "sections": {
             "identity": "Product",
@@ -1127,7 +1220,9 @@
             "overview": "Overview",
             "tasks": "Tasks",
             "products": "Products",
-            "documents": "Documents"
+            "documents": "Documents",
+            "purchase_orders": "Purchase orders",
+            "shipments": "Shipments"
          },
          "sections": {
             "general": "Project",
@@ -1254,7 +1349,8 @@
             "PL_G4": "PL-G4",
             "L_G1": "L-G1",
             "L_G2": "L-G2"
-         }
+         },
+         "new_purchase_order": "New purchase order"
       },
       "media": {
          "title": "Media",
@@ -1301,6 +1397,271 @@
             "file_name": "File"
          },
          "too_large": "The file is larger than the upload limit: up to {mb} MB."
+      },
+      "purchase_order": {
+         "title": "Purchase orders",
+         "tabs": {
+            "general": "General",
+            "lines": "Lines",
+            "pi": "PI check",
+            "payments": "Payments",
+            "production": "Production",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "fields": {
+            "code": "Code",
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "project": "Project",
+            "status": "Status",
+            "product": "Product",
+            "quantity": "Quantity",
+            "unit_price": "Unit price",
+            "currency": "Currency",
+            "spec_document": "Spec sheet version",
+            "incoterm": "Incoterm",
+            "incoterm_place": "Place",
+            "deposit_rate": "Deposit %",
+            "ready_on": "Ready date",
+            "tolerance_pct": "Tolerance %",
+            "penalty_rule": "Penalty rule",
+            "packing_instruction": "Packaging and label instructions",
+            "checked_by": "Checked by",
+            "notes": "Notes",
+            "position": "No.",
+            "sku": "SKU",
+            "display_name": "Name",
+            "line_total": "Line total",
+            "subtotal": "Subtotal",
+            "total": "Total",
+            "deposit_paid_on": "Deposit paid on",
+            "balance_planned_on": "Balance planned on",
+            "pi_document": "PI document",
+            "pi_number": "PI number",
+            "pi_line_total": "PI line total",
+            "checked_at": "Checked at"
+         },
+         "pi": {
+            "subtotal": "Subtotal",
+            "extra": "Extra items",
+            "discount": "Discount",
+            "total": "Grand total",
+            "deposit": "Deposit",
+            "balance": "Balance",
+            "system": "Recalculated",
+            "entered": "On the PI",
+            "diff": "Difference",
+            "matches": "The PI matches the recalculation.",
+            "mismatch": "The PI differs from the recalculation.",
+            "line": "Line",
+            "checklist": "PI checklist (S09)",
+            "line_totals": "Line totals on the PI",
+            "not_ready": "The PI does not match the recalculation or its checklist is not complete; the approval will be refused."
+         },
+         "pi_check": {
+            "status": {
+               "ok": "OK",
+               "error": "Error",
+               "missing": "Missing"
+            },
+            "items": {
+               "1": "Seller name and address",
+               "2": "Buyer",
+               "3": "PO reference",
+               "4": "Spec sheet version",
+               "5": "Product lines",
+               "6": "Unit price and currency",
+               "7": "Line arithmetic",
+               "8": "Subtotal, discount, extra items",
+               "9": "Grand total",
+               "10": "Deposit",
+               "11": "Balance condition",
+               "12": "Incoterm and place",
+               "13": "Ready date",
+               "14": "Tolerance (quantity)",
+               "15": "Tolerance (quality, size, weight, colour)",
+               "16": "Cancellation and refund",
+               "17": "Penalty — late payment",
+               "18": "Penalty — late delivery",
+               "19": "Damage / shortage notice period",
+               "20": "Storage fee",
+               "21": "Packaging and label instructions",
+               "22": "Tooling",
+               "23": "Sample / golden sample reference",
+               "24": "Origin and HS code",
+               "25": "Validity",
+               "26": "Payment method and bank (confirmed by phone; no account number here)",
+               "27": "Force majeure, disputes, governing law",
+               "28": "Consistency within the PI",
+               "29": "Consistency across documents",
+               "30": "File version"
+            }
+         },
+         "status": {
+            "draft": "Draft",
+            "sent": "Sent",
+            "pi_received": "PI received",
+            "pi_approved": "PI approved",
+            "deposit_paid": "Deposit paid",
+            "in_production": "In production",
+            "ready": "Ready",
+            "balance_paid": "Balance paid",
+            "closed": "Closed",
+            "cancelled": "Cancelled"
+         },
+         "payment": {
+            "kind": {
+               "deposit": "Deposit",
+               "balance": "Balance",
+               "other": "Other"
+            },
+            "payer": {
+               "moesa": "MOESA",
+               "customer": "Customer"
+            },
+            "fields": {
+               "amount": "Amount",
+               "planned_on": "Planned date",
+               "paid_on": "Paid on",
+               "paid_by": "Paid by",
+               "kind": "Type"
+            }
+         },
+         "production": {
+            "fields": {
+               "happened_on": "Date",
+               "note": "Status note",
+               "author": "Author"
+            }
+         },
+         "spec_missing": "Spec sheet missing",
+         "locked_hint": "Fixed since the PI was approved.",
+         "no_rows": "No purchase orders.",
+         "no_lines": "No lines yet.",
+         "plan_payments": "Plan from PI",
+         "psi_warning": "No approved PSI report on this order; per G4 the balance is not paid without it.",
+         "deposit_differs": "Differs from the PI deposit",
+         "no_payments": "No payments.",
+         "no_updates": "No production updates."
+      },
+      "shipment": {
+         "title": "Shipments",
+         "tabs": {
+            "general": "General",
+            "dates": "Dates",
+            "orders": "Orders",
+            "events": "Events",
+            "acceptance": "Acceptance",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "fields": {
+            "delivery_warehouse": "Delivery warehouse",
+            "mode": "Mode",
+            "forwarder": "Forwarder",
+            "customs_broker": "Customs broker",
+            "carrier": "Carrier",
+            "incoterm_buy": "Incoterm (buy)",
+            "incoterm_sell": "Incoterm (sell)",
+            "is_insured": "Insured",
+            "ready_on": "Ready",
+            "booking_confirmed_on": "Booking confirmed",
+            "etd": "ETD",
+            "eta": "ETA",
+            "customs_cleared_on": "Customs cleared",
+            "planned_delivery_on": "Planned delivery",
+            "delivered_at": "Delivered",
+            "container_no": "Container / vehicle no",
+            "seal_no": "Seal no",
+            "free_days_port": "Free days (port)",
+            "free_days_detention": "Free days (detention)",
+            "demurrage_note": "Demurrage tariff note",
+            "carton_count": "Cartons",
+            "pallet_count": "Pallets",
+            "volume_m3": "m³",
+            "gross_kg": "Gross kg",
+            "accepted_by": "Received by",
+            "accepted_on": "Accepted on",
+            "quantity_matches": "Quantities match",
+            "has_damage": "Damage",
+            "dispute_deadline_at": "Dispute deadline",
+            "from_party": "From",
+            "to_party": "To",
+            "channel": "Channel",
+            "note": "Note",
+            "step": "Event",
+            "code": "Code",
+            "customer": "Customer",
+            "status": "Status",
+            "purchase_orders": "Orders",
+            "ordered": "Ordered",
+            "on_shipment": "On this shipment",
+            "happened_at": "When",
+            "notes": "Notes"
+         },
+         "mode": {
+            "fcl20": "FCL 20'",
+            "fcl40": "FCL 40'",
+            "lcl": "LCL",
+            "road": "Road",
+            "courier": "Courier",
+            "air": "Air"
+         },
+         "status": {
+            "planned": "Planned",
+            "booked": "Booked",
+            "loaded": "Loaded",
+            "in_transit": "In transit",
+            "at_customs": "At customs",
+            "delivered": "Delivered",
+            "accepted": "Accepted",
+            "disputed": "Disputed",
+            "cancelled": "Cancelled"
+         },
+         "document_checklist": "Document checklist",
+         "steps": {
+            "1": "Production finished, goods ready",
+            "2": "PSI result and G4",
+            "3": "Booking request",
+            "4": "Booking confirmation",
+            "5": "Document pre-check",
+            "6": "Customs broker's OK",
+            "7": "Loaded",
+            "8": "Loading notice to the customer",
+            "9": "ETD/ETA change",
+            "10": "ETA change to the customer",
+            "11": "Pre-arrival document set",
+            "12": "Warehouse appointment request",
+            "13": "Appointment confirmation",
+            "14": "Customs clearance",
+            "15": "Last-mile vehicle notice (avis)",
+            "16": "\"Delivery tomorrow\"",
+            "17": "Delivered",
+            "18": "Delivery and G5",
+            "19": "Incident (any)",
+            "20": "File closed",
+            "other": "Other"
+         },
+         "psi_warning": "These orders have no approved PSI report (G4): {codes}",
+         "packing_list_hint": "Copy the packed quantities from the packing list.",
+         "remaining": "Still to ship: {count}",
+         "add_order": "Add order",
+         "remove_order": "Remove order",
+         "no_rows": "No shipments.",
+         "no_orders": "No orders on this shipment yet.",
+         "no_open_orders": "No other open orders of this customer.",
+         "no_events": "No events.",
+         "document_missing": "Missing",
+         "psi_missing": "No approved PSI",
+         "eta_state": {
+            "late": "Late",
+            "this_week": "This week",
+            "later": "Later"
+         }
+      },
+      "status_actions": {
+         "dirty_hint": "Save or discard your changes first."
       }
    },
    "glossary": {
@@ -1391,6 +1752,46 @@
          "doing": "In progress.",
          "done": "Finished.",
          "blocked": "Cannot go on until something else is resolved."
+      },
+      "purchase_order_status": {
+         "draft": "Being prepared; not sent to the supplier.",
+         "sent": "Sent to the supplier; every required line cites a signed or approved spec sheet (K3).",
+         "pi_received": "The supplier's PI is in and is being checked (S09).",
+         "pi_approved": "All 30 S09 items OK and the figures add up; lines and terms are fixed.",
+         "deposit_paid": "The deposit is paid; production can start.",
+         "in_production": "The supplier is producing the order.",
+         "ready": "Production finished; goods ready for PSI and loading.",
+         "balance_paid": "The balance is paid; per G4, only after an approved PSI.",
+         "closed": "Delivered and settled; nothing left to do.",
+         "cancelled": "Cancelled; kept for the record."
+      },
+      "payment_kind": {
+         "deposit": "Advance paid before production (deposit %).",
+         "balance": "The rest of the total, after the PSI.",
+         "other": "Any other payment, e.g. tooling or samples."
+      },
+      "shipment_status": {
+         "planned": "Planned; no booking yet.",
+         "booked": "The forwarder confirmed the booking (S15 step 4).",
+         "loaded": "Loaded; the orders and quantities are fixed (S15 step 7).",
+         "in_transit": "On the way; ETD and ETA are known.",
+         "at_customs": "Waiting for customs clearance.",
+         "delivered": "Delivered to the warehouse; the dispute period runs.",
+         "accepted": "Fully accepted with a signed delivery receipt (G5 evidence).",
+         "disputed": "Delivered with reservations or refused: shortage, surplus or damage (S16).",
+         "cancelled": "Cancelled before loading; kept for the record."
+      },
+      "shipment_mode": {
+         "fcl20": "Full 20-foot container.",
+         "fcl40": "Full 40-foot container.",
+         "lcl": "Less than container load, shared container.",
+         "road": "By truck.",
+         "courier": "Courier or parcel service.",
+         "air": "Air freight."
       }
+   },
+   "status_actions": {
+      "confirm": "Move to \"{status}\"?",
+      "done": "Status changed."
    }
 }
