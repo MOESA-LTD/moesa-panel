@@ -51,25 +51,34 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    setting: ['dashboard_gate_pending', 'purchase_order_overview'],
    // product_evidence names the last order of a product (last_po_code); the shipment card embeds
    // its orders (status, tolerance) and their lines.
+   // The dashboard's order boxes read the overview (status, dates, system_total).
    purchase_order: [
       'purchase_order_overview',
       'product_evidence',
       'product_with_evidence',
-      'shipment'
+      'shipment',
+      'dashboard_purchase_order'
    ],
-   // The order card embeds its lines and payments; the overview sums them.
+   // The order card embeds its lines and payments; the overview sums them (lines change
+   // system_total, payments the planned deposit and balance dates).
    purchase_order_line: [
       'purchase_order',
       'purchase_order_overview',
       'product_evidence',
       'product_with_evidence',
-      'shipment'
+      'shipment',
+      'dashboard_purchase_order'
    ],
-   purchase_order_payment: ['purchase_order', 'purchase_order_overview'],
+   purchase_order_payment: [
+      'purchase_order',
+      'purchase_order_overview',
+      'dashboard_purchase_order'
+   ],
    purchase_order_update: ['purchase_order'],
-   shipment: ['shipment_overview'],
+   // The dashboard's shipment boxes read the overview (status, ETA).
+   shipment: ['shipment_overview', 'dashboard_shipment'],
    // The shipment card embeds its orders and lines; the overview lists their ids and products.
-   shipment_purchase_order: ['shipment', 'shipment_overview'],
+   shipment_purchase_order: ['shipment', 'shipment_overview', 'dashboard_shipment'],
    shipment_line: ['shipment', 'shipment_overview'],
    shipment_event: ['shipment']
 };

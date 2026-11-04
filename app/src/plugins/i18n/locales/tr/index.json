@@ -632,7 +632,17 @@
          "days_left": "{days} gün kaldı",
          "due_today": "Bugün doluyor",
          "days_overdue": "{days} gün gecikti",
-         "open_product_list": "Ürün listesini aç"
+         "open_product_list": "Ürün listesini aç",
+         "po_action": "Aksiyon bekleyen PO'lar",
+         "po_production": "Üretimdeki PO'lar",
+         "shipments_in_transit": "Yoldaki sevkiyatlar",
+         "shipments_late": "Geciken sevkiyatlar",
+         "meta": {
+            "ready": "Hazır {date}",
+            "balance": "Bakiye {date}",
+            "eta": "ETA {date}",
+            "late": "{n} gün gecikti"
+         }
       }
    },
    "audit_log": {

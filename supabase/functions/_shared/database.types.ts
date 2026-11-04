@@ -1745,6 +1745,13 @@ export type Database = {
             foreignKeyName: "purchase_order_line_po_fkey"
             columns: ["purchase_order_id", "customer_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "purchase_order"
             referencedColumns: ["id", "customer_id", "tenant_id"]
           },
@@ -1847,6 +1854,13 @@ export type Database = {
             foreignKeyName: "purchase_order_payment_po_fkey"
             columns: ["purchase_order_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "purchase_order"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -1905,6 +1919,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_update_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "tenant_id"]
+          },
           {
             foreignKeyName: "purchase_order_update_po_fkey"
             columns: ["purchase_order_id", "tenant_id"]
@@ -2249,6 +2270,13 @@ export type Database = {
             foreignKeyName: "shipment_event_shipment_fkey"
             columns: ["shipment_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_shipment"
+            referencedColumns: ["shipment_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_event_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "shipment"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -2332,6 +2360,13 @@ export type Database = {
             foreignKeyName: "shipment_line_shipment_fkey"
             columns: ["shipment_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_shipment"
+            referencedColumns: ["shipment_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "shipment"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -2385,6 +2420,13 @@ export type Database = {
             foreignKeyName: "shipment_purchase_order_po_fkey"
             columns: ["purchase_order_id", "customer_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "purchase_order"
             referencedColumns: ["id", "customer_id", "tenant_id"]
           },
@@ -2394,6 +2436,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_order_overview"
             referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_shipment_fkey"
+            columns: ["shipment_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_shipment"
+            referencedColumns: ["shipment_id", "customer_id", "tenant_id"]
           },
           {
             foreignKeyName: "shipment_purchase_order_shipment_fkey"
@@ -3013,6 +3062,86 @@ export type Database = {
           },
           {
             foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_purchase_order: {
+        Row: {
+          balance_planned_on: string | null
+          code: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          days_to_ready: number | null
+          deposit_planned_on: string | null
+          purchase_order_id: string | null
+          ready_on: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_code: string | null
+          system_total: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_shipment: {
+        Row: {
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          days_to_eta: number | null
+          dispute_deadline_at: string | null
+          eta: string | null
+          etd: string | null
+          mode: Database["public"]["Enums"]["shipment_mode"] | null
+          overdue: boolean | null
+          shipment_id: string | null
+          status: Database["public"]["Enums"]["shipment_status"] | null
+          tenant_id: string | null
+          warehouse_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"

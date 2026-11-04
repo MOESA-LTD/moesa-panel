@@ -115,6 +115,15 @@ describe('affectedTables', () => {
          expect.arrayContaining(['shipment', 'shipment_overview'])
       );
    });
+
+   it('marks the dashboard boxes stale after a change to an order or a shipment', () => {
+      // Lines change system_total; payments the planned deposit and balance dates.
+      expect(affectedTables(['purchase_order'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['purchase_order_line'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['purchase_order_payment'])).toContain('dashboard_purchase_order');
+      expect(affectedTables(['shipment'])).toContain('dashboard_shipment');
+      expect(affectedTables(['shipment_purchase_order'])).toContain('dashboard_shipment');
+   });
 });
 
 describe('invalidateTables', () => {

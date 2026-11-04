@@ -2,12 +2,18 @@
 import {
    evidenceTarget,
    groupGates,
+   groupPurchaseOrders,
+   groupShipments,
    splitTasks,
    useDashboardEvidence,
    useDashboardGates,
+   useDashboardPurchaseOrders,
+   useDashboardShipments,
    useDashboardTasks,
    type DashboardEvidenceRow,
    type DashboardGateRow,
+   type DashboardPurchaseOrderRow,
+   type DashboardShipmentRow,
    type DashboardTaskRow
 } from '@/api/dashboard';
 import CountListCard, {
@@ -18,6 +24,7 @@ import { fieldRoutes } from '@/constants/form/field';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useCustomerFilter } from '@/store/customerFilter';
+import dayjs from 'dayjs';
 import { RouteLocationAsRelativeGeneric } from 'vue-router';
 
 const dialogRef = useDialogRef();
@@ -95,6 +102,62 @@ const incompleteCompliance = computed(() =>
       'compliance'
    )
 );
+
+// --- orders and shipments (M6): waiting for action, in production, on the way and late ---
+
+/** A dashboard date, day and month only (DD.MM). */
+const dayMonth = (date: string) => dayjs(date).format('DD.MM');
+
+const orderItem = (row: DashboardPurchaseOrderRow, meta: string): CountListItem => ({
+   label: [row.code, row.supplier_code, row.customer_code].filter(Boolean).join(' · '),
+   meta,
+   to: {
+      name: 'ops-purchase-order-manage',
+      params: { id: row.purchase_order_id ?? '' },
+      query: { showDialog: DIALOG_POSITIONS.CENTER }
+   }
+});
+
+/** An order waiting for action, with its status. */
+const actionOrderItem = (row: DashboardPurchaseOrderRow) =>
+   orderItem(row, row.status ? i18n.t(`ops.purchase_order.status.${row.status}`) : '');
+
+/** An order in production, with its ready date and its planned balance date when they are set. */
+const productionOrderItem = (row: DashboardPurchaseOrderRow) =>
+   orderItem(
+      row,
+      [
+         row.ready_on && i18n.t('dashboard.ops.meta.ready', { date: dayMonth(row.ready_on) }),
+         row.balance_planned_on &&
+            i18n.t('dashboard.ops.meta.balance', { date: dayMonth(row.balance_planned_on) })
+      ]
+         .filter(Boolean)
+         .join(' · ')
+   );
+
+const shipmentItem = (row: DashboardShipmentRow, meta: string): CountListItem => ({
+   label: [row.code, row.customer_code].filter(Boolean).join(' · '),
+   meta,
+   to: {
+      name: 'ops-shipment-manage',
+      params: { id: row.shipment_id ?? '' },
+      query: { showDialog: DIALOG_POSITIONS.CENTER }
+   }
+});
+
+/** A shipment on the way, with its ETA. */
+const inTransitShipmentItem = (row: DashboardShipmentRow) =>
+   shipmentItem(row, row.eta ? i18n.t('dashboard.ops.meta.eta', { date: dayMonth(row.eta) }) : '');
+
+/** A late shipment, with the days since its ETA. */
+const lateShipmentItem = (row: DashboardShipmentRow) =>
+   shipmentItem(row, i18n.t('dashboard.ops.meta.late', { n: -(row.days_to_eta ?? 0) }));
+
+const { data: orderRows } = useDashboardPurchaseOrders();
+const { data: shipmentRows } = useDashboardShipments();
+
+const orders = computed(() => groupPurchaseOrders(orderRows.value ?? []));
+const shipments = computed(() => groupShipments(shipmentRows.value ?? []));
 
 const useDashboardNotifications = () => {
    const getTagProps = (item: Views['dashboard_notification_feed']['Row']) => {
@@ -246,6 +309,38 @@ dashboardNotifications.load();
             :items="incompleteCompliance.items"
             :icon="PrimeIcons.SHIELD"
             severity="warn"
+         />
+         <CountListCard
+            v-if="$can('read', 'purchase_order')"
+            :title="$t('dashboard.ops.po_action')"
+            :count="orders.action.length"
+            :items="orders.action.map(actionOrderItem)"
+            :icon="PrimeIcons.SHOPPING_CART"
+            severity="warn"
+         />
+         <CountListCard
+            v-if="$can('read', 'purchase_order')"
+            :title="$t('dashboard.ops.po_production')"
+            :count="orders.production.length"
+            :items="orders.production.map(productionOrderItem)"
+            :icon="PrimeIcons.COG"
+            severity="info"
+         />
+         <CountListCard
+            v-if="$can('read', 'shipment')"
+            :title="$t('dashboard.ops.shipments_in_transit')"
+            :count="shipments.inTransit.length"
+            :items="shipments.inTransit.map(inTransitShipmentItem)"
+            :icon="PrimeIcons.SEND"
+            severity="info"
+         />
+         <CountListCard
+            v-if="$can('read', 'shipment')"
+            :title="$t('dashboard.ops.shipments_late')"
+            :count="shipments.late.length"
+            :items="shipments.late.map(lateShipmentItem)"
+            :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
+            severity="danger"
          />
       </div>
       <div class="w-full flex flex-wrap gap-[inherit]">
