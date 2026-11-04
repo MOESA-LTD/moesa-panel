@@ -183,6 +183,29 @@ describe('PageGuide', () => {
       expect(router.currentRoute.value.name).toBe(name);
    });
 
+   it('keeps the task open when a term in its steps is clicked', async () => {
+      try {
+         i18n.mergeLocaleMessage('en', {
+            guide: {
+               pages: {
+                  dashboard: {
+                     tasks: { close_incident: { steps: { 1: 'Open the incident; [[S1]] first.' } } }
+                  }
+               }
+            }
+         });
+         useGuideStore().followRoute('dashboard');
+         const wrapper = await mountGuide('close_incident');
+
+         await wrapper.find('ol abbr[data-term="S1"]').trigger('click');
+
+         expect(useGuideStore().focusTerm).toBe('S1');
+         expect(wrapper.findComponent({ name: 'Accordion' }).props('value')).toBe('close_incident');
+      } finally {
+         i18n.setLocaleMessage('en', structuredClone(en));
+      }
+   });
+
    it('renders the guide copy with its terms', async () => {
       try {
          i18n.mergeLocaleMessage('en', {

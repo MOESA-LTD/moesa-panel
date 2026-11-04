@@ -140,6 +140,43 @@ describe('page guide store', () => {
       expect(guide.page).toBeNull();
    });
 
+   it('keeps the open task when a term is clicked on the same page', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('dashboard');
+      guide.show('dashboard', 'close_incident');
+
+      guide.showTerm('S1');
+
+      expect(guide.page).toBe('dashboard');
+      expect(guide.focusTerm).toBe('S1');
+      expect(guide.focusTask).toBe('close_incident');
+   });
+
+   it('drops the task when a term opens the guide of another page', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('shipment');
+      guide.show('dashboard', 'close_incident');
+
+      guide.showTerm('ETA');
+
+      expect(guide.page).toBe('shipment');
+      expect(guide.focusTask).toBeNull();
+   });
+
+   it('drops the task when a term reopens a closed panel', () => {
+      stubStorage({ getItem: () => null, setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.followRoute('dashboard');
+      guide.show('dashboard', 'close_incident');
+      guide.hide();
+
+      guide.showTerm('S1');
+
+      expect(guide.focusTask).toBeNull();
+   });
+
    it('drops the term when a page guide is shown', () => {
       stubStorage({ getItem: () => null, setItem: vi.fn() });
       const guide = useGuideStore();

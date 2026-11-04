@@ -44,8 +44,9 @@ export const useGuideStore = defineStore('guide', () => {
 
    /** Opens the panel on a term, over the current route's guide (or alone on a route without one). */
    const showTerm = (code: string) => {
+      // A term clicked inside an open task's steps leaves that task open.
+      if (!open.value || page.value !== routePage) focusTask.value = null;
       page.value = routePage;
-      focusTask.value = null;
       focusTerm.value = code;
       open.value = true;
    };
