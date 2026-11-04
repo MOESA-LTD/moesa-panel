@@ -78,7 +78,7 @@ const NOTES = ['root_cause_note', 'impact_note', 'lessons'] as const;
       >
          <Textarea v-bind="slotProps" v-model="values.preventive_action" auto-resize rows="2" />
          <small class="text-muted-color" data-test="preventive-hint">
-            {{ $t('ops.incident.preventive_hint') }}
+            <TermText :text="$t('ops.incident.preventive_hint')" />
          </small>
       </FormField>
       <FormField

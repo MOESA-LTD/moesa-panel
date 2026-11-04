@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouteLoading } from '@/composables/useRouteStatus';
+import { markLabel } from '@/constants/terms';
 defineOptions({
    inheritAttrs: false
 });
@@ -11,6 +12,7 @@ export type FormFieldProps = {
    reverse?: boolean;
    error?: string | boolean;
    label?: string;
+   term?: string;
    readonly?: boolean;
 };
 
@@ -85,13 +87,15 @@ onMounted(() => {
                   v-if="!!props.label"
                   :for="id"
                   :id="`label-${id}`"
-                  v-text="props.label"
                   :title="props.label"
                   class="form_field__header-label"
                   :pt="{
                      text: { class: 'truncate' }
                   }"
-               />
+               >
+                  <TermText v-if="term" :text="markLabel(props.label, term)" />
+                  <template v-else>{{ props.label }}</template>
+               </label>
             </slot>
 
             <slot

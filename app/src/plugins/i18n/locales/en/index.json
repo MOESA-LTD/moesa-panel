@@ -1265,7 +1265,7 @@
             "export": "Export",
             "choose": "Choose CSV file",
             "submit": "Import",
-            "hint": "Choose a CSV file in the S10 product template (Ürün ana tablosu). Columns may come in any order; a comma or semicolon delimiter is detected. The file is imported whole or not at all.",
+            "hint": "Choose a CSV file in the [[S10]] product template (Ürün ana tablosu). Columns may come in any order; a comma or semicolon delimiter is detected. The file is imported whole or not at all.",
             "summary": "{file}: {count} rows ready",
             "preview": "First {shown} of {count} rows",
             "errors_title": "Fix these in the file, then choose it again:",
@@ -2000,7 +2000,7 @@
             "done": "Done"
          },
          "rolled_back_gates": "Gates rolled back by this incident",
-         "preventive_hint": "An incident is not closed until the measure is written into its guideline (S17).",
+         "preventive_hint": "An incident is not closed until the measure is written into its guideline ([[S17]]).",
          "contact_hint": "A role and a channel; no personal contact details.",
          "new_for_project": "New incident",
          "no_rows": "No incidents."
@@ -2068,7 +2068,7 @@
             "result_document": "New version",
             "closed_on": "Closed on"
          },
-         "customer_approval_hint": "It touches a passed (M) gate: the customer's written approval is required (S08).",
+         "customer_approval_hint": "It touches a passed [[(M)]] gate: the customer's written approval is required ([[S08]]).",
          "overdue": "Decision overdue",
          "no_rows": "No change requests."
       }

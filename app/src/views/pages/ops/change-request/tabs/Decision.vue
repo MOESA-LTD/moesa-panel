@@ -92,7 +92,7 @@ const resultOptions = useNewerDocumentOptions(affectedDocument);
             severity="warn"
             data-test="customer-approval-hint"
          >
-            {{ $t('ops.change_request.customer_approval_hint') }}
+            <TermText :text="$t('ops.change_request.customer_approval_hint')" />
          </Message>
          <FormField
             fluid

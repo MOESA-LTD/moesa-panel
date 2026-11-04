@@ -1265,7 +1265,7 @@
             "export": "Dışa aktar",
             "choose": "CSV dosyası seç",
             "submit": "İçe aktar",
-            "hint": "S10 ürün şablonunda (Ürün ana tablosu) bir CSV dosyası seçin. Sütunlar herhangi bir sırada olabilir; virgül ya da noktalı virgül ayırıcı kendiliğinden anlaşılır. Dosya ya bütünüyle aktarılır ya da hiç aktarılmaz.",
+            "hint": "[[S10]] ürün şablonunda (Ürün ana tablosu) bir CSV dosyası seçin. Sütunlar herhangi bir sırada olabilir; virgül ya da noktalı virgül ayırıcı kendiliğinden anlaşılır. Dosya ya bütünüyle aktarılır ya da hiç aktarılmaz.",
             "summary": "{file}: {count} satır hazır",
             "preview": "{count} satırın ilk {shown} satırı",
             "errors_title": "Bunları dosyada düzeltip dosyayı yeniden seçin:",
@@ -2000,7 +2000,7 @@
             "done": "Yapıldı"
          },
          "rolled_back_gates": "Bu olayla geri alınan kapılar",
-         "preventive_hint": "Önlem ilgili yönergeye işlenmeden olay kapanmış sayılmaz (S17).",
+         "preventive_hint": "Önlem ilgili yönergeye işlenmeden olay kapanmış sayılmaz ([[S17]]).",
          "contact_hint": "Rol ve kanal; kişisel iletişim bilgisi yok.",
          "new_for_project": "Yeni olay",
          "no_rows": "Olay yok."
@@ -2068,7 +2068,7 @@
             "result_document": "Yeni sürüm",
             "closed_on": "Kapanış tarihi"
          },
-         "customer_approval_hint": "Geçmiş bir (M) kapıyı etkiliyor: müşterinin yazılı onayı şart (S08).",
+         "customer_approval_hint": "Geçmiş bir [[(M)]] kapıyı etkiliyor: müşterinin yazılı onayı şart ([[S08]]).",
          "overdue": "Karar gecikti",
          "no_rows": "Değişiklik talebi yok."
       }

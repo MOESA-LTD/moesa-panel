@@ -18,6 +18,8 @@ const DAYS = [
    'planned_delivery_on'
 ] as const;
 
+const DATE_TERMS: Partial<Record<string, string>> = { etd: 'ETD', eta: 'ETA' };
+
 const ETA_SEVERITY = { late: 'danger', this_week: 'warn', later: 'secondary' } as const;
 
 const eta = computed(() =>
@@ -48,6 +50,7 @@ const eta = computed(() =>
          :key="field"
          fluid
          :label="$t(`ops.shipment.fields.${field}`)"
+         :term="DATE_TERMS[field]"
          :error="errors[field]"
          :readonly
          v-slot="slotProps"

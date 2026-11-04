@@ -22,6 +22,7 @@ import { useLookup } from '@/api/useLookup';
 import { useDialogRef } from '@/composables/useDialogRef';
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import { DIALOG_POSITIONS } from '@/constants/router';
+import { isTermCode } from '@/constants/terms';
 import { useCustomerFilter } from '@/store/customerFilter';
 import ProductSelect from '../purchase-order/ProductSelect.vue';
 import ProjectSelect from '../purchase-order/ProjectSelect.vue';
@@ -297,6 +298,7 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
             <FormField
                fluid
                :label="productIdLabel"
+               :term="isTermCode(productIdLabel) ? productIdLabel : undefined"
                :error="errors.platform_product_id"
                :readonly
                v-slot="slotProps"
@@ -308,6 +310,7 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
                :key="field"
                fluid
                :label="$t(`ops.market.fields.${field}`)"
+               :term="field === 'platform_sku' ? 'SKU' : undefined"
                :error="errors[field]"
                :readonly
                v-slot="slotProps"

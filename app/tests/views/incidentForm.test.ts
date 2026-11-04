@@ -3,6 +3,7 @@ import { toIncidentFormValues, type IncidentCard as IncidentRow } from '@/api/in
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import IncidentCard from '@/views/pages/ops/incident/IncidentCard.vue';
+import Closure from '@/views/pages/ops/incident/tabs/Closure.vue';
 import General from '@/views/pages/ops/incident/tabs/General.vue';
 import Log from '@/views/pages/ops/incident/tabs/Log.vue';
 import {
@@ -17,6 +18,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
+import Tooltip from 'primevue/tooltip';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref, Suspense } from 'vue';
 
@@ -130,7 +132,11 @@ const plugins = () => [
    [abilitiesPlugin, ability, { useGlobalProperties: true }] as const
 ];
 
-const mountTab = (component: typeof General | typeof Log, form: ReturnType<typeof standInForm>) =>
+const mountTab = (
+   component: typeof General | typeof Log | typeof Closure,
+   form: ReturnType<typeof standInForm>,
+   realFields = false
+) =>
    mount(component, {
       global: {
          plugins: plugins() as never,
@@ -138,10 +144,10 @@ const mountTab = (component: typeof General | typeof Log, form: ReturnType<typeo
             [INCIDENT_FORM as symbol]: form,
             [INCIDENT_OVERVIEW as symbol]: ref(null)
          },
-         directives: { focustrap: {}, tooltip: {} },
+         directives: { focustrap: {}, tooltip: realFields ? Tooltip : {} },
          stubs: {
             FormBox: Slot,
-            FormField: Slot,
+            ...(realFields ? {} : { FormField: Slot }),
             SelectCustomer: Stub('SelectCustomer'),
             CustomLink,
             teleport: true
@@ -179,6 +185,17 @@ describe('incident card', () => {
          'OU-05',
          'OU-06'
       ]);
+   });
+
+   it('explains Y10 at the incident type', () => {
+      const general = mountTab(General, standInForm(null), true);
+      const label = general.get(`label[title="${i18n.t('ops.incident.fields.incident_type')}"]`);
+      expect(label.find('abbr[data-term="Y10"]').exists()).toBe(true);
+
+      const closure = mountTab(Closure, standInForm(null));
+      const hint = closure.get('[data-test="preventive-hint"]');
+      expect(hint.find('abbr[data-term="S17"]').exists()).toBe(true);
+      expect(hint.text()).not.toContain('[[');
    });
 
    it('waits for the entity type', () => {

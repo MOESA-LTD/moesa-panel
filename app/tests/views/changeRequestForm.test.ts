@@ -4,6 +4,7 @@ import {
    type ChangeRequestCard,
    type ChangeRequestValues
 } from '@/api/changeRequest';
+import { stripTerms } from '@/constants/terms';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import ChangeRequestCardView from '@/views/pages/ops/change-request/ChangeRequestCard.vue';
@@ -228,7 +229,7 @@ describe('change request card', () => {
    });
 
    it('asks for the customer approval on a passed (M) gate', () => {
-      const hint = i18n.t('ops.change_request.customer_approval_hint');
+      const hint = stripTerms(i18n.t('ops.change_request.customer_approval_hint'));
       const date = i18n.t('ops.change_request.fields.customer_approved_on');
       const document = i18n.t('ops.change_request.fields.customer_approval_document');
 

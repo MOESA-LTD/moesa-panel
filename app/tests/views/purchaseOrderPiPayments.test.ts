@@ -24,6 +24,7 @@ import { abilitiesPlugin } from '@casl/vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import Tooltip from 'primevue/tooltip';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 
@@ -44,9 +45,10 @@ vi.mock('@/api/queryKeys', async (importOriginal) => ({
    ...(await importOriginal<typeof import('@/api/queryKeys')>()),
    invalidateTables: api.invalidateTables
 }));
-vi.mock('@/api/project', async () => {
+vi.mock('@/api/project', async (importOriginal) => {
    const { computed } = await import('vue');
    return {
+      ...(await importOriginal<typeof import('@/api/project')>()),
       useMemberOptions: () => computed(() => [{ value: 'u1', label: 'Akif' }])
    };
 });
@@ -156,7 +158,8 @@ const mountTab = (
    component: typeof Pi | typeof Payments | typeof Production,
    form: ReturnType<typeof standInForm>,
    overview: Partial<PurchaseOrderOverviewRow> | null = null,
-   props: Record<string, unknown> = {}
+   props: Record<string, unknown> = {},
+   realFields = false
 ) =>
    mount(component, {
       props,
@@ -166,8 +169,8 @@ const mountTab = (
             [PURCHASE_ORDER_FORM as symbol]: form,
             [PURCHASE_ORDER_OVERVIEW as symbol]: ref(overview)
          },
-         directives: { focustrap: {}, tooltip: {} },
-         stubs: { FormBox: Slot, FormField: Slot, CustomLink }
+         directives: { focustrap: {}, tooltip: realFields ? Tooltip : {} },
+         stubs: { FormBox: Slot, ...(realFields ? {} : { FormField: Slot }), CustomLink }
       }
    });
 
@@ -242,6 +245,16 @@ describe('PI tab', () => {
       expect(marked).toHaveLength(1);
       expect(marked[0]!.text()).toContain('SKU-l1');
       expect(marked[0]!.text()).toContain('500.00 USD');
+   });
+
+   it('explains PI and S09 in the PI tab', () => {
+      const wrapper = mountTab(Pi, standInForm(order('pi_received')), null, {}, true);
+      const label = wrapper.get(
+         `label[title="${i18n.t('ops.purchase_order.fields.pi_document')}"]`
+      );
+
+      expect(label.find('abbr[data-term="PI"]').exists()).toBe(true);
+      expect(wrapper.find('[data-test="pi-checklist"] abbr[data-term="S09"]').exists()).toBe(true);
    });
 
    it('says the PI matches when every figure agrees', () => {

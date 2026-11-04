@@ -98,7 +98,9 @@ const columnOf = (field: string) => PRODUCT_TO_S10[field as keyof typeof PRODUCT
          />
       </div>
 
-      <Message v-if="!fileName" severity="secondary">{{ $t('ops.product.import.hint') }}</Message>
+      <Message v-if="!fileName" severity="secondary"
+         ><TermText :text="$t('ops.product.import.hint')"
+      /></Message>
 
       <Message v-if="errors.length" severity="error">
          <div class="font-semibold">{{ $t('ops.product.import.errors_title') }}</div>
