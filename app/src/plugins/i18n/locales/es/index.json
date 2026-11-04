@@ -507,7 +507,8 @@
       "po_deposit_unpaid": "Record the paid deposit first.",
       "po_balance_unpaid": "Record the paid balance first.",
       "po_locked": "The PI is approved; lines and terms no longer change.",
-      "po_closed": "The order is closed or cancelled; it no longer changes."
+      "po_closed": "The order is closed or cancelled; it no longer changes.",
+      "po_line_identity_immutable": "A line cannot move to another order."
    },
    "account": {
       "profile": {

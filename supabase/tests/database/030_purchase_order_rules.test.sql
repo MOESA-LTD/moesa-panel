@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- rolled back.
 BEGIN;
 
-SELECT plan(33);
+SELECT plan(36);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -49,6 +49,8 @@ SELECT lives_ok($$ INSERT INTO public.purchase_order (id, tenant_id, customer_id
                 'an insert with a client-sent status passes the guard');
 SELECT is((SELECT status::TEXT FROM public.purchase_order WHERE id = '00000000-0000-4000-8000-000000030017'), 'draft',
           'and the order starts as a draft');
+SELECT throws_ok($$ UPDATE public.purchase_order_line SET purchase_order_id = '00000000-0000-4000-8000-000000030012' WHERE id = '00000000-0000-4000-8000-000000030024' $$,
+                 '23514', 'po_line_identity_immutable', 'a line stays on its order');
 
 RESET ROLE;
 UPDATE public.setting SET value = to_jsonb((current_date + 1)::TEXT) WHERE tenant_id = current_setting('test.moesa')::UUID AND key = 'spec_sheet_required_from';
@@ -79,6 +81,20 @@ SELECT throws_ok($$ UPDATE public.purchase_order_line SET spec_document_id = cur
                  '23514', 'po_line_spec_invalid', 'another product''s spec sheet does not count');
 SELECT lives_ok($$ UPDATE public.purchase_order SET status = 'sent' WHERE id = '00000000-0000-4000-8000-000000030015' $$,
                 'a referenced signed spec sheet passes');
+
+-- The guards share-lock the order, so a concurrent status change waits for the line or child write
+-- (the foreign key alone takes FOR KEY SHARE, which a status update does not wait for). pgrowlocks
+-- names a share lock 'For Share', or 'Share' inside a multixact.
+UPDATE public.purchase_order_line SET notes = 'checked' WHERE id = '00000000-0000-4000-8000-000000030025';
+INSERT INTO public.purchase_order_update (tenant_id, purchase_order_id, note)
+VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030012', 'chased the supplier');
+RESET ROLE;
+CREATE EXTENSION IF NOT EXISTS pgrowlocks WITH SCHEMA extensions;
+SELECT ok((SELECT r.modes && ARRAY['For Share', 'Share'] FROM extensions.pgrowlocks('public.purchase_order') r JOIN public.purchase_order po ON po.ctid = r.locked_row
+           WHERE po.id = '00000000-0000-4000-8000-000000030015'), 'a line write share-locks its order');
+SELECT ok((SELECT r.modes && ARRAY['For Share', 'Share'] FROM extensions.pgrowlocks('public.purchase_order') r JOIN public.purchase_order po ON po.ctid = r.locked_row
+           WHERE po.id = '00000000-0000-4000-8000-000000030012'), 'a production update share-locks its order');
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 SELECT throws_ok($$ INSERT INTO public.purchase_order_line (tenant_id, purchase_order_id, product_id, quantity, unit_price)
                     VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030015', current_setting('test.tips')::UUID, 1, 1) $$,
                  '23514', 'po_spec_sheet_required', 'a sent order takes no line without a spec sheet');

@@ -40,10 +40,13 @@
 --   po_balance_unpaid           balance_paid without a paid balance
 --   po_locked                   a term, the PI or a line changed after pi_approved
 --   po_closed                   a payment or update of a closed or cancelled order changed
+--   po_line_identity_immutable  a line moved to another order
 --
 -- The guards are SECURITY DEFINER (they read lines, documents, products, payments and settings
 -- whatever the caller may read) and filter on the row's tenant. A delete cascaded from the order
--- or the tenant (pg_trigger_depth() > 1) is not checked.
+-- or the tenant (pg_trigger_depth() > 1) is not checked. The line and child guards read the order
+-- FOR SHARE, so a concurrent status change (PI approval, close, cancel) and a line, payment or
+-- update write are serialised: the later one sees the earlier one's commit.
 --
 -- Test fixtures: private.rules_bypassed() is TRUE when the transaction-local flag
 -- moesa.rules_bypass is '1' AND the session has not switched role (current_setting('role') =
@@ -303,11 +306,11 @@ OR
 UPDATE ON public.purchase_order FOR EACH ROW
 EXECUTE FUNCTION private.purchase_order_guard ();
 
--- A line's rules: fixed from pi_approved on (closed and cancelled included); a referenced spec
--- sheet is a signed or approved spec sheet of the line's product (checked when the product or
--- the spec sheet changes); a sent order (or one whose PI is in) takes no line, product or spec
--- change that leaves a line needing a spec sheet without one. A PI line total alone is not checked
--- against the spec rule.
+-- A line's rules: it stays on its order (po_line_identity_immutable, whatever the bypass flag);
+-- fixed from pi_approved on (closed and cancelled included); a referenced spec sheet is a signed or
+-- approved spec sheet of the line's product (checked when the product or the spec sheet changes);
+-- a sent order (or one whose PI is in) takes no line, product or spec change that leaves a line
+-- needing a spec sheet without one. A PI line total alone is not checked against the spec rule.
 CREATE OR REPLACE FUNCTION private.purchase_order_line_guard () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -315,6 +318,10 @@ DECLARE
     order_status public.purchase_order_status;
     spec_changed BOOLEAN;
 BEGIN
+    IF TG_OP = 'UPDATE' AND NEW.purchase_order_id IS DISTINCT FROM OLD.purchase_order_id THEN
+        RAISE EXCEPTION 'po_line_identity_immutable' USING ERRCODE = 'check_violation';
+    END IF;
+
     IF private.rules_bypassed() THEN
         RETURN coalesce(NEW, OLD);
     END IF;
@@ -324,23 +331,19 @@ BEGIN
         RETURN OLD;
     END IF;
 
-    IF TG_OP IN ('UPDATE', 'DELETE') THEN
-        SELECT po.status INTO order_status
-        FROM public.purchase_order po
-        WHERE po.id = OLD.purchase_order_id AND po.tenant_id = OLD.tenant_id;
-        IF order_status >= 'pi_approved' THEN
-            RAISE EXCEPTION 'po_locked' USING ERRCODE = 'check_violation';
-        END IF;
-        IF TG_OP = 'DELETE' THEN
-            RETURN OLD;
-        END IF;
-    END IF;
-
+    -- FOR SHARE: a concurrent status change (PI approval) waits for this line write to commit, so
+    -- its figure check sees the line; the foreign key's FOR KEY SHARE does not block it.
     SELECT po.status INTO order_status
     FROM public.purchase_order po
-    WHERE po.id = NEW.purchase_order_id AND po.tenant_id = NEW.tenant_id;
+    WHERE po.id = coalesce(NEW.purchase_order_id, OLD.purchase_order_id)
+      AND po.tenant_id = coalesce(NEW.tenant_id, OLD.tenant_id)
+    FOR SHARE;
     IF order_status >= 'pi_approved' THEN
         RAISE EXCEPTION 'po_locked' USING ERRCODE = 'check_violation';
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
     END IF;
 
     IF TG_OP = 'INSERT' THEN
@@ -391,6 +394,8 @@ EXECUTE FUNCTION private.purchase_order_line_guard ();
 CREATE OR REPLACE FUNCTION private.purchase_order_child_guard () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
+DECLARE
+    order_status public.purchase_order_status;
 BEGIN
     IF private.rules_bypassed() THEN
         RETURN coalesce(NEW, OLD);
@@ -401,20 +406,26 @@ BEGIN
         RETURN OLD;
     END IF;
 
-    IF TG_OP IN ('UPDATE', 'DELETE') AND EXISTS (
-        SELECT 1
+    -- FOR SHARE: a concurrent close or cancel waits for this write to commit (and the write waits
+    -- for a close or cancel in flight, then sees it); FOR KEY SHARE would not.
+    IF TG_OP IN ('UPDATE', 'DELETE') THEN
+        SELECT po.status INTO order_status
         FROM public.purchase_order po
-        WHERE po.id = OLD.purchase_order_id AND po.tenant_id = OLD.tenant_id AND po.status IN ('closed', 'cancelled')
-    ) THEN
-        RAISE EXCEPTION 'po_closed' USING ERRCODE = 'check_violation';
+        WHERE po.id = OLD.purchase_order_id AND po.tenant_id = OLD.tenant_id
+        FOR SHARE;
+        IF order_status IN ('closed', 'cancelled') THEN
+            RAISE EXCEPTION 'po_closed' USING ERRCODE = 'check_violation';
+        END IF;
     END IF;
 
-    IF TG_OP IN ('INSERT', 'UPDATE') AND EXISTS (
-        SELECT 1
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+        SELECT po.status INTO order_status
         FROM public.purchase_order po
-        WHERE po.id = NEW.purchase_order_id AND po.tenant_id = NEW.tenant_id AND po.status IN ('closed', 'cancelled')
-    ) THEN
-        RAISE EXCEPTION 'po_closed' USING ERRCODE = 'check_violation';
+        WHERE po.id = NEW.purchase_order_id AND po.tenant_id = NEW.tenant_id
+        FOR SHARE;
+        IF order_status IN ('closed', 'cancelled') THEN
+            RAISE EXCEPTION 'po_closed' USING ERRCODE = 'check_violation';
+        END IF;
     END IF;
 
     RETURN coalesce(NEW, OLD);

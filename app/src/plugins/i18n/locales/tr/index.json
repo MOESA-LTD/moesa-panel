@@ -319,7 +319,8 @@
       "po_deposit_unpaid": "Önce ödenen depozitoyu kaydedin.",
       "po_balance_unpaid": "Önce ödenen bakiyeyi kaydedin.",
       "po_locked": "PI onaylandı; satırlar ve şartlar artık değişmez.",
-      "po_closed": "Sipariş kapandı ya da iptal edildi; artık değişmez."
+      "po_closed": "Sipariş kapandı ya da iptal edildi; artık değişmez.",
+      "po_line_identity_immutable": "Satır başka bir siparişe taşınamaz."
    },
    "account": {
       "logout": "Çıkış yap",
