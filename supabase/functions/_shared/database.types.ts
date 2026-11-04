@@ -161,6 +161,246 @@ export type Database = {
           },
         ]
       }
+      change_request: {
+        Row: {
+          affected_document_id: string | null
+          affected_gate_code: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds: Database["public"]["Enums"]["change_kind"][]
+          closed_on: string | null
+          code: string | null
+          cost_impact: string | null
+          cost_payer: Database["public"]["Enums"]["cost_payer"] | null
+          created_at: string
+          current_value: string
+          customer_approval_document_id: string | null
+          customer_approved_on: string | null
+          customer_id: string
+          decision_due_on: string | null
+          decision_note: string | null
+          delay_days: number | null
+          id: string
+          listing_impact: string | null
+          moesa_approved_by: string | null
+          moesa_approved_on: string | null
+          other_documents: string | null
+          project_id: string | null
+          quality_impact: string | null
+          reason: string
+          requested_value: string
+          result_document_id: string | null
+          source: Database["public"]["Enums"]["change_request_source"]
+          status: Database["public"]["Enums"]["change_request_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+          urgency: Database["public"]["Enums"]["change_request_urgency"]
+        }
+        Insert: {
+          affected_document_id?: string | null
+          affected_gate_code?: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds: Database["public"]["Enums"]["change_kind"][]
+          closed_on?: string | null
+          code?: string | null
+          cost_impact?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          created_at?: string
+          current_value: string
+          customer_approval_document_id?: string | null
+          customer_approved_on?: string | null
+          customer_id: string
+          decision_due_on?: string | null
+          decision_note?: string | null
+          delay_days?: number | null
+          id?: string
+          listing_impact?: string | null
+          moesa_approved_by?: string | null
+          moesa_approved_on?: string | null
+          other_documents?: string | null
+          project_id?: string | null
+          quality_impact?: string | null
+          reason: string
+          requested_value: string
+          result_document_id?: string | null
+          source: Database["public"]["Enums"]["change_request_source"]
+          status?: Database["public"]["Enums"]["change_request_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["change_request_urgency"]
+        }
+        Update: {
+          affected_document_id?: string | null
+          affected_gate_code?: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds?: Database["public"]["Enums"]["change_kind"][]
+          closed_on?: string | null
+          code?: string | null
+          cost_impact?: string | null
+          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
+          created_at?: string
+          current_value?: string
+          customer_approval_document_id?: string | null
+          customer_approved_on?: string | null
+          customer_id?: string
+          decision_due_on?: string | null
+          decision_note?: string | null
+          delay_days?: number | null
+          id?: string
+          listing_impact?: string | null
+          moesa_approved_by?: string | null
+          moesa_approved_on?: string | null
+          other_documents?: string | null
+          project_id?: string | null
+          quality_impact?: string | null
+          reason?: string
+          requested_value?: string
+          result_document_id?: string | null
+          source?: Database["public"]["Enums"]["change_request_source"]
+          status?: Database["public"]["Enums"]["change_request_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["change_request_urgency"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_affected_document_fkey"
+            columns: ["affected_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_approval_document_fkey"
+            columns: ["customer_approval_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_approver_fkey"
+            columns: ["moesa_approved_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_result_document_fkey"
+            columns: ["result_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_request_product: {
+        Row: {
+          change_request_id: string
+          created_at: string
+          customer_id: string
+          product_id: string
+          tenant_id: string
+        }
+        Insert: {
+          change_request_id: string
+          created_at?: string
+          customer_id: string
+          product_id: string
+          tenant_id: string
+        }
+        Update: {
+          change_request_id?: string
+          created_at?: string
+          customer_id?: string
+          product_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_product_cr_fkey"
+            columns: ["change_request_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "change_request"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       code_sequence: {
         Row: {
           kind: string
@@ -4504,6 +4744,17 @@ export type Database = {
       }
     }
     Enums: {
+      change_kind:
+        | "spec"
+        | "design"
+        | "packaging"
+        | "price"
+        | "deadline"
+        | "supplier"
+        | "content"
+      change_request_source: "customer" | "supplier" | "moesa" | "regulation"
+      change_request_status: "open" | "approved" | "rejected" | "applied"
+      change_request_urgency: "normal" | "urgent"
       commercial_model:
         | "trading_partner"
         | "commercial_representative"

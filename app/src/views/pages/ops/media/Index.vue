@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DOCUMENT_ENTITIES_SELECTABLE, type DocumentEntity } from '@/api/document';
+import { DOCUMENT_ENTITIES, type DocumentEntity } from '@/api/document';
 import {
    MEDIA_KINDS,
    thumbPath,
@@ -32,7 +32,7 @@ const queryValue = (key: string) => {
    return typeof value === 'string' && value ? value : null;
 };
 const isLinked = (value: string | null): value is Linked =>
-   value === 'none' || (DOCUMENT_ENTITIES_SELECTABLE as readonly string[]).includes(value ?? '');
+   value === 'none' || (DOCUMENT_ENTITIES as readonly string[]).includes(value ?? '');
 
 // A link may ask for one record's files (?entity_type=product&entity_id=…) or the unlinked ones.
 const presetType = queryValue('entity_type');
@@ -51,7 +51,7 @@ const entityId = computed(() =>
 const applyTag = () => (tag.value = tagInput.value.trim().toLowerCase() || null);
 
 const LINKED_OPTIONS = computed(() => [
-   ...DOCUMENT_ENTITIES_SELECTABLE.map((value) => ({
+   ...DOCUMENT_ENTITIES.map((value) => ({
       value,
       label: t(`ops.document.entity.${value}`)
    })),

@@ -489,7 +489,15 @@
       "incident_closed": "The incident is closed; its log and deadlines no longer change.",
       "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
       "gate_incident_invalid": "Pick an open incident of this project's customer.",
-      "incident_severity_downgrade_requires_management": "Only management may lower an S1 or S2 incident's severity."
+      "incident_severity_downgrade_requires_management": "Only management may lower an S1 or S2 incident's severity.",
+      "change_request_customer_missing": "The change request's customer was not found.",
+      "change_request_immutable_field": "A change request's code and customer cannot change.",
+      "change_request_document_invalid": "Choose a document of this customer.",
+      "change_request_approval_document_invalid": "The customer's approval must be a signed or approved document of this change request.",
+      "change_request_status_order": "The change request cannot move to this status from its current one.",
+      "change_request_customer_approval_required": "The gate is already passed and needs the customer's approval: enter the customer's approval date and written approval first (S08).",
+      "change_request_decision_note_required": "Write why the change request is rejected.",
+      "change_request_new_version_required": "Applying needs the changed document's new version: a higher version of the same document."
    },
    "account": {
       "profile": {
