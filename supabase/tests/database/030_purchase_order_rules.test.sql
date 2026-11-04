@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- rolled back.
 BEGIN;
 
-SELECT plan(36);
+SELECT plan(37);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -176,6 +176,11 @@ SELECT set_config('moesa.rules_bypass', '1', TRUE);
 SELECT throws_ok($$ UPDATE public.purchase_order SET status = 'pi_approved' WHERE id = '00000000-0000-4000-8000-000000030012' $$,
                  '23514', 'po_status_order', 'an impersonated user cannot use the bypass flag');
 SELECT set_config('moesa.rules_bypass', '', TRUE);
+
+-- The figures run as the caller: the overview reads the order and lines the user may read.
+RESET ROLE;
+SELECT is((SELECT prosecdef FROM pg_proc WHERE oid = 'private.purchase_order_figures(uuid,uuid,numeric,numeric,numeric)'::REGPROCEDURE), FALSE,
+          'purchase_order_figures is SECURITY INVOKER');
 
 SELECT * FROM finish();
 

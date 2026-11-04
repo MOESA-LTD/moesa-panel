@@ -49,8 +49,9 @@
 -- update write are serialised: the later one sees the earlier one's commit.
 --
 -- Test fixtures: private.rules_bypassed() is TRUE when the transaction-local flag
--- moesa.rules_bypass is '1' AND the session has not switched role (current_setting('role') =
--- 'none': a migration, psql or a test as postgres). PostgREST always runs SET ROLE, and inside a
+-- moesa.rules_bypass is '1', the session has not switched role (current_setting('role') =
+-- 'none') AND it was opened as postgres or supabase_admin (session_user: a migration, psql or a
+-- test as postgres). PostgREST logs in as authenticator and always runs SET ROLE, and inside a
 -- SECURITY DEFINER function current_setting('role') still reports it, so a user cannot use the
 -- flag. The guards return at once when it holds; the code and immutability triggers ignore it.
 --
@@ -62,7 +63,12 @@
 CREATE OR REPLACE FUNCTION private.rules_bypassed () RETURNS BOOLEAN LANGUAGE sql STABLE
 SET
    search_path = '' AS $$
-    SELECT coalesce(current_setting('moesa.rules_bypass', TRUE) = '1' AND current_setting('role') = 'none', FALSE);
+    SELECT coalesce(
+        current_setting('moesa.rules_bypass', TRUE) = '1'
+        AND current_setting('role') = 'none'
+        AND session_user IN ('postgres', 'supabase_admin'),
+        FALSE
+    );
 $$;
 
 REVOKE ALL ON FUNCTION private.rules_bypassed () FROM PUBLIC, anon, authenticated;
@@ -70,7 +76,8 @@ REVOKE ALL ON FUNCTION private.rules_bypassed () FROM PUBLIC, anon, authenticate
 -- Whether a line of this product needs a spec sheet: from the company's spec_sheet_required_from
 -- on (a missing or unreadable date counts as reached), and before it for a new SKU (concept,
 -- development or approved). SECURITY DEFINER: the setting and the product whatever the caller may
--- read, in the given tenant only.
+-- read, in the given tenant only. It stays DEFINER: PL/pgSQL resolves private.company_setting when
+-- it runs, and the overview's caller (authenticated) has no USAGE on private.
 CREATE OR REPLACE FUNCTION private.po_line_needs_spec (product_id UUID, tenant_id UUID) RETURNS BOOLEAN LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -106,14 +113,15 @@ GRANT EXECUTE ON FUNCTION private.po_line_needs_spec (UUID, UUID) TO authenticat
 -- unit price, 2) (0 without lines); total = subtotal + extra − discount; deposit = round(total ×
 -- deposit rate / 100, 2); balance = total − deposit. The extra, discount and rate are the stored
 -- order's unless given: the guard passes the values being written, which are not stored yet. No
--- row when the order is not there. SECURITY DEFINER, in the given tenant only.
+-- row when the order is not there. SECURITY INVOKER: the order and the lines the caller may read
+-- (the guards are DEFINER and read them all), in the given tenant only.
 CREATE OR REPLACE FUNCTION private.purchase_order_figures (
    purchase_order_id UUID,
    tenant_id UUID,
    extra_amount NUMERIC DEFAULT NULL,
    discount_amount NUMERIC DEFAULT NULL,
    deposit_rate NUMERIC DEFAULT NULL
-) RETURNS TABLE (subtotal NUMERIC, total NUMERIC, deposit NUMERIC, balance NUMERIC) LANGUAGE sql STABLE SECURITY DEFINER
+) RETURNS TABLE (subtotal NUMERIC, total NUMERIC, deposit NUMERIC, balance NUMERIC) LANGUAGE sql STABLE SECURITY INVOKER
 SET
    search_path = '' AS $$
     WITH base AS (
