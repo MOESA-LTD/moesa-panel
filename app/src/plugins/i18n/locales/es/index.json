@@ -92,10 +92,6 @@
          "notfound": "No encontrado",
          "account": "Cuenta",
          "profile": "Perfil",
-         "settings": "Ajustes",
-         "update-profile": "Actualizar perfil",
-         "update-password": "Actualizar contraseña",
-         "logout": "Cerrar sesión",
          "register": "Registrarse",
          "login": "Iniciar sesión",
          "enter-auth-otp-code": "Ingrese el código OTP de autenticación",
@@ -227,9 +223,6 @@
          "please_login_to_continue": "Por favor, inicie sesión para continuar",
          "forgot_your_password?": "¿Olvidó su contraseña?",
          "do_you_have_invite_code?": "¿Tiene un código de invitación?"
-      },
-      "logout": {
-         "logged_out_successfully": "¡Se ha cerrado sesión correctamente!"
       },
       "register": {
          "create_account": "Crear cuenta",
@@ -498,16 +491,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "Información del usuario",
-         "name": "Nombre",
-         "email": "Correo electrónico",
-         "phone": "Teléfono",
-         "events": "Eventos",
-         "logs": {
-            "created_at": "Creado en",
-            "email_confirmed_at": "Correo electrónico confirmado en",
-            "last_sign_in_at": "Último inicio de sesión"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."

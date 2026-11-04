@@ -304,16 +304,6 @@
    "account": {
       "logout": "Çıkış yap",
       "profile": {
-         "user_info": "Kullanıcı Bilgisi",
-         "name": "Ad Soyad",
-         "email": "E-posta",
-         "phone": "Telefon",
-         "events": "Etkinlikler",
-         "logs": {
-            "created_at": "Oluşturulma Tarihi",
-            "email_confirmed_at": "E-posta Onay Tarihi",
-            "last_sign_in_at": "Son Giriş Tarihi"
-         },
          "legend": "Profil bilgileri",
          "email_change_hint": "E-posta adresinizi değiştirirseniz yeni adrese bir onay bağlantısı gönderilir. Değişiklik, bağlantıyı açtığınızda geçerli olur.",
          "email_change_sent": "Yeni adresi onaylamak için {email} adresini kontrol edin."
@@ -374,10 +364,6 @@
          "notfound": "Bulunamadı",
          "account": "Hesabım",
          "profile": "Profil",
-         "settings": "Ayarlar",
-         "update-profile": "Profil Güncelle",
-         "update-password": "Şifre Güncelle",
-         "logout": "Çıkış Yap",
          "edit": "Düzenle",
          "add": "Ekle",
          "register": "Kayıt Ol",
@@ -655,9 +641,6 @@
          "please_login_to_continue": "Devam etmek için lütfen giriş yapınız",
          "forgot_your_password?": "Şifrenizi unuttunuz mı?",
          "do_you_have_invite_code?": "Davet kodunuz var mı?"
-      },
-      "logout": {
-         "logged_out_successfully": "Başarıyla çıkış yapıldı"
       },
       "register": {
          "create_account": "Hesap Oluştur",

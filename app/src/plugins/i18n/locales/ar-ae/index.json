@@ -90,9 +90,6 @@
          "forgot_your_password?": "نسيت كلمة المرور؟",
          "do_you_have_invite_code?": "هل لديك شفرة دعوة؟"
       },
-      "logout": {
-         "logged_out_successfully": "تم تسجيل الخروج بنجاح"
-      },
       "register": {
          "create_account": "إنشاء حساب",
          "create_an_account_and_join_us": "أنشئ حسابًا وانضم إلينا",
@@ -493,10 +490,6 @@
          "notfound": "لم يتم العثور على الصفحة",
          "account": "الحساب",
          "profile": "الملف الشخصي",
-         "settings": "الإعدادات",
-         "update-profile": "تحديث الملف الشخصي",
-         "update-password": "تحديث كلمة المرور",
-         "logout": "تسجيل الخروج",
          "register": "التسجيل",
          "login": "تسجيل الدخول",
          "enter-auth-otp-code": "أدخل رمز التحقق OTP",
@@ -584,16 +577,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "معلومات المستخدم",
-         "name": "الاسم",
-         "email": "البريد الإلكتروني",
-         "phone": "رقم الهاتف",
-         "events": "الفعاليات",
-         "logs": {
-            "created_at": "تم الإنشاء في",
-            "email_confirmed_at": "تم تأكيد البريد الإلكتروني في",
-            "last_sign_in_at": "آخر تسجيل دخول في"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."

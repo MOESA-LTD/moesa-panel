@@ -90,9 +90,6 @@
          "forgot_your_password?": "Zapomniałeś hasła?",
          "do_you_have_invite_code?": "Masz kod zaproszenia?"
       },
-      "logout": {
-         "logged_out_successfully": "Wylogowano pomyślnie"
-      },
       "register": {
          "create_account": "Utwórz konto",
          "create_an_account_and_join_us": "Utwórz konto i dołącz do nas",
@@ -422,16 +419,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "Informacje o użytkowniku",
-         "name": "Imię i nazwisko",
-         "email": "Adres e-mail",
-         "phone": "Numer telefonu",
-         "events": "Wydarzenia",
-         "logs": {
-            "created_at": "Data utworzenia",
-            "email_confirmed_at": "Data potwierdzenia e-mail",
-            "last_sign_in_at": "Data ostatniego zalogowania"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."
@@ -493,10 +480,6 @@
          "notfound": "Nie znaleziono",
          "account": "Konto",
          "profile": "Profil",
-         "settings": "Ustawienia",
-         "update-profile": "Aktualizacja profilu",
-         "update-password": "Zmiana hasła",
-         "logout": "Wyloguj",
          "edit": "Edytuj",
          "add": "Dodaj",
          "register": "Rejestracja",

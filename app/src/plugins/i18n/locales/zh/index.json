@@ -90,9 +90,6 @@
          "forgot_your_password?": "忘记密码？",
          "do_you_have_invite_code?": "您有邀请码吗？"
       },
-      "logout": {
-         "logged_out_successfully": "已成功退出登录"
-      },
       "register": {
          "create_account": "创建账户",
          "create_an_account_and_join_us": "创建账户并加入我们",
@@ -422,16 +419,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "用户信息",
-         "name": "姓名",
-         "email": "电子邮件",
-         "phone": "电话",
-         "events": "事件",
-         "logs": {
-            "created_at": "创建时间",
-            "email_confirmed_at": "电子邮件确认时间",
-            "last_sign_in_at": "最近登录时间"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."
@@ -493,10 +480,6 @@
          "notfound": "未找到",
          "account": "账户",
          "profile": "个人资料",
-         "settings": "设置",
-         "update-profile": "更新个人资料",
-         "update-password": "更新密码",
-         "logout": "退出登录",
          "edit": "编辑",
          "add": "添加",
          "register": "注册",

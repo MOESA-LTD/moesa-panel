@@ -90,9 +90,6 @@
          "forgot_your_password?": "Забыли пароль?",
          "do_you_have_invite_code?": "У вас есть пригласительный код?"
       },
-      "logout": {
-         "logged_out_successfully": "Вы успешно вышли"
-      },
       "register": {
          "create_account": "Создать аккаунт",
          "create_an_account_and_join_us": "Создайте аккаунт и присоединитесь к нам",
@@ -422,16 +419,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "Информация о пользователе",
-         "name": "Имя",
-         "email": "Электронная почта",
-         "phone": "Телефон",
-         "events": "События",
-         "logs": {
-            "created_at": "Дата создания",
-            "email_confirmed_at": "Дата подтверждения электронной почты",
-            "last_sign_in_at": "Дата последнего входа"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."
@@ -493,10 +480,6 @@
          "notfound": "Страница не найдена",
          "account": "Аккаунт",
          "profile": "Профиль",
-         "settings": "Настройки",
-         "update-profile": "Обновить профиль",
-         "update-password": "Изменить пароль",
-         "logout": "Выйти",
          "edit": "Редактировать",
          "add": "Добавить",
          "register": "Регистрация",

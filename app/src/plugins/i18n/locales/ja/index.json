@@ -90,9 +90,6 @@
          "forgot_your_password?": "パスワードを忘れた場合",
          "do_you_have_invite_code?": "招待コードをお持ちですか？"
       },
-      "logout": {
-         "logged_out_successfully": "ログアウトしました"
-      },
       "register": {
          "create_account": "アカウントを作成",
          "create_an_account_and_join_us": "アカウントを作成して、私たちに参加してください",
@@ -422,16 +419,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "ユーザー情報",
-         "name": "氏名",
-         "email": "電子メール",
-         "phone": "電話番号",
-         "events": "イベント",
-         "logs": {
-            "created_at": "作成日時",
-            "email_confirmed_at": "電子メール確認日時",
-            "last_sign_in_at": "最後のログイン日時"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."
@@ -493,10 +480,6 @@
          "notfound": "見つからない",
          "account": "アカウント",
          "profile": "プロフィール",
-         "settings": "設定",
-         "update-profile": "プロフィールの更新",
-         "update-password": "パスワードの更新",
-         "logout": "ログアウト",
          "edit": "編集",
          "add": "追加",
          "register": "登録",

@@ -90,9 +90,6 @@
          "forgot_your_password?": "Hai dimenticato la tua password?",
          "do_you_have_invite_code?": "Hai un codice d'invito?"
       },
-      "logout": {
-         "logged_out_successfully": "Uscita effettuata con successo"
-      },
       "register": {
          "create_account": "Crea account",
          "create_an_account_and_join_us": "Crea un account e unisciti a noi",
@@ -493,10 +490,6 @@
          "notfound": "Pagina non trovata",
          "account": "Account",
          "profile": "Profilo",
-         "settings": "Impostazioni",
-         "update-profile": "Aggiorna profilo",
-         "update-password": "Aggiorna password",
-         "logout": "Esci",
          "register": "Registrati",
          "login": "Accedi",
          "enter-auth-otp-code": "Inserisci codice OTP",
@@ -584,16 +577,6 @@
    },
    "account": {
       "profile": {
-         "user_info": "Informazioni utente",
-         "name": "Nome",
-         "email": "Indirizzo email",
-         "phone": "Telefono",
-         "events": "Eventi",
-         "logs": {
-            "created_at": "Creato il",
-            "email_confirmed_at": "Email confermata il",
-            "last_sign_in_at": "Ultimo accesso il"
-         },
          "legend": "Profile details",
          "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
          "email_change_sent": "Check {email} to confirm the new address."
