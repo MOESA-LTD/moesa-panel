@@ -22,14 +22,22 @@ const customFetch = async (
       }
    }
 
-   // A new row goes to the active tenant unless it names one. Only inserts (POST to a table): an
-   // update keeps the row's tenant, which may be another of the tenants read together.
+   // A new row goes to the active tenant unless it names one, also each row of a bulk insert. Only
+   // inserts (POST to a table): an update keeps the row's tenant, which may be another of the
+   // tenants read together.
    const isInsert = options?.method === 'POST' && /\/rest\/v1\/(?!rpc\/)/.test(String(url));
    if (currentTenant?.id && isInsert && _isString(options?.body)) {
       const body = JSON.parse(options.body || '{}');
+      const rows: unknown[] = Array.isArray(body) ? body : [body];
+      let changed = false;
 
-      if (_isPlainObject(body) && !_isEmpty(body) && !body.tenant_id) {
-         body.tenant_id = currentTenant.id;
+      for (const row of rows) {
+         if (_isPlainObject(row) && !_isEmpty(row) && !(row as { tenant_id?: unknown }).tenant_id) {
+            (row as { tenant_id?: string }).tenant_id = currentTenant.id;
+            changed = true;
+         }
+      }
+      if (changed) {
          options.body = JSON.stringify(body) as BodyInit & ReadableStream<Uint8Array<ArrayBuffer>>;
       }
    }
