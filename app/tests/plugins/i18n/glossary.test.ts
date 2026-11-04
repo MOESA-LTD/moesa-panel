@@ -37,9 +37,13 @@ describe('glossary', () => {
          'document_type',
          'gate_code',
          'package',
+         'payment_kind',
          'product_status',
          'project_path',
          'project_type',
+         'purchase_order_status',
+         'shipment_mode',
+         'shipment_status',
          'supplier_status',
          'task_status'
       ]);

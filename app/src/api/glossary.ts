@@ -2,6 +2,8 @@ import { PACKAGES, CUSTOMER_STATUSES } from '@/api/customer';
 import { DOCUMENT_STATUSES, DOCUMENT_TYPES } from '@/api/document';
 import { PRODUCT_STATUSES } from '@/api/product';
 import { GATE_CODES, PROJECT_PATHS, PROJECT_TYPES, TASK_STATUSES } from '@/api/project';
+import { PAYMENT_KINDS, PURCHASE_ORDER_STATUSES } from '@/api/purchaseOrder';
+import { SHIPMENT_MODES, SHIPMENT_STATUSES } from '@/api/shipment';
 import { SUPPLIER_STATUSES } from '@/api/supplier';
 
 /** Every enum that has glossary copy (i18n `glossary.<enum>.<value>`), with all its values. */
@@ -15,7 +17,11 @@ export const GLOSSARY_ENUMS = {
    supplier_status: SUPPLIER_STATUSES,
    customer_status: CUSTOMER_STATUSES,
    product_status: PRODUCT_STATUSES,
-   task_status: TASK_STATUSES
+   task_status: TASK_STATUSES,
+   purchase_order_status: PURCHASE_ORDER_STATUSES,
+   payment_kind: PAYMENT_KINDS,
+   shipment_status: SHIPMENT_STATUSES,
+   shipment_mode: SHIPMENT_MODES
 } as const;
 
 export type GlossaryEnum = keyof typeof GLOSSARY_ENUMS;

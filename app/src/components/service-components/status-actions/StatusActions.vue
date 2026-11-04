@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { glossaryKey, type GlossaryEnum } from '@/api/glossary';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -13,13 +14,15 @@ const props = defineProps<{
    next: readonly string[];
    /** Where the status labels are: `${i18nPrefix}.${status}`. */
    i18nPrefix: string;
+   /** The glossary enum of the statuses: each button shows the status's line as a tooltip. */
+   glossary?: GlossaryEnum;
    /** A warning shown in the confirmation of a status, e.g. a missing PSI before the balance. */
    warnings?: Partial<Record<string, string>>;
    /** Makes the move; a rejection is the database's refusal. */
    onChange: (status: string) => Promise<unknown>;
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
 
@@ -32,6 +35,12 @@ const statuses = computed(() => [
 ]);
 
 const statusLabel = (status: string) => t(`${props.i18nPrefix}.${status}`);
+
+const tip = (status: string) => {
+   if (!props.glossary) return undefined;
+   const key = glossaryKey(props.glossary, status);
+   return te(key) ? t(key) : undefined;
+};
 
 const busy = ref(false);
 /** The status the open dialog is for. */
@@ -77,6 +86,7 @@ const ask = (status: string) => {
    <Button
       v-for="status in statuses"
       :key="status"
+      v-tooltip.top="tip(status)"
       :data-status="status"
       :label="statusLabel(status)"
       :severity="status === 'cancelled' ? 'danger' : undefined"

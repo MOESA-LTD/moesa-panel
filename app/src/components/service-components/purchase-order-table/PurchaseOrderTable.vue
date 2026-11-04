@@ -157,6 +157,7 @@ const rowActions: Props['rowActions'] = [
             v-model="filterModel.value"
             :values="PURCHASE_ORDER_STATUSES"
             i18n-prefix="ops.purchase_order.status"
+            glossary="purchase_order_status"
          />
       </template>
       <template #system_total_body="{ data }">

@@ -1748,6 +1748,42 @@
          "doing": "In progress.",
          "done": "Finished.",
          "blocked": "Cannot go on until something else is resolved."
+      },
+      "purchase_order_status": {
+         "draft": "Being prepared; not sent to the supplier.",
+         "sent": "Sent to the supplier; every required line cites a signed or approved spec sheet (K3).",
+         "pi_received": "The supplier's PI is in and is being checked (S09).",
+         "pi_approved": "All 30 S09 items OK and the figures add up; lines and terms are fixed.",
+         "deposit_paid": "The deposit is paid; production can start.",
+         "in_production": "The supplier is producing the order.",
+         "ready": "Production finished; goods ready for PSI and loading.",
+         "balance_paid": "The balance is paid; per G4, only after an approved PSI.",
+         "closed": "Delivered and settled; nothing left to do.",
+         "cancelled": "Cancelled; kept for the record."
+      },
+      "payment_kind": {
+         "deposit": "Advance paid before production (deposit %).",
+         "balance": "The rest of the total, after the PSI.",
+         "other": "Any other payment, e.g. tooling or samples."
+      },
+      "shipment_status": {
+         "planned": "Planned; no booking yet.",
+         "booked": "The forwarder confirmed the booking (S15 step 4).",
+         "loaded": "Loaded; the orders and quantities are fixed (S15 step 7).",
+         "in_transit": "On the way; ETD and ETA are known.",
+         "at_customs": "Waiting for customs clearance.",
+         "delivered": "Delivered to the warehouse; the dispute period runs.",
+         "accepted": "Fully accepted with a signed delivery receipt (G5 evidence).",
+         "disputed": "Delivered with reservations or refused: shortage, surplus or damage (S16).",
+         "cancelled": "Cancelled before loading; kept for the record."
+      },
+      "shipment_mode": {
+         "fcl20": "Full 20-foot container.",
+         "fcl40": "Full 40-foot container.",
+         "lcl": "Less than container load, shared container.",
+         "road": "By truck.",
+         "courier": "Courier or parcel service.",
+         "air": "Air freight."
       }
    },
    "status_actions": {

@@ -72,6 +72,7 @@ const setDate = (field: 'planned_on' | 'paid_on', value: unknown) =>
                v-model="values.kind"
                :values="PAYMENT_KINDS"
                i18n-prefix="ops.purchase_order.payment.kind"
+               glossary="payment_kind"
             />
          </FormField>
          <FormField

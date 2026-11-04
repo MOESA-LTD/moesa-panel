@@ -1,4 +1,5 @@
 import '../setup/mockMain';
+import type { GlossaryEnum } from '@/api/glossary';
 import StatusActions from '@/components/service-components/status-actions/StatusActions.vue';
 import en from '@/plugins/i18n/locales/en/index.json';
 import i18n, { i18NPlugin } from '@plugins/i18n';
@@ -15,6 +16,7 @@ const PREFIX = 'ops.purchase_order.status';
 
 const mountActions = (props: {
    next: readonly string[];
+   glossary?: GlossaryEnum;
    warnings?: Partial<Record<string, string>>;
    onChange?: (status: string) => Promise<unknown>;
 }) =>
@@ -51,6 +53,16 @@ describe('StatusActions', () => {
          expect.arrayContaining(['p-button-danger', 'p-button-text'])
       );
       expect(buttons[0]!.classes()).not.toContain('p-button-danger');
+   });
+
+   it('shows the glossary line of each status as the button tooltip', () => {
+      const wrapper = mountActions({ next: ['accepted'], glossary: 'shipment_status' });
+
+      // PrimeVue's tooltip directive keeps its text on the element.
+      const element = button(wrapper, 'accepted').element as HTMLElement & {
+         $_ptooltipValue?: string;
+      };
+      expect(element.$_ptooltipValue).toBe(i18n.t('glossary.shipment_status.accepted'));
    });
 
    it('asks to confirm the target status, then changes it once', async () => {

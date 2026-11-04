@@ -109,6 +109,7 @@ const PACKED_AMOUNTS = [
             v-model="values.mode"
             :values="SHIPMENT_MODES"
             i18n-prefix="ops.shipment.mode"
+            glossary="shipment_mode"
             data-field="mode"
          />
       </FormField>

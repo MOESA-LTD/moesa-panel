@@ -147,6 +147,7 @@ const rowActions: Props['rowActions'] = [
             v-model="filterModel.value"
             :values="SHIPMENT_MODES"
             i18n-prefix="ops.shipment.mode"
+            glossary="shipment_mode"
          />
       </template>
       <template #status_body="{ data }">
@@ -161,6 +162,7 @@ const rowActions: Props['rowActions'] = [
             v-model="filterModel.value"
             :values="SHIPMENT_STATUSES"
             i18n-prefix="ops.shipment.status"
+            glossary="shipment_status"
          />
       </template>
       <template #eta_body="{ data }">

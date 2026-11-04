@@ -1558,7 +1558,7 @@
          "fields": {
             "delivery_warehouse": "Teslim deposu",
             "mode": "Mod",
-            "forwarder": "Forwarder",
+            "forwarder": "Nakliyeci",
             "customs_broker": "Gümrük müşaviri",
             "carrier": "Taşıyıcı",
             "incoterm_buy": "Incoterm alış",
@@ -1748,6 +1748,42 @@
          "doing": "Sürüyor.",
          "done": "Bitti.",
          "blocked": "Başka bir şey çözülmeden ilerleyemiyor."
+      },
+      "purchase_order_status": {
+         "draft": "Hazırlanıyor; tedarikçiye gönderilmedi.",
+         "sent": "Tedarikçiye gönderildi; gereken her satırda imzalı ya da onaylı spec sheet var (K3).",
+         "pi_received": "Tedarikçinin PI'ı geldi, kontrol ediliyor (S09).",
+         "pi_approved": "S09'un 30 maddesi uygun ve rakamlar tutuyor; satırlar ve şartlar sabitlendi.",
+         "deposit_paid": "Depozito ödendi; üretim başlayabilir.",
+         "in_production": "Tedarikçi siparişi üretiyor.",
+         "ready": "Üretim bitti; mal PSI ve yüklemeye hazır.",
+         "balance_paid": "Bakiye ödendi; G4'e göre yalnızca onaylı PSI'dan sonra.",
+         "closed": "Teslim edildi ve kapandı; yapılacak iş kalmadı.",
+         "cancelled": "İptal edildi; kayıt için saklanır."
+      },
+      "payment_kind": {
+         "deposit": "Üretimden önce ödenen avans (depozito %).",
+         "balance": "Toplamın kalanı, PSI'dan sonra.",
+         "other": "Diğer ödemeler, ör. kalıp ya da numune."
+      },
+      "shipment_status": {
+         "planned": "Planlandı; henüz booking yok.",
+         "booked": "Forwarder booking'i teyit etti (S15 adım 4).",
+         "loaded": "Yüklendi; siparişler ve adetler sabitlendi (S15 adım 7).",
+         "in_transit": "Yolda; ETD ve ETA belli.",
+         "at_customs": "Gümrük çıkışını bekliyor.",
+         "delivered": "Depoya teslim edildi; itiraz süresi işliyor.",
+         "accepted": "İmzalı teslim tutanağıyla tam kabul edildi (G5 kanıtı).",
+         "disputed": "Rezervli teslim ya da red: eksik, fazla ya da hasar (S16).",
+         "cancelled": "Yüklemeden önce iptal edildi; kayıt için saklanır."
+      },
+      "shipment_mode": {
+         "fcl20": "Tam 20 ft konteyner.",
+         "fcl40": "Tam 40 ft konteyner.",
+         "lcl": "Parsiyel, paylaşılan konteyner.",
+         "road": "Kara yolu, kamyon.",
+         "courier": "Kurye ya da kargo.",
+         "air": "Hava kargo."
       }
    },
    "status_actions": {

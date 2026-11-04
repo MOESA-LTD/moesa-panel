@@ -106,6 +106,7 @@ const title = computed(() =>
                :current="order.status"
                :next="nextStatuses"
                i18nPrefix="ops.purchase_order.status"
+               glossary="purchase_order_status"
                :warnings="statusWarnings"
                :onChange="changeStatus"
             />
