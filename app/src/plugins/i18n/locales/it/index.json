@@ -578,7 +578,8 @@
          "ops_media": "Media library",
          "ops_media_edit": "Edit file",
          "security": "Security",
-         "preferences": "Preferences"
+         "preferences": "Preferences",
+         "memberships": "Memberships"
       }
    },
    "account": {
@@ -624,6 +625,12 @@
          "language_legend": "Language",
          "appearance_legend": "Appearance",
          "stored_locally": "These settings are kept in this browser."
+      },
+      "memberships": {
+         "legend": "Companies and branches",
+         "owner": "Owner",
+         "no_roles": "No role",
+         "empty": "You are not a member of any company yet."
       }
    },
    "toast": {

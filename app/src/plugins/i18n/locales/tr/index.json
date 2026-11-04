@@ -344,6 +344,12 @@
          "language_legend": "Dil",
          "appearance_legend": "Görünüm",
          "stored_locally": "Bu ayarlar bu tarayıcıda saklanır."
+      },
+      "memberships": {
+         "legend": "Şirketler ve şubeler",
+         "owner": "Sahip",
+         "no_roles": "Rol yok",
+         "empty": "Henüz hiçbir şirketin üyesi değilsiniz."
       }
    },
    "toast": {
@@ -453,7 +459,8 @@
          "ops_media": "Ortam kütüphanesi",
          "ops_media_edit": "Dosyayı düzenle",
          "security": "Güvenlik",
-         "preferences": "Tercihler"
+         "preferences": "Tercihler",
+         "memberships": "Üyelikler"
       }
    },
    "fields": {
