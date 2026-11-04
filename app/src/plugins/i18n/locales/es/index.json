@@ -223,7 +223,21 @@
          "ops_market_list": "Matrix",
          "ops_market_cell_add": "New cell",
          "ops_market_cell_edit": "Cell",
-         "ops_market_cells_add": "Add cells"
+         "ops_market_cells_add": "Add cells",
+         "ops_project_incidents": "Incidents",
+         "ops_incident": "Incidents",
+         "ops_incident_list": "List",
+         "ops_incident_manage": "Incident",
+         "ops_incident_general": "General",
+         "ops_incident_log": "Log",
+         "ops_incident_deadlines": "Deadlines",
+         "ops_incident_closure": "Closure",
+         "ops_incident_documents": "Documents",
+         "ops_incident_media": "Media",
+         "ops_incident_log_add": "Log line",
+         "ops_incident_log_edit": "Log line",
+         "ops_incident_deadline_add": "Deadline",
+         "ops_incident_deadline_edit": "Deadline"
       }
    },
    "auth": {
@@ -1274,7 +1288,8 @@
             "products": "Products",
             "documents": "Documents",
             "purchase_orders": "Purchase orders",
-            "shipments": "Shipments"
+            "shipments": "Shipments",
+            "incidents": "Incidents"
          },
          "sections": {
             "general": "Project",
@@ -1349,7 +1364,9 @@
             "needs_customer_approval": "Needs customer approval",
             "rolled_back_reason": "Rolled back because",
             "passed": "Gate passed",
-            "rolled_back": "Gate rolled back"
+            "rolled_back": "Gate rolled back",
+            "incident": "Incident",
+            "no_incident": "There is no open incident of this customer; open one first."
          },
          "task": {
             "fields": {
@@ -1793,6 +1810,185 @@
          },
          "live_missing": "Missing for live: {fields}",
          "load_error": "Market cells could not be loaded."
+      },
+      "incident": {
+         "title": "Incidents",
+         "tabs": {
+            "general": "General",
+            "log": "Log",
+            "deadlines": "Deadlines",
+            "closure": "Closure",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "sections": {
+            "opening": "Opening (first 15 minutes)",
+            "classification": "Classification"
+         },
+         "status": {
+            "open": "Open",
+            "contained": "Contained",
+            "closed": "Closed"
+         },
+         "severity": {
+            "s1": "S1 critical",
+            "s2": "S2 major",
+            "s3": "S3 minor"
+         },
+         "family": {
+            "ol": "Shipment and delivery (OL)",
+            "oa": "Platform and Amazon (OA)",
+            "ou": "Product and compliance (OU)",
+            "ot": "Supplier (OT)",
+            "om": "Customer (OM)"
+         },
+         "types": {
+            "OL-01": "The wrong vehicle came to the warehouse",
+            "OL-02": "Arrival without or outside the appointment; the warehouse refuses it",
+            "OL-03": "Waiting, demurrage and detention",
+            "OL-04": "Pallet or carton count does not match the documents",
+            "OL-05": "Damaged delivery",
+            "OL-06": "Label or address error",
+            "OL-07": "Missing or wrong documents",
+            "OL-08": "Held at customs, inspection, HS code dispute, extra duty",
+            "OL-09": "Shipment delay",
+            "OL-10": "Finished goods not collected in time",
+            "OL-11": "Broken communication: forwarder, broker and warehouse don't call each other, everyone calls MOESA",
+            "OL-12": "FBA shipment refused or wrong shipment plan",
+            "OA-01": "Listing removed: policy violation",
+            "OA-02": "Document request: GPSR safety information, SDS, product safety images",
+            "OA-03": "Main image policy violation",
+            "OA-04": "Brand or ASIN abuse warning",
+            "OA-05": "EAN/GTIN conflict: \"title conflict\", listings merged, \"already used\"",
+            "OA-06": "Listing suppressed: missing required field, mixed product family, variation error",
+            "OA-07": "Account health warning, performance notice, risk of suspension",
+            "OA-08": "Category approval refused, restricted or dangerous goods classification",
+            "OA-09": "Platform access or brand programme problem",
+            "OA-10": "Wrong price, currency or stock live",
+            "OU-01": "PSI rejection or deviation",
+            "OU-02": "The customer did not accept the goods at delivery",
+            "OU-03": "Market surveillance, recall, safety complaint",
+            "OU-04": "Label or packaging legally incomplete",
+            "OU-05": "Test report or certificate invalid, expired or fake",
+            "OU-06": "The customer insists on a product with a high compliance risk",
+            "OT-01": "The supplier changed material, size or packaging without notice",
+            "OT-02": "Production delay",
+            "OT-03": "Bypass: the supplier went to the customer, or the customer to the supplier, directly",
+            "OT-04": "PI, invoice or packing list mismatch",
+            "OT-05": "Mould, design or intellectual property dispute",
+            "OT-06": "The supplier announced a change of bank details",
+            "OT-07": "The supplier does not answer: no documents, spec sheet or signature, contact lost, signs of insolvency",
+            "OT-08": "Supplier price rise or the offer expired",
+            "OM-01": "The customer asked for a change verbally, no written approval",
+            "OM-02": "Customer payment late: deposit not received, balance not paid when due",
+            "OM-03": "The customer's extra cost",
+            "OM-04": "Dispute, complaint or legal claim: \"show us the proof\"",
+            "OM-05": "The customer does not answer: contract not signed, gate approval missing, approval only in messaging",
+            "OM-06": "External provider and intellectual property problem: designer does not deliver, copyright claim, trademark opposition"
+         },
+         "party": {
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "forwarder": "Forwarder",
+            "platform": "Platform",
+            "warehouse": "Warehouse"
+         },
+         "root_cause": {
+            "human_error": "Human error",
+            "document_data": "Document or data",
+            "communication": "Communication",
+            "supplier": "Supplier",
+            "carrier": "Carrier",
+            "platform_regulation": "Platform or regulation",
+            "customer": "Customer"
+         },
+         "outcome": {
+            "full_recovery": "Full recovery",
+            "partial_recovery": "Partial recovery",
+            "loss": "Loss"
+         },
+         "deadline_kind": {
+            "supplier_damage": "Supplier damage notice (48 h)",
+            "carrier_claim": "Carrier claim (CMR 7 days)",
+            "demurrage": "Demurrage / detention free days",
+            "supplier_storage": "Supplier storage fee",
+            "platform_escalation": "Platform escalation (48 h)",
+            "document_request": "Document request (business days)",
+            "other": "Other"
+         },
+         "cost_payer": {
+            "moesa": "MOESA",
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "carrier_insurance": "Carrier or insurance"
+         },
+         "fields": {
+            "code": "Incident no",
+            "customer": "Customer",
+            "family": "Family",
+            "incident_type": "Incident type (Y10)",
+            "severity": "Severity",
+            "status": "Status",
+            "owner": "Owner",
+            "title": "Short name",
+            "what_happened": "What happened",
+            "reported_by": "Reported by, channel",
+            "current_state": "Where the goods, listing or money are now",
+            "immediate_action": "Done at once",
+            "entity_type": "Linked record kind",
+            "entity": "Linked record",
+            "opened_at": "Opened",
+            "affected_parties": "Affected parties",
+            "management_notified_at": "Management told",
+            "customer_notice_due_at": "Customer notice due",
+            "customer_notified_at": "Customer told",
+            "outcome": "Outcome",
+            "root_cause": "Root cause",
+            "root_cause_note": "Root cause note",
+            "impact_note": "Total impact",
+            "lessons": "Lesson learned",
+            "preventive_action": "Preventive action added",
+            "customer_closure_notified_on": "Customer told of closure",
+            "closed_on": "Closed on",
+            "next_deadline_at": "Next deadline",
+            "is_repeat": "Repeat within 90 days"
+         },
+         "log": {
+            "fields": {
+               "logged_at": "Date and time",
+               "author": "Who",
+               "note": "What happened or was done",
+               "counterparty": "Counterparty and channel",
+               "decision": "Decision or approval",
+               "cost_amount": "Cost",
+               "cost_currency": "Currency",
+               "cost_payer": "Who pays",
+               "customer_approved": "Customer approved"
+            },
+            "needs_customer_approval": "Charged to the customer without approval",
+            "no_rows": "Nothing logged yet."
+         },
+         "deadline": {
+            "fields": {
+               "kind": "Deadline",
+               "label": "Note",
+               "due_at": "Due",
+               "met_at": "Met"
+            },
+            "overdue": "Overdue",
+            "calculated": "Left empty, it is calculated from the opening time.",
+            "no_rows": "No deadlines."
+         },
+         "notice": {
+            "late": "Late",
+            "due": "Due",
+            "done": "Done"
+         },
+         "rolled_back_gates": "Gates rolled back by this incident",
+         "preventive_hint": "An incident is not closed until the measure is written into its guideline (S17).",
+         "contact_hint": "A role and a channel; no personal contact details.",
+         "new_for_project": "New incident",
+         "no_rows": "No incidents."
       }
    },
    "glossary": {

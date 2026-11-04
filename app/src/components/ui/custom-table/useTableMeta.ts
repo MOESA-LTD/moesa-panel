@@ -6,7 +6,13 @@ import { useRoute, useRouter } from 'vue-router';
 
 export type TableStateStorage = 'local' | 'session';
 
-type SortableColumn = Pick<ColumnProps, 'field' | 'sortField'> & { sortOrder?: { value: number } };
+/**
+ * A column's default sort: `value` is the direction (1 ascending, -1 descending) and, without a
+ * `priority`, also the place among the sorted columns; `priority` places it on its own.
+ */
+export type ColumnSortOrder = { value: number; priority?: number };
+
+type SortableColumn = Pick<ColumnProps, 'field' | 'sortField'> & { sortOrder?: ColumnSortOrder };
 
 /** Table state shared with the URL and storage: filters, paging, sorting and expansion. */
 export type TableMetaState = Partial<DataTableStateEvent> & { filters?: Record<string, any> };
@@ -25,11 +31,13 @@ export const resolveStateStorage = ({
    inDialog?: boolean;
 }): TableStateStorage => stateStorage || (!inDialog && useMeta ? 'local' : 'session');
 
-/** Default multi-sort from the columns' `sortOrder`, lowest first. */
+const sortPlace = ({ sortOrder }: SortableColumn) => sortOrder?.priority ?? sortOrder?.value ?? 0;
+
+/** Default multi-sort from the columns' `sortOrder`, lowest first (by priority, else by value). */
 export const initialSortMeta = (columns: SortableColumn[] = []): DataTableSortMeta[] =>
    columns
       .filter(({ sortField, field, sortOrder }) => (!!sortField || !!field) && !!sortOrder)
-      .sort((a, b) => (a.sortOrder?.value || 0) - (b.sortOrder?.value || 0))
+      .sort((a, b) => sortPlace(a) - sortPlace(b))
       .map(({ sortField, field, sortOrder }) => ({
          field: (sortField || field) as DataTableSortMeta['field'],
          order: sortOrder?.value as DataTableSortMeta['order']

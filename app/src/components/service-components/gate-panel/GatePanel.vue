@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DocumentRow } from '@/api/document';
 import { glossaryKey } from '@/api/glossary';
+import { useOpenIncidentOptions } from '@/api/incident';
 import {
    byPosition,
    gateEvidenceEntityIds,
@@ -12,11 +13,13 @@ import {
    type ProjectGateRow
 } from '@/api/project';
 import { useLookup } from '@/api/useLookup';
+import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import dayjs from 'dayjs';
 import { useToast } from 'primevue/usetoast';
 
-// One gate of a project: its decision, its evidence documents, and passing or rolling it back.
+// One gate of a project: its decision, its evidence documents, and passing or rolling it back
+// (through an incident).
 // The rules are the database's (see 021_projects.sql); a refused decision shows its rule as a
 // toast. A passed gate is frozen: it can only be rolled back.
 const props = defineProps<{ gate: ProjectGateRow; project: ProjectCard }>();
@@ -133,18 +136,29 @@ const submitPass = async () => {
 
 // --- roll back ---
 
+// A gate is rolled back through an open incident of the project's customer (036), which then
+// lists the gates it rolled back. Without one, the dialog offers to open one for the project.
 const rollingBack = ref(false);
 const reason = ref('');
+const incidentId = ref<string | null>(null);
 const { mutateAsync: rollbackGate, isPending: isRollingBack } = useRollbackGate();
+const incidentOptions = useOpenIncidentOptions(() => props.project.customer_id);
+const canSubmitRollback = computed(() => !!reason.value.trim() && !!incidentId.value);
 
 const openRollback = () => {
    reason.value = '';
+   incidentId.value = null;
    rollingBack.value = true;
 };
 
 const submitRollback = async () => {
+   if (!canSubmitRollback.value) return;
    try {
-      await rollbackGate({ gateId: props.gate.id, reason: reason.value.trim() });
+      await rollbackGate({
+         gateId: props.gate.id,
+         reason: reason.value.trim(),
+         incidentId: incidentId.value!
+      });
    } catch (error) {
       return appErrorHandler(error);
    }
@@ -297,7 +311,58 @@ const formatDate = (value: string | null, format = 'YYYY-MM-DD') =>
          :header="`${gateLabel} — ${$t('ops.project.gate_panel.rollback')}`"
          class="w-full max-w-xl"
       >
-         <form class="flex flex-col gap-4" @submit.prevent="submitRollback">
+         <form
+            class="flex flex-col gap-4"
+            data-test="rollback-form"
+            @submit.prevent="submitRollback"
+         >
+            <FormField fluid :label="$t('ops.project.gate_panel.incident')" v-slot="slotProps">
+               <Select
+                  v-bind="slotProps"
+                  v-model="incidentId"
+                  :options="incidentOptions"
+                  option-value="value"
+                  option-label="label"
+                  filter
+                  data-field="incident_id"
+               />
+            </FormField>
+            <span
+               v-if="!incidentOptions.length"
+               class="flex flex-wrap items-center gap-2"
+               data-test="no-incident"
+            >
+               <small class="text-muted-color">{{
+                  $t('ops.project.gate_panel.no_incident')
+               }}</small>
+               <CustomLink
+                  v-if="$can('create', 'incident')"
+                  :to="{
+                     name: 'ops-incident-manage',
+                     query: {
+                        customer_id: project.customer_id,
+                        entity_type: 'project',
+                        entity_id: project.id,
+                        showDialog: DIALOG_POSITIONS.CENTER
+                     }
+                  }"
+               >
+                  <template #default="{ navigate }">
+                     <Button
+                        variant="link"
+                        size="small"
+                        :icon="PrimeIcons.PLUS"
+                        :label="$t('ops.incident.new_for_project')"
+                        @click="
+                           () => {
+                              rollingBack = false;
+                              navigate();
+                           }
+                        "
+                     />
+                  </template>
+               </CustomLink>
+            </span>
             <FormField fluid :label="$t('ops.project.gate_panel.reason')" v-slot="slotProps">
                <Textarea v-bind="slotProps" v-model="reason" auto-resize rows="3" required />
             </FormField>
@@ -309,7 +374,7 @@ const formatDate = (value: string | null, format = 'YYYY-MM-DD') =>
                   :icon="PrimeIcons.REPLAY"
                   :label="$t('ops.project.gate_panel.rollback')"
                   :loading="isRollingBack"
-                  :disabled="!reason.trim()"
+                  :disabled="!canSubmitRollback"
                />
             </span>
          </form>

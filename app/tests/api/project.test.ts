@@ -5,10 +5,19 @@ import {
    projectSchema,
    toProjectFormValues,
    toProjectPayload,
+   useRollbackGate,
    type ProjectGateRow
 } from '@/api/project';
 import i18n from '@plugins/i18n';
-import { describe, expect, it } from 'vitest';
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
+import { mount } from '@vue/test-utils';
+import { describe, expect, it, vi } from 'vitest';
+import { defineComponent, h } from 'vue';
+
+const rpc = vi.hoisted(() =>
+   vi.fn(() => ({ throwOnError: () => Promise.resolve({ data: null, error: null }) }))
+);
+vi.mock('@/lib/supabase', () => ({ supabase: { rpc } }));
 
 const CUSTOMER = '6f1c2b0e-8f4a-4d6e-9a51-2b7c3d4e5f60';
 
@@ -129,5 +138,31 @@ describe('phases', () => {
          'PL3',
          'closed'
       ]);
+   });
+});
+
+describe('gate rollback', () => {
+   const I1 = '00000000-0000-4000-8000-000000000011';
+   const G1 = '00000000-0000-4000-8000-000000000021';
+
+   it('rolls a gate back through an incident', async () => {
+      let mutation!: ReturnType<typeof useRollbackGate>;
+      mount(
+         defineComponent({
+            setup() {
+               mutation = useRollbackGate();
+               return () => h('div');
+            }
+         }),
+         { global: { plugins: [[VueQueryPlugin, { queryClient: new QueryClient() }]] } }
+      );
+
+      await mutation.mutateAsync({ gateId: G1, reason: 'brief changed', incidentId: I1 });
+
+      expect(rpc).toHaveBeenCalledWith('rollback_gate', {
+         gate_id: G1,
+         reason: 'brief changed',
+         incident_id: I1
+      });
    });
 });

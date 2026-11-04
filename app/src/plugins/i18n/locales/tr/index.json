@@ -520,6 +520,7 @@
          "ops_project_products": "Ürünler",
          "ops_project_purchase_orders": "Satın alma",
          "ops_project_shipments": "Sevkiyatlar",
+         "ops_project_incidents": "Olaylar",
          "ops_project_documents": "Belgeler",
          "ops_project_task_add": "Yeni görev",
          "ops_project_task_edit": "Görevi düzenle",
@@ -564,7 +565,20 @@
          "ops_market_list": "Matris",
          "ops_market_cell_add": "Yeni hücre",
          "ops_market_cell_edit": "Hücre",
-         "ops_market_cells_add": "Hücre ekle"
+         "ops_market_cells_add": "Hücre ekle",
+         "ops_incident": "Olaylar",
+         "ops_incident_list": "Liste",
+         "ops_incident_manage": "Olay",
+         "ops_incident_general": "Genel",
+         "ops_incident_log": "Günlük",
+         "ops_incident_deadlines": "Süre sınırları",
+         "ops_incident_closure": "Kapanış",
+         "ops_incident_documents": "Belgeler",
+         "ops_incident_media": "Ortam",
+         "ops_incident_log_add": "Günlük satırı",
+         "ops_incident_log_edit": "Günlük satırı",
+         "ops_incident_deadline_add": "Süre sınırı",
+         "ops_incident_deadline_edit": "Süre sınırı"
       }
    },
    "fields": {
@@ -1274,6 +1288,7 @@
             "products": "Ürünler",
             "purchase_orders": "Satın alma",
             "shipments": "Sevkiyatlar",
+            "incidents": "Olaylar",
             "documents": "Belgeler"
          },
          "new_purchase_order": "Yeni PO",
@@ -1350,7 +1365,9 @@
             "needs_customer_approval": "Müşteri onayı gerekir",
             "rolled_back_reason": "Geri alma sebebi",
             "passed": "Kapı geçti",
-            "rolled_back": "Kapı geri alındı"
+            "rolled_back": "Kapı geri alındı",
+            "incident": "Olay",
+            "no_incident": "Bu müşterinin açık olayı yok; önce bir olay açın."
          },
          "task": {
             "fields": {
@@ -1793,6 +1810,185 @@
          },
          "live_missing": "Yayın için eksik: {fields}",
          "load_error": "Pazar hücreleri yüklenemedi."
+      },
+      "incident": {
+         "title": "Olaylar",
+         "tabs": {
+            "general": "Genel",
+            "log": "Günlük",
+            "deadlines": "Süre sınırları",
+            "closure": "Kapanış",
+            "documents": "Belgeler",
+            "media": "Ortam"
+         },
+         "sections": {
+            "opening": "Açılış (ilk 15 dakika)",
+            "classification": "Sınıflandırma"
+         },
+         "status": {
+            "open": "Açık",
+            "contained": "Kontrol altında",
+            "closed": "Kapandı"
+         },
+         "severity": {
+            "s1": "S1 kritik",
+            "s2": "S2 önemli",
+            "s3": "S3 küçük"
+         },
+         "family": {
+            "ol": "Sevkiyat ve teslim (OL)",
+            "oa": "Platform ve Amazon (OA)",
+            "ou": "Ürün ve uyum (OU)",
+            "ot": "Tedarik (OT)",
+            "om": "Müşteri (OM)"
+         },
+         "types": {
+            "OL-01": "Depoya yanlış araç geldi",
+            "OL-02": "Randevusuz veya randevu dışı geliş; depo kabul etmiyor",
+            "OL-03": "Bekleme, demuraj ve detention",
+            "OL-04": "Palet veya koli sayısı belgelerle tutmuyor",
+            "OL-05": "Hasarlı teslim",
+            "OL-06": "Etiket veya adres hatası",
+            "OL-07": "Eksik veya hatalı evrak",
+            "OL-08": "Gümrükte bekletme, muayene, HS kodu itirazı, ek vergi",
+            "OL-09": "Sevkiyat gecikmesi",
+            "OL-10": "Üretilen mal zamanında çekilmedi",
+            "OL-11": "İletişim kopukluğu: forwarder, broker ve depo birbirini aramıyor, herkes MOESA'yı arıyor",
+            "OL-12": "FBA gönderimi reddedildi veya yanlış gönderim planı",
+            "OA-01": "Listing kaldırıldı: politika ihlali",
+            "OA-02": "Belge talebi: GPSR güvenlik bilgisi, SDS, ürün güvenliği görselleri",
+            "OA-03": "Ana görsel politikası ihlali",
+            "OA-04": "Marka veya ASIN kötüye kullanım uyarısı",
+            "OA-05": "EAN/GTIN çakışması: \"title conflict\", listing birleşmesi, \"already used\"",
+            "OA-06": "Listing bastırıldı: eksik zorunlu alan, ürün ailesi karışması, varyant hatası",
+            "OA-07": "Hesap sağlığı uyarısı, performans bildirimi, hesap askıya alma riski",
+            "OA-08": "Kategori onayı reddi, kısıtlı veya tehlikeli ürün sınıflaması",
+            "OA-09": "Platform erişimi veya marka programı sorunu",
+            "OA-10": "Yanlış fiyat, para birimi veya stok bilgisi yayında",
+            "OU-01": "PSI'da ret veya sapma",
+            "OU-02": "Müşteri teslimde malı kabul etmedi",
+            "OU-03": "Pazar gözetimi, geri çağırma, güvenlik şikâyeti",
+            "OU-04": "Etiket veya ambalaj yasal eksik",
+            "OU-05": "Test raporu veya sertifika geçersiz, süresi dolmuş ya da sahte çıktı",
+            "OU-06": "Müşteri uyum riski yüksek bir ürün için ısrar ediyor",
+            "OT-01": "Tedarikçi haber vermeden malzeme, ölçü veya ambalaj değiştirdi",
+            "OT-02": "Üretim gecikmesi",
+            "OT-03": "Atlatma: tedarikçi müşteriye, müşteri tedarikçiye doğrudan gitti",
+            "OT-04": "PI, fatura veya packing list tutarsızlığı",
+            "OT-05": "Kalıp, tasarım veya fikri mülkiyet uyuşmazlığı",
+            "OT-06": "Tedarikçi banka bilgisi değişikliği bildirdi",
+            "OT-07": "Tedarikçi yanıt vermiyor: belge, spec sheet veya imza gelmiyor, iletişim kesildi, iflas belirtisi",
+            "OT-08": "Tedarikçi fiyat artışı veya teklif geçerliliği bitti",
+            "OM-01": "Müşteri sözlü değişiklik istedi, yazılı onay yok",
+            "OM-02": "Müşteri ödeme gecikmesi: depozito gelmedi, bakiye vadede ödenmedi",
+            "OM-03": "Müşteri ek maliyeti",
+            "OM-04": "Uyuşmazlık, şikâyet veya hukuki talep: \"kanıt gösterin\"",
+            "OM-05": "Müşteri cevap vermiyor: sözleşme imzalanmıyor, kapı onayı gelmiyor, onay yalnızca mesajlaşmada",
+            "OM-06": "Dış hizmet sağlayıcı ve fikri mülkiyet sorunu: tasarımcı teslim etmiyor, telif iddiası, marka tescil itirazı"
+         },
+         "party": {
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "forwarder": "Forwarder",
+            "platform": "Platform",
+            "warehouse": "Depo"
+         },
+         "root_cause": {
+            "human_error": "İnsan hatası",
+            "document_data": "Belge-veri",
+            "communication": "İletişim",
+            "supplier": "Tedarikçi",
+            "carrier": "Taşıyıcı",
+            "platform_regulation": "Platform-mevzuat",
+            "customer": "Müşteri"
+         },
+         "outcome": {
+            "full_recovery": "Tam kurtarma",
+            "partial_recovery": "Kısmi kurtarma",
+            "loss": "Kayıp"
+         },
+         "deadline_kind": {
+            "supplier_damage": "Tedarikçiye hasar bildirimi (48 saat)",
+            "carrier_claim": "Taşıyıcıya itiraz (CMR 7 gün)",
+            "demurrage": "Demuraj / detention serbest gün",
+            "supplier_storage": "Tedarikçi depolama ücreti",
+            "platform_escalation": "Platform eskalasyonu (48 saat)",
+            "document_request": "Belge talebi (iş günü)",
+            "other": "Diğer"
+         },
+         "cost_payer": {
+            "moesa": "MOESA",
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "carrier_insurance": "Taşıyıcı-sigorta"
+         },
+         "fields": {
+            "code": "Olay no",
+            "customer": "Müşteri",
+            "family": "Aile",
+            "incident_type": "Olay tipi (Y10)",
+            "severity": "Şiddet",
+            "status": "Durum",
+            "owner": "Olay sahibi",
+            "title": "Kısa ad",
+            "what_happened": "Ne oldu",
+            "reported_by": "Kim bildirdi, hangi kanaldan",
+            "current_state": "Şu an mal/listing/para nerede",
+            "immediate_action": "Hemen yapılan",
+            "entity_type": "Bağlı kayıt türü",
+            "entity": "Bağlı kayıt",
+            "opened_at": "Açılış",
+            "affected_parties": "Etkilenen taraflar",
+            "management_notified_at": "Yönetime bildirim",
+            "customer_notice_due_at": "Müşteriye ilk bildirim hedefi",
+            "customer_notified_at": "Müşteriye bildirim (gerçekleşen)",
+            "outcome": "Sonuç",
+            "root_cause": "Kök neden",
+            "root_cause_note": "Kök neden açıklaması",
+            "impact_note": "Toplam etki",
+            "lessons": "Alınan ders",
+            "preventive_action": "Eklenen önlem",
+            "customer_closure_notified_on": "Müşteriye kapanış bildirimi",
+            "closed_on": "Kapanış tarihi",
+            "next_deadline_at": "Sıradaki süre sınırı",
+            "is_repeat": "90 gün içinde tekrar"
+         },
+         "log": {
+            "fields": {
+               "logged_at": "Tarih-saat",
+               "author": "Kim",
+               "note": "Ne oldu / ne yapıldı",
+               "counterparty": "Karşı taraf ve kanal",
+               "decision": "Karar / onay",
+               "cost_amount": "Maliyet",
+               "cost_currency": "Para birimi",
+               "cost_payer": "Kim öder",
+               "customer_approved": "Müşteri onayı var"
+            },
+            "needs_customer_approval": "Müşteriye yansıyor, onay yok",
+            "no_rows": "Henüz kayıt yok."
+         },
+         "deadline": {
+            "fields": {
+               "kind": "Süre sınırı",
+               "label": "Not",
+               "due_at": "Son tarih",
+               "met_at": "Karşılandı"
+            },
+            "overdue": "Gecikti",
+            "calculated": "Boş bırakılırsa açılış zamanından hesaplanır.",
+            "no_rows": "Süre sınırı yok."
+         },
+         "notice": {
+            "late": "Gecikti",
+            "due": "Bekliyor",
+            "done": "Yapıldı"
+         },
+         "rolled_back_gates": "Bu olayla geri alınan kapılar",
+         "preventive_hint": "Önlem ilgili yönergeye işlenmeden olay kapanmış sayılmaz (S17).",
+         "contact_hint": "Rol ve kanal; kişisel iletişim bilgisi yok.",
+         "new_for_project": "Yeni olay",
+         "no_rows": "Olay yok."
       }
    },
    "glossary": {

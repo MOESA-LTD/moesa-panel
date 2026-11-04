@@ -3,7 +3,7 @@ import { useDialogRef } from '@/composables/useDialogRef';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import TableFilterInput from './TableFilterInput.vue';
 import type { CustomTableBodySlotProps, CustomTableRowAction, CustomTableSlots } from './types';
-import { useTableMeta, type TableStateStorage } from './useTableMeta';
+import { useTableMeta, type ColumnSortOrder, type TableStateStorage } from './useTableMeta';
 import { isValidDate, localeDateString } from '@/lib/dayjs';
 import {
    ColumnProps,
@@ -20,7 +20,7 @@ import type { MenuItem } from 'primevue/menuitem';
 import { isVNode, VNode } from 'vue';
 
 export declare type CustomTableProps<T = any> = DataTableProps<T> & {
-   columns: (ColumnProps & { sortOrder?: { value: number }; translateValue?: boolean })[];
+   columns: (ColumnProps & { sortOrder?: ColumnSortOrder; translateValue?: boolean })[];
    rowActions?: CustomTableRowAction<T>[];
    useMeta?: boolean;
    filters?: {

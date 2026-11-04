@@ -35,6 +35,16 @@ export const marketCellProps = (route: RouteLocationNormalized) => ({
    country: route.query.country ?? null
 });
 
+// A new incident opened from a project (its Incidents tab or a gate's rollback) names its customer
+// and linked record in the query; a route dialog renders the page outside the router, so the
+// card gets them as props.
+export const incidentProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   customer_id: route.query.customer_id ?? null,
+   entity_type: route.query.entity_type ?? null,
+   entity_id: route.query.entity_id ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -53,7 +63,8 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' },
             { action: 'select', subject: 'media' },
-            { action: 'select', subject: 'market_cell' }
+            { action: 'select', subject: 'market_cell' },
+            { action: 'select', subject: 'incident' }
          ]
       },
       components: {
@@ -779,6 +790,21 @@ const routes: RouteRecordRaw[] = [
                         }
                      },
                      {
+                        path: 'incidents',
+                        name: 'ops-project-manage-incidents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_incidents',
+                           icon: PrimeIcons.EXCLAMATION_CIRCLE,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'incident' }]
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Incidents.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Incidents.vue')
+                        }
+                     },
+                     {
                         path: 'documents',
                         name: 'ops-project-manage-documents',
                         props: true,
@@ -1369,6 +1395,207 @@ const routes: RouteRecordRaw[] = [
                   components: {
                      default: () => import('@/views/pages/ops/market/CellsAdd.vue'),
                      skeleton: () => import('@/views/pages/ops/market/CellsAdd.vue')
+                  }
+               }
+            ]
+         },
+         {
+            // Incidents (S17, Y10): what went wrong, its log, deadlines and closure.
+            path: 'incidents',
+            name: 'ops-incident',
+            meta: {
+               label: 'route.label.ops_incident',
+               icon: PrimeIcons.EXCLAMATION_CIRCLE,
+               requiredPermissions: [{ action: 'select', subject: 'incident' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-incident-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-incident-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-incident-list',
+                  meta: {
+                     label: 'route.label.ops_incident_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'incident' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/Index.vue')
+                  }
+               },
+               {
+                  // The incident card: its tabs open on their own as these child routes. A record
+                  // card opens for readers too; the form is read-only without update.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-incident-manage',
+                  props: { default: incidentProps, skeleton: incidentProps },
+                  meta: {
+                     label: 'route.label.ops_incident_manage',
+                     icon: PrimeIcons.EXCLAMATION_CIRCLE,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'incident' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-incident-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/General.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'log',
+                        name: 'ops-incident-manage-log',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_log',
+                           icon: PrimeIcons.HISTORY,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Log.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Log.vue')
+                        }
+                     },
+                     {
+                        path: 'deadlines',
+                        name: 'ops-incident-manage-deadlines',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_deadlines',
+                           icon: PrimeIcons.CLOCK,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Deadlines.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Deadlines.vue')
+                        }
+                     },
+                     {
+                        path: 'closure',
+                        name: 'ops-incident-manage-closure',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_closure',
+                           icon: PrimeIcons.CHECK_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Closure.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Closure.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-incident-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Documents.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-incident-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_incident_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/incident/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/incident/tabs/Media.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':incidentId/log/add',
+                  name: 'ops-incident-log-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_log_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'incident_log' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/LogUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/LogUpsert.vue')
+                  }
+               },
+               {
+                  path: 'log/:id/edit',
+                  name: 'ops-incident-log-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_log_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'incident_log' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/LogUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/LogUpsert.vue')
+                  }
+               },
+               {
+                  path: ':incidentId/deadline/add',
+                  name: 'ops-incident-deadline-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_deadline_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'incident_deadline' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue')
+                  }
+               },
+               {
+                  path: 'deadline/:id/edit',
+                  name: 'ops-incident-deadline-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_incident_deadline_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'incident_deadline' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue')
                   }
                }
             ]
