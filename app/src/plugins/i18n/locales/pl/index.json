@@ -488,7 +488,8 @@
       "incident_close_management": "Only management closes an S1 incident.",
       "incident_closed": "The incident is closed; its log and deadlines no longer change.",
       "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
-      "gate_incident_invalid": "Pick an open incident of this project's customer."
+      "gate_incident_invalid": "Pick an open incident of this project's customer.",
+      "incident_severity_downgrade_requires_management": "Only management may lower an S1 or S2 incident's severity."
    },
    "account": {
       "profile": {

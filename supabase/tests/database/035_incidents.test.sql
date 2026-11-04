@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- them. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(23);
+SELECT plan(25);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -72,6 +72,9 @@ SELECT throws_ok($$ UPDATE public.incident SET entity_id = '00000000-0000-4000-8
 SELECT throws_ok($$ UPDATE public.incident SET status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_management_notice_required', 'S1 leaves open only once management is told');
 
+SELECT throws_ok($$ UPDATE public.incident SET severity = 's3', status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+                 '42501', 'incident_severity_downgrade_requires_management', 'only management lowers an S1 or S2');
+
 UPDATE public.incident SET management_notified_at = '2026-11-06 09:30+00', status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011';
 
 SELECT throws_ok($$ UPDATE public.incident SET status = 'closed' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
@@ -87,6 +90,8 @@ WHERE id = '00000000-0000-4000-8000-000000035011';
 
 SELECT is((SELECT status || ':' || (closed_on = current_date) FROM public.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
           'closed:true', 'closing dates it');
+SELECT lives_ok($$ UPDATE public.incident SET severity = 's3' WHERE id = '00000000-0000-4000-8000-000000035012' $$,
+                'management lowers an S2');
 SELECT throws_ok($$ INSERT INTO public.incident_log (tenant_id, incident_id, note) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035011', 'late note') $$,
                  '23514', 'incident_closed', 'a closed incident''s log no longer changes');
 SELECT throws_ok($$ UPDATE public.incident SET status = 'open' WHERE id = '00000000-0000-4000-8000-000000035011' $$,

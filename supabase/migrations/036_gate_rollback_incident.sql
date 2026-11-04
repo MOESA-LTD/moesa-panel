@@ -13,7 +13,8 @@
 --                                    closed
 --
 -- private.project_gate_guard is CREATE OR REPLACE with the 032_gate_links.sql body otherwise
--- unchanged; its grants stay. public.rollback_gate gains the incident argument (DEFAULT NULL, so a
+-- unchanged, except that a pass clears rolled_back_reason and rolled_back_incident_id (a re-passed
+-- gate does not keep its last rollback's incident); its grants stay. public.rollback_gate gains the incident argument (DEFAULT NULL, so a
 -- call without it reaches the guard and is refused with gate_rollback_incident_required) and sets
 -- it on every gate it rolls back; otherwise the 021_projects.sql body. The two-argument function is
 -- dropped first, so the call resolves to one function.
@@ -195,6 +196,9 @@ BEGIN
     PERFORM set_config(pass_flag, '1', TRUE);
 
     NEW.passed_at := coalesce(NEW.passed_at, now());
+    -- A pass clears the last rollback, so the next rollback names its own reason and incident.
+    NEW.rolled_back_incident_id := NULL;
+    NEW.rolled_back_reason := NULL;
     RETURN NEW;
 END;
 $$;

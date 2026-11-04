@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- remembered on the gate. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(6);
+SELECT plan(8);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -55,6 +55,14 @@ SELECT is((SELECT status || ':' || rolled_back_incident_id FROM public.project_g
           'rolled_back:00000000-0000-4000-8000-000000036021', 'the gate remembers the incident');
 SELECT is((SELECT count(*)::INT FROM public.project_gate WHERE rolled_back_incident_id = '00000000-0000-4000-8000-000000036021'), 1,
           'the incident lists the gate it rolled back');
+
+-- Passed again, G1 drops its last rollback: a direct rollback names its own incident.
+SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief ok again', current_date, '00000000-0000-4000-8000-000000036011');
+SELECT throws_ok($$ UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'brief changed again'
+                    WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1' $$,
+                 '23514', 'gate_rollback_incident_required', 'a re-passed gate does not keep its old incident');
+SELECT lives_ok($$ SELECT public.rollback_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief changed again', '00000000-0000-4000-8000-000000036021') $$,
+                'naming an open incident rolls it back again');
 
 SELECT * FROM finish();
 

@@ -479,6 +479,7 @@
       "incident_management_notice_required": "S1 and S2 incidents need the time management was told first.",
       "incident_closure_incomplete": "Fill the outcome, the root cause and the preventive action before closing.",
       "incident_close_management": "Only management closes an S1 incident.",
+      "incident_severity_downgrade_requires_management": "Only management may lower an S1 or S2 incident's severity.",
       "incident_closed": "The incident is closed; its log and deadlines no longer change.",
       "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
       "gate_incident_invalid": "Pick an open incident of this project's customer.",

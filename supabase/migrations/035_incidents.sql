@@ -42,6 +42,9 @@
 --                                        action
 --   incident_close_management            closing an s1 without the right to change the company
 --                                        (insufficient_privilege)
+--   incident_severity_downgrade_requires_management
+--                                        lowering an s1 or s2 without that right
+--                                        (insufficient_privilege)
 --   incident_closed                      writing the log or deadlines of a closed incident
 -- and the constraints the UI names: incident_type_format (a Y10 card code), incident_entity_pair
 -- and incident_entity_kind (the linked record), incident_log_cost_complete (a cost with its
@@ -312,8 +315,8 @@ UPDATE ON public.incident FOR EACH ROW
 EXECUTE FUNCTION private.incident_notice_due ();
 
 -- The incident's rules (see the header), in this order: the fixed code, customer and family
--- (whatever the bypass flag); the Y10 card's family; the linked record; the status flow; the
--- management notice; what closing needs.
+-- (whatever the bypass flag); the Y10 card's family; the linked record; lowering an s1 or s2; the
+-- status flow; the management notice; what closing needs.
 CREATE OR REPLACE FUNCTION private.incident_guard () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -344,6 +347,15 @@ BEGIN
         OR NEW.entity_id IS DISTINCT FROM OLD.entity_id
     ) AND private.entity_customer(NEW.entity_type, NEW.entity_id, NEW.tenant_id) IS DISTINCT FROM NEW.customer_id THEN
         RAISE EXCEPTION 'incident_entity_invalid' USING ERRCODE = 'check_violation';
+    END IF;
+
+    -- Lowering an s1 or s2 (the enum orders s1 < s2 < s3) needs the management right, so a
+    -- downgrade does not get around the management notice or the s1 closure.
+    IF TG_OP = 'UPDATE' AND OLD.severity IN ('s1', 's2') AND NEW.severity > OLD.severity
+       AND coalesce(cardinality(
+           private.tenants_permitting(auth.uid(), ARRAY[NEW.tenant_id], 'public.tenant', 'update')
+       ), 0) = 0 THEN
+        RAISE EXCEPTION 'incident_severity_downgrade_requires_management' USING ERRCODE = 'insufficient_privilege';
     END IF;
 
     IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
