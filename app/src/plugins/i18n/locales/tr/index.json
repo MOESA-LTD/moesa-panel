@@ -2747,5 +2747,193 @@
             }
          }
       }
+   },
+   "terms": {
+      "S05": {
+         "short": "Pazar matrisi: ürün, platform ve ülke başına bir hücre; durumu, uyumu ve listing verisiyle.",
+         "long": "S05 müşteri başına tek kayıttır; ürün ve pazar eklendikçe büyür, çapraz tablo hücrelerden türetilir. Her hücre adaydan yayına dokuz durumdan geçer; uyumu kırmızı olan hücre nedeniyle çıkarılır. Panelde Pazar matrisi sayfasıdır."
+      },
+      "S07": {
+         "short": "Spec sheet: üreticinin üreteceği ürün için imzaladığı teknik föy.",
+         "long": "Formu MOESA değil üretici doldurur; resmî e-postadan, imzalı, kaşeli, sürüm numaralı ve tarihli gelmezse taslaktır. İmzalı spec sheet olmadan [[G2]] geçilmez, sipariş ve sevkiyat yapılmaz. Her değişiklik [[S08]] ile yeni sürüm ister; eski sürüm geçersiz olarak saklanır."
+      },
+      "S08": {
+         "short": "Değişiklik talebi: onaylanmış hiçbir şey talep olmadan değişmez.",
+         "long": "Eski ve yeni değeri birebir, nedeni, maliyet, süre, kalite ve listing etkisini ve kararı kaydeder. Geçmiş bir [[(M)]] kapıyı etkileyen değişiklik müşterinin yazılı onayını da ister. Uygulanınca etkilenen her belge yeni sürüm alır; talebin kodu CR-müşteri-yıl-sıra biçimindedir."
+      },
+      "S09": {
+         "short": "PI kontrol listesi: tedarikçinin her proforma faturası onaydan önce 30 maddeyle kontrol edilir.",
+         "long": "Her [[PI]] ve her düzeltilmiş sürümü satır satır kontrol edilir; hesaplar kopyalanmaz, yeniden yapılır. Tek bir hatalı ya da eksik madde PI'ı tedarikçiye geri gönderir ve ödeme yapılmaz. Onaylı PI siparişin satırlarını ve şartlarını kilitler ve [[G3]]'ün kanıtıdır."
+      },
+      "S10": {
+         "short": "Ürün ana tablosu: ürün verisinin tek doğru kaynağı; her varyant için bir satır.",
+         "long": "Bir varyant bir [[SKU]], bir [[GTIN]] ve bir satırdır; GTIN doğrulanır ve iki kez kullanılmaz. Siparişler, pazar matrisi, listing'ler ve etiketler ürün verisini buradan alır. Panelde Ürünler sayfasıdır; elle ya da S10 CSV'si içe aktarılarak doldurulur."
+      },
+      "S11": {
+         "short": "PSI kontrol listesi: yükleme öncesi kontrolde ürüne özel neyin kontrol edileceği.",
+         "long": "Uyum ve kalite formu kontrolden önce ürüne özel doldurur; kontrol malın en az %80'i paketlenmişken yapılır. Her ölçüm spec sheet değerinin yanına yazılır, her kusur sınıfı ve fotoğrafıyla girilir. Kontrol firmasının geçti ya da kaldı sonucu karar değildir; kararı uyum ve kalite verir ve rapor [[G4]]'ün kanıtıdır."
+      },
+      "S12": {
+         "short": "Uyum belge seti: her ürün tipinin gerektirdiği belgeler, varyant başına.",
+         "long": "[[G3]]'ten sonraki üç iş günü içinde her model ya da varyant için ayrı doldurulur; bir aile için tek dosya yetmez. Her belge var, eksik ya da gerekçesiyle gerekmiyor olarak işaretlenir; imzasız ya da tarihsiz belge var sayılmaz. [[G4]] için eksik belge sayısı sıfır olmalıdır."
+      },
+      "S13": {
+         "short": "Listing yayın öncesi kontrol: her platform ve ülke hücresi yayına çıkmadan önce doldurulur.",
+         "long": "Bir ülke için doldurulan form başka ülkeye kopyalanmaz. Tek bir 'hayır' düzeltilene ya da değişiklik talebi açılana kadar yayını durdurur; belgeleri ve uyum metnini uyum ve kalite imzalar. Müşterinin [[L-G1]] onayı kaydedilmeden hücre yayında sayılmaz."
+      },
+      "S14": {
+         "short": "Depo teslim kartı: her teslim adresi için müşterinin teyit ettiği bir kart.",
+         "long": "Bir deponun adresini, rampa saatlerini, araç sınırlarını ve randevu kuralını verir; iletişim kişi bilgisi değil rol ve kanaldır. Her sevkiyattan önce yeniden teyit alınır; kartı olmayan depoya sevkiyat planlanmaz. Panelde müşterinin Depolar sekmesidir."
+      },
+      "S15": {
+         "short": "Sevkiyat bildirim zinciri: her sevkiyatta kim kime, ne zaman, hangi kanaldan bildirir.",
+         "long": "Yüklemeden önce forwarder, gümrük müşaviri, müşteri ve depoya tek e-posta zinciriyle gönderilir; sonraki tüm yazışma bu zincirde kalır. Telefonla öğrenilen her bilgi aynı gün zincire yazılır. Panelde adımları sevkiyatın Olaylar sekmesidir."
+      },
+      "S16": {
+         "short": "Teslim kabul formu: sayım, hasar ve rezervler; araç ayrılmadan imzalanır.",
+         "long": "Eksik, fazla ya da hasar sürücünün imzaladığı bir rezerv olarak yazılır; rezervsiz teslimde taşıyıcıya sonradan itiraz zorlaşır. Palet etiketi, konteyner kapısı ve mühür fotoğrafları zorunludur. İmzalı form [[G5]]'in kanıtı ve faturanın şartıdır."
+      },
+      "S17": {
+         "short": "Olay kaydı: ne olduğu, günlüğü ve süreleri, kapanışta çıkan ders.",
+         "long": "Olayı gören kişi 15 dakika içinde açar ve tahmin yerine 'bilinmiyor' yazar; koordinatör 30 dakika içinde sınıflandırır. Her temas, karar ve maliyet günlüğe girer. Önlem ilgili yönergeye işlenmeden kapanmış sayılmaz ([[Y10]])."
+      },
+      "Y10": {
+         "short": "Olay ve kurtarma yönergesi: bir şey ters gittiğinde ilk saatte ne yapılacağı.",
+         "long": "Her olay aynı altı adımı izler: kayda al, sınıflandır, durdur ve koru, haber ver, kurtar, kapat ve öğren. [[S1]]–[[S3]] şiddetlerini bildirim süreleriyle, kaçırılmayacak süre sınırlarını ve aileye göre kodlanmış olay kartlarını (ör. geciken sevkiyat için [[OL]]-09) belirler. Diğer yönergelerin 'Ters giderse' bölümleri bu kartlara bağlanır."
+      },
+      "K5": {
+         "short": "Kodları panel üretir; elle değiştirilmez.",
+         "long": "Müşterinin üç harfli kodu vardır; projeler, siparişler, sevkiyatlar, değişiklik talepleri ve olaylar bundan PO-THO-2026-001 gibi sıralı kodlar alır. Sayaçlar veritabanında müşteri ve yıl bazında tutulur; iki kullanıcı aynı numarayı almaz. Olay kodu ailesiyle başlar ([[OL]], [[OA]], [[OU]], [[OT]], [[OM]])."
+      },
+      "K6": {
+         "short": "Yönetim kararı bekleyen sayılar sabit kural değil, ayardır.",
+         "long": "Varsayılan depozito, spec sheet tarihi, belge talebi süresi ve olay bildirim saatleri Ayarlar sayfasındadır. Yalnızca yönetim değiştirir ve her değişiklik kayda geçer. Kurallar her kayıtta güncel değeri okur."
+      },
+      "K7": {
+         "short": "Panel Türkçe ve İngilizce yazılır; süreç kodları her dilde aynı kalır.",
+         "long": "Ekranlar, ipuçları ve rehberler Türkçe ve İngilizce elle yazılır; diğer diller şimdilik İngilizce metni gösterir. [[G2]], [[S09]] ya da [[L-G1]] gibi kodlar çevrilmez; bir kod her belgede ve konuşmada aynı şeyi anlatır."
+      },
+      "K8": {
+         "short": "Hassas veri panelde saklanmaz.",
+         "long": "Banka bilgisi, vergi ya da EORI numarası, şifre ve platform vaka numarası için alan yoktur. Müşteri ve tedarikçi kartları bunun yerine kısıtlı bir Drive klasörüne bağlanır. İletişim kişisel telefon ya da e-posta değil, rol ve resmî kanaldır."
+      },
+      "A0": {
+         "long": "A0 paketi ürün geliştirilmeden önceki araştırma ve konsept işidir: pazar araştırması, onaylı konsept, tasarım ve marka dosyası. PL1–PL3 aşamalarını kapsar ve konsept onayı [[PL-G1]] ile biter. [[A2]]'nin parçasıdır."
+      },
+      "A1": {
+         "long": "A1 paketi mevcut bir markanın ya da üreticinin ürününü bulur, onaylatır ve kalitesini kontrol eder. P1–P4 aşamalarından [[G1]]–[[G4]] kapılarıyla geçer: brief, numune ve spec sheet, sipariş, kontrol."
+      },
+      "A2": {
+         "long": "A2 paketi müşterinin kendi markasıyla ürünü konseptten itibaren geliştirir; P1 ile P3 arasında [[PL-G1]]–[[PL-G4]] private label kapılarından geçer. [[A0]]'ı içerir ve seri üretimden önce altın numune ister."
+      },
+      "B": {
+         "long": "B paketi malı tedarikçiden müşterinin deposuna getirir: ambalaj, lojistik, gümrük ve teslim (P5–P6). [[G4]]'ten sonra başlar ve [[G5]] teslim kabulüyle biter."
+      },
+      "C": {
+         "long": "C paketi ürünü satışa çıkarır: seçilen platform ve ülkelerde içerik, listing ve açılış (L1–L5). Her platform ve ülke pazar matrisinde bir hücredir ([[S05]]); içerik yayından önce [[L-G1]] ister."
+      },
+      "D": {
+         "long": "D paketi uçtan uca hizmettir: [[A1]] ya da [[A2]], ardından [[B]] ve [[C]]; fikirden satışa hazır ürüne tek muhatap. Projesi tüm parçalarının kapılarını taşır."
+      },
+      "E": {
+         "long": "E paketi açılıştan sonraki sürekli yönetimdir: yeniden sipariş, listing bakımı ve raporlama (O1–O3). Kendi projesini açmaz; her yeniden sipariş [[G3]]'ten başlayan bir reorder projesi açar."
+      },
+      "G1": {
+         "long": "Müşteri brief'i ve fizibiliteyi yazılı onaylar; tedarik çalışması ancak bundan sonra başlar. Kanıt onay e-postası ya da e-imzadır."
+      },
+      "G2": {
+         "long": "Müşteri numuneyi, spec sheet'i ve NPDS'yi yazılı onaylar. İmzalı spec sheet ([[S07]]) olmadan geçilmez; panelde bağlı her ürünün imzalı ya da onaylı spec sheet'i olana kadar engelleyicidir."
+      },
+      "G3": {
+         "long": "Müşteri üretimden önce fiyatı, [[PI]]'ı ve baskı dosyalarını yazılı onaylar. Panelde projenin siparişlerinden birinin PI'ı onaylanana kadar engelleyicidir ([[S09]])."
+      },
+      "G4": {
+         "long": "İç kapı: [[PSI]] geçip belgeler tamamlanınca ([[S12]]) mal sevkiyata bırakılır. Onay uyum ve kalitededir; bakiye bundan önce ödenmez."
+      },
+      "G5": {
+         "long": "Müşteri teslimi kendi deposunda kabul eder. İmzalı teslim tutanağı ([[S16]]) kanıttır ve faturanın şartıdır."
+      },
+      "PL_G1": {
+         "long": "Müşteri araştırma ve konseptin sonunda (PL1–PL2) konsepti ve tasarımı yazılı onaylar. Marka ve ürün geliştirme ancak bundan sonra başlar."
+      },
+      "PL_G2": {
+         "long": "Müşteri markayı ve kimliğini onaylar: ad, logo, renkler ve ton (PL3). Ambalaj ve içerik çalışması bunun üzerine kurulur."
+      },
+      "PL_G3": {
+         "long": "Müşteri seri üretimin referansı olan altın numuneyi onaylar. Fotoğraf ve içerik üretim bitmeden ondan başlar; [[PSI]] malı onunla karşılaştırır."
+      },
+      "PL_G4": {
+         "long": "Müşteri ambalaj artwork'ünü baskıya gitmeden onaylar (PL6). Artwork [[GTIN]]'i, uyarıları ve hedef ülkelerin işaretlerini taşır."
+      },
+      "L_G1": {
+         "long": "Müşteri listing içeriğini yayından önce yazılı onaylar. İçerik onaylı değilse pazar hücresi yayına alınamaz ([[S13]])."
+      },
+      "L_G2": {
+         "long": "Müşteri açılıştan sonra projenin kapanışını kabul eder; pazar matrisinin ([[S05]]) son hâli teslim dosyasına girer."
+      },
+      "M_gate": {
+         "short": "(M) işaretli kapı müşterinin yazılı onayını ister.",
+         "long": "Onay e-posta ya da e-imzayla gelir ve kapının belgesi olarak saklanır; sözlü ya da mesajla verilen onay aynı gün e-postayla teyit ettirilir. Panelde (M) kapı yalnızca müşteri onay tarihi ve belgesiyle geçer. Geçmiş bir (M) kapının onayladığı şeyi değiştirmek müşterinin yazılı onaylı bir değişiklik talebini ister ([[S08]])."
+      },
+      "OL": {
+         "long": "Sevkiyat ve teslim olaylarının kartları OL-01 ile OL-12 arasıdır; yanlış araçtan reddedilen FBA gönderimine kadar. Çoğu bir depoda ya da limanda başlar; [[S14]], [[S15]] ve [[S16]] bunları önlemek içindir."
+      },
+      "OA": {
+         "long": "Platform olaylarının kartları OA-01 ile OA-10 arasıdır: kaldırılan ya da bastırılan listing, belge talebi, [[ASIN]] ya da [[EAN]] çakışması, hesap sağlığı. Platform vaka numarası panele yazılmaz ([[K8]])."
+      },
+      "OU": {
+         "long": "Ürün ve uyum olaylarının kartları OU-01 ile OU-06 arasıdır: geçmeyen [[PSI]], teslimde red, geri çağırma, eksik yasal etiket, geçersiz test raporu. Yeniden yapılması gereken kapı bu tür bir olay üzerinden geri alınır."
+      },
+      "OT": {
+         "long": "Tedarikçi olaylarının kartları OT-01 ile OT-08 arasıdır: habersiz spec değişikliği, üretim gecikmesi, [[PI]] ya da fatura tutarsızlığı, kalıp ya da fikri mülkiyet sorunu, banka bilgisi dolandırıcılığı, yanıtsızlık, fiyat artışı. Tedarikçinin PI şartları 48 saatlik hasar bildirimi gibi süreleri belirler."
+      },
+      "OM": {
+         "long": "Müşteri olaylarının kartları OM-01 ile OM-06 arasıdır: sözlü değişiklik, ödeme gecikmesi, ek maliyet reddi, uyuşmazlık, cevapsızlık, dış hizmet sağlayıcı ya da fikri mülkiyet. Sözlü değişiklik aynı gün yazıya geçer ve değişiklik talebi olarak işlenir ([[S08]])."
+      },
+      "S1": {
+         "long": "Mal, para ya da hesap risk altındadır: hasarlı ya da kayıp mal, gümrükte tutulan mal, kapanan listing ya da hesap, geri çağırma, ödeme kaybı. Yönetime hemen telefonla ve yazılı, müşteriye 4 saat içinde bildirilir. S1 olayını yalnızca yönetim kapatır."
+      },
+      "S2": {
+         "long": "Teslim ya da yayın tarihi kayar veya ek maliyet çıkar: bekleme ücreti, ikinci sefer, yeniden etiketleme, belge talebi. Yönetime aynı gün yazılı, müşteriye aynı iş günü bildirilir. Olay yönetime bildirilmeden açık durumdan çıkmaz."
+      },
+      "S3": {
+         "long": "Teslim ve maliyet etkilenmez: evrak düzeltmesi, küçük sayım farkı, bilgilendirme. Haftalık toplantıda ve müşterinin haftalık özetinde bildirilir."
+      },
+      "PI": {
+         "short": "Proforma fatura: tedarikçinin ürün, fiyat, toplam ve şartları içeren ön faturası.",
+         "long": "Depozito buna göre ödendiği için her ödemeden önce [[S09]] ile kontrol edilir. Bir PI'ın yalnızca tek dosya sürümü geçerlidir; düzeltilmiş PI yeni sürümdür. Onayı [[G3]]'ün kanıtıdır ve satın alma siparişini kilitler."
+      },
+      "PSI": {
+         "short": "Yükleme öncesi kontrol: mal yüklenmeden önce yapılan kalite kontrolü.",
+         "long": "Dış kontrol firması ya da güvenilir yerel temsilci malı AQL standardıyla, [[S11]] listesine göre spec sheet'le karşılaştırır. Bakiye yalnızca onaylı PSI raporundan sonra ödenir ve [[G4]] bu raporu ister. Geçmeyen PSI bir [[OU]] olayıdır."
+      },
+      "ETD": {
+         "short": "Sevkiyatın tahmini çıkış zamanı.",
+         "long": "Forwarder booking'de verir; sevkiyatın Tarihler sekmesinde tutulur. Kayınca müşteriye bildirilir; geciken sevkiyat genelde [[OL]]-09 olayı açar."
+      },
+      "ETA": {
+         "short": "Varış deposuna tahmini varış zamanı.",
+         "long": "Forwarder değişiklik bildirdikçe güncellenir ve her değişiklik müşteriye iletilir ([[S15]]). Dashboard sevkiyatları ETA'larına göre listeler. [[ETD]] ve ETA olmadan sevkiyat yolda durumuna geçmez."
+      },
+      "CMR": {
+         "short": "CMR sözleşmesine göre kara yolu taşıma senedi.",
+         "long": "Her tır sevkiyatında, örneğin Türkiye'den AB'ye, araçla gider. Hasar ya da eksik teslimde üzerine yazılır; gizli hasar taşıyıcıdan 7 gün içinde istenir. Eksik ya da hatalı CMR bir [[OL]]-07 olayıdır."
+      },
+      "GTIN": {
+         "short": "Global Trade Item Number: ürünü dünya genelinde tanımlayan barkod numarası.",
+         "long": "[[EAN]], UPC ve benzerlerinin genel adıdır: kontrol basamaklı 8, 12, 13 ya da 14 hane, GS1'den alınır. Bir varyantın bir GTIN'i olur; panel kontrol basamağını doğrular ve başka aktif üründe kullanılan GTIN'i reddeder. Arşivlenen ürünün GTIN'i yeniden verilebilir."
+      },
+      "EAN": {
+         "short": "European Article Number: barkodun altındaki 13 haneli GTIN.",
+         "long": "Perakende ve Amazon listing açmak için ister. İki farklı pakette aynı EAN listing'leri birleştiren bir hatadır ([[OA]]-05). Panelde ürünün [[GTIN]]'i olarak girilir."
+      },
+      "ASIN": {
+         "short": "Amazon Standard Identification Number: Amazon'daki ürün sayfasının 10 karakterlik kimliği.",
+         "long": "Amazon listing açılınca verir; aynı ASIN'i birden çok satıcı satabilir. Panelde Amazon pazar hücresinin platform ürün kimliğidir; hücre yayına çıkmadan önce gerekir ([[S05]])."
+      },
+      "SKU": {
+         "short": "Stok kodu: satıcının bir ürün varyantı için kendi kodu.",
+         "long": "Bir varyant bir SKU ve ürün ana tablosunda bir satırdır ([[S10]]); platform ya da ülke içermez. Pazar yerinde aynı ürünün kendi platform SKU'su olabilir; pazar hücresinde tutulur. SKU benzersizdir."
+      }
    }
 }
