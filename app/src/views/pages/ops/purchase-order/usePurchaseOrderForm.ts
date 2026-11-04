@@ -12,7 +12,6 @@ import { piDifferences, type FigureLine } from '@/api/purchaseOrder/figures';
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import { useCustomerFilter } from '@/store/customerFilter';
 import { computed, inject, ref, type InjectionKey, type Ref } from 'vue';
-import { useRoute } from 'vue-router';
 
 /**
  * The purchase order card's tabs: the form's general tab, the lines, the PI check (the form's PI
@@ -35,23 +34,27 @@ export const tabForField = (field: string): 'general' | 'pi' =>
 
 const queryValue = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
 
+/** The customer and project a link opens a new order for (?customer_id=…&project_id=…). */
+export type PurchaseOrderLink = { customerId?: unknown; projectId?: unknown };
+
 /**
  * The order card's one form: the general and PI tabs each show their part of it. A new order
  * starts with the customer the lists are filtered by, or the customer and project a link names
- * (?customer_id=…&project_id=…). Once a new order is saved, its "new" draft is dropped: the card
- * goes on under the order's id (see PurchaseOrderCard).
+ * (?customer_id=…&project_id=…). The route passes those as props: a route dialog renders the page
+ * outside the router, where useRoute sees the page under the dialog. Once a new order is saved, its
+ * "new" draft is dropped: the card goes on under the order's id (see PurchaseOrderCard).
  */
 export function usePurchaseOrderForm(
    id: () => string | null | undefined,
-   onSaved?: (order: PurchaseOrderCard) => void
+   onSaved?: (order: PurchaseOrderCard) => void,
+   link: PurchaseOrderLink = {}
 ) {
    const customerFilter = useCustomerFilter();
-   const route = useRoute();
    const isNew = !id();
 
    const prefill = () => {
-      const customerId = queryValue(route.query.customer_id) ?? customerFilter.customerId;
-      const projectId = queryValue(route.query.project_id);
+      const customerId = queryValue(link.customerId) ?? customerFilter.customerId;
+      const projectId = queryValue(link.projectId);
       return {
          ...(customerId ? { customer_id: customerId } : {}),
          ...(projectId ? { project_id: projectId } : {})

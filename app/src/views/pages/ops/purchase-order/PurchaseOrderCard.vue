@@ -23,13 +23,18 @@ import {
    purchaseOrderPiCheck,
    tabForField,
    usePurchaseOrderForm,
-   type PurchaseOrderCardTab
+   type PurchaseOrderCardTab,
+   type PurchaseOrderLink
 } from './usePurchaseOrderForm';
 
 // The purchase order card: a header (code, supplier, status, the status actions) and the tabs
 // around its one form, which the general and PI tabs share. The other tabs belong to a saved order.
 // Manage re-creates the card when a new order is saved, so the form goes on under its id.
-const props = defineProps<{ id: string | null }>();
+const props = defineProps<{
+   id: string | null;
+   /** A new order's customer and project, when a project's link names them. */
+   link?: PurchaseOrderLink;
+}>();
 const emit = defineEmits<{ saved: [order: PurchaseOrderCard] }>();
 defineSlots<{
    /** Next to the status: what may be done with the order (StatusActions). */
@@ -40,7 +45,8 @@ const activeTab = defineModel<PurchaseOrderCardTab>('tab', { default: 'general' 
 
 const form = usePurchaseOrderForm(
    () => props.id,
-   (order) => emit('saved', order)
+   (order) => emit('saved', order),
+   props.link
 );
 await form.ready;
 

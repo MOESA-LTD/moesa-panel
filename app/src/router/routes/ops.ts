@@ -18,6 +18,14 @@ const shipmentLineProps = (route: RouteLocationNormalized) => ({
    purchaseOrderLineId: route.query.purchaseOrderLineId ?? null
 });
 
+// A new purchase order opened from a project names its customer and project in the query. A route
+// dialog renders the page outside the router, so the page gets them as props, not from useRoute.
+const purchaseOrderProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   customer_id: route.query.customer_id ?? null,
+   project_id: route.query.project_id ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -847,7 +855,7 @@ const routes: RouteRecordRaw[] = [
                   // The purchase order card: its tabs open on their own as these child routes.
                   path: ':id?/manage/:tab?',
                   name: 'ops-purchase-order-manage',
-                  props: true,
+                  props: { default: purchaseOrderProps, skeleton: purchaseOrderProps },
                   meta: {
                      label: 'route.label.ops_purchase_order_manage',
                      icon: PrimeIcons.SHOPPING_CART,

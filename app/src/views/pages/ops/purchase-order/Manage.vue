@@ -9,6 +9,9 @@ const props = defineProps<{
    id?: string | null;
    /** The tab opened first (the route's tab segment). */
    tab?: string | null;
+   /** A new order's customer and project, from a project's link (the route's query). */
+   customer_id?: string | null;
+   project_id?: string | null;
 }>();
 
 const route = useRoute();
@@ -43,6 +46,7 @@ const onSaved = (id: string) => (orderId.value = id);
       <PurchaseOrderCard
          :key="orderId ?? 'new'"
          :id="orderId"
+         :link="{ customerId: props.customer_id, projectId: props.project_id }"
          v-model:tab="activeTab"
          @saved="onSaved($event.id)"
       />

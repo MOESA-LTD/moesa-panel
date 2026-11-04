@@ -175,11 +175,16 @@ describe('usePurchaseOrderForm', () => {
       expect(api.options!.prefill()).toEqual({ customer_id: 'c-filter' });
    });
 
-   it('takes the customer and project from the route over the filter', () => {
+   it("takes the customer and project from the link's props over the filter", () => {
       api.customerId = 'c-filter';
-      api.query = { customer_id: 'c-route', project_id: 'pr1' };
+      usePurchaseOrderForm(() => null, undefined, { customerId: 'c-link', projectId: 'pr1' });
+      expect(api.options!.prefill()).toEqual({ customer_id: 'c-link', project_id: 'pr1' });
+   });
+
+   it('ignores the query of the page under a route dialog', () => {
+      api.query = { customer_id: 'c-under', project_id: 'pr-under' };
       usePurchaseOrderForm(() => null);
-      expect(api.options!.prefill()).toEqual({ customer_id: 'c-route', project_id: 'pr1' });
+      expect(api.options!.prefill()).toEqual({});
    });
 
    it('leaves the locked terms out of the payload of an approved order', () => {
