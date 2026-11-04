@@ -45,6 +45,14 @@ export const incidentProps = (route: RouteLocationNormalized) => ({
    entity_id: route.query.entity_id ?? null
 });
 
+// A new change request opened from a link names its customer and project in the query; a route
+// dialog renders the page outside the router, so the card gets them as props.
+export const changeRequestProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   customer_id: route.query.customer_id ?? null,
+   project_id: route.query.project_id ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -64,7 +72,8 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'setting' },
             { action: 'select', subject: 'media' },
             { action: 'select', subject: 'market_cell' },
-            { action: 'select', subject: 'incident' }
+            { action: 'select', subject: 'incident' },
+            { action: 'select', subject: 'change_request' }
          ]
       },
       components: {
@@ -1597,6 +1606,128 @@ const routes: RouteRecordRaw[] = [
                      default: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/incident/DeadlineUpsert.vue')
                   }
+               }
+            ]
+         },
+         {
+            // Change requests (S08): what changes in an approved product or project, its impact,
+            // who approved it and the new document version it produced.
+            path: 'change-requests',
+            name: 'ops-change-request',
+            meta: {
+               label: 'route.label.ops_change_request',
+               icon: PrimeIcons.SYNC,
+               requiredPermissions: [{ action: 'select', subject: 'change_request' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-change-request-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-change-request-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-change-request-list',
+                  meta: {
+                     label: 'route.label.ops_change_request_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'change_request' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/change-request/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/change-request/Index.vue')
+                  }
+               },
+               {
+                  // The change request card: its tabs open on their own as these child routes. A
+                  // record card opens for readers too; the form is read-only without update.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-change-request-manage',
+                  props: { default: changeRequestProps, skeleton: changeRequestProps },
+                  meta: {
+                     label: 'route.label.ops_change_request_manage',
+                     icon: PrimeIcons.SYNC,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'change_request' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/change-request/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/change-request/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-change-request-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/General.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'impact',
+                        name: 'ops-change-request-manage-impact',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_impact',
+                           icon: PrimeIcons.CHART_LINE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/Impact.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/Impact.vue')
+                        }
+                     },
+                     {
+                        path: 'decision',
+                        name: 'ops-change-request-manage-decision',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_decision',
+                           icon: PrimeIcons.CHECK_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/Decision.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/Decision.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-change-request-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_change_request_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/change-request/tabs/Documents.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/change-request/tabs/Documents.vue')
+                        }
+                     }
+                  ]
                }
             ]
          },

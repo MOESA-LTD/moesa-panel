@@ -578,7 +578,14 @@
          "ops_incident_log_add": "Günlük satırı",
          "ops_incident_log_edit": "Günlük satırı",
          "ops_incident_deadline_add": "Süre sınırı",
-         "ops_incident_deadline_edit": "Süre sınırı"
+         "ops_incident_deadline_edit": "Süre sınırı",
+         "ops_change_request": "Değişiklik talepleri",
+         "ops_change_request_list": "Liste",
+         "ops_change_request_manage": "Değişiklik talebi",
+         "ops_change_request_general": "Talep",
+         "ops_change_request_impact": "Etki",
+         "ops_change_request_decision": "Karar",
+         "ops_change_request_documents": "Belgeler"
       }
    },
    "fields": {
@@ -1989,6 +1996,73 @@
          "contact_hint": "Rol ve kanal; kişisel iletişim bilgisi yok.",
          "new_for_project": "Yeni olay",
          "no_rows": "Olay yok."
+      },
+      "change_request": {
+         "title": "Değişiklik talepleri",
+         "tabs": {
+            "general": "Talep",
+            "impact": "Etki",
+            "decision": "Karar",
+            "documents": "Belgeler"
+         },
+         "status": {
+            "open": "Açık",
+            "approved": "Onaylandı",
+            "rejected": "Reddedildi",
+            "applied": "Uygulandı"
+         },
+         "source": {
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "moesa": "MOESA",
+            "regulation": "Mevzuat-platform"
+         },
+         "urgency": {
+            "normal": "Normal (5 iş günü)",
+            "urgent": "Acil (24 saat)"
+         },
+         "kind": {
+            "spec": "Spec",
+            "design": "Tasarım",
+            "packaging": "Ambalaj, etiket, artwork",
+            "price": "Fiyat / adet",
+            "deadline": "Termin",
+            "supplier": "Tedarikçi değişikliği",
+            "content": "İçerik / listing"
+         },
+         "fields": {
+            "code": "Değişiklik talebi no",
+            "customer": "Müşteri",
+            "project": "Proje",
+            "products": "SKU'lar",
+            "title": "Başlık",
+            "source": "Kaynak",
+            "urgency": "Aciliyet",
+            "status": "Durum",
+            "decision_due_on": "Karar tarihi",
+            "change_kinds": "Değişikliğin türü",
+            "current_value": "Mevcut durum (eski değer)",
+            "requested_value": "İstenen durum (yeni değer)",
+            "reason": "Neden",
+            "affected_gate": "Etkilenen kapı",
+            "affected_record": "Etkilenen belgenin kaydı",
+            "affected_document": "Etkilenen belge ve mevcut sürüm",
+            "other_documents": "Etkilenen diğer belgeler",
+            "cost_impact": "Maliyet etkisi",
+            "cost_payer": "Kim öder",
+            "delay_days": "Süre etkisi (gün)",
+            "quality_impact": "Kalite / uyum etkisi",
+            "listing_impact": "Stok / listing etkisi",
+            "decision_note": "Karar notu",
+            "moesa_approved": "MOESA onayı",
+            "customer_approved_on": "Müşteri onay tarihi",
+            "customer_approval_document": "Müşteri onay belgesi",
+            "result_document": "Yeni sürüm",
+            "closed_on": "Kapanış tarihi"
+         },
+         "customer_approval_hint": "Geçmiş bir (M) kapıyı etkiliyor: müşterinin yazılı onayı şart (S08).",
+         "overdue": "Karar gecikti",
+         "no_rows": "Değişiklik talebi yok."
       }
    },
    "glossary": {

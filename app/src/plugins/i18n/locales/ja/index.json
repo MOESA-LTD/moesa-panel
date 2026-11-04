@@ -709,7 +709,14 @@
          "ops_incident_log_add": "Log line",
          "ops_incident_log_edit": "Log line",
          "ops_incident_deadline_add": "Deadline",
-         "ops_incident_deadline_edit": "Deadline"
+         "ops_incident_deadline_edit": "Deadline",
+         "ops_change_request": "Change requests",
+         "ops_change_request_list": "List",
+         "ops_change_request_manage": "Change request",
+         "ops_change_request_general": "Request",
+         "ops_change_request_impact": "Impact",
+         "ops_change_request_decision": "Decision",
+         "ops_change_request_documents": "Documents"
       }
    },
    "dashboard": {
@@ -1989,6 +1996,73 @@
          "contact_hint": "A role and a channel; no personal contact details.",
          "new_for_project": "New incident",
          "no_rows": "No incidents."
+      },
+      "change_request": {
+         "title": "Change requests",
+         "tabs": {
+            "general": "Request",
+            "impact": "Impact",
+            "decision": "Decision",
+            "documents": "Documents"
+         },
+         "status": {
+            "open": "Open",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "applied": "Applied"
+         },
+         "source": {
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "moesa": "MOESA",
+            "regulation": "Regulation or platform"
+         },
+         "urgency": {
+            "normal": "Normal (5 business days)",
+            "urgent": "Urgent (24 hours)"
+         },
+         "kind": {
+            "spec": "Spec",
+            "design": "Design",
+            "packaging": "Packaging, label, artwork",
+            "price": "Price or quantity",
+            "deadline": "Deadline",
+            "supplier": "Supplier change",
+            "content": "Content or listing"
+         },
+         "fields": {
+            "code": "Request no",
+            "customer": "Customer",
+            "project": "Project",
+            "products": "SKUs",
+            "title": "Title",
+            "source": "Source",
+            "urgency": "Urgency",
+            "status": "Status",
+            "decision_due_on": "Decision due",
+            "change_kinds": "Kinds of change",
+            "current_value": "Current (old value)",
+            "requested_value": "Requested (new value)",
+            "reason": "Reason",
+            "affected_gate": "Affected gate",
+            "affected_record": "Record of the affected document",
+            "affected_document": "Affected document and version",
+            "other_documents": "Other affected documents",
+            "cost_impact": "Cost impact",
+            "cost_payer": "Who pays",
+            "delay_days": "Delay (days)",
+            "quality_impact": "Quality / compliance impact",
+            "listing_impact": "Stock / listing impact",
+            "decision_note": "Decision note",
+            "moesa_approved": "MOESA approval",
+            "customer_approved_on": "Customer approved on",
+            "customer_approval_document": "Customer approval document",
+            "result_document": "New version",
+            "closed_on": "Closed on"
+         },
+         "customer_approval_hint": "It touches a passed (M) gate: the customer's written approval is required (S08).",
+         "overdue": "Decision overdue",
+         "no_rows": "No change requests."
       }
    },
    "glossary": {
