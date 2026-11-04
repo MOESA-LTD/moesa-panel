@@ -17,9 +17,11 @@ const constraintColumns = (message: string | undefined, fields: string[]) => {
 
 /**
  * Errors named by their constraint or raised message, and the one field and message they belong to.
- * Checked before the generic mapping, which would e.g. mark every column of a unique key.
+ * Checked before the generic mapping, which would e.g. mark every column of a unique key. An entry
+ * without a field documents a toast-level code (a status action's or an RPC's): it never maps to a
+ * field, and appErrorHandler shows `errors.<name>`.
  */
-const NAMED_ERRORS: { code: string; name: string; field: string; message: string }[] = [
+export const NAMED_ERRORS: { code: string; name: string; field?: string; message: string }[] = [
    {
       code: '23505',
       name: 'unique_document_version',
@@ -114,7 +116,83 @@ const NAMED_ERRORS: { code: string; name: string; field: string; message: string
       name: 'product_customer_id_sku_key',
       field: 'sku',
       message: 'errors.sku_in_use'
-   }
+   },
+   // Purchase orders (029_purchase_orders.sql, 030_purchase_order_rules.sql).
+   {
+      code: '23503',
+      name: 'purchase_order_customer_missing',
+      field: 'customer_id',
+      message: 'errors.purchase_order_customer_missing'
+   },
+   {
+      code: '23514',
+      name: 'purchase_order_immutable_field',
+      field: 'supplier_id',
+      message: 'errors.purchase_order_immutable_field'
+   },
+   {
+      code: '23514',
+      name: 'purchase_order_incoterm_valid',
+      field: 'incoterm',
+      message: 'errors.incoterm_invalid'
+   },
+   {
+      code: '23503',
+      name: 'purchase_order_project_fkey',
+      field: 'project_id',
+      message: 'errors.po_project_customer'
+   },
+   {
+      code: '23503',
+      name: 'purchase_order_line_product_fkey',
+      field: 'product_id',
+      message: 'errors.po_line_product_customer'
+   },
+   {
+      code: '23505',
+      name: 'unique_purchase_order_line_product',
+      field: 'product_id',
+      message: 'errors.po_line_product_duplicate'
+   },
+   {
+      code: '23514',
+      name: 'purchase_order_pi_check_valid',
+      field: 'pi_check',
+      message: 'errors.pi_check_invalid'
+   },
+   {
+      code: '23514',
+      name: 'po_spec_sheet_required',
+      field: 'spec_document_id',
+      message: 'errors.po_spec_sheet_required'
+   },
+   {
+      code: '23514',
+      name: 'po_line_spec_invalid',
+      field: 'spec_document_id',
+      message: 'errors.po_line_spec_invalid'
+   },
+   {
+      code: '23514',
+      name: 'po_pi_document_invalid',
+      field: 'pi_document_id',
+      message: 'errors.po_pi_document_invalid'
+   },
+   // A locked term on the order form, a locked line on the line form.
+   { code: '23514', name: 'po_locked', field: 'currency', message: 'errors.po_locked' },
+   { code: '23514', name: 'po_locked', field: 'quantity', message: 'errors.po_locked' },
+   // Raised by a status change, or by a child of a closed order: shown as a toast.
+   ...[
+      'po_status_order',
+      'po_lines_required',
+      'po_pi_required',
+      'po_pi_checklist_incomplete',
+      'po_pi_mismatch',
+      'po_deposit_unpaid',
+      'po_balance_unpaid',
+      'po_closed',
+      'po_line_identity_immutable'
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` }))
 ];
 
 /**
@@ -124,11 +202,13 @@ const NAMED_ERRORS: { code: string; name: string; field: string; message: string
 export function mapPostgrestError(error: unknown, fields: string[]): Record<string, string> | null {
    const { code, message, details } = (error ?? {}) as PostgrestLikeError;
 
-   const named = NAMED_ERRORS.find(
-      (entry) =>
-         entry.code === code && message?.includes(entry.name) && fields.includes(entry.field)
+   const matches = NAMED_ERRORS.filter(
+      (entry) => entry.code === code && message?.includes(entry.name)
    );
-   if (named) return { [named.field]: i18n.t(named.message) };
+   for (const { field, message: text } of matches)
+      if (field && fields.includes(field)) return { [field]: i18n.t(text) };
+   // A toast-level code belongs to no field, whatever the generic mapping would find.
+   if (matches.some(({ field }) => field === undefined)) return null;
 
    let columns: string[] = [];
    let text: string;

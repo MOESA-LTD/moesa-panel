@@ -531,7 +531,11 @@
       "project_gate": "Proje kapısı",
       "project_task": "Proje görevi",
       "media": "Ortam",
-      "media_link": "Ortam bağlantısı"
+      "media_link": "Ortam bağlantısı",
+      "purchase_order": "Satın alma siparişi",
+      "purchase_order_line": "Sipariş satırı",
+      "purchase_order_payment": "Sipariş ödemesi",
+      "purchase_order_update": "Üretim notu"
    },
    "dashboard": {
       "statistics": {
@@ -1320,6 +1324,123 @@
             "tags": "Etiketler",
             "customer": "Müşteri",
             "file_name": "Dosya"
+         }
+      },
+      "purchase_order": {
+         "title": "Satın alma (PO)",
+         "tabs": {
+            "general": "Genel",
+            "lines": "Satırlar",
+            "pi": "PI kontrol",
+            "payments": "Ödemeler",
+            "production": "Üretim takibi",
+            "documents": "Belgeler",
+            "media": "Ortam"
+         },
+         "fields": {
+            "code": "Kod",
+            "customer": "Müşteri",
+            "supplier": "Tedarikçi",
+            "project": "Proje",
+            "status": "Durum",
+            "product": "Ürün",
+            "quantity": "Adet",
+            "unit_price": "Birim fiyat",
+            "currency": "Para birimi",
+            "spec_document": "Spec sheet sürümü",
+            "incoterm": "Incoterm",
+            "incoterm_place": "Yer",
+            "deposit_rate": "Depozito %",
+            "ready_on": "Termin (hazır tarih)",
+            "tolerance_pct": "Tolerans %",
+            "penalty_rule": "Ceza kuralı",
+            "packing_instruction": "Ambalaj/etiket talimatı belgesi",
+            "checked_by": "Kontrol eden"
+         },
+         "pi": {
+            "subtotal": "Ara toplam",
+            "extra": "Ek kalem",
+            "discount": "İndirim",
+            "total": "Genel toplam",
+            "deposit": "Depozito",
+            "balance": "Bakiye",
+            "system": "Sistem",
+            "entered": "PI'daki",
+            "diff": "Fark"
+         },
+         "pi_check": {
+            "status": {
+               "ok": "Uygun",
+               "error": "Hata",
+               "missing": "Eksik"
+            },
+            "items": {
+               "1": "Satıcı unvan ve adres",
+               "2": "Alıcı",
+               "3": "PO referansı",
+               "4": "Spec sheet sürümü",
+               "5": "Ürün satırları",
+               "6": "Birim fiyat ve para birimi",
+               "7": "Satır aritmetiği",
+               "8": "Ara toplam, indirim, ek kalemler",
+               "9": "Genel toplam",
+               "10": "Depozito",
+               "11": "Bakiye koşulu",
+               "12": "Incoterm ve yer",
+               "13": "Termin",
+               "14": "Tolerans (adet)",
+               "15": "Tolerans (kalite, ölçü, ağırlık, renk)",
+               "16": "İptal ve iade",
+               "17": "Ceza — geç ödeme",
+               "18": "Ceza — geç teslim",
+               "19": "Hasar / eksik bildirim süresi",
+               "20": "Depolama ücreti",
+               "21": "Ambalaj ve etiket talimatı",
+               "22": "Kalıp",
+               "23": "Numune / altın numune referansı",
+               "24": "Menşe ve HS kodu",
+               "25": "Geçerlilik süresi",
+               "26": "Ödeme yöntemi ve banka (telefonla teyit; hesap no buraya yazılmaz)",
+               "27": "Mücbir sebep, uyuşmazlık, uygulanacak hukuk",
+               "28": "Belge içi tutarlılık",
+               "29": "Belgeler arası tutarlılık",
+               "30": "Dosya sürümü"
+            }
+         },
+         "status": {
+            "draft": "Taslak",
+            "sent": "Gönderildi",
+            "pi_received": "PI alındı",
+            "pi_approved": "PI onaylandı",
+            "deposit_paid": "Depozito ödendi",
+            "in_production": "Üretimde",
+            "ready": "Hazır",
+            "balance_paid": "Bakiye ödendi",
+            "closed": "Kapandı",
+            "cancelled": "İptal edildi"
+         },
+         "payment": {
+            "kind": {
+               "deposit": "Depozito",
+               "balance": "Bakiye",
+               "other": "Diğer"
+            },
+            "payer": {
+               "moesa": "MOESA",
+               "customer": "Müşteri"
+            },
+            "fields": {
+               "amount": "Tutar",
+               "planned_on": "Planlanan tarih",
+               "paid_on": "Ödenen tarih",
+               "paid_by": "Ödeyen taraf"
+            }
+         },
+         "production": {
+            "fields": {
+               "happened_on": "Tarih",
+               "note": "Durum notu"
+            }
          }
       }
    },

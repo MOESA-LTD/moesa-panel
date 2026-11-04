@@ -1,4 +1,6 @@
-import { mapPostgrestError } from '@/lib/form/postgrestErrors';
+import { mapPostgrestError, NAMED_ERRORS } from '@/lib/form/postgrestErrors';
+import en from '@/plugins/i18n/locales/en/index.json';
+import tr from '@/plugins/i18n/locales/tr/index.json';
 import i18n from '@plugins/i18n';
 import { describe, expect, it } from 'vitest';
 
@@ -156,5 +158,45 @@ describe('mapPostgrestError', () => {
             fields
          )
       ).toEqual({ sku: i18n.t('errors.sku_in_use') });
+   });
+   it('maps the errors of the purchase order tables to their fields', () => {
+      expect(
+         mapPostgrestError(
+            {
+               code: '23503',
+               message:
+                  'insert or update on table "purchase_order_line" violates foreign key constraint "purchase_order_line_product_fkey"'
+            },
+            ['product_id']
+         )
+      ).toEqual({ product_id: i18n.t('errors.po_line_product_customer') });
+      expect(
+         mapPostgrestError(
+            {
+               code: '23514',
+               message:
+                  'new row for relation "purchase_order" violates check constraint "purchase_order_incoterm_valid"'
+            },
+            ['incoterm', 'currency']
+         )
+      ).toEqual({ incoterm: i18n.t('errors.incoterm_invalid') });
+      expect(mapPostgrestError({ code: '23514', message: 'po_locked' }, ['quantity'])).toEqual({
+         quantity: i18n.t('errors.po_locked')
+      });
+   });
+   it('never maps a toast-level error to a field', () => {
+      expect(
+         mapPostgrestError({ code: '23514', message: 'po_pi_mismatch' }, ['pi_total'])
+      ).toBeNull();
+      expect(
+         mapPostgrestError({ code: '23514', message: 'po_status_order' }, ['status'])
+      ).toBeNull();
+   });
+   it('names every error by a message in English and Turkish', () => {
+      const keys = (locale: object) => (locale as { errors: Record<string, string> }).errors;
+      const missing = NAMED_ERRORS.map(({ message }) => message.replace(/^errors\./, '')).filter(
+         (key) => typeof keys(en)[key] !== 'string' || typeof keys(tr)[key] !== 'string'
+      );
+      expect(missing).toEqual([]);
    });
 });

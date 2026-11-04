@@ -58,6 +58,27 @@ describe('affectedTables', () => {
       // A document citing a file counts in the library's document_count.
       expect(affectedTables(['document'])).toContain('media_library');
    });
+
+   it('marks the order overview and the product evidence stale after an order change', () => {
+      expect(affectedTables(['purchase_order_line'])).toEqual(
+         expect.arrayContaining([
+            'purchase_order',
+            'purchase_order_overview',
+            'product_evidence',
+            'product_with_evidence'
+         ])
+      );
+      expect(affectedTables(['purchase_order_payment'])).toEqual(
+         expect.arrayContaining(['purchase_order', 'purchase_order_overview'])
+      );
+      expect(affectedTables(['purchase_order_update'])).toContain('purchase_order');
+      expect(affectedTables(['purchase_order'])).toEqual(
+         expect.arrayContaining(['purchase_order_overview', 'product_evidence'])
+      );
+      // The approved PSI and the spec sheets (has_approved_psi, spec_missing_line_ids).
+      expect(affectedTables(['document'])).toContain('purchase_order_overview');
+      expect(affectedTables(['setting'])).toContain('purchase_order_overview');
+   });
 });
 
 describe('invalidateTables', () => {

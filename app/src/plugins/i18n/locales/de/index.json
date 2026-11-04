@@ -157,7 +157,11 @@
       "project_gate": "Project gate",
       "project_task": "Project task",
       "media": "Media",
-      "media_link": "Media link"
+      "media_link": "Media link",
+      "purchase_order": "Purchase order",
+      "purchase_order_line": "Purchase order line",
+      "purchase_order_payment": "Purchase order payment",
+      "purchase_order_update": "Production update"
    },
    "input": {
       "select_or_write": "Auswählen oder eingeben"
@@ -1321,6 +1325,123 @@
             "file_name": "File"
          },
          "too_large": "The file is larger than the upload limit: up to {mb} MB."
+      },
+      "purchase_order": {
+         "title": "Purchase orders",
+         "tabs": {
+            "general": "General",
+            "lines": "Lines",
+            "pi": "PI check",
+            "payments": "Payments",
+            "production": "Production",
+            "documents": "Documents",
+            "media": "Media"
+         },
+         "fields": {
+            "code": "Code",
+            "customer": "Customer",
+            "supplier": "Supplier",
+            "project": "Project",
+            "status": "Status",
+            "product": "Product",
+            "quantity": "Quantity",
+            "unit_price": "Unit price",
+            "currency": "Currency",
+            "spec_document": "Spec sheet version",
+            "incoterm": "Incoterm",
+            "incoterm_place": "Place",
+            "deposit_rate": "Deposit %",
+            "ready_on": "Ready date",
+            "tolerance_pct": "Tolerance %",
+            "penalty_rule": "Penalty rule",
+            "packing_instruction": "Packaging and label instructions",
+            "checked_by": "Checked by"
+         },
+         "pi": {
+            "subtotal": "Subtotal",
+            "extra": "Extra items",
+            "discount": "Discount",
+            "total": "Grand total",
+            "deposit": "Deposit",
+            "balance": "Balance",
+            "system": "Recalculated",
+            "entered": "On the PI",
+            "diff": "Difference"
+         },
+         "pi_check": {
+            "status": {
+               "ok": "OK",
+               "error": "Error",
+               "missing": "Missing"
+            },
+            "items": {
+               "1": "Seller name and address",
+               "2": "Buyer",
+               "3": "PO reference",
+               "4": "Spec sheet version",
+               "5": "Product lines",
+               "6": "Unit price and currency",
+               "7": "Line arithmetic",
+               "8": "Subtotal, discount, extra items",
+               "9": "Grand total",
+               "10": "Deposit",
+               "11": "Balance condition",
+               "12": "Incoterm and place",
+               "13": "Ready date",
+               "14": "Tolerance (quantity)",
+               "15": "Tolerance (quality, size, weight, colour)",
+               "16": "Cancellation and refund",
+               "17": "Penalty — late payment",
+               "18": "Penalty — late delivery",
+               "19": "Damage / shortage notice period",
+               "20": "Storage fee",
+               "21": "Packaging and label instructions",
+               "22": "Tooling",
+               "23": "Sample / golden sample reference",
+               "24": "Origin and HS code",
+               "25": "Validity",
+               "26": "Payment method and bank (confirmed by phone; no account number here)",
+               "27": "Force majeure, disputes, governing law",
+               "28": "Consistency within the PI",
+               "29": "Consistency across documents",
+               "30": "File version"
+            }
+         },
+         "status": {
+            "draft": "Draft",
+            "sent": "Sent",
+            "pi_received": "PI received",
+            "pi_approved": "PI approved",
+            "deposit_paid": "Deposit paid",
+            "in_production": "In production",
+            "ready": "Ready",
+            "balance_paid": "Balance paid",
+            "closed": "Closed",
+            "cancelled": "Cancelled"
+         },
+         "payment": {
+            "kind": {
+               "deposit": "Deposit",
+               "balance": "Balance",
+               "other": "Other"
+            },
+            "payer": {
+               "moesa": "MOESA",
+               "customer": "Customer"
+            },
+            "fields": {
+               "amount": "Amount",
+               "planned_on": "Planned date",
+               "paid_on": "Paid on",
+               "paid_by": "Paid by"
+            }
+         },
+         "production": {
+            "fields": {
+               "happened_on": "Date",
+               "note": "Status note"
+            }
+         }
       }
    },
    "glossary": {

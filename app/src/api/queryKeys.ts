@@ -24,12 +24,14 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
    product: ['product_evidence', 'product_with_evidence', 'dashboard_product_evidence'],
-   // A document may cite a media file (the library's document_count).
+   // A document may cite a media file (the library's document_count); an order's overview reads
+   // its approved PSI and its lines' spec sheets (has_approved_psi, spec_missing_line_ids).
    document: [
       'product_evidence',
       'product_with_evidence',
       'dashboard_product_evidence',
-      'media_library'
+      'media_library',
+      'purchase_order_overview'
    ],
    // product_with_evidence carries the primary image; a record's media list embeds its files.
    media: ['media_library', 'product_with_evidence', 'media_link'],
@@ -39,7 +41,19 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    project_task: ['dashboard_task_due'],
    // A project put on hold or closed leaves the dashboard; management_gates decides who acts.
    project: ['dashboard_gate_pending', 'dashboard_task_due'],
-   setting: ['dashboard_gate_pending']
+   // spec_sheet_required_from decides which lines miss a spec sheet.
+   setting: ['dashboard_gate_pending', 'purchase_order_overview'],
+   // product_evidence names the last order of a product (last_po_code).
+   purchase_order: ['purchase_order_overview', 'product_evidence', 'product_with_evidence'],
+   // The order card embeds its lines and payments; the overview sums them.
+   purchase_order_line: [
+      'purchase_order',
+      'purchase_order_overview',
+      'product_evidence',
+      'product_with_evidence'
+   ],
+   purchase_order_payment: ['purchase_order', 'purchase_order_overview'],
+   purchase_order_update: ['purchase_order']
 };
 
 /** Tables whose rows are removed by ON DELETE CASCADE when a row of the key table is deleted. */
@@ -53,7 +67,9 @@ const CASCADES: Partial<Record<TableName, TableName[]>> = {
       'customer_warehouse',
       'customer_platform_account',
       'customer_brand'
-   ]
+   ],
+   // Orders are never deleted (only cancelled), as customers; the keys mirror the foreign keys.
+   purchase_order: ['purchase_order_line', 'purchase_order_payment', 'purchase_order_update']
 };
 
 // Every authenticated write is recorded by the audit trigger.
