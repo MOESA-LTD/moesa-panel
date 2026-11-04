@@ -1524,6 +1524,396 @@ export type Database = {
           },
         ]
       }
+      purchase_order: {
+        Row: {
+          code: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          deposit_rate: number
+          id: string
+          incoterm: string
+          incoterm_place: string | null
+          notes: string | null
+          packing_instruction_document_id: string | null
+          penalty_rule: string | null
+          pi_balance_amount: number | null
+          pi_check: Json
+          pi_checked_at: string | null
+          pi_checked_by: string | null
+          pi_deposit_amount: number | null
+          pi_discount_amount: number
+          pi_document_id: string | null
+          pi_extra_amount: number
+          pi_number: string | null
+          pi_subtotal: number | null
+          pi_total: number | null
+          project_id: string | null
+          ready_on: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"]
+          supplier_id: string
+          tenant_id: string
+          tolerance_pct: number | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          currency: string
+          customer_id: string
+          deposit_rate: number
+          id?: string
+          incoterm: string
+          incoterm_place?: string | null
+          notes?: string | null
+          packing_instruction_document_id?: string | null
+          penalty_rule?: string | null
+          pi_balance_amount?: number | null
+          pi_check?: Json
+          pi_checked_at?: string | null
+          pi_checked_by?: string | null
+          pi_deposit_amount?: number | null
+          pi_discount_amount?: number
+          pi_document_id?: string | null
+          pi_extra_amount?: number
+          pi_number?: string | null
+          pi_subtotal?: number | null
+          pi_total?: number | null
+          project_id?: string | null
+          ready_on?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          supplier_id: string
+          tenant_id: string
+          tolerance_pct?: number | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          deposit_rate?: number
+          id?: string
+          incoterm?: string
+          incoterm_place?: string | null
+          notes?: string | null
+          packing_instruction_document_id?: string | null
+          penalty_rule?: string | null
+          pi_balance_amount?: number | null
+          pi_check?: Json
+          pi_checked_at?: string | null
+          pi_checked_by?: string | null
+          pi_deposit_amount?: number | null
+          pi_discount_amount?: number
+          pi_document_id?: string | null
+          pi_extra_amount?: number
+          pi_number?: string | null
+          pi_subtotal?: number | null
+          pi_total?: number | null
+          project_id?: string | null
+          ready_on?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          supplier_id?: string
+          tenant_id?: string
+          tolerance_pct?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_packing_document_fkey"
+            columns: ["packing_instruction_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_pi_checked_by_fkey"
+            columns: ["pi_checked_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_pi_document_fkey"
+            columns: ["pi_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_supplier_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_line: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          line_total: number | null
+          notes: string | null
+          pi_line_total: number | null
+          position: number
+          product_id: string
+          purchase_order_id: string
+          quantity: number
+          spec_document_id: string | null
+          tenant_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          line_total?: number | null
+          notes?: string | null
+          pi_line_total?: number | null
+          position?: number
+          product_id: string
+          purchase_order_id: string
+          quantity: number
+          spec_document_id?: string | null
+          tenant_id: string
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          line_total?: number | null
+          notes?: string | null
+          pi_line_total?: number | null
+          position?: number
+          product_id?: string
+          purchase_order_id?: string
+          quantity?: number
+          spec_document_id?: string | null
+          tenant_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_line_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_spec_fkey"
+            columns: ["spec_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_payment: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          kind: Database["public"]["Enums"]["payment_kind"]
+          notes: string | null
+          paid_by: Database["public"]["Enums"]["payment_payer"]
+          paid_on: string | null
+          planned_on: string | null
+          purchase_order_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          id?: string
+          kind: Database["public"]["Enums"]["payment_kind"]
+          notes?: string | null
+          paid_by?: Database["public"]["Enums"]["payment_payer"]
+          paid_on?: string | null
+          planned_on?: string | null
+          purchase_order_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["payment_kind"]
+          notes?: string | null
+          paid_by?: Database["public"]["Enums"]["payment_payer"]
+          paid_on?: string | null
+          planned_on?: string | null
+          purchase_order_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_payment_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_update: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          happened_on: string
+          id: string
+          note: string
+          purchase_order_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          happened_on?: string
+          id?: string
+          note: string
+          purchase_order_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          happened_on?: string
+          id?: string
+          note?: string
+          purchase_order_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_update_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role: {
         Row: {
           created_at: string | null
@@ -2800,6 +3190,8 @@ export type Database = {
         | "L_G2"
       gate_status: "pending" | "passed" | "rolled_back"
       media_role: "primary_image" | "gallery" | "evidence_photo" | "attachment"
+      payment_kind: "deposit" | "balance" | "other"
+      payment_payer: "moesa" | "customer"
       platform_access: "authorized_user" | "none"
       product_status:
         | "concept"
@@ -2832,6 +3224,17 @@ export type Database = {
         | "closed"
       project_status: "active" | "on_hold" | "closed" | "cancelled"
       project_type: "npi" | "variant" | "revision" | "reorder"
+      purchase_order_status:
+        | "draft"
+        | "sent"
+        | "pi_received"
+        | "pi_approved"
+        | "deposit_paid"
+        | "in_production"
+        | "ready"
+        | "balance_paid"
+        | "closed"
+        | "cancelled"
       supplier_status: "candidate" | "approved" | "suspended"
       task_status: "todo" | "doing" | "done" | "blocked"
       type_permission_command: "select" | "insert" | "update" | "delete"

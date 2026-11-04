@@ -488,7 +488,14 @@
       "MediaFileError": "File not uploaded",
       "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
       "avatar_size": "The photo must be at most 1 MB.",
-      "unknown": "Something went wrong."
+      "unknown": "Something went wrong.",
+      "purchase_order_customer_missing": "The order's customer was not found.",
+      "purchase_order_immutable_field": "An order's code, customer and supplier cannot change.",
+      "incoterm_invalid": "Choose an Incoterms 2020 term.",
+      "po_project_customer": "The project belongs to another customer.",
+      "po_line_product_customer": "The product belongs to another customer.",
+      "po_line_product_duplicate": "The product is already on this order.",
+      "pi_check_invalid": "The PI checklist has an unknown item or answer."
    },
    "account": {
       "profile": {

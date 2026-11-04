@@ -300,7 +300,14 @@
       "media_missing": "Ortam dosyası bulunamadı.",
       "media_already_linked": "Dosya bu kayda zaten bağlı.",
       "media_primary_exists": "Kaydın zaten bir birincil görseli var.",
-      "document_file_required": "Drive bağlantısı ya da dosya ekleyin."
+      "document_file_required": "Drive bağlantısı ya da dosya ekleyin.",
+      "purchase_order_customer_missing": "Siparişin müşterisi bulunamadı.",
+      "purchase_order_immutable_field": "Siparişin kodu, müşterisi ve tedarikçisi değiştirilemez.",
+      "incoterm_invalid": "Bir Incoterms 2020 terimi seçin.",
+      "po_project_customer": "Proje başka bir müşteriye ait.",
+      "po_line_product_customer": "Ürün başka bir müşteriye ait.",
+      "po_line_product_duplicate": "Ürün bu siparişte zaten var.",
+      "pi_check_invalid": "PI kontrol listesinde bilinmeyen bir madde ya da cevap var."
    },
    "account": {
       "logout": "Çıkış yap",
