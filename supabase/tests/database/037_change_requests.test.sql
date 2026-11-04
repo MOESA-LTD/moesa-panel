@@ -8,12 +8,13 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- tenant that sees none of them. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(16);
+SELECT plan(20);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
     ('moesa', (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')),
     ('koordinator', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')),
+    ('akif', (SELECT id FROM public.user WHERE email = 'akif@moesa-panel.test')),
     ('tho', (SELECT id FROM public.customer WHERE code = 'THO')),
     ('tr1', (SELECT id FROM public.supplier WHERE code = 'TR1')),
     ('cn1', (SELECT id FROM public.supplier WHERE code = 'CN1')),
@@ -92,6 +93,20 @@ SELECT throws_ok($$ INSERT INTO public.change_request_product (change_request_id
                  '23503', NULL, 'not another customer''s product');
 SELECT throws_ok($$ DELETE FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037012' $$,
                  '42501', NULL, 'change requests are not deleted');
+
+-- The approver, the approval date and the closing date are the server's, whatever the client sends.
+UPDATE public.change_request SET status = 'approved', moesa_approved_by = current_setting('test.akif')::UUID, moesa_approved_on = '2020-01-01', closed_on = '2020-01-01'
+WHERE id = '00000000-0000-4000-8000-000000037012';
+
+SELECT is((SELECT moesa_approved_by = current_setting('test.koordinator')::UUID AND moesa_approved_on = current_date AND closed_on IS NULL
+           FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037012'),
+          TRUE, 'the approver, approval date and closing date are not the client''s');
+SELECT throws_ok($$ UPDATE public.change_request SET result_document_id = '00000000-0000-4000-8000-000000037004' WHERE id = '00000000-0000-4000-8000-000000037012' $$,
+                 '23514', 'change_request_document_invalid', 'the resulting document is the customer''s, even without an affected document');
+SELECT throws_ok($$ UPDATE public.change_request SET customer_approval_document_id = NULL, customer_approved_on = NULL WHERE id = '00000000-0000-4000-8000-000000037011' $$,
+                 '23514', 'change_request_immutable_field', 'the customer''s approval stays once the request is approved');
+SELECT throws_ok($$ UPDATE public.change_request SET created_at = now() - INTERVAL '10 days' WHERE id = '00000000-0000-4000-8000-000000037012' $$,
+                 '23514', 'change_request_immutable_field', 'when the request was made does not change');
 
 RESET ROLE;
 SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'ayse@moesa-panel.test'),

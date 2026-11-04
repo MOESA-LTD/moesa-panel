@@ -358,7 +358,7 @@
       "gate_rollback_incident_required": "Kapı yalnızca olay üzerinden geri alınır (K3); bir olay seçin ya da açın.",
       "gate_incident_invalid": "Bu projenin müşterisinin açık bir olayını seçin.",
       "change_request_customer_missing": "Değişiklik talebinin müşterisi bulunamadı.",
-      "change_request_immutable_field": "Değişiklik talebinin kodu ve müşterisi değişmez.",
+      "change_request_immutable_field": "Değişiklik talebinin kodu, müşterisi ve oluşturulma zamanı değişmez; onaylandıktan sonra müşteri onayı da değişmez.",
       "change_request_document_invalid": "Bu müşterinin bir belgesini seçin.",
       "change_request_approval_document_invalid": "Müşteri onayı bu değişiklik talebinin imzalı ya da onaylı bir belgesi olmalı.",
       "change_request_status_order": "Değişiklik talebi mevcut durumundan bu duruma geçemez.",

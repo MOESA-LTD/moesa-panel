@@ -484,7 +484,7 @@
       "gate_rollback_incident_required": "A gate is rolled back only through an incident (K3); pick or open one.",
       "gate_incident_invalid": "Pick an open incident of this project's customer.",
       "change_request_customer_missing": "The change request's customer was not found.",
-      "change_request_immutable_field": "A change request's code and customer cannot change.",
+      "change_request_immutable_field": "A change request's code, customer and creation time cannot change, nor the customer's approval once it is approved.",
       "change_request_document_invalid": "Choose a document of this customer.",
       "change_request_approval_document_invalid": "The customer's approval must be a signed or approved document of this change request.",
       "change_request_status_order": "The change request cannot move to this status from its current one.",

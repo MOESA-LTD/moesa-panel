@@ -18,19 +18,22 @@
 --               (24 saat)"). Business days are Monday to Friday, with no holiday calendar
 --               (public.add_business_days); every date is UTC.
 -- Status flow   open → approved | rejected; approved → applied; rejected and applied are final.
---               Approving records MOESA's date and approver (moesa_approved_on, moesa_approved_by)
---               unless given. When the request names a gate of its project that is already passed
+--               Approving records MOESA's date and approver (moesa_approved_on, moesa_approved_by:
+--               today and the caller, whatever the client sends). When the request names a gate of its project that is already passed
 --               and needs the customer's approval, approving needs the customer's approval date and
 --               written approval (S08 §4): a signed or approved document of this request.
 --               Rejecting needs the reason (decision_note). Applying a request that changes a
 --               document needs that document's new version (result_document_id: the same record
 --               and type, a higher version; M10 "CR applied olunca ilgili belge yeni sürüm alır").
---               Rejecting or applying closes it (closed_on, today).
+--               Rejecting or applying closes it (closed_on, today); the client never sets it.
+--               Once approved, the customer's approval date and document no longer change.
 --
 -- Each rule is a violation whose message is the rule's code (check_violation unless stated):
 --   change_request_customer_missing            the customer is not there (foreign_key_violation)
---   change_request_immutable_field             the code or the customer changed
---   change_request_document_invalid            the affected document is another customer's
+--   change_request_immutable_field             the code, the customer or created_at changed, or
+--                                              the customer's approval of an approved request
+--   change_request_document_invalid            the affected or resulting document is another
+--                                              customer's
 --   change_request_approval_document_invalid   the customer's approval is not a signed or approved
 --                                              document of this request
 --   change_request_status_order                not an allowed transition
@@ -96,7 +99,7 @@ CREATE TABLE IF NOT EXISTS public.change_request (
    delay_days INT CHECK (delay_days >= 0),
    quality_impact TEXT,
    listing_impact TEXT,
-   -- Decision (S08 E, F). moesa_approved_* default and closed_on are set by the guard.
+   -- Decision (S08 E, F). moesa_approved_* and closed_on are set by the guard only.
    decision_note TEXT,
    moesa_approved_by UUID,
    moesa_approved_on DATE,
@@ -158,14 +161,24 @@ $$;
 CREATE OR REPLACE TRIGGER change_request_set_code BEFORE INSERT ON public.change_request FOR EACH ROW
 EXECUTE FUNCTION private.change_request_set_code ();
 
--- When the request is to be decided (see the header), on every write.
+-- When the request is to be decided (see the header), on every write, from when it was made (the
+-- stored created_at; now on insert, whatever the client sends), in UTC.
 CREATE OR REPLACE FUNCTION private.change_request_due () RETURNS TRIGGER LANGUAGE plpgsql
 SET
    search_path = '' AS $$
+DECLARE
+    made_on DATE;
 BEGIN
+    IF TG_OP = 'INSERT' THEN
+        NEW.created_at := now();
+        made_on := (now() AT TIME ZONE 'UTC')::DATE;
+    ELSE
+        made_on := (OLD.created_at AT TIME ZONE 'UTC')::DATE;
+    END IF;
+
     NEW.decision_due_on := CASE NEW.urgency
-        WHEN 'urgent' THEN NEW.created_at::DATE + 1
-        ELSE public.add_business_days(NEW.created_at::DATE, 5)
+        WHEN 'urgent' THEN made_on + 1
+        ELSE public.add_business_days(made_on, 5)
     END;
     RETURN NEW;
 END;
@@ -176,8 +189,8 @@ OR
 UPDATE ON public.change_request FOR EACH ROW
 EXECUTE FUNCTION private.change_request_due ();
 
--- The request's rules (see the header), in this order: the fixed code and customer (whatever the
--- bypass flag); the affected document; the customer's written approval; the status flow; what
+-- The request's rules (see the header), in this order: the fixed fields (whatever the bypass
+-- flag); the server-set columns; the affected and resulting documents; the customer's written approval; the status flow; what
 -- approving, rejecting and applying need; closing.
 CREATE OR REPLACE FUNCTION private.change_request_guard () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
@@ -186,10 +199,16 @@ DECLARE
     affected_entity_type public.document_entity;
     affected_entity_id UUID;
 BEGIN
-    -- 1. The code and the customer are fixed.
+    -- 1. The code, the customer and when it was made are fixed; so is the customer's approval
+    --    once the request is approved.
     IF TG_OP = 'UPDATE' AND (
         NEW.code IS DISTINCT FROM OLD.code
         OR NEW.customer_id IS DISTINCT FROM OLD.customer_id
+        OR NEW.created_at IS DISTINCT FROM OLD.created_at
+        OR OLD.status IN ('approved', 'applied') AND (
+            NEW.customer_approved_on IS DISTINCT FROM OLD.customer_approved_on
+            OR NEW.customer_approval_document_id IS DISTINCT FROM OLD.customer_approval_document_id
+        )
     ) THEN
         RAISE EXCEPTION 'change_request_immutable_field' USING ERRCODE = 'check_violation';
     END IF;
@@ -198,11 +217,33 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- 2. The affected document is the customer's.
+    -- Server-set: MOESA's approval and the closing date are set below on the transition that sets
+    -- them; otherwise whatever the client sends is ignored.
+    IF TG_OP = 'INSERT' THEN
+        NEW.moesa_approved_on := NULL;
+        NEW.moesa_approved_by := NULL;
+        NEW.closed_on := NULL;
+    ELSE
+        NEW.moesa_approved_on := OLD.moesa_approved_on;
+        NEW.moesa_approved_by := OLD.moesa_approved_by;
+        NEW.closed_on := OLD.closed_on;
+    END IF;
+
+    -- 2. The affected document and the resulting document are the customer's.
     IF NEW.affected_document_id IS NOT NULL THEN
         SELECT d.entity_type, d.entity_id INTO affected_entity_type, affected_entity_id
         FROM public.document d
         WHERE d.id = NEW.affected_document_id AND d.tenant_id = NEW.tenant_id;
+
+        IF private.entity_customer(affected_entity_type, affected_entity_id, NEW.tenant_id) IS DISTINCT FROM NEW.customer_id THEN
+            RAISE EXCEPTION 'change_request_document_invalid' USING ERRCODE = 'check_violation';
+        END IF;
+    END IF;
+
+    IF NEW.result_document_id IS NOT NULL THEN
+        SELECT d.entity_type, d.entity_id INTO affected_entity_type, affected_entity_id
+        FROM public.document d
+        WHERE d.id = NEW.result_document_id AND d.tenant_id = NEW.tenant_id;
 
         IF private.entity_customer(affected_entity_type, affected_entity_id, NEW.tenant_id) IS DISTINCT FROM NEW.customer_id THEN
             RAISE EXCEPTION 'change_request_document_invalid' USING ERRCODE = 'check_violation';
@@ -231,8 +272,9 @@ BEGIN
         -- 5. Approving: MOESA's date and approver; the customer's approval after a passed gate of
         --    the project that needs it (S08 §4).
         IF NEW.status = 'approved' THEN
-            NEW.moesa_approved_on := coalesce(NEW.moesa_approved_on, current_date);
-            NEW.moesa_approved_by := coalesce(NEW.moesa_approved_by, auth.uid());
+            -- NEW.moesa_approved_on is the stored value here (see the server-set columns).
+            NEW.moesa_approved_on := coalesce(NEW.moesa_approved_on, (now() AT TIME ZONE 'UTC')::DATE);
+            NEW.moesa_approved_by := auth.uid();
             IF NEW.project_id IS NOT NULL AND NEW.affected_gate_code IS NOT NULL
                AND EXISTS (
                    SELECT 1 FROM public.project_gate g
@@ -272,7 +314,7 @@ BEGIN
 
         -- 8. Rejecting or applying closes it.
         IF NEW.status IN ('applied', 'rejected') THEN
-            NEW.closed_on := current_date;
+            NEW.closed_on := (now() AT TIME ZONE 'UTC')::DATE;
         END IF;
     END IF;
 
