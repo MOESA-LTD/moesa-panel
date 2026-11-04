@@ -24,7 +24,8 @@ const customFetch = async (
 
    // A new row goes to the active tenant unless it names one, also each row of a bulk insert. Only
    // inserts (POST to a table): an update keeps the row's tenant, which may be another of the
-   // tenants read together.
+   // tenants read together. A bulk insert gets "tenant_id" in its ?columns=, so a future bulk
+   // insert into a table without tenant_id needs an opt-out here.
    const isInsert = options?.method === 'POST' && /\/rest\/v1\/(?!rpc\/)/.test(String(url));
    if (currentTenant?.id && isInsert && _isString(options?.body)) {
       const body = JSON.parse(options.body || '{}');

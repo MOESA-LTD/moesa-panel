@@ -24,19 +24,20 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    tenant_user: ['tenant_member'],
    tenant_owner: ['tenant_member'],
    // The shipment card embeds its orders' products (sku, name, is_hazmat), the order card its
-   // lines' products.
+   // lines' products, the cell card its product.
    product: [
       'product_evidence',
       'product_with_evidence',
       'dashboard_product_evidence',
       'shipment',
       'purchase_order',
+      'market_cell',
       'market_cell_overview',
       'incident_overview',
       'change_request'
    ],
-   // The shipment and order cards embed their customer (the shipment its warehouse too); the
-   // overviews and the dashboard boxes name it (customer_code).
+   // The shipment, order and incident cards embed their customer (the shipment its warehouse too);
+   // the overviews and the dashboard boxes name it (customer_code).
    customer: [
       'shipment',
       'shipment_overview',
@@ -45,6 +46,7 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
       'dashboard_purchase_order',
       'dashboard_shipment',
       'market_cell_overview',
+      'incident',
       'incident_overview',
       'change_request',
       'dashboard_market',
@@ -79,11 +81,12 @@ const DERIVED: Partial<Record<TableName, TableName[]>> = {
    // The matrix overview names the product (sku, name, gtin), the customer and the project codes.
    // The incident overview names the incident's customer and linked record (customer_code,
    // entity_label: a project, order, shipment, product or market cell); the change request card
-   // embeds its customer, project, products and documents.
+   // embeds its customer, project, products and documents; the cell card embeds its project.
    project: [
       'dashboard_gate_pending',
       'dashboard_task_due',
       'purchase_order_overview',
+      'market_cell',
       'market_cell_overview',
       'incident_overview',
       'change_request'

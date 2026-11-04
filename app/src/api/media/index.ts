@@ -259,7 +259,7 @@ export function useLinkMedia() {
          .throwOnError();
       const start = (last?.position ?? -1) + 1;
 
-      // The request adds the active tenant to a single row only, so a batch names it itself: the
+      // A row without tenant_id goes to the active tenant (customFetch), so the links name the
       // record's own (a file and its links share a tenant, see 025), else the active one.
       const tenantId = input.tenantId ?? authStore.currentTenant?.id;
       const { data } = await supabase

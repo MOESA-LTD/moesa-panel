@@ -328,11 +328,11 @@ describe('change request mutations', () => {
 
    it('adds the new products and removes the dropped ones', async () => {
       const mutation = withSetup(useSetChangeRequestProducts);
-      await mutation.mutateAsync({ id: R, before: [P1, P2], after: [P2, P3] });
+      await mutation.mutateAsync({ id: R, tenantId: 't2', before: [P1, P2], after: [P2, P3] });
 
       expect(recorded).toEqual([
          ['from', 'change_request_product'],
-         ['insert', [{ change_request_id: R, product_id: P3 }]],
+         ['insert', [{ change_request_id: R, product_id: P3, tenant_id: 't2' }]],
          ['throwOnError'],
          ['from', 'change_request_product'],
          ['delete'],
@@ -344,7 +344,7 @@ describe('change request mutations', () => {
 
    it('asks nothing when the products did not change', async () => {
       const mutation = withSetup(useSetChangeRequestProducts);
-      await mutation.mutateAsync({ id: R, before: [P1], after: [P1] });
+      await mutation.mutateAsync({ id: R, tenantId: 't2', before: [P1], after: [P1] });
       expect(recorded).toEqual([]);
    });
 });

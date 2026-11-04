@@ -39,6 +39,10 @@ vi.mock('vue-router', async (importOriginal) => ({
    useRoute: () => ({ query: {} }),
    useRouter: () => ({ push: vi.fn() })
 }));
+vi.mock('@/store/auth', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@/store/auth')>()),
+   useAuthStore: () => ({ currentTenant: { id: 't1' } })
+}));
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: api.toast }) }));
 vi.mock('@/api/useLookup', async () => {
    const { ref } = await import('vue');
@@ -171,7 +175,14 @@ describe('market cell dialogs', () => {
 
       expect(api.addCells).toHaveBeenCalledTimes(1);
       expect(api.addCells).toHaveBeenCalledWith([
-         { product_id: 'p2', platform_id: 'amazon', country: 'DE', priority: 2, project_id: null }
+         {
+            product_id: 'p2',
+            platform_id: 'amazon',
+            country: 'DE',
+            priority: 2,
+            project_id: null,
+            tenant_id: 't1'
+         }
       ]);
       expect(api.toast).toHaveBeenCalledWith(
          expect.objectContaining({

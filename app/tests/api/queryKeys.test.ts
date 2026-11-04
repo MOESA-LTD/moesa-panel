@@ -164,6 +164,11 @@ describe('affectedTables of the market matrix', () => {
       for (const table of ['product', 'project', 'customer'] as const)
          expect(affectedTables([table])).toContain('market_cell_overview');
    });
+
+   it('marks the cell card stale after a change to its product or project', () => {
+      for (const table of ['product', 'project'] as const)
+         expect(affectedTables([table])).toContain('market_cell');
+   });
 });
 
 describe('invalidateTables', () => {
@@ -199,6 +204,10 @@ describe('affectedTables of incidents and change requests', () => {
 
    it('marks the incident card stale after a gate change', () => {
       expect(affectedTables(['project_gate'])).toContain('incident');
+   });
+
+   it('marks the incident card stale after a change to its customer', () => {
+      expect(affectedTables(['customer'])).toContain('incident');
    });
 
    it('marks the overview stale after a change to what it names', () => {

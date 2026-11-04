@@ -295,6 +295,7 @@ describe('change request card', () => {
       expect(api.saveRow.mock.calls[0]![0]).not.toHaveProperty('product_ids');
       expect(api.setProducts).toHaveBeenCalledExactlyOnceWith({
          id: CR,
+         tenantId: 't1',
          before: ['p1', 'p2'],
          after: ['p2', 'p3']
       });
@@ -311,6 +312,7 @@ describe('change request card', () => {
       expect(api.saveRow.mock.calls[0]![0]).not.toHaveProperty('id');
       expect(api.setProducts).toHaveBeenCalledExactlyOnceWith({
          id: CR,
+         tenantId: 't1',
          before: [],
          after: ['p1']
       });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
    COST_PAYERS,
+   incidentResource,
    incidentLogResource,
    incidentLogSchema,
    toIncidentLogFormValues,
@@ -16,6 +17,10 @@ const props = defineProps<{
    incidentId?: string | null;
 }>();
 
+// The incident's own tenant (the card's query, already loaded behind the dialog): a new line goes
+// there, which may be another of the branches shown than the active one.
+const { data: incident } = incidentResource.useOne(() => (props.id ? null : props.incidentId));
+
 const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
    useUpsertForm({
       id: () => props.id,
@@ -27,9 +32,12 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       toFormValues: toIncidentLogFormValues,
       // Every add dialog shares one draft, so a new line takes the incident from the route.
       toPayload: (data) =>
-         toIncidentLogPayload(
-            data.id || !props.incidentId ? data : { ...data, incident_id: props.incidentId }
-         )
+         data.id || !props.incidentId
+            ? toIncidentLogPayload(data)
+            : {
+                 ...toIncidentLogPayload({ ...data, incident_id: props.incidentId }),
+                 tenant_id: incident.value?.tenant_id
+              }
    });
 await ready;
 

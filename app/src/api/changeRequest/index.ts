@@ -275,7 +275,8 @@ export function useSetChangeRequestStatus() {
 /**
  * Sets the request's products: adds those in `after` but not `before`, removes those in `before`
  * but not `after`. The row's customer is the request's (set by the database), so it is not sent;
- * a product of another customer fails change_request_product_product_fkey.
+ * a product of another customer fails change_request_product_product_fkey. The rows name the
+ * request's tenant, which may be another of the branches shown than the active one.
  */
 export function useSetChangeRequestProducts() {
    const queryClient = useQueryClient();
@@ -283,10 +284,12 @@ export function useSetChangeRequestProducts() {
    return useMutation({
       mutationFn: async ({
          id,
+         tenantId,
          before,
          after
       }: {
          id: string;
+         tenantId: string;
          before: string[];
          after: string[];
       }) => {
@@ -299,7 +302,8 @@ export function useSetChangeRequestProducts() {
                .insert(
                   added.map((product_id) => ({
                      change_request_id: id,
-                     product_id
+                     product_id,
+                     tenant_id: tenantId
                   })) as Tables['change_request_product']['Insert'][]
                )
                .throwOnError();

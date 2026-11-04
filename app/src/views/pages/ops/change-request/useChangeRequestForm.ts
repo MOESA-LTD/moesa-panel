@@ -79,7 +79,12 @@ function useSaveChangeRequest() {
          const embed = saved.change_request_product ?? [];
          const before = productIdsOf(saved);
          try {
-            await setProducts({ id: saved.id, before, after: productIds });
+            await setProducts({
+               id: saved.id,
+               tenantId: saved.tenant_id,
+               before,
+               after: productIds
+            });
          } catch (error) {
             // An existing request's save can simply be retried. A new one is inserted by now: it
             // must go on under its id, or the retry would insert a second request (requests are

@@ -2,6 +2,7 @@
 import {
    INCIDENT_DEADLINE_DEFAULTS,
    INCIDENT_DEADLINE_KINDS,
+   incidentResource,
    incidentDeadlineResource,
    incidentDeadlineSchema,
    toIncidentDeadlineFormValues,
@@ -18,6 +19,10 @@ const props = defineProps<{
    incidentId?: string | null;
 }>();
 
+// The incident's own tenant (the card's query, already loaded behind the dialog): a new deadline goes
+// there, which may be another of the branches shown than the active one.
+const { data: incident } = incidentResource.useOne(() => (props.id ? null : props.incidentId));
+
 const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
    useUpsertForm({
       id: () => props.id,
@@ -29,9 +34,12 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       toFormValues: toIncidentDeadlineFormValues,
       // Every add dialog shares one draft, so a new deadline takes the incident from the route.
       toPayload: (data) =>
-         toIncidentDeadlinePayload(
-            data.id || !props.incidentId ? data : { ...data, incident_id: props.incidentId }
-         )
+         data.id || !props.incidentId
+            ? toIncidentDeadlinePayload(data)
+            : {
+                 ...toIncidentDeadlinePayload({ ...data, incident_id: props.incidentId }),
+                 tenant_id: incident.value?.tenant_id
+              }
    });
 await ready;
 

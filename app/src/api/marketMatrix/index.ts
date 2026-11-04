@@ -383,7 +383,11 @@ export function useMarketCells(filter: MaybeRefOrGetter<MarketCellsFilter>) {
    });
 }
 
-export type AddMarketCell = NewMarketCell & { priority: number; project_id: string | null };
+export type AddMarketCell = NewMarketCell & {
+   priority: number;
+   project_id: string | null;
+   tenant_id?: string;
+};
 
 /**
  * Opens cells in one insert (each a candidate; the customer is each product's) and yields how

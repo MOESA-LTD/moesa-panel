@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePlatformOptions } from '@/api/customer';
+import { provideFormTenant } from '@/api/formTenant';
 import {
    missingCells,
    useAddMarketCells,
@@ -8,6 +9,7 @@ import {
 } from '@/api/marketMatrix';
 import { useDialogRef } from '@/composables/useDialogRef';
 import { appErrorHandler } from '@/lib/appErrorHandler';
+import { useAuthStore } from '@/store/auth';
 import { useCustomerFilter } from '@/store/customerFilter';
 import { useToast } from 'primevue/usetoast';
 import ProjectSelect from '../purchase-order/ProjectSelect.vue';
@@ -18,6 +20,12 @@ const { t } = useI18n();
 const toast = useToast();
 const dialogRef = useDialogRef();
 const customerFilter = useCustomerFilter();
+
+// The cells go to the active tenant, so the pickers offer its customers and products only (see
+// provideFormTenant), and each row names it.
+const authStore = useAuthStore();
+const tenantId = computed(() => authStore.currentTenant?.id ?? null);
+provideFormTenant(tenantId);
 
 const customerId = ref<string | null>(customerFilter.customerId);
 const productIds = ref<string[]>([]);
@@ -79,7 +87,8 @@ const submit = async () => {
             cells.map((cell) => ({
                ...cell,
                priority: priority.value,
-               project_id: projectId.value
+               project_id: projectId.value,
+               tenant_id: tenantId.value ?? undefined
             }))
          );
    } catch (error) {
