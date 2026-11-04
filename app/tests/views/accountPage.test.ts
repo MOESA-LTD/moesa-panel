@@ -10,6 +10,7 @@ import { defineComponent, h, reactive } from 'vue';
 
 const api = vi.hoisted(() => ({
    push: vi.fn(),
+   errorHandler: vi.fn(),
    toast: vi.fn(),
    uploadAvatar: vi.fn(),
    removeAvatar: vi.fn()
@@ -18,6 +19,7 @@ const api = vi.hoisted(() => ({
 const auth = reactive({ user: null as Record<string, unknown> | null });
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+vi.mock('@/lib/appErrorHandler', () => ({ appErrorHandler: api.errorHandler }));
 vi.mock('@/store/auth', () => ({ useAuthStore: () => auth }));
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: api.toast }) }));
 vi.mock('@/api/account/avatar', async (importOriginal) => ({
@@ -105,6 +107,32 @@ describe('My account page', () => {
       const wrapper = await mountPage();
       await wrapper.findAll('[role="tab"]')[0]!.trigger('click');
       expect(api.push).toHaveBeenCalledWith({ name: 'account-profile' });
+   });
+
+   // The route stays on Security in these, as it does when a guard refuses the navigation.
+   const activeTabs = async (wrapper: Awaited<ReturnType<typeof mountPage>>) => {
+      await flushPromises();
+      return wrapper.findAll('[role="tab"]').map((tab) => tab.attributes('data-p-active'));
+   };
+
+   it('keeps the open section selected when the navigation is refused', async () => {
+      api.push.mockResolvedValueOnce({ type: 4, from: {}, to: {} });
+      const wrapper = await mountPage();
+
+      await wrapper.findAll('[role="tab"]')[0]!.trigger('click');
+
+      expect(await activeTabs(wrapper)).toEqual(['false', 'true']);
+   });
+
+   it('keeps the open section selected when the navigation fails, reporting the error', async () => {
+      const error = new Error('guard failed');
+      api.push.mockRejectedValueOnce(error);
+      const wrapper = await mountPage();
+
+      await wrapper.findAll('[role="tab"]')[0]!.trigger('click');
+
+      expect(await activeTabs(wrapper)).toEqual(['false', 'true']);
+      expect(api.errorHandler).toHaveBeenCalledWith(error);
    });
 
    it('shows the name, the email and whether the email is verified', async () => {

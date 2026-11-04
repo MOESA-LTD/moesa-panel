@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useMenuSection } from '@/router/menu';
 import AccountHeader from './AccountHeader.vue';
 
@@ -18,13 +19,19 @@ const activeSection = computed(
 );
 
 // The Tabs also select a clicked tab themselves; when the navigation is refused (e.g. unsaved
-// changes are kept) the selection goes back to the section that is still open.
+// changes are kept) or fails, the selection goes back to the section that is still open.
 const selected = ref(activeSection.value);
 watch(activeSection, (name) => (selected.value = name));
 
 const open = async (name: (typeof items.value)[number]['name']) => {
-   const failure = await router.push({ name });
-   if (failure) selected.value = activeSection.value;
+   try {
+      await router.push({ name });
+   } catch (error) {
+      appErrorHandler(error);
+   } finally {
+      // After a navigation this is the new section already; otherwise the one still open.
+      selected.value = activeSection.value;
+   }
 };
 </script>
 
