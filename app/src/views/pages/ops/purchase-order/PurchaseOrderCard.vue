@@ -1,17 +1,26 @@
 <script setup lang="ts">
 import {
    PURCHASE_ORDER_STATUS_SEVERITY,
+   nextPurchaseOrderStatuses,
+   piChecklistComplete,
+   psiWarning,
    usePurchaseOrderOverview,
-   type PurchaseOrderCard
+   useSetPurchaseOrderStatus,
+   type PurchaseOrderCard,
+   type PurchaseOrderStatus
 } from '@/api/purchaseOrder';
 import Documents from './tabs/Documents.vue';
 import General from './tabs/General.vue';
 import Lines from './tabs/Lines.vue';
 import Media from './tabs/Media.vue';
+import Payments from './tabs/Payments.vue';
+import Pi from './tabs/Pi.vue';
+import Production from './tabs/Production.vue';
 import {
    PO_CARD_TABS,
    PURCHASE_ORDER_FORM,
    PURCHASE_ORDER_OVERVIEW,
+   purchaseOrderPiCheck,
    tabForField,
    usePurchaseOrderForm,
    type PurchaseOrderCardTab
@@ -48,10 +57,36 @@ provide(PURCHASE_ORDER_FORM, { ...form, submit });
 const { data: overview } = usePurchaseOrderOverview(() => props.id);
 provide(PURCHASE_ORDER_OVERVIEW, overview);
 
-// Disabled placeholders until the PI check, payments and production tabs exist (Task 5).
-const PENDING_TABS = new Set<PurchaseOrderCardTab>(['pi', 'payments', 'production']);
-
 const order = computed(() => form.row.value ?? null);
+
+// --- status actions ---
+
+const { t } = useI18n();
+const { mutateAsync: setStatus } = useSetPurchaseOrderStatus();
+
+const nextStatuses = computed(() => (order.value ? nextPurchaseOrderStatuses(order.value) : []));
+
+// The database decides each move (030); these only warn in the confirmation. Approving checks the
+// saved PI, so a PI that does not pass yet warns that it will be refused (S09); the balance warns
+// without an approved PSI (G4).
+const statusWarnings = computed(() => {
+   const warnings: Partial<Record<PurchaseOrderStatus, string>> = {};
+   const saved = order.value;
+   if (
+      saved &&
+      !(
+         purchaseOrderPiCheck(saved.purchase_order_line, saved).matches &&
+         piChecklistComplete(saved.pi_check)
+      )
+   )
+      warnings.pi_approved = t('ops.purchase_order.pi.not_ready');
+   if (overview.value && psiWarning(overview.value))
+      warnings.balance_paid = t('ops.purchase_order.psi_warning');
+   return warnings;
+});
+
+const changeStatus = (status: string) =>
+   setStatus({ id: order.value!.id, status: status as PurchaseOrderStatus });
 const title = computed(() =>
    order.value ? [order.value.code, order.value.supplier?.code].filter(Boolean).join(' — ') : null
 );
@@ -65,17 +100,21 @@ const title = computed(() =>
          :severity="PURCHASE_ORDER_STATUS_SEVERITY[order.status]"
       />
       <span class="ms-auto flex flex-wrap gap-2">
-         <slot name="actions" :order />
+         <slot name="actions" :order>
+            <StatusActions
+               v-if="$can('update', 'purchase_order')"
+               :current="order.status"
+               :next="nextStatuses"
+               i18nPrefix="ops.purchase_order.status"
+               :warnings="statusWarnings"
+               :onChange="changeStatus"
+            />
+         </slot>
       </span>
    </div>
    <Tabs v-model:value="activeTab">
       <TabList>
-         <Tab
-            v-for="key in PO_CARD_TABS"
-            :key
-            :value="key"
-            :disabled="(key !== 'general' && !id) || PENDING_TABS.has(key)"
-         >
+         <Tab v-for="key in PO_CARD_TABS" :key :value="key" :disabled="key !== 'general' && !id">
             {{ $t(`ops.purchase_order.tabs.${key}`) }}
          </Tab>
       </TabList>
@@ -86,7 +125,15 @@ const title = computed(() =>
          <TabPanel value="lines">
             <Lines v-if="id" />
          </TabPanel>
-         <TabPanel v-for="key in PENDING_TABS" :key :value="key" />
+         <TabPanel value="pi">
+            <Pi v-if="id" />
+         </TabPanel>
+         <TabPanel value="payments">
+            <Payments v-if="id && activeTab === 'payments'" />
+         </TabPanel>
+         <TabPanel value="production">
+            <Production v-if="id && activeTab === 'production'" :id />
+         </TabPanel>
          <TabPanel value="documents">
             <Documents v-if="id && activeTab === 'documents'" :id />
          </TabPanel>

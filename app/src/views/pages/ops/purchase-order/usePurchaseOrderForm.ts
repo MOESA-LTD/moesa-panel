@@ -5,8 +5,10 @@ import {
    toPurchaseOrderFormValues,
    toPurchaseOrderPayload,
    type PurchaseOrderCard,
+   type PurchaseOrderCardLine,
    type PurchaseOrderOverviewRow
 } from '@/api/purchaseOrder';
+import { piDifferences, type FigureLine } from '@/api/purchaseOrder/figures';
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import { useCustomerFilter } from '@/store/customerFilter';
 import { computed, inject, ref, type InjectionKey, type Ref } from 'vue';
@@ -100,3 +102,68 @@ export const injectPurchaseOrderOverview = () =>
 /** Whether the card's saved order has its terms and lines locked (pi_approved on). */
 export const useOrderLocked = (form: Pick<PurchaseOrderForm, 'row'>) =>
    computed(() => !!form.row.value && isPurchaseOrderLocked(form.row.value.status));
+
+/** A finite number, or null: a cleared InputNumber is null, and the figures must never see it. */
+const finite = (value: unknown): number | null =>
+   typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+/** The order fields the PI check reads, as the form or the saved row holds them. */
+export type PiCheckInput = Partial<
+   Record<
+      | 'deposit_rate'
+      | 'pi_subtotal'
+      | 'pi_total'
+      | 'pi_deposit_amount'
+      | 'pi_balance_amount'
+      | 'pi_extra_amount'
+      | 'pi_discount_amount',
+      unknown
+   >
+>;
+
+/**
+ * The S09 PI check (piDifferences) of an order's lines against its PI fields. The figures throw on
+ * what is not a decimal, so a line without a whole quantity or a unit price is left out, and a
+ * cleared figure counts as missing (a cleared extra, discount or rate as 0). `lineTotals` are the
+ * PI line totals as typed, by line id, over the saved ones.
+ */
+export function purchaseOrderPiCheck(
+   lines: readonly PurchaseOrderCardLine[],
+   order: PiCheckInput,
+   lineTotals: Readonly<Record<string, number | null | undefined>> = {}
+) {
+   const complete = [...lines]
+      .sort((a, b) => a.position - b.position)
+      .flatMap((line): FigureLine[] => {
+         const unitPrice = finite(line.unit_price);
+         if (!Number.isInteger(line.quantity) || unitPrice === null) return [];
+         return [
+            {
+               quantity: line.quantity,
+               unit_price: unitPrice,
+               pi_line_total: finite(
+                  line.id in lineTotals ? lineTotals[line.id] : line.pi_line_total
+               ),
+               ...(line.product?.sku ? { label: line.product.sku } : {})
+            }
+         ];
+      });
+   const extra = finite(order.pi_extra_amount) ?? 0;
+   const discount = finite(order.pi_discount_amount) ?? 0;
+   return piDifferences(
+      complete,
+      {
+         deposit_rate: finite(order.deposit_rate) ?? 0,
+         pi_extra_amount: extra,
+         pi_discount_amount: discount
+      },
+      {
+         pi_subtotal: finite(order.pi_subtotal),
+         pi_total: finite(order.pi_total),
+         pi_deposit_amount: finite(order.pi_deposit_amount),
+         pi_balance_amount: finite(order.pi_balance_amount),
+         pi_extra_amount: extra,
+         pi_discount_amount: discount
+      }
+   );
+}

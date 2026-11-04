@@ -585,3 +585,28 @@ export const toPurchaseOrderUpdatePayload = ({
    ...(id ? { id } : {}),
    ...values
 });
+
+/** An order's production updates, newest first (by date, then by when they were written). */
+export function usePurchaseOrderUpdates(purchaseOrderId: MaybeRefOrGetter<string | null>) {
+   const tenantKey = useTenantKey();
+
+   return useQuery({
+      queryKey: computed(() =>
+         queryKeys.list(tenantKey.value, 'purchase_order_update', {
+            purchaseOrderId: toValue(purchaseOrderId)
+         })
+      ),
+      queryFn: async ({ signal }) => {
+         const { data } = await supabase
+            .from('purchase_order_update')
+            .select('*')
+            .eq('purchase_order_id', toValue(purchaseOrderId)!)
+            .order('happened_on', { ascending: false })
+            .order('created_at', { ascending: false })
+            .abortSignal(signal)
+            .throwOnError();
+         return data;
+      },
+      enabled: computed(() => !!toValue(purchaseOrderId))
+   });
+}

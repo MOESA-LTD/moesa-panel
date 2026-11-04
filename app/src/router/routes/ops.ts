@@ -816,6 +816,52 @@ const routes: RouteRecordRaw[] = [
                         }
                      },
                      {
+                        path: 'pi',
+                        name: 'ops-purchase-order-manage-pi',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_pi',
+                           icon: PrimeIcons.CHECK_SQUARE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/purchase-order/tabs/Pi.vue'),
+                           skeleton: () => import('@/views/pages/ops/purchase-order/tabs/Pi.vue')
+                        }
+                     },
+                     {
+                        path: 'payments',
+                        name: 'ops-purchase-order-manage-payments',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_payments',
+                           icon: PrimeIcons.WALLET,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Payments.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Payments.vue')
+                        }
+                     },
+                     {
+                        path: 'production',
+                        name: 'ops-purchase-order-manage-production',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_production',
+                           icon: PrimeIcons.COG,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Production.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Production.vue')
+                        }
+                     },
+                     {
                         path: 'documents',
                         name: 'ops-purchase-order-manage-documents',
                         props: true,
@@ -875,6 +921,66 @@ const routes: RouteRecordRaw[] = [
                   components: {
                      default: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: ':purchaseOrderId/payment/add',
+                  name: 'ops-purchase-order-payment-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_payment_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'purchase_order_payment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue')
+                  }
+               },
+               {
+                  path: 'payment/:id/edit',
+                  name: 'ops-purchase-order-payment-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_payment_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'purchase_order_payment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/PaymentUpsert.vue')
+                  }
+               },
+               {
+                  path: ':purchaseOrderId/update/add',
+                  name: 'ops-purchase-order-update-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_update_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'purchase_order_update' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue')
+                  }
+               },
+               {
+                  path: 'update/:id/edit',
+                  name: 'ops-purchase-order-update-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_update_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'purchase_order_update' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue')
                   }
                }
             ]

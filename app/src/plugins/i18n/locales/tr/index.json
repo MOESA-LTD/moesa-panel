@@ -477,7 +477,14 @@
          "ops_purchase_order_documents": "Belgeler",
          "ops_purchase_order_media": "Ortam",
          "ops_purchase_order_line_add": "Yeni sipariş satırı",
-         "ops_purchase_order_line_edit": "Sipariş satırını düzenle"
+         "ops_purchase_order_line_edit": "Sipariş satırını düzenle",
+         "ops_purchase_order_pi": "PI kontrolü",
+         "ops_purchase_order_payments": "Ödemeler",
+         "ops_purchase_order_production": "Üretim",
+         "ops_purchase_order_payment_add": "Yeni ödeme",
+         "ops_purchase_order_payment_edit": "Ödemeyi düzenle",
+         "ops_purchase_order_update_add": "Yeni üretim güncellemesi",
+         "ops_purchase_order_update_edit": "Üretim güncellemesini düzenle"
       }
    },
    "fields": {
@@ -1377,7 +1384,11 @@
             "subtotal": "Ara toplam",
             "total": "Toplam",
             "deposit_paid_on": "Depozito ödeme tarihi",
-            "balance_planned_on": "Bakiye planlanan tarih"
+            "balance_planned_on": "Bakiye planlanan tarih",
+            "pi_document": "PI belgesi",
+            "pi_number": "PI numarası",
+            "pi_line_total": "PI satır toplamı",
+            "checked_at": "Kontrol tarihi"
          },
          "pi": {
             "subtotal": "Ara toplam",
@@ -1388,7 +1399,13 @@
             "balance": "Bakiye",
             "system": "Sistem",
             "entered": "PI'daki",
-            "diff": "Fark"
+            "diff": "Fark",
+            "matches": "PI yeniden hesapla tutuyor.",
+            "mismatch": "PI yeniden hesaptan farklı.",
+            "line": "Satır",
+            "checklist": "PI kontrol listesi (S09)",
+            "line_totals": "PI'daki satır toplamları",
+            "not_ready": "PI yeniden hesapla tutmuyor ya da kontrol listesi tamamlanmadı; onay reddedilecek."
          },
          "pi_check": {
             "status": {
@@ -1455,15 +1472,22 @@
                "amount": "Tutar",
                "planned_on": "Planlanan tarih",
                "paid_on": "Ödenen tarih",
-               "paid_by": "Ödeyen taraf"
+               "paid_by": "Ödeyen taraf",
+               "kind": "Tür"
             }
          },
          "production": {
             "fields": {
                "happened_on": "Tarih",
-               "note": "Durum notu"
+               "note": "Durum notu",
+               "author": "Yazan"
             }
-         }
+         },
+         "plan_payments": "PI'dan planla",
+         "psi_warning": "Bu siparişte onaylı PSI raporu yok; G4'e göre bakiye PSI'sız ödenmez.",
+         "deposit_differs": "PI depozitosundan farklı",
+         "no_payments": "Ödeme yok.",
+         "no_updates": "Üretim güncellemesi yok."
       }
    },
    "glossary": {
@@ -1555,5 +1579,9 @@
          "done": "Bitti.",
          "blocked": "Başka bir şey çözülmeden ilerleyemiyor."
       }
+   },
+   "status_actions": {
+      "confirm": "\"{status}\" durumuna geçilsin mi?",
+      "done": "Durum değişti."
    }
 }

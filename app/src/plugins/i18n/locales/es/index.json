@@ -183,7 +183,14 @@
          "ops_purchase_order_documents": "Documents",
          "ops_purchase_order_media": "Media",
          "ops_purchase_order_line_add": "New order line",
-         "ops_purchase_order_line_edit": "Edit order line"
+         "ops_purchase_order_line_edit": "Edit order line",
+         "ops_purchase_order_pi": "PI check",
+         "ops_purchase_order_payments": "Payments",
+         "ops_purchase_order_production": "Production",
+         "ops_purchase_order_payment_add": "New payment",
+         "ops_purchase_order_payment_edit": "Edit payment",
+         "ops_purchase_order_update_add": "New production update",
+         "ops_purchase_order_update_edit": "Edit production update"
       }
    },
    "auth": {
@@ -1373,7 +1380,11 @@
             "subtotal": "Subtotal",
             "total": "Total",
             "deposit_paid_on": "Deposit paid on",
-            "balance_planned_on": "Balance planned on"
+            "balance_planned_on": "Balance planned on",
+            "pi_document": "PI document",
+            "pi_number": "PI number",
+            "pi_line_total": "PI line total",
+            "checked_at": "Checked at"
          },
          "pi": {
             "subtotal": "Subtotal",
@@ -1384,7 +1395,13 @@
             "balance": "Balance",
             "system": "Recalculated",
             "entered": "On the PI",
-            "diff": "Difference"
+            "diff": "Difference",
+            "matches": "The PI matches the recalculation.",
+            "mismatch": "The PI differs from the recalculation.",
+            "line": "Line",
+            "checklist": "PI checklist (S09)",
+            "line_totals": "Line totals on the PI",
+            "not_ready": "The PI does not match the recalculation or its checklist is not complete; the approval will be refused."
          },
          "pi_check": {
             "status": {
@@ -1451,19 +1468,26 @@
                "amount": "Amount",
                "planned_on": "Planned date",
                "paid_on": "Paid on",
-               "paid_by": "Paid by"
+               "paid_by": "Paid by",
+               "kind": "Type"
             }
          },
          "production": {
             "fields": {
                "happened_on": "Date",
-               "note": "Status note"
+               "note": "Status note",
+               "author": "Author"
             }
          },
          "spec_missing": "Spec sheet missing",
          "locked_hint": "Fixed since the PI was approved.",
          "no_rows": "No purchase orders.",
-         "no_lines": "No lines yet."
+         "no_lines": "No lines yet.",
+         "plan_payments": "Plan from PI",
+         "psi_warning": "No approved PSI report on this order; per G4 the balance is not paid without it.",
+         "deposit_differs": "Differs from the PI deposit",
+         "no_payments": "No payments.",
+         "no_updates": "No production updates."
       }
    },
    "glossary": {
@@ -1555,5 +1579,9 @@
          "done": "Finished.",
          "blocked": "Cannot go on until something else is resolved."
       }
+   },
+   "status_actions": {
+      "confirm": "Move to \"{status}\"?",
+      "done": "Status changed."
    }
 }
