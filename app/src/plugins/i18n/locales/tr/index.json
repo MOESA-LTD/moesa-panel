@@ -501,7 +501,21 @@
          "ops_purchase_order_payment_add": "Yeni ödeme",
          "ops_purchase_order_payment_edit": "Ödemeyi düzenle",
          "ops_purchase_order_update_add": "Yeni üretim güncellemesi",
-         "ops_purchase_order_update_edit": "Üretim güncellemesini düzenle"
+         "ops_purchase_order_update_edit": "Üretim güncellemesini düzenle",
+         "ops_shipment": "Sevkiyatlar",
+         "ops_shipment_list": "Sevkiyat listesi",
+         "ops_shipment_manage": "Sevkiyat kartı",
+         "ops_shipment_general": "Genel",
+         "ops_shipment_dates": "Tarihler",
+         "ops_shipment_orders": "Siparişler",
+         "ops_shipment_events": "Olaylar",
+         "ops_shipment_acceptance": "Teslim kabulü",
+         "ops_shipment_documents": "Belgeler",
+         "ops_shipment_media": "Ortam",
+         "ops_shipment_line_add": "Yeni sevkiyat satırı",
+         "ops_shipment_line_edit": "Sevkiyat satırını düzenle",
+         "ops_shipment_event_add": "Yeni sevkiyat olayı",
+         "ops_shipment_event_edit": "Sevkiyat olayını düzenle"
       }
    },
    "fields": {
@@ -1555,7 +1569,15 @@
             "to_party": "Kime",
             "channel": "Kanal",
             "note": "Not",
-            "step": "Olay"
+            "step": "Olay",
+            "code": "Kod",
+            "customer": "Müşteri",
+            "status": "Durum",
+            "purchase_orders": "Siparişler",
+            "ordered": "Sipariş edilen",
+            "on_shipment": "Bu sevkiyatta",
+            "happened_at": "Zaman",
+            "notes": "Notlar"
          },
          "mode": {
             "fcl20": "FCL 20'",
@@ -1600,7 +1622,22 @@
             "20": "Dosya kapanışı",
             "other": "Diğer"
          },
-         "psi_warning": "Bu siparişlerin onaylı PSI raporu yok (G4): {codes}"
+         "psi_warning": "Bu siparişlerin onaylı PSI raporu yok (G4): {codes}",
+         "packing_list_hint": "Paketlenen miktarları çeki listesinden (packing list) aktarın.",
+         "remaining": "Sevk edilebilecek kalan: {count}",
+         "add_order": "Sipariş ekle",
+         "remove_order": "Siparişi çıkar",
+         "no_rows": "Sevkiyat yok.",
+         "no_orders": "Bu sevkiyatta henüz sipariş yok.",
+         "no_open_orders": "Bu müşterinin başka açık siparişi yok.",
+         "no_events": "Olay yok.",
+         "document_missing": "Eksik",
+         "psi_missing": "Onaylı PSI yok",
+         "eta_state": {
+            "late": "Gecikti",
+            "this_week": "Bu hafta",
+            "later": "Daha sonra"
+         }
       }
    },
    "glossary": {

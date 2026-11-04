@@ -12,6 +12,12 @@ const documentProps = (route: RouteLocationNormalized) => ({
    code: route.query.code ?? null
 });
 
+// A shipment line is added for one order line, which the orders tab passes in the query.
+const shipmentLineProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   purchaseOrderLineId: route.query.purchaseOrderLineId ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -26,6 +32,7 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'product' },
             { action: 'select', subject: 'project' },
             { action: 'select', subject: 'purchase_order' },
+            { action: 'select', subject: 'shipment' },
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' },
             { action: 'select', subject: 'media' }
@@ -981,6 +988,219 @@ const routes: RouteRecordRaw[] = [
                   components: {
                      default: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/purchase-order/UpdateUpsert.vue')
+                  }
+               }
+            ]
+         },
+         {
+            path: 'shipments',
+            name: 'ops-shipment',
+            meta: {
+               label: 'route.label.ops_shipment',
+               icon: PrimeIcons.SEND,
+               requiredPermissions: [{ action: 'select', subject: 'shipment' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-shipment-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-shipment-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-shipment-list',
+                  meta: {
+                     label: 'route.label.ops_shipment_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'shipment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/Index.vue')
+                  }
+               },
+               {
+                  // The shipment card: its tabs open on their own as these child routes.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-shipment-manage',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_manage',
+                     icon: PrimeIcons.SEND,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'shipment' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-shipment-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/General.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'dates',
+                        name: 'ops-shipment-manage-dates',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_dates',
+                           icon: PrimeIcons.CALENDAR,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Dates.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Dates.vue')
+                        }
+                     },
+                     {
+                        path: 'orders',
+                        name: 'ops-shipment-manage-orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Orders.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Orders.vue')
+                        }
+                     },
+                     {
+                        path: 'events',
+                        name: 'ops-shipment-manage-events',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_events',
+                           icon: PrimeIcons.HISTORY,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Events.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Events.vue')
+                        }
+                     },
+                     {
+                        path: 'acceptance',
+                        name: 'ops-shipment-manage-acceptance',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_acceptance',
+                           icon: PrimeIcons.CHECK_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Acceptance.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Acceptance.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-shipment-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Documents.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-shipment-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_shipment_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/shipment/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/shipment/tabs/Media.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':shipmentId/line/add',
+                  name: 'ops-shipment-line-add',
+                  props: { default: shipmentLineProps, skeleton: shipmentLineProps },
+                  meta: {
+                     label: 'route.label.ops_shipment_line_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'shipment_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: 'line/:id/edit',
+                  name: 'ops-shipment-line-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_line_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'shipment_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: ':shipmentId/event/add',
+                  name: 'ops-shipment-event-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_event_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'shipment_event' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/EventUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/EventUpsert.vue')
+                  }
+               },
+               {
+                  path: 'event/:id/edit',
+                  name: 'ops-shipment-event-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_shipment_event_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'shipment_event' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/shipment/EventUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/shipment/EventUpsert.vue')
                   }
                }
             ]

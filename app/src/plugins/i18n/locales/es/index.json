@@ -190,7 +190,21 @@
          "ops_purchase_order_payment_add": "New payment",
          "ops_purchase_order_payment_edit": "Edit payment",
          "ops_purchase_order_update_add": "New production update",
-         "ops_purchase_order_update_edit": "Edit production update"
+         "ops_purchase_order_update_edit": "Edit production update",
+         "ops_shipment": "Shipments",
+         "ops_shipment_list": "Shipment list",
+         "ops_shipment_manage": "Shipment card",
+         "ops_shipment_general": "General",
+         "ops_shipment_dates": "Dates",
+         "ops_shipment_orders": "Orders",
+         "ops_shipment_events": "Events",
+         "ops_shipment_acceptance": "Acceptance",
+         "ops_shipment_documents": "Documents",
+         "ops_shipment_media": "Media",
+         "ops_shipment_line_add": "New shipment line",
+         "ops_shipment_line_edit": "Edit shipment line",
+         "ops_shipment_event_add": "New shipment event",
+         "ops_shipment_event_edit": "Edit shipment event"
       }
    },
    "auth": {
@@ -1555,7 +1569,15 @@
             "to_party": "To",
             "channel": "Channel",
             "note": "Note",
-            "step": "Event"
+            "step": "Event",
+            "code": "Code",
+            "customer": "Customer",
+            "status": "Status",
+            "purchase_orders": "Orders",
+            "ordered": "Ordered",
+            "on_shipment": "On this shipment",
+            "happened_at": "When",
+            "notes": "Notes"
          },
          "mode": {
             "fcl20": "FCL 20'",
@@ -1600,7 +1622,22 @@
             "20": "File closed",
             "other": "Other"
          },
-         "psi_warning": "These orders have no approved PSI report (G4): {codes}"
+         "psi_warning": "These orders have no approved PSI report (G4): {codes}",
+         "packing_list_hint": "Copy the packed quantities from the packing list.",
+         "remaining": "Still to ship: {count}",
+         "add_order": "Add order",
+         "remove_order": "Remove order",
+         "no_rows": "No shipments.",
+         "no_orders": "No orders on this shipment yet.",
+         "no_open_orders": "No other open orders of this customer.",
+         "no_events": "No events.",
+         "document_missing": "Missing",
+         "psi_missing": "No approved PSI",
+         "eta_state": {
+            "late": "Late",
+            "this_week": "This week",
+            "later": "Later"
+         }
       }
    },
    "glossary": {
