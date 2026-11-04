@@ -3,12 +3,15 @@ import { useMyMemberships } from '@/api/account/memberships';
 
 // Read-only: the companies and branches the user may use, with their roles in each.
 const { t } = useI18n();
-const { memberships, isPending } = useMyMemberships();
+const { memberships, isPending, isError } = useMyMemberships();
 </script>
 
 <template>
    <FormBox :legend="t('account.memberships.legend')">
-      <div v-if="isPending" class="flex flex-col gap-2">
+      <small v-if="isError" data-memberships-error class="text-red-500">
+         {{ t('account.memberships.error') }}
+      </small>
+      <div v-else-if="isPending" class="flex flex-col gap-2">
          <Skeleton v-for="n in 3" :key="n" height="2rem" />
       </div>
       <small v-else-if="!memberships.length" class="text-muted-color">

@@ -528,7 +528,8 @@
          "legend": "Companies and branches",
          "owner": "Owner",
          "no_roles": "No role",
-         "empty": "You are not a member of any company yet."
+         "empty": "You are not a member of any company yet.",
+         "error": "Memberships could not be loaded."
       }
    },
    "toast": {

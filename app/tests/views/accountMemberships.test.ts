@@ -9,10 +9,11 @@ import { ref } from 'vue';
 
 const memberships = ref<Membership[]>([]);
 const isPending = ref(false);
+const isError = ref(false);
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
 vi.mock('@/api/account/memberships', () => ({
-   useMyMemberships: () => ({ memberships, isPending })
+   useMyMemberships: () => ({ memberships, isPending, isError })
 }));
 
 const row = (over: Partial<Membership> & Pick<Membership, 'id' | 'display_name'>): Membership => ({
@@ -34,6 +35,7 @@ describe('account Memberships section', () => {
    beforeAll(() => i18n.setLocaleMessage('en', en));
    beforeEach(() => {
       isPending.value = false;
+      isError.value = false;
       memberships.value = [
          row({ id: 'a', display_name: 'Atlas', owned: true, roles: ['admin'] }),
          row({ id: 'b', display_name: 'Atlas Izmir', depth: 1, roles: ['coordinator'] }),
@@ -88,5 +90,14 @@ describe('account Memberships section', () => {
       expect(wrapper.find('[data-pc-name="skeleton"]').exists()).toBe(true);
       expect(wrapper.findAll('[data-membership]')).toHaveLength(0);
       expect(wrapper.text()).not.toContain(i18n.t('account.memberships.empty'));
+   });
+
+   it('shows the error line instead of the list when the memberships cannot be loaded', async () => {
+      isError.value = true;
+      memberships.value = [];
+      const wrapper = await mountSection();
+      expect(wrapper.text()).toContain(i18n.t('account.memberships.error'));
+      expect(wrapper.text()).not.toContain(i18n.t('account.memberships.empty'));
+      expect(wrapper.find('[data-pc-name="skeleton"]').exists()).toBe(false);
    });
 });

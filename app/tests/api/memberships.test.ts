@@ -1,8 +1,15 @@
 import type { Tenant } from '@/api/access';
-import { toMemberships } from '@/api/account/memberships';
+import { toMemberships, useMyMemberships } from '@/api/account/memberships';
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
+import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import { defineComponent, reactive } from 'vue';
 
-vi.mock('@/lib/supabase', () => ({ supabase: { rpc: vi.fn() } }));
+const mock = vi.hoisted(() => ({ rpc: vi.fn() }));
+const auth = reactive({ user: null as { id: string } | null, branches: [] as Tenant[] });
+
+vi.mock('@/lib/supabase', () => ({ supabase: { rpc: mock.rpc } }));
+vi.mock('@/store/auth', () => ({ useAuthStore: () => auth }));
 
 const tenant = (
    id: string,
@@ -65,5 +72,42 @@ describe('toMemberships', () => {
 
    it('gives nothing without tenants', () => {
       expect(toMemberships([], [{ tenant_id: 'moesa', roles: ['staff'] }])).toEqual([]);
+   });
+});
+
+describe('useMyMemberships', () => {
+   const run = async () => {
+      let result!: ReturnType<typeof useMyMemberships>;
+      const Probe = defineComponent({
+         setup() {
+            result = useMyMemberships();
+            return () => null;
+         }
+      });
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      mount(Probe, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } });
+      await flushPromises();
+      return result;
+   };
+
+   it('does not ask for the roles while no one is signed in', async () => {
+      auth.user = null;
+      mock.rpc.mockReset();
+
+      await run();
+
+      expect(mock.rpc).not.toHaveBeenCalled();
+   });
+
+   it('reports a failed my_memberships call as an error', async () => {
+      auth.user = { id: 'u1' };
+      mock.rpc
+         .mockReset()
+         .mockReturnValue({ throwOnError: () => Promise.reject(new Error('rpc failed')) });
+
+      const { isError } = await run();
+
+      expect(mock.rpc).toHaveBeenCalledWith('my_memberships');
+      expect(isError.value).toBe(true);
    });
 });

@@ -340,7 +340,8 @@
          "legend": "Şirketler ve şubeler",
          "owner": "Sahip",
          "no_roles": "Rol yok",
-         "empty": "Henüz hiçbir şirketin üyesi değilsiniz."
+         "empty": "Henüz hiçbir şirketin üyesi değilsiniz.",
+         "error": "Üyelikler yüklenemedi."
       }
    },
    "toast": {

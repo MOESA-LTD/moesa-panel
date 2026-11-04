@@ -61,20 +61,26 @@ export function toMemberships(tenants: Tenant[], roles: TenantRoles[]): Membersh
    return result;
 }
 
-/** The signed-in user's tenants with their roles, refetched whenever the page opens. */
+/**
+ * The signed-in user's tenants with their roles, refetched whenever the page opens; nothing is
+ * asked while no one is signed in. `isError` is set when the roles could not be loaded.
+ */
 export function useMyMemberships(): {
    memberships: ComputedRef<Membership[]>;
    isPending: Ref<boolean>;
+   isError: Ref<boolean>;
 } {
    const authStore = useAuthStore();
-   const { data, isPending } = useQuery({
+   const { data, isPending, isError } = useQuery({
       queryKey: computed(() => ['my_memberships', authStore.user?.id]),
       queryFn: fetchMyRoles,
+      enabled: computed(() => !!authStore.user),
       staleTime: 0
    });
 
    return {
       memberships: computed(() => toMemberships(authStore.branches, data.value ?? [])),
-      isPending
+      isPending,
+      isError
    };
 }
