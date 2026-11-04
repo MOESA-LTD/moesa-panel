@@ -1,4 +1,5 @@
 import { GLOSSARY_ENUMS, glossaryKey, type GlossaryEnum } from '@/api/glossary';
+import type { InjectionKey } from 'vue';
 
 /** The groups of the terms registry, in the order the terms are listed. */
 export const TERM_CATEGORIES = [
@@ -141,3 +142,6 @@ export const markLabel = (label: string, code: string): string => {
    const end = found.index + code.length;
    return `${label.slice(0, found.index)}[[${code}]]${label.slice(end)}`;
 };
+
+/** A page that handles term clicks itself provides this; otherwise a term opens the guide panel. */
+export const TERM_SELECT: InjectionKey<(code: string) => void> = Symbol('termSelect');

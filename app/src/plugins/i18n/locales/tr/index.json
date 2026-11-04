@@ -2320,7 +2320,8 @@
          "needs": "Gerekir: {subject} için {action}",
          "no_tasks": "Rolünüzün bu sayfada işi yok; okuyabilirsiniz.",
          "open": "Bu sayfa nasıl çalışır?",
-         "close_card": "Bu kartı nasıl kapatırım?"
+         "close_card": "Bu kartı nasıl kapatırım?",
+         "term_open": "{code} nedir?"
       },
       "actions": {
          "read": "okuma",

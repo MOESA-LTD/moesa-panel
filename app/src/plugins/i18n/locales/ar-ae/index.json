@@ -2320,7 +2320,8 @@
          "needs": "Needs: {action} on {subject}",
          "no_tasks": "Your role has no task on this page; you can read it.",
          "open": "How does this page work?",
-         "close_card": "How do I close this card?"
+         "close_card": "How do I close this card?",
+         "term_open": "What is {code}?"
       },
       "actions": {
          "read": "read",
