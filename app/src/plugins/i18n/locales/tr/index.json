@@ -160,6 +160,7 @@
       "token_expired": "Belirteç süresi doldu",
       "unauthorized_client": "Yetkisiz istemci",
       "unexpected_error": "Beklenmeyen hata",
+      "unknown": "Bir şeyler ters gitti.",
       "unknown_provider": "Bilinmeyen sağlayıcı",
       "user_already_registered": "Kullanıcı zaten kayıtlı",
       "user_not_found": "Kullanıcı bulunamadı",

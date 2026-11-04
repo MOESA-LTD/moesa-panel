@@ -276,6 +276,7 @@
       "token_expired": "Token expired",
       "unauthorized_client": "Unauthorized client",
       "unexpected_error": "Unexpected error",
+      "unknown": "Something went wrong.",
       "unknown_provider": "Unknown provider",
       "user_already_registered": "User already registered",
       "user_not_found": "User not found",

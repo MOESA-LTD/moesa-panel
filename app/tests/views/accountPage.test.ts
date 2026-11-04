@@ -160,6 +160,19 @@ describe('My account page', () => {
       );
    });
 
+   it('reports a failed upload to the error handler, without the success toast', async () => {
+      const error = new Error('Failed to fetch');
+      api.uploadAvatar.mockRejectedValueOnce(error);
+      const wrapper = await mountPage();
+
+      await select(wrapper, new File(['png'], 'me.png', { type: 'image/png' }));
+
+      expect(api.errorHandler).toHaveBeenCalledWith(error);
+      expect(api.toast).not.toHaveBeenCalledWith(
+         expect.objectContaining({ summary: i18n.t('toast.updated') })
+      );
+   });
+
    it('explains a photo that is too large instead of uploading it', async () => {
       const wrapper = await mountPage();
       const file = new File(['png'], 'big.png', { type: 'image/png' });

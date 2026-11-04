@@ -11,10 +11,12 @@ const api = vi.hoisted(() => ({
    confirm: vi.fn(),
    updatePassword: vi.fn(),
    signOutOtherSessions: vi.fn(),
-   logout: vi.fn()
+   logout: vi.fn(),
+   errorHandler: vi.fn()
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+vi.mock('@/lib/appErrorHandler', () => ({ appErrorHandler: api.errorHandler }));
 vi.mock('@/store/auth', () => ({ useAuthStore: () => ({ logout: api.logout }) }));
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: api.toast }) }));
 vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: api.confirm }) }));
@@ -73,6 +75,19 @@ describe('account Security section', () => {
       expect(api.toast).toHaveBeenCalledWith(
          expect.objectContaining({ summary: i18n.t('account.security.signed_out_others') })
       );
+   });
+
+   it('reports a failed sign-out to the error handler, without the success toast', async () => {
+      const error = new Error('Failed to fetch');
+      api.signOutOtherSessions.mockRejectedValueOnce(error);
+      const options = await signOutOthers();
+
+      await options.accept!();
+      await flushPromises();
+
+      expect(api.errorHandler).toHaveBeenCalledWith(error);
+      expect(api.toast).not.toHaveBeenCalled();
+      expect(api.logout).not.toHaveBeenCalled();
    });
 
    it('does nothing when the confirmation is declined', async () => {
