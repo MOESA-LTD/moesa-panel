@@ -11,6 +11,8 @@
 --   gate_rollback_incident_required  a rollback without an incident
 --   gate_incident_invalid            the incident is not there, not of the project's customer, or
 --                                    closed
+--   gate_rollback_immutable          the rollback's reason or incident changed other than by
+--                                    un-passing or passing the gate
 --
 -- private.project_gate_guard is CREATE OR REPLACE with the 032_gate_links.sql body otherwise
 -- unchanged, except that a pass clears rolled_back_reason and rolled_back_incident_id (a re-passed
@@ -78,7 +80,13 @@ BEGIN
         RETURN NEW;
     END IF;
 
+    -- The rollback's reason and incident change only when the gate is un-passed (above) or passed
+    -- (cleared below).
     IF NEW.status <> 'passed' THEN
+        IF NEW.rolled_back_incident_id IS DISTINCT FROM OLD.rolled_back_incident_id
+           OR NEW.rolled_back_reason IS DISTINCT FROM OLD.rolled_back_reason THEN
+            RAISE EXCEPTION 'gate_rollback_immutable' USING ERRCODE = 'check_violation';
+        END IF;
         RETURN NEW;
     END IF;
 

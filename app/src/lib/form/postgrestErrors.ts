@@ -378,7 +378,8 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'incident_closure_incomplete',
       'incident_closed',
       'gate_rollback_incident_required',
-      'gate_incident_invalid'
+      'gate_incident_invalid',
+      'gate_rollback_immutable'
    ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
    {
       code: '42501',

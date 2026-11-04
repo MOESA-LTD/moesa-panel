@@ -214,9 +214,11 @@ BEGIN
     END IF;
 
     -- 5. Live, on every write, so a live cell keeps them: the listing data and approved content
-    --    (L-G1). Entering live dates the launch today unless a date is given.
+    --    (L-G1); a blank platform ID or SKU counts as missing. Entering live dates the launch today
+    --    unless a date is given.
     IF NEW.status = 'live' THEN
-        IF NEW.platform_product_id IS NULL OR NEW.platform_sku IS NULL OR NEW.price IS NULL
+        IF nullif(btrim(NEW.platform_product_id), '') IS NULL OR nullif(btrim(NEW.platform_sku), '') IS NULL
+           OR NEW.price IS NULL
            OR NEW.currency IS NULL OR NEW.stock_source IS NULL OR NEW.content_status <> 'approved' THEN
             RAISE EXCEPTION 'market_cell_live_incomplete' USING ERRCODE = 'check_violation';
         END IF;

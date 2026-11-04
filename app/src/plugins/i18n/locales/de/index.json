@@ -508,7 +508,8 @@
       "incident_deadline_due_required": "Enter the due time; only the 48-hour, 7-day and document-request deadlines are calculated.",
       "cr_project_customer": "The project belongs to another customer.",
       "cr_product_customer": "A product belongs to another customer.",
-      "change_request_kinds_required": "Choose at least one change kind."
+      "change_request_kinds_required": "Choose at least one change kind.",
+      "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again."
    },
    "account": {
       "profile": {

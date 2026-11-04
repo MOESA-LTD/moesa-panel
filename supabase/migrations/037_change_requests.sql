@@ -33,7 +33,9 @@
 --   change_request_customer_missing            the customer is not there (foreign_key_violation)
 --   change_request_immutable_field             the code, the customer or created_at changed, or
 --                                              the entered customer's approval of an approved
---                                              request changed or cleared
+--                                              request changed or cleared, or the documents,
+--                                              project or gate of an applied or rejected request
+--                                              changed
 --   change_request_document_invalid            the affected or resulting document is another
 --                                              customer's
 --   change_request_approval_document_invalid   the customer's approval is not a signed or approved
@@ -203,7 +205,8 @@ DECLARE
 BEGIN
     -- 1. The code, the customer and when it was made are fixed; so is the customer's approval
     --    once the request is approved and it is entered (it may still be entered after MOESA
-    --    approves).
+    --    approves); and a closed (applied or rejected) request keeps its documents, project and
+    --    gate.
     IF TG_OP = 'UPDATE' AND (
         NEW.code IS DISTINCT FROM OLD.code
         OR NEW.customer_id IS DISTINCT FROM OLD.customer_id
@@ -212,6 +215,12 @@ BEGIN
             OLD.customer_approved_on IS NOT NULL AND NEW.customer_approved_on IS DISTINCT FROM OLD.customer_approved_on
             OR OLD.customer_approval_document_id IS NOT NULL
                AND NEW.customer_approval_document_id IS DISTINCT FROM OLD.customer_approval_document_id
+        )
+        OR OLD.status IN ('applied', 'rejected') AND (
+            NEW.affected_document_id IS DISTINCT FROM OLD.affected_document_id
+            OR NEW.result_document_id IS DISTINCT FROM OLD.result_document_id
+            OR NEW.project_id IS DISTINCT FROM OLD.project_id
+            OR NEW.affected_gate_code IS DISTINCT FROM OLD.affected_gate_code
         )
     ) THEN
         RAISE EXCEPTION 'change_request_immutable_field' USING ERRCODE = 'check_violation';

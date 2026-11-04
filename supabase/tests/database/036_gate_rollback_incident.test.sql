@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- remembered on the gate. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(8);
+SELECT plan(10);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -63,6 +63,14 @@ SELECT throws_ok($$ UPDATE public.project_gate SET status = 'rolled_back', rolle
                  '23514', 'gate_rollback_incident_required', 'a re-passed gate does not keep its old incident');
 SELECT lives_ok($$ SELECT public.rollback_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief changed again', '00000000-0000-4000-8000-000000036021') $$,
                 'naming an open incident rolls it back again');
+
+-- A rolled-back gate keeps its rollback's incident and reason until it is passed again.
+SELECT throws_ok($$ UPDATE public.project_gate SET rolled_back_incident_id = NULL
+                    WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1' $$,
+                 '23514', 'gate_rollback_immutable', 'a rolled-back gate''s incident is not cleared');
+SELECT throws_ok($$ UPDATE public.project_gate SET rolled_back_reason = 'something else'
+                    WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1' $$,
+                 '23514', 'gate_rollback_immutable', 'nor its reason changed');
 
 SELECT * FROM finish();
 

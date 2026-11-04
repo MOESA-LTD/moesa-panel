@@ -360,6 +360,7 @@
       "incident_deadline_due_required": "Son zamanı girin; yalnızca 48 saat, 7 gün ve belge talebi süreleri hesaplanır.",
       "gate_rollback_incident_required": "Kapı yalnızca olay üzerinden geri alınır (K3); bir olay seçin ya da açın.",
       "gate_incident_invalid": "Bu projenin müşterisinin açık bir olayını seçin.",
+      "gate_rollback_immutable": "Geri almanın gerekçesi ve olayı, kapı yeniden geçilene kadar değişmez.",
       "change_request_customer_missing": "Talebin müşterisi bulunamadı.",
       "change_request_immutable_field": "Değişiklik talebinin kodu, müşterisi ve oluşturulma zamanı değişmez; onaylandıktan sonra müşteri onayı da değişmez.",
       "cr_project_customer": "Proje başka bir müşteriye ait.",

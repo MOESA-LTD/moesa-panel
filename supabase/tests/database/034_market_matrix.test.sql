@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- sees none of them. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(19);
+SELECT plan(20);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -70,6 +70,8 @@ SELECT throws_ok($$ UPDATE public.market_cell SET status = 'suppressed' WHERE id
                  '23514', 'market_cell_reason_required', 'a suppressed cell names its open issue');
 SELECT throws_ok($$ UPDATE public.market_cell SET platform_product_id = NULL WHERE id = '00000000-0000-4000-8000-000000034011' $$,
                  '23514', 'market_cell_live_incomplete', 'a live cell keeps its listing data');
+SELECT throws_ok($$ UPDATE public.market_cell SET platform_sku = '  ' WHERE id = '00000000-0000-4000-8000-000000034011' $$,
+                 '23514', 'market_cell_live_incomplete', 'a blanked SKU counts as missing');
 SELECT throws_ok($$ UPDATE public.market_cell SET compliance = 'yellow' WHERE id = '00000000-0000-4000-8000-000000034012' $$,
                  '23514', 'market_cell_compliance_note_required', 'yellow needs a compliance note');
 

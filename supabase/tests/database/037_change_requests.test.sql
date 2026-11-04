@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- tenant that sees none of them. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(22);
+SELECT plan(24);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -87,6 +87,10 @@ UPDATE public.change_request SET result_document_id = '00000000-0000-4000-8000-0
 
 SELECT is((SELECT status || ':' || (closed_on = current_date) FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037011'),
           'applied:true', 'the spec''s new version applies the request');
+SELECT throws_ok($$ UPDATE public.change_request SET result_document_id = NULL WHERE id = '00000000-0000-4000-8000-000000037011' $$,
+                 '23514', 'change_request_immutable_field', 'an applied request keeps its new version');
+SELECT throws_ok($$ UPDATE public.change_request SET affected_document_id = NULL WHERE id = '00000000-0000-4000-8000-000000037011' $$,
+                 '23514', 'change_request_immutable_field', 'nor does its affected document change');
 SELECT throws_ok($$ UPDATE public.change_request SET status = 'rejected' WHERE id = '00000000-0000-4000-8000-000000037012' $$,
                  '23514', 'change_request_decision_note_required', 'a rejection says why');
 SELECT throws_ok($$ INSERT INTO public.change_request_product (change_request_id, product_id, tenant_id) VALUES ('00000000-0000-4000-8000-000000037012', '00000000-0000-4000-8000-000000037003', current_setting('test.moesa')::UUID) $$,
