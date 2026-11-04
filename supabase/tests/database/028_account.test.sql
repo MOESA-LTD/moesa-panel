@@ -1,13 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- The account area (028) on the seed.sql demo users: the public `avatar` bucket and its limits
--- (PNG, JPEG, WebP, no SVG, up to 1 MiB), its policies (a user writes, lists, replaces and removes
--- only files in the folder named by their own id; anon writes nothing) and public.my_memberships
+-- (PNG, JPEG, WebP, no SVG, up to 1 MiB), its policies (a user lists the folder named by their own
+-- id and writes, replaces and removes there only avatar.<ext>; anon writes nothing) and public.my_memberships
 -- (the caller's tenant roles by name, one row per tenant, nothing of another user's). What it
 -- writes is rolled back.
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(16);
 
 SELECT set_config('test.moesa', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA LTD')::TEXT, TRUE);
 SELECT set_config('test.atlas', (SELECT t.id FROM public.tenant t WHERE t.display_name = 'Atlas Danışmanlık')::TEXT, TRUE);
@@ -47,6 +47,20 @@ SELECT throws_ok(
     '42501',
     NULL,
     'not outside a folder'
+);
+
+SELECT throws_ok(
+    $$ INSERT INTO storage.objects (bucket_id, name) VALUES ('avatar', current_setting('test.koordinator') || '/x/avatar.png') $$,
+    '42501',
+    NULL,
+    'not into a folder nested in their own'
+);
+
+SELECT throws_ok(
+    $$ INSERT INTO storage.objects (bucket_id, name) VALUES ('avatar', current_setting('test.koordinator') || '/other.png') $$,
+    '42501',
+    NULL,
+    'not under another file name'
 );
 
 SELECT is(

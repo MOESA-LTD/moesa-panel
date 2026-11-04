@@ -2,10 +2,11 @@
 --
 -- avatar          A public bucket of profile photos, one folder per user (<user id>/avatar.<ext>,
 --                 ext png, jpg or webp). The app shows them through the public bucket URL, as it
---                 does tenant logos (014). Only the user writes their own folder: the policies
---                 compare the folder with auth.uid(), so a photo cannot be planted for another
---                 user. The SELECT policy is for the owner alone (Storage needs it for upsert and
---                 remove), so no one lists another user's folder; there is no anon policy. The
+--                 does tenant logos (014). Only the user writes their own folder: the write
+--                 policies match the whole name, <auth.uid()>/avatar.<ext>, so a photo cannot be
+--                 planted for another user nor any other file kept in the folder. The SELECT
+--                 policy is for the owner alone (Storage needs it for upsert and remove), so no
+--                 one lists another user's folder; there is no anon policy. The
 --                 types and size are those of tenant logos (PNG, JPEG, WebP, no SVG: it can carry
 --                 scripts; up to 1 MiB), enforced by the Storage API.
 --
@@ -32,22 +33,23 @@ SET
    allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- Reading goes through the public URL; listing, replacing and removing are the owner's alone.
+-- Writes take only the full name <user id>/avatar.<ext>, not any file under the folder.
 DROP POLICY IF EXISTS avatar_select ON storage.objects;
 CREATE POLICY avatar_select ON storage.objects FOR SELECT TO authenticated
 USING (bucket_id = 'avatar' AND (storage.foldername(name))[1] = (SELECT auth.uid())::TEXT);
 
 DROP POLICY IF EXISTS avatar_insert ON storage.objects;
 CREATE POLICY avatar_insert ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'avatar' AND (storage.foldername(name))[1] = (SELECT auth.uid())::TEXT);
+WITH CHECK (bucket_id = 'avatar' AND name ~ ('^' || (SELECT auth.uid())::TEXT || '/avatar\.(png|jpg|webp)$'));
 
 DROP POLICY IF EXISTS avatar_update ON storage.objects;
 CREATE POLICY avatar_update ON storage.objects FOR UPDATE TO authenticated
-USING (bucket_id = 'avatar' AND (storage.foldername(name))[1] = (SELECT auth.uid())::TEXT)
-WITH CHECK (bucket_id = 'avatar' AND (storage.foldername(name))[1] = (SELECT auth.uid())::TEXT);
+USING (bucket_id = 'avatar' AND name ~ ('^' || (SELECT auth.uid())::TEXT || '/avatar\.(png|jpg|webp)$'))
+WITH CHECK (bucket_id = 'avatar' AND name ~ ('^' || (SELECT auth.uid())::TEXT || '/avatar\.(png|jpg|webp)$'));
 
 DROP POLICY IF EXISTS avatar_delete ON storage.objects;
 CREATE POLICY avatar_delete ON storage.objects FOR DELETE TO authenticated
-USING (bucket_id = 'avatar' AND (storage.foldername(name))[1] = (SELECT auth.uid())::TEXT);
+USING (bucket_id = 'avatar' AND name ~ ('^' || (SELECT auth.uid())::TEXT || '/avatar\.(png|jpg|webp)$'));
 
 -- The caller's roles in each tenant where they hold one, by display name.
 CREATE OR REPLACE FUNCTION public.my_memberships () RETURNS TABLE (tenant_id UUID, roles TEXT[]) LANGUAGE sql STABLE SECURITY DEFINER
