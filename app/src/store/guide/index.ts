@@ -1,19 +1,25 @@
-import { dismissedKey, PAGE_GUIDES, type GuidePage } from '@/constants/guide';
+import { DISMISSED_KEY, PAGE_GUIDES, type GuidePage } from '@/constants/guide';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+type Dismissed = Record<string, true>;
+
 // Storage may be unavailable (private mode, blocked site data); the guide then opens once a session.
-const wasShown = (key: string): boolean => {
+// One object under DISMISSED_KEY; unreadable JSON counts as nothing dismissed.
+const readDismissed = (): Dismissed => {
    try {
-      return localStorage.getItem(key) !== null;
+      const parsed: unknown = JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+         ? (parsed as Dismissed)
+         : {};
    } catch {
-      return false;
+      return {};
    }
 };
 
-const markShown = (key: string) => {
+const markDismissed = (route: string) => {
    try {
-      localStorage.setItem(key, '1');
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify({ ...readDismissed(), [route]: true }));
    } catch {
       // Kept in memory only.
    }
@@ -38,10 +44,10 @@ export const useGuideStore = defineStore('guide', () => {
 
    /** Opens the page's guide on the first visit of its route (spec M20), never again after. */
    const autoOpen = (guidePage: GuidePage) => {
-      const key = dismissedKey(PAGE_GUIDES[guidePage].route);
-      if (shown.has(key) || wasShown(key)) return;
-      shown.add(key);
-      markShown(key);
+      const route = PAGE_GUIDES[guidePage].route;
+      if (shown.has(route) || readDismissed()[route]) return;
+      shown.add(route);
+      markDismissed(route);
       show(guidePage);
    };
 

@@ -198,5 +198,5 @@ export const visibleTasks = (
    can: (action: string, subject: string) => boolean
 ): GuideTask[] => guide.tasks.filter((t) => can(t.permission.action, t.permission.subject));
 
-/** The storage key remembering that a route's guide has been shown once. */
-export const dismissedKey = (route: string) => `guide.dismissed.${route}`;
+/** The storage key of one object `{ [route]: true }` remembering which guides were shown once. */
+export const DISMISSED_KEY = 'guide.dismissed';

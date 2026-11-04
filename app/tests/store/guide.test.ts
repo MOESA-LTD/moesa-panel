@@ -18,7 +18,10 @@ describe('page guide store', () => {
       guide.autoOpen('shipment');
       expect(guide.open).toBe(true);
       expect(guide.page).toBe('shipment');
-      expect(setItem).toHaveBeenCalledWith('guide.dismissed.ops-shipment', '1');
+      expect(setItem).toHaveBeenCalledWith(
+         'guide.dismissed',
+         JSON.stringify({ 'ops-shipment': true })
+      );
 
       guide.hide();
       // A new store: only the stored key keeps it closed.
@@ -26,6 +29,33 @@ describe('page guide store', () => {
       const later = useGuideStore();
       later.autoOpen('shipment');
       expect(later.open).toBe(false);
+   });
+
+   it('keeps the other routes when a second page is dismissed', () => {
+      const stored = new Map<string, string>([
+         ['guide.dismissed', JSON.stringify({ dashboard: true })]
+      ]);
+      stubStorage({
+         getItem: (key: string) => stored.get(key) ?? null,
+         setItem: (key: string, value: string) => void stored.set(key, value)
+      });
+      const guide = useGuideStore();
+
+      guide.autoOpen('shipment');
+
+      expect(JSON.parse(stored.get('guide.dismissed') ?? '{}')).toEqual({
+         dashboard: true,
+         'ops-shipment': true
+      });
+   });
+
+   it('treats an unreadable stored value as nothing dismissed', () => {
+      stubStorage({ getItem: () => '{not json', setItem: vi.fn() });
+      const guide = useGuideStore();
+
+      guide.autoOpen('shipment');
+
+      expect(guide.open).toBe(true);
    });
 
    it('survives blocked storage', () => {
@@ -44,7 +74,10 @@ describe('page guide store', () => {
    });
 
    it('moves an open panel to the page navigated to', () => {
-      stubStorage({ getItem: () => '1', setItem: vi.fn() });
+      stubStorage({
+         getItem: () => JSON.stringify({ dashboard: true, 'ops-shipment': true }),
+         setItem: vi.fn()
+      });
       const guide = useGuideStore();
       guide.show('dashboard', 'close_incident');
 
@@ -56,7 +89,10 @@ describe('page guide store', () => {
    });
 
    it('closes an open panel on a route without a guide', () => {
-      stubStorage({ getItem: () => '1', setItem: vi.fn() });
+      stubStorage({
+         getItem: () => JSON.stringify({ dashboard: true, 'ops-shipment': true }),
+         setItem: vi.fn()
+      });
       const guide = useGuideStore();
       guide.show('dashboard');
 
@@ -66,7 +102,10 @@ describe('page guide store', () => {
    });
 
    it('leaves a closed panel closed on a visited page', () => {
-      stubStorage({ getItem: () => '1', setItem: vi.fn() });
+      stubStorage({
+         getItem: () => JSON.stringify({ dashboard: true, 'ops-shipment': true }),
+         setItem: vi.fn()
+      });
       const guide = useGuideStore();
 
       guide.followRoute('shipment');
