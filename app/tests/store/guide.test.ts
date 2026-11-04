@@ -21,8 +21,11 @@ describe('page guide store', () => {
       expect(setItem).toHaveBeenCalledWith('guide.dismissed.ops-shipment', '1');
 
       guide.hide();
-      guide.autoOpen('shipment');
-      expect(guide.open).toBe(false);
+      // A new store: only the stored key keeps it closed.
+      setActivePinia(createPinia());
+      const later = useGuideStore();
+      later.autoOpen('shipment');
+      expect(later.open).toBe(false);
    });
 
    it('survives blocked storage', () => {
@@ -37,6 +40,37 @@ describe('page guide store', () => {
 
       guide.hide();
       guide.autoOpen('shipment');
+      expect(guide.open).toBe(false);
+   });
+
+   it('moves an open panel to the page navigated to', () => {
+      stubStorage({ getItem: () => '1', setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.show('dashboard', 'close_incident');
+
+      guide.followRoute('shipment');
+
+      expect(guide.open).toBe(true);
+      expect(guide.page).toBe('shipment');
+      expect(guide.focusTask).toBeNull();
+   });
+
+   it('closes an open panel on a route without a guide', () => {
+      stubStorage({ getItem: () => '1', setItem: vi.fn() });
+      const guide = useGuideStore();
+      guide.show('dashboard');
+
+      guide.followRoute(null);
+
+      expect(guide.open).toBe(false);
+   });
+
+   it('leaves a closed panel closed on a visited page', () => {
+      stubStorage({ getItem: () => '1', setItem: vi.fn() });
+      const guide = useGuideStore();
+
+      guide.followRoute('shipment');
+
       expect(guide.open).toBe(false);
    });
 

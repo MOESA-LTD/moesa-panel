@@ -45,5 +45,17 @@ export const useGuideStore = defineStore('guide', () => {
       show(guidePage);
    };
 
-   return { open, page, focusTask, show, hide, autoOpen };
+   /**
+    * Follows a navigation: an open panel switches to the new page's guide, or closes on a route
+    * without one; then the new page's guide opens by itself on its first visit.
+    */
+   const followRoute = (guidePage: GuidePage | null) => {
+      if (open.value) {
+         if (guidePage) show(guidePage);
+         else hide();
+      }
+      if (guidePage) autoOpen(guidePage);
+   };
+
+   return { open, page, focusTask, show, hide, autoOpen, followRoute };
 });
