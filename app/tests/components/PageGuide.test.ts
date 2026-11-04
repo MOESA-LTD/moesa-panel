@@ -26,6 +26,13 @@ const router = createRouter({
    history: createMemoryHistory(),
    routes: [
       { path: '/', component: { template: '<div />' } },
+      // Kept out of the menu like the real route, which CustomLink would not render.
+      {
+         path: '/guide',
+         name: 'guide',
+         meta: { visible: false },
+         component: { template: '<div />' }
+      },
       ...ROUTES.map((name) => ({
          path: `/${name}`,
          name,
@@ -63,10 +70,8 @@ const mountGuide = async (focusTask?: string) => {
    return mountPanel();
 };
 
-const footerTo = (wrapper: Awaited<ReturnType<typeof mountPanel>>) => {
-   const links = wrapper.findAll('a[data-to]');
-   return JSON.parse(links[links.length - 1]!.attributes('data-to')!) as Record<string, unknown>;
-};
+const footerHref = (wrapper: Awaited<ReturnType<typeof mountPanel>>) =>
+   wrapper.find('.p-drawer-footer a').attributes('href');
 
 const DASHBOARD = 'guide.pages.dashboard.tasks';
 
@@ -150,10 +155,10 @@ describe('PageGuide', () => {
       const store = useGuideStore();
       store.showTerm('S09');
       const wrapper = await mountPanel();
-      expect(footerTo(wrapper)).toEqual({ name: 'guide', hash: '#term-S09' });
+      expect(footerHref(wrapper)).toBe('/guide#term-S09');
       store.show('dashboard');
       await nextTick();
-      expect(footerTo(wrapper)).toEqual({ name: 'guide' });
+      expect(footerHref(wrapper)).toBe('/guide');
    });
 
    it('renders the guide copy with its terms', async () => {

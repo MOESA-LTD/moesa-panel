@@ -161,9 +161,10 @@ watch(
       </div>
 
       <template #footer>
-         <CustomLink :to="systemGuide" class="text-primary hover:underline">
+         <!-- A plain RouterLink: CustomLink hides routes kept out of the menu, as the guide is. -->
+         <RouterLink :to="systemGuide" class="text-primary hover:underline">
             {{ $t('guide.panel.system_guide') }}
-         </CustomLink>
+         </RouterLink>
       </template>
    </Drawer>
 </template>
