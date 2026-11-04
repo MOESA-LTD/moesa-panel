@@ -2078,34 +2078,34 @@
       "package": {
          "A0": "Pazar araştırması, konsept ve tasarım (PL1–PL3): araştırma raporu, onaylı konsept, tasarım ve marka dosyası.",
          "A1": "Marka sourcing (P1–P4): mevcut bir markanın ya da üreticinin ürünü; onaylı, kalite kontrolünden geçmiş.",
-         "A2": "Private label geliştirme (P1 → PL1–PL7 → P3–P4): müşterinin markasıyla konseptten itibaren geliştirilen ürün; A0'ı içerir.",
+         "A2": "Private label geliştirme (P1 → PL1–PL7 → P3–P4): müşterinin markasıyla konseptten itibaren geliştirilen ürün; [[A0]]'ı içerir.",
          "B": "Lojistik ve teslim (P5–P6): ürün gümrüklenmiş, müşterinin deposunda.",
          "C": "Listing ve pazara açılış (L1–L5): ürün seçilen platform ve ülkelerde yayında.",
-         "D": "Uçtan uca: A1 veya A2 + B + C; fikirden satışa hazır ürüne tek muhatap.",
+         "D": "Uçtan uca: [[A1]] veya [[A2]] + [[B]] + [[C]]; fikirden satışa hazır ürüne tek muhatap.",
          "E": "Sürekli yönetim (O1–O3): yeniden sipariş, listing bakımı, raporlama. Proje açılmaz; yeniden sipariş reorder projesi olur."
       },
       "project_type": {
          "npi": "Yeni ürün: yolunun tam kapı setinden geçer.",
-         "variant": "Mevcut üründen yeni varyant (G2 → G5).",
-         "revision": "Değişiklik talebi sonucu spec ya da ambalaj değişikliği (G2 → G5).",
-         "reorder": "Onaylı ürünün tekrar siparişi (G3 → G5)."
+         "variant": "Mevcut üründen yeni varyant ([[G2]] → [[G5]]).",
+         "revision": "Değişiklik talebi sonucu spec ya da ambalaj değişikliği ([[G2]] → [[G5]]).",
+         "reorder": "Onaylı ürünün tekrar siparişi ([[G3]] → [[G5]])."
       },
       "project_path": {
          "a_sourcing": "A yolu, marka sourcing: mevcut markanın ürünü için tedarikçi ve numune (P2).",
          "b_private_label": "B yolu, private label: müşterinin markasıyla konseptten baskı onayına (PL1–PL7)."
       },
       "gate_code": {
-         "G1": "Proje başlatma (M): brief ve fizibilite onaylı.",
-         "G2": "Numune, spec sheet ve NPDS onayı (M); imzalı spec sheet olmadan geçilmez.",
-         "G3": "PI, fiyat ve baskı onayı (M).",
-         "G4": "Sevkiyat izni (iç kapı): PSI geçti, belgeler tam; onay uyum ve kalite sorumlusunda.",
-         "G5": "Teslim kabulü (M), müşterinin deposunda.",
-         "PL_G1": "Konsept ve tasarım onayı (M), yazılı.",
-         "PL_G2": "Marka ve kimlik onayı (M).",
-         "PL_G3": "Altın numune onayı (M).",
-         "PL_G4": "Baskıya onay (M).",
-         "L_G1": "İçerik onayı (M).",
-         "L_G2": "Proje kapanışı (M)."
+         "G1": "Proje başlatma [[(M)]]: brief ve fizibilite onaylı.",
+         "G2": "Numune, spec sheet ve NPDS onayı [[(M)]]; imzalı spec sheet olmadan geçilmez.",
+         "G3": "[[PI]], fiyat ve baskı onayı [[(M)]].",
+         "G4": "Sevkiyat izni (iç kapı): [[PSI]] geçti, belgeler tam; onay uyum ve kalite sorumlusunda.",
+         "G5": "Teslim kabulü [[(M)]], müşterinin deposunda.",
+         "PL_G1": "Konsept ve tasarım onayı [[(M)]], yazılı.",
+         "PL_G2": "Marka ve kimlik onayı [[(M)]].",
+         "PL_G3": "Altın numune onayı [[(M)]].",
+         "PL_G4": "Baskıya onay [[(M)]].",
+         "L_G1": "İçerik onayı [[(M)]].",
+         "L_G2": "Proje kapanışı [[(M)]]."
       },
       "document_type": {
          "spec_sheet": "Üreticinin imzalı ve kaşeli ürün spesifikasyonu: ürünün kanıtı.",
@@ -2118,12 +2118,12 @@
          "sds": "Güvenlik bilgi formu; kimyasallarda zorunlu.",
          "doc_of_conformity": "AB uygunluk beyanı (DoC).",
          "technical_file": "Piyasa gözetimi için tutulan teknik dosya.",
-         "label_artwork": "Etiket ve ambalaj baskı dosyası: dieline, GTIN, uyarılar.",
+         "label_artwork": "Etiket ve ambalaj baskı dosyası: dieline, [[GTIN]], uyarılar.",
          "packing_list": "Sevkiyatın çeki listesi: koli, adet, ağırlık.",
          "commercial_invoice": "Gümrük için ticari fatura.",
          "bill_of_lading": "Taşıyıcının konşimentosu (B/L).",
          "customs": "Gümrük beyannamesi ve işlem belgeleri.",
-         "delivery_receipt": "Depoda imzalanan teslim tutanağı; G5 kanıtı.",
+         "delivery_receipt": "Depoda imzalanan teslim tutanağı; [[G5]] kanıtı.",
          "gate_approval": "Kapının yazılı müşteri onayı (e-posta ya da e-imza).",
          "change_request": "Değişiklik talebi (CR): spec, tasarım, ambalaj ya da fiyatta sürümlü değişiklik.",
          "contract": "Müşteri ya da tedarikçiyle sözleşme (MSA, SOW, NNN).",
@@ -2155,7 +2155,7 @@
          "ordering": "Sipariş verildi; üretimde ya da yolda.",
          "on_sale": "Yayında, satışta.",
          "paused": "Satış şimdilik durduruldu.",
-         "archived": "Artık kullanılmıyor; GTIN'i yeniden verilebilir."
+         "archived": "Artık kullanılmıyor; [[GTIN]]'i yeniden verilebilir."
       },
       "task_status": {
          "todo": "Başlanmadı.",
@@ -2166,29 +2166,29 @@
       "purchase_order_status": {
          "draft": "Hazırlanıyor; tedarikçiye gönderilmedi.",
          "sent": "Tedarikçiye gönderildi; gereken her satırda imzalı ya da onaylı spec sheet var (K3).",
-         "pi_received": "Tedarikçinin PI'ı geldi, kontrol ediliyor (S09).",
-         "pi_approved": "S09'un 30 maddesi uygun ve rakamlar tutuyor; satırlar ve şartlar sabitlendi.",
+         "pi_received": "Tedarikçinin [[PI]]'ı geldi, kontrol ediliyor ([[S09]]).",
+         "pi_approved": "[[S09]]'un 30 maddesi uygun ve rakamlar tutuyor; satırlar ve şartlar sabitlendi.",
          "deposit_paid": "Depozito ödendi; üretim başlayabilir.",
          "in_production": "Tedarikçi siparişi üretiyor.",
-         "ready": "Üretim bitti; mal PSI ve yüklemeye hazır.",
-         "balance_paid": "Bakiye ödendi; G4'e göre yalnızca onaylı PSI'dan sonra.",
+         "ready": "Üretim bitti; mal [[PSI]] ve yüklemeye hazır.",
+         "balance_paid": "Bakiye ödendi; [[G4]]'e göre yalnızca onaylı [[PSI]]'dan sonra.",
          "closed": "Teslim edildi ve kapandı; yapılacak iş kalmadı.",
          "cancelled": "İptal edildi; kayıt için saklanır."
       },
       "payment_kind": {
          "deposit": "Üretimden önce ödenen avans (depozito %).",
-         "balance": "Toplamın kalanı, PSI'dan sonra.",
+         "balance": "Toplamın kalanı, [[PSI]]'dan sonra.",
          "other": "Diğer ödemeler, ör. kalıp ya da numune."
       },
       "shipment_status": {
          "planned": "Planlandı; henüz booking yok.",
-         "booked": "Forwarder booking'i teyit etti (S15 adım 4).",
-         "loaded": "Yüklendi; siparişler ve adetler sabitlendi (S15 adım 7).",
-         "in_transit": "Yolda; ETD ve ETA belli.",
+         "booked": "Forwarder booking'i teyit etti ([[S15]] adım 4).",
+         "loaded": "Yüklendi; siparişler ve adetler sabitlendi ([[S15]] adım 7).",
+         "in_transit": "Yolda; [[ETD]] ve [[ETA]] belli.",
          "at_customs": "Gümrük çıkışını bekliyor.",
          "delivered": "Depoya teslim edildi; itiraz süresi işliyor.",
-         "accepted": "İmzalı teslim tutanağıyla tam kabul edildi (G5 kanıtı).",
-         "disputed": "Rezervli teslim ya da red: eksik, fazla ya da hasar (S16).",
+         "accepted": "İmzalı teslim tutanağıyla tam kabul edildi ([[G5]] kanıtı).",
+         "disputed": "Rezervli teslim ya da red: eksik, fazla ya da hasar ([[S16]]).",
          "cancelled": "Yüklemeden önce iptal edildi; kayıt için saklanır."
       },
       "shipment_mode": {
@@ -2204,7 +2204,7 @@
          "planned": "L1 planında; müşteri yazılı onayladı; tarih var.",
          "preparing": "L2–L3 içerik ve yerelleştirme sürüyor.",
          "uploaded": "L4: platforma yüklendi; platform incelemesi veya aktifleşme bekleniyor.",
-         "live": "Aktif ve satın alınabilir; S13 yayın kontrolü geçti.",
+         "live": "Aktif ve satın alınabilir; [[S13]] yayın kontrolü geçti.",
          "suppressed": "Bastırıldı, kategori onayı bekliyor veya belge talebi var; açık sorun yazılı.",
          "paused": "Müşteri kararı veya ön koşul (tescil, EPR kaydı, KDV) bekliyor.",
          "stopped": "Yayından kalıcı kaldırıldı (karar veya platform); neden yazılı.",
@@ -2212,7 +2212,7 @@
       },
       "market_compliance": {
          "green": "Kısıt yok.",
-         "yellow": "Kısıt, belge veya işaret ihtiyacıyla mümkün; nota bakın (S12).",
+         "yellow": "Kısıt, belge veya işaret ihtiyacıyla mümkün; nota bakın ([[S12]]).",
          "red": "Uygun değil; hücre planlanmaz.",
          "pending": "Henüz taranmadı (PL1/P1)."
       },
@@ -2226,13 +2226,13 @@
          "none": "Henüz listing içeriği yok.",
          "en_master": "İngilizce ana set hazır.",
          "translated": "Pazarın diline çevrildi.",
-         "approved": "İçerik onaylandı (L-G1); yayından önce şart."
+         "approved": "İçerik onaylandı ([[L-G1]]); yayından önce şart."
       },
       "incident_family": {
          "ol": "Sevkiyat ve teslim: araç, randevu, sayım, hasar, evrak, gümrük, gecikme.",
          "oa": "Platform ve Amazon: kaldırılan ya da bastırılan listing, belge talebi, hesap sağlığı.",
-         "ou": "Ürün ve uyum: PSI reddi, kabul etmeme, geri çağırma, etiket, sertifika.",
-         "ot": "Tedarik: habersiz değişiklik, üretim gecikmesi, PI tutarsızlığı, sessizlik, fiyat artışı.",
+         "ou": "Ürün ve uyum: [[PSI]] reddi, kabul etmeme, geri çağırma, etiket, sertifika.",
+         "ot": "Tedarik: habersiz değişiklik, üretim gecikmesi, [[PI]] tutarsızlığı, sessizlik, fiyat artışı.",
          "om": "Müşteri: sözlü değişiklik, geç ödeme, uyuşmazlık, cevapsızlık."
       },
       "incident_severity": {
@@ -2267,8 +2267,8 @@
          "loss": "Kurtarılamadı."
       },
       "incident_deadline_kind": {
-         "supplier_damage": "Tedarikçiye hasar bildirimi: olağan PI şartlarında 48 saat.",
-         "carrier_claim": "Taşıyıcıya itiraz: kara yolunda 7 gün (CMR), denizde konşimentoya göre 3 gün; 7 gün varsayılır.",
+         "supplier_damage": "Tedarikçiye hasar bildirimi: olağan [[PI]] şartlarında 48 saat.",
+         "carrier_claim": "Taşıyıcıya itiraz: kara yolunda 7 gün ([[CMR]]), denizde konşimentoya göre 3 gün; 7 gün varsayılır.",
          "demurrage": "Liman ya da detention serbest günlerinin bitişi; taşıyıcı şartlarından girin.",
          "supplier_storage": "Çekilmeyen mal için tedarikçinin depolama ücreti başlattığı tarih.",
          "platform_escalation": "Platform vakasında eskalasyondan önce 48 saat beklenir.",
@@ -2283,7 +2283,7 @@
       },
       "change_request_status": {
          "open": "Kayıtlı; etki ve karar bekliyor.",
-         "approved": "MOESA onayladı (geçmiş (M) kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
+         "approved": "MOESA onayladı (geçmiş [[(M)]] kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
          "rejected": "Reddedildi; karar notu nedenini söyler.",
          "applied": "Uygulandı: etkilenen belge yeni sürümünü aldı."
       },
@@ -2300,11 +2300,11 @@
       "change_kind": {
          "spec": "Ölçü, malzeme, bileşim, performans ya da güvenlik; üreticinin yeniden imzaladığı yeni spec sürümü.",
          "design": "Tasarım ya da tech pack.",
-         "packaging": "Ambalaj, etiket ya da artwork; PL-G4 yeniden.",
-         "price": "Fiyat ya da adet; yeni PI ve PO sürümü, müşterinin fiyat onayı (G3).",
+         "packaging": "Ambalaj, etiket ya da artwork; [[PL-G4]] yeniden.",
+         "price": "Fiyat ya da adet; yeni [[PI]] ve PO sürümü, müşterinin fiyat onayı ([[G3]]).",
          "deadline": "Termin, booking ya da yayın tarihi.",
          "supplier": "Başka tedarikçi; yeni spec sheet ve altın numune.",
-         "content": "Listing içeriği; L-G1 yeniden."
+         "content": "Listing içeriği; [[L-G1]] yeniden."
       }
    },
    "status_actions": {

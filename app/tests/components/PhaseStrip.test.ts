@@ -1,5 +1,6 @@
 import type { ProjectGateRow } from '@/api/project';
 import PhaseStrip from '@/components/service-components/phase-strip/PhaseStrip.vue';
+import { stripTerms } from '@/constants/terms';
 import en from '@/plugins/i18n/locales/en/index.json';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { mount } from '@vue/test-utils';
@@ -49,7 +50,8 @@ describe('PhaseStrip', () => {
    it('titles each gate with its status and what the gate is', () => {
       const title = mountStrip().find('[data-gate="G1"] [title]').attributes('title');
       expect(title).toBe(
-         `${i18n.t('ops.project.gate_status.passed')} — ${i18n.t('glossary.gate_code.G1')}`
+         `${i18n.t('ops.project.gate_status.passed')} — ${stripTerms(i18n.t('glossary.gate_code.G1'))}`
       );
+      expect(title).not.toContain('[[');
    });
 });

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { glossaryKey, type GlossaryEnum } from '@/api/glossary';
+import { stripTerms } from '@/constants/terms';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -44,7 +45,7 @@ const statusLabel = (status: string) => t(`${props.i18nPrefix}.${status}`);
 const tip = (status: string) => {
    if (!props.glossary) return undefined;
    const key = glossaryKey(props.glossary, status);
-   return te(key) ? t(key) : undefined;
+   return te(key) ? stripTerms(t(key)) : undefined;
 };
 
 const busy = ref(false);

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DocumentRow } from '@/api/document';
 import { glossaryKey } from '@/api/glossary';
+import { stripTerms } from '@/constants/terms';
 import { useOpenIncidentOptions } from '@/api/incident';
 import {
    byPosition,
@@ -32,7 +33,7 @@ const toast = useToast();
 const gateLabel = computed(() => t(`ops.project.gate.${props.gate.code}`));
 const gateDescription = computed(() => {
    const key = glossaryKey('gate_code', props.gate.code);
-   return te(key) ? t(key) : undefined;
+   return te(key) ? stripTerms(t(key)) : undefined;
 });
 
 const STATUS_SEVERITY: Record<GateStatus, string> = {

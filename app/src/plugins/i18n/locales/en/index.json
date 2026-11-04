@@ -2078,34 +2078,34 @@
       "package": {
          "A0": "Market research, concept and design (PL1–PL3): research report, approved concept, design and brand file.",
          "A1": "Brand sourcing (P1–P4): an existing brand's or maker's product, approved and quality-checked.",
-         "A2": "Private label development (P1 → PL1–PL7 → P3–P4): a product made under the customer's brand from the concept on; includes A0.",
+         "A2": "Private label development (P1 → PL1–PL7 → P3–P4): a product made under the customer's brand from the concept on; includes [[A0]].",
          "B": "Logistics and delivery (P5–P6): goods cleared through customs and in the customer's warehouse.",
          "C": "Listing and market launch (L1–L5): the product live on the chosen platforms and countries.",
-         "D": "End to end: A1 or A2 plus B and C, one contact from idea to a product ready to sell.",
+         "D": "End to end: [[A1]] or [[A2]] plus [[B]] and [[C]], one contact from idea to a product ready to sell.",
          "E": "Ongoing management (O1–O3): reorders, listing upkeep, reporting. No project; a reorder opens a reorder project."
       },
       "project_type": {
          "npi": "New product: goes through the full gate set of its path.",
-         "variant": "A new variant of an existing product (G2 → G5).",
-         "revision": "A spec or packaging change after a change request (G2 → G5).",
-         "reorder": "A repeat order of an approved product (G3 → G5)."
+         "variant": "A new variant of an existing product ([[G2]] → [[G5]]).",
+         "revision": "A spec or packaging change after a change request ([[G2]] → [[G5]]).",
+         "reorder": "A repeat order of an approved product ([[G3]] → [[G5]])."
       },
       "project_path": {
          "a_sourcing": "Path A, brand sourcing: supplier and sample (P2) for an existing brand's product.",
          "b_private_label": "Path B, private label: from concept to print approval (PL1–PL7) under the customer's brand."
       },
       "gate_code": {
-         "G1": "Project start (M): brief and feasibility approved.",
-         "G2": "Sample, spec sheet and NPDS approval (M); not passed without a signed spec sheet.",
-         "G3": "PI, price and print approval (M).",
-         "G4": "Shipment release (internal): PSI passed, documents complete; approved by compliance and quality.",
-         "G5": "Delivery acceptance (M) at the customer's warehouse.",
-         "PL_G1": "Concept and design approval (M), in writing.",
-         "PL_G2": "Brand and identity approval (M).",
-         "PL_G3": "Golden sample approval (M).",
-         "PL_G4": "Approval to print the packaging (M).",
-         "L_G1": "Content approval (M).",
-         "L_G2": "Project closure (M)."
+         "G1": "Project start [[(M)]]: brief and feasibility approved.",
+         "G2": "Sample, spec sheet and NPDS approval [[(M)]]; not passed without a signed spec sheet.",
+         "G3": "[[PI]], price and print approval [[(M)]].",
+         "G4": "Shipment release (internal): [[PSI]] passed, documents complete; approved by compliance and quality.",
+         "G5": "Delivery acceptance [[(M)]] at the customer's warehouse.",
+         "PL_G1": "Concept and design approval [[(M)]], in writing.",
+         "PL_G2": "Brand and identity approval [[(M)]].",
+         "PL_G3": "Golden sample approval [[(M)]].",
+         "PL_G4": "Approval to print the packaging [[(M)]].",
+         "L_G1": "Content approval [[(M)]].",
+         "L_G2": "Project closure [[(M)]]."
       },
       "document_type": {
          "spec_sheet": "The maker's product specification, signed and stamped: the product's evidence.",
@@ -2118,12 +2118,12 @@
          "sds": "Safety data sheet; required for chemicals.",
          "doc_of_conformity": "EU declaration of conformity (DoC).",
          "technical_file": "Technical documentation kept for market surveillance.",
-         "label_artwork": "Label and packaging print file: dieline, GTIN, warnings.",
+         "label_artwork": "Label and packaging print file: dieline, [[GTIN]], warnings.",
          "packing_list": "Packing list of a shipment: cartons, quantities, weights.",
          "commercial_invoice": "Commercial invoice for customs.",
          "bill_of_lading": "Bill of lading (B/L) from the carrier.",
          "customs": "Customs declaration and clearance papers.",
-         "delivery_receipt": "Delivery receipt signed at the warehouse; evidence for G5.",
+         "delivery_receipt": "Delivery receipt signed at the warehouse; evidence for [[G5]].",
          "gate_approval": "The customer's written approval of a gate (e-mail or e-signature).",
          "change_request": "Change request (CR): a versioned change to spec, design, packaging or price.",
          "contract": "Contract with a customer or supplier (MSA, SOW, NDA).",
@@ -2155,7 +2155,7 @@
          "ordering": "Ordered; in production or on the way.",
          "on_sale": "Live and selling.",
          "paused": "Sales stopped for now.",
-         "archived": "No longer used; its GTIN can be given again."
+         "archived": "No longer used; its [[GTIN]] can be given again."
       },
       "task_status": {
          "todo": "Not started.",
@@ -2166,29 +2166,29 @@
       "purchase_order_status": {
          "draft": "Being prepared; not sent to the supplier.",
          "sent": "Sent to the supplier; every required line cites a signed or approved spec sheet (K3).",
-         "pi_received": "The supplier's PI is in and is being checked (S09).",
-         "pi_approved": "All 30 S09 items OK and the figures add up; lines and terms are fixed.",
+         "pi_received": "The supplier's [[PI]] is in and is being checked ([[S09]]).",
+         "pi_approved": "All 30 [[S09]] items OK and the figures add up; lines and terms are fixed.",
          "deposit_paid": "The deposit is paid; production can start.",
          "in_production": "The supplier is producing the order.",
-         "ready": "Production finished; goods ready for PSI and loading.",
-         "balance_paid": "The balance is paid; per G4, only after an approved PSI.",
+         "ready": "Production finished; goods ready for [[PSI]] and loading.",
+         "balance_paid": "The balance is paid; per [[G4]], only after an approved [[PSI]].",
          "closed": "Delivered and settled; nothing left to do.",
          "cancelled": "Cancelled; kept for the record."
       },
       "payment_kind": {
          "deposit": "Advance paid before production (deposit %).",
-         "balance": "The rest of the total, after the PSI.",
+         "balance": "The rest of the total, after the [[PSI]].",
          "other": "Any other payment, e.g. tooling or samples."
       },
       "shipment_status": {
          "planned": "Planned; no booking yet.",
-         "booked": "The forwarder confirmed the booking (S15 step 4).",
-         "loaded": "Loaded; the orders and quantities are fixed (S15 step 7).",
-         "in_transit": "On the way; ETD and ETA are known.",
+         "booked": "The forwarder confirmed the booking ([[S15]] step 4).",
+         "loaded": "Loaded; the orders and quantities are fixed ([[S15]] step 7).",
+         "in_transit": "On the way; [[ETD]] and [[ETA]] are known.",
          "at_customs": "Waiting for customs clearance.",
          "delivered": "Delivered to the warehouse; the dispute period runs.",
-         "accepted": "Fully accepted with a signed delivery receipt (G5 evidence).",
-         "disputed": "Delivered with reservations or refused: shortage, surplus or damage (S16).",
+         "accepted": "Fully accepted with a signed delivery receipt ([[G5]] evidence).",
+         "disputed": "Delivered with reservations or refused: shortage, surplus or damage ([[S16]]).",
          "cancelled": "Cancelled before loading; kept for the record."
       },
       "shipment_mode": {
@@ -2204,7 +2204,7 @@
          "planned": "In the L1 plan, approved in writing by the customer, with a date.",
          "preparing": "L2–L3 content and localisation are under way.",
          "uploaded": "L4: uploaded; waiting for the platform's review or activation.",
-         "live": "Active and buyable; the S13 pre-launch check passed.",
+         "live": "Active and buyable; the [[S13]] pre-launch check passed.",
          "suppressed": "Suppressed, waiting for a category approval or a document request; the open issue is written.",
          "paused": "Waiting for a customer decision or a prerequisite (registration, EPR, VAT).",
          "stopped": "Taken down for good (decision or platform); the reason is written.",
@@ -2212,7 +2212,7 @@
       },
       "market_compliance": {
          "green": "No restriction found.",
-         "yellow": "Possible with a restriction, document or marking; see the note (S12).",
+         "yellow": "Possible with a restriction, document or marking; see the note ([[S12]]).",
          "red": "Not allowed; the cell is not planned.",
          "pending": "Not screened yet (PL1/P1)."
       },
@@ -2226,13 +2226,13 @@
          "none": "No listing content yet.",
          "en_master": "The English master set is ready.",
          "translated": "Translated into the market's language.",
-         "approved": "Content approved (L-G1); needed before live."
+         "approved": "Content approved ([[L-G1]]); needed before live."
       },
       "incident_family": {
          "ol": "Shipment and delivery: trucks, appointments, counts, damage, papers, customs, delays.",
          "oa": "Platform and Amazon: listings removed or suppressed, document requests, account health.",
-         "ou": "Product and compliance: PSI failures, refusals, recalls, labels, certificates.",
-         "ot": "Supplier: unannounced changes, production delays, PI mismatches, silence, price rises.",
+         "ou": "Product and compliance: [[PSI]] failures, refusals, recalls, labels, certificates.",
+         "ot": "Supplier: unannounced changes, production delays, [[PI]] mismatches, silence, price rises.",
          "om": "Customer: verbal changes, late payments, disputes, no answer."
       },
       "incident_severity": {
@@ -2267,8 +2267,8 @@
          "loss": "It could not be recovered."
       },
       "incident_deadline_kind": {
-         "supplier_damage": "Damage notice to the supplier: 48 hours under the usual PI terms.",
-         "carrier_claim": "Claim to the carrier: 7 days by road (CMR), 3 days by sea per the B/L; 7 days is assumed.",
+         "supplier_damage": "Damage notice to the supplier: 48 hours under the usual [[PI]] terms.",
+         "carrier_claim": "Claim to the carrier: 7 days by road ([[CMR]]), 3 days by sea per the B/L; 7 days is assumed.",
          "demurrage": "The end of the port or detention free days; enter it from the carrier's terms.",
          "supplier_storage": "When the supplier starts charging storage for goods not collected.",
          "platform_escalation": "Wait 48 hours for a platform case before escalating.",
@@ -2283,7 +2283,7 @@
       },
       "change_request_status": {
          "open": "Recorded; impact and decision pending.",
-         "approved": "Approved by MOESA (and by the customer when a passed (M) gate is touched); not applied yet.",
+         "approved": "Approved by MOESA (and by the customer when a passed [[(M)]] gate is touched); not applied yet.",
          "rejected": "Rejected; the decision note says why.",
          "applied": "Applied: the affected document has its new version."
       },
@@ -2300,11 +2300,11 @@
       "change_kind": {
          "spec": "Size, material, composition, performance or safety; a new spec version, signed again by the maker.",
          "design": "Design or tech pack.",
-         "packaging": "Packaging, label or artwork; PL-G4 again.",
-         "price": "Price or quantity; a new PI and PO version, the customer's price approval (G3).",
+         "packaging": "Packaging, label or artwork; [[PL-G4]] again.",
+         "price": "Price or quantity; a new [[PI]] and PO version, the customer's price approval ([[G3]]).",
          "deadline": "Ready date, booking or launch date.",
          "supplier": "Another supplier; a new spec sheet and golden sample.",
-         "content": "Listing content; L-G1 again."
+         "content": "Listing content; [[L-G1]] again."
       }
    },
    "status_actions": {

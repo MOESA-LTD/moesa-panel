@@ -1,6 +1,7 @@
 import '../setup/mockMain';
 import type { GlossaryEnum } from '@/api/glossary';
 import StatusActions from '@/components/service-components/status-actions/StatusActions.vue';
+import { stripTerms } from '@/constants/terms';
 import en from '@/plugins/i18n/locales/en/index.json';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -63,7 +64,8 @@ describe('StatusActions', () => {
       const element = button(wrapper, 'accepted').element as HTMLElement & {
          $_ptooltipValue?: string;
       };
-      expect(element.$_ptooltipValue).toBe(i18n.t('glossary.shipment_status.accepted'));
+      expect(element.$_ptooltipValue).toBe(stripTerms(i18n.t('glossary.shipment_status.accepted')));
+      expect(element.$_ptooltipValue).not.toContain('[[');
    });
 
    it('asks to confirm the target status, then changes it once', async () => {

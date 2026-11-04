@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { glossaryKey, type GlossaryEnum } from '@/api/glossary';
+import { stripTerms } from '@/constants/terms';
 
 /**
  * A select over the values of an enum, each labelled by its translation `<i18nPrefix>.<value>`
@@ -19,7 +20,7 @@ const options = computed(() =>
    props.values.map((value) => {
       const label = props.i18nPrefix ? t(`${props.i18nPrefix}.${value}`) : value;
       const key = props.glossary ? glossaryKey(props.glossary, value) : undefined;
-      return key && te(key) ? { value, label, description: t(key) } : { value, label };
+      return key && te(key) ? { value, label, description: stripTerms(t(key)) } : { value, label };
    })
 );
 const optionOf = (value: unknown) => options.value.find((o) => o.value === value);
