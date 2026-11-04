@@ -339,7 +339,15 @@
       "shipment_line_po_not_linked": "Önce satırın siparişini sevkiyata ekleyin.",
       "shipment_line_duplicate": "Bu sipariş satırı sevkiyatta zaten var.",
       "shipment_quantity_exceeds_po": "Siparişten (tolerans dahil) fazlası sevk edilmiş olur.",
-      "shipment_locked": "Mal yüklendi; siparişler ve satırlar artık değişmez."
+      "shipment_locked": "Mal yüklendi; siparişler ve satırlar artık değişmez.",
+      "market_cell_country_invalid": "Platformun ülkelerinden birini seçin (ISO kodu).",
+      "market_cell_compliance_note_required": "Sarı ve kırmızı uyum not ister (S12).",
+      "market_cell_compliance_red": "Kırmızı hücre planlanamaz ve yayına alınamaz; nedeniyle çıkarın.",
+      "market_cell_live_incomplete": "Yayın için platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı ve onaylı içerik (L-G1) gerekir.",
+      "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
+      "market_cell_reason_required": "Nedeni yazın: askıdaysa açık sorun, kapatıldı ya da çıkarıldıysa not.",
+      "market_cell_immutable_field": "Hücrenin ürünü, platformu ve ülkesi değişmez; yeni hücre açın.",
+      "market_cell_delete_candidate_only": "Yalnızca aday hücre silinebilir; diğerlerini çıkarın ya da kapatın."
    },
    "account": {
       "logout": "Çıkış yap",

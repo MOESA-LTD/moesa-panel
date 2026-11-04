@@ -571,7 +571,15 @@
       "shipment_quantity_exceeds_po": "More than ordered (tolerance included) would be shipped.",
       "shipment_locked": "The goods are loaded; orders and lines no longer change.",
       "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved.",
-      "shipment_lines_required": "Add at least one line before loading."
+      "shipment_lines_required": "Add at least one line before loading.",
+      "market_cell_country_invalid": "Choose one of the platform's countries (ISO code).",
+      "market_cell_compliance_note_required": "Yellow and red compliance need a note (S12).",
+      "market_cell_compliance_red": "A red cell cannot be planned or live; remove it with the reason.",
+      "market_cell_live_incomplete": "Live needs the platform ID, platform SKU, price, currency, stock source and approved content (L-G1).",
+      "market_cell_status_order": "The cell cannot move to this status from its current one (S05).",
+      "market_cell_reason_required": "Write the reason: the open issue when suppressed, a note when closed or removed.",
+      "market_cell_immutable_field": "A cell's product, platform and country do not change; open a new cell.",
+      "market_cell_delete_candidate_only": "Only a candidate cell can be deleted; remove or close the others."
    },
    "account": {
       "profile": {

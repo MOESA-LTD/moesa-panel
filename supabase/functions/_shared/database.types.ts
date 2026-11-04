@@ -632,6 +632,151 @@ export type Database = {
           },
         ]
       }
+      market_cell: {
+        Row: {
+          compliance: Database["public"]["Enums"]["market_compliance"]
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at: string
+          currency: string | null
+          customer_id: string
+          id: string
+          last_checked_on: string | null
+          launched_on: string | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number
+          product_id: string
+          project_id: string | null
+          status: Database["public"]["Enums"]["market_cell_status"]
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          compliance?: Database["public"]["Enums"]["market_compliance"]
+          compliance_note?: string | null
+          content_status?: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at?: string
+          currency?: string | null
+          customer_id: string
+          id?: string
+          last_checked_on?: string | null
+          launched_on?: string | null
+          notes?: string | null
+          open_issue?: string | null
+          platform_id: string
+          platform_product_id?: string | null
+          platform_sku?: string | null
+          price?: number | null
+          priority?: number
+          product_id: string
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["market_cell_status"]
+          stock_source?: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          compliance?: Database["public"]["Enums"]["market_compliance"]
+          compliance_note?: string | null
+          content_status?: Database["public"]["Enums"]["content_status"]
+          country?: string
+          created_at?: string
+          currency?: string | null
+          customer_id?: string
+          id?: string
+          last_checked_on?: string | null
+          launched_on?: string | null
+          notes?: string | null
+          open_issue?: string | null
+          platform_id?: string
+          platform_product_id?: string | null
+          platform_sku?: string | null
+          price?: number | null
+          priority?: number
+          product_id?: string
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["market_cell_status"]
+          stock_source?: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_platform_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media: {
         Row: {
           alt_text: string | null
@@ -3189,6 +3334,106 @@ export type Database = {
           },
         ]
       }
+      market_cell_overview: {
+        Row: {
+          cell_key: string | null
+          compliance: Database["public"]["Enums"]["market_compliance"] | null
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"] | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          gtin: string | null
+          id: string | null
+          last_checked_on: string | null
+          launched_on: string | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string | null
+          platform_name: string | null
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number | null
+          product_id: string | null
+          product_name: string | null
+          project_code: string | null
+          project_id: string | null
+          sku: string | null
+          status: Database["public"]["Enums"]["market_cell_status"] | null
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_platform_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_library: {
         Row: {
           alt_text: string | null
@@ -3864,6 +4109,7 @@ export type Database = {
         | "commercial_representative"
         | "operations_partner"
       compliance_status: "none" | "partial" | "complete"
+      content_status: "none" | "en_master" | "translated" | "approved"
       customer_status: "lead" | "onboarding" | "active" | "paused" | "closed"
       document_entity:
         | "customer"
@@ -3874,6 +4120,8 @@ export type Database = {
         | "purchase_order"
         | "shipment"
         | "incident"
+        | "market_cell"
+        | "change_request"
       document_status: "draft" | "signed" | "approved" | "superseded"
       document_type:
         | "spec_sheet"
@@ -3910,6 +4158,17 @@ export type Database = {
         | "L_G1"
         | "L_G2"
       gate_status: "pending" | "passed" | "rolled_back"
+      market_cell_status:
+        | "candidate"
+        | "planned"
+        | "preparing"
+        | "uploaded"
+        | "live"
+        | "suppressed"
+        | "paused"
+        | "stopped"
+        | "removed"
+      market_compliance: "green" | "yellow" | "red" | "pending"
       media_role: "primary_image" | "gallery" | "evidence_photo" | "attachment"
       payment_kind: "deposit" | "balance" | "other"
       payment_payer: "moesa" | "customer"
@@ -3967,6 +4226,7 @@ export type Database = {
         | "accepted"
         | "disputed"
         | "cancelled"
+      stock_source: "customer_warehouse" | "3pl" | "platform" | "pan_eu"
       supplier_status: "candidate" | "approved" | "suspended"
       task_status: "todo" | "doing" | "done" | "blocked"
       type_permission_command: "select" | "insert" | "update" | "delete"

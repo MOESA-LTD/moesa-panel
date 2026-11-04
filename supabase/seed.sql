@@ -28,8 +28,8 @@ NOTIFY pgrst,
 --
 -- MOESA LTD has the two Phase 1 roles (spec §7), built by private.seed_ops_roles:
 --   management   every permission of the business modules (ops_setting, document, supplier,
---                customer, product, project, purchase_order, shipment, media) and of branch, user,
---                role and audit_log
+--                customer, product, project, purchase_order, shipment, market_matrix, media) and of
+--                branch, user, role and audit_log
 --   coordinator  the same, but the settings, the users, the roles and the company and its branches
 --                read-only, and no deleting media (spec M19: management only)
 -- and the THOMETZKI customer (THO) with its warehouse, Amazon account, brand and a contact; five
@@ -121,8 +121,8 @@ BEGIN
     FROM public.role r
     JOIN public.permission p
         ON p.group_name IN ('ops_setting', 'document', 'supplier', 'customer', 'product', 'project',
-                            'purchase_order', 'shipment', 'media', 'branch', 'user', 'role',
-                            'audit_log')
+                            'purchase_order', 'shipment', 'market_matrix', 'media', 'branch',
+                            'user', 'role', 'audit_log')
        AND (r.display_name = 'management'
             OR NOT (p.group_name = 'ops_setting' AND p.command = 'update'
                     OR p.group_name IN ('role', 'user') AND p.command <> 'select'
