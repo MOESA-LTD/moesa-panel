@@ -533,7 +533,12 @@
          "ops_shipment_line_add": "Yeni sevkiyat satırı",
          "ops_shipment_line_edit": "Sevkiyat satırını düzenle",
          "ops_shipment_event_add": "Yeni sevkiyat olayı",
-         "ops_shipment_event_edit": "Sevkiyat olayını düzenle"
+         "ops_shipment_event_edit": "Sevkiyat olayını düzenle",
+         "ops_market": "Pazar matrisi",
+         "ops_market_list": "Matris",
+         "ops_market_cell_add": "Yeni hücre",
+         "ops_market_cell_edit": "Hücre",
+         "ops_market_cells_add": "Hücre ekle"
       }
    },
    "fields": {
@@ -1678,6 +1683,84 @@
       },
       "status_actions": {
          "dirty_hint": "Önce değişikliklerinizi kaydedin ya da geri alın."
+      },
+      "market": {
+         "title": "Pazar matrisi",
+         "view": {
+            "matrix": "Matris",
+            "list": "Liste"
+         },
+         "counter": "{code}: {live} yayında / {target} hedef",
+         "add_cells": "Hücre ekle",
+         "add_cell": "{sku} için {cell} hücresini ekle",
+         "cells_added": "{added} eklendi, {skipped} zaten vardı",
+         "no_cells": "Henüz hücre yok. Matrisi başlatmak için hücre ekleyin.",
+         "sections": {
+            "status": "Durum",
+            "compliance": "Uyum",
+            "listing": "Listing",
+            "dates": "Tarihler"
+         },
+         "status": {
+            "candidate": "Aday",
+            "planned": "Planlandı",
+            "preparing": "Hazırlanıyor",
+            "uploaded": "Yüklendi",
+            "live": "Yayında",
+            "suppressed": "Askıda",
+            "paused": "Beklemede",
+            "stopped": "Kapatıldı",
+            "removed": "Çıkarıldı"
+         },
+         "compliance": {
+            "green": "Yeşil",
+            "yellow": "Sarı",
+            "red": "Kırmızı",
+            "pending": "Bekliyor"
+         },
+         "stock_source": {
+            "customer_warehouse": "Müşteri deposu",
+            "3pl": "3PL",
+            "platform": "Platform deposu",
+            "pan_eu": "Pan-Avrupa"
+         },
+         "content_status": {
+            "none": "Yok",
+            "en_master": "EN ana set",
+            "translated": "Çevrildi",
+            "approved": "Onaylandı (L-G1)"
+         },
+         "fields": {
+            "customer": "Müşteri",
+            "sku": "SKU",
+            "product": "Ürün",
+            "products": "Ürünler",
+            "project": "Proje",
+            "platform": "Platform",
+            "country": "Ülke",
+            "countries": "Ülkeler",
+            "status": "Durum",
+            "priority": "Öncelik",
+            "compliance": "Uyum durumu",
+            "compliance_note": "Uyum notu",
+            "platform_product_id": "Ürün kimliği",
+            "platform_sku": "Platform SKU",
+            "price": "Fiyat (KDV dahil)",
+            "currency": "Para birimi",
+            "stock_source": "Stok kaynağı",
+            "content_status": "İçerik dil durumu",
+            "target_launch_on": "Hedef yayın tarihi",
+            "launched_on": "Yayın tarihi",
+            "last_checked_on": "Son kontrol",
+            "open_issue": "Açık sorun",
+            "notes": "Not"
+         },
+         "priority": {
+            "1": "Aynı hesapta yeni ülke",
+            "2": "Yeni platform",
+            "3": "Yeni bölge"
+         },
+         "live_missing": "Yayın için eksik: {fields}"
       }
    },
    "glossary": {

@@ -26,6 +26,15 @@ const purchaseOrderProps = (route: RouteLocationNormalized) => ({
    project_id: route.query.project_id ?? null
 });
 
+// A new market cell opened from an empty matrix cell names its product, platform and country in
+// the query (a route dialog renders the page outside the router, so they come as props).
+export const marketCellProps = (route: RouteLocationNormalized) => ({
+   ...route.params,
+   product_id: route.query.product_id ?? null,
+   platform_id: route.query.platform_id ?? null,
+   country: route.query.country ?? null
+});
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -43,7 +52,8 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'shipment' },
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' },
-            { action: 'select', subject: 'media' }
+            { action: 'select', subject: 'media' },
+            { action: 'select', subject: 'market_cell' }
          ]
       },
       components: {
@@ -1276,6 +1286,88 @@ const routes: RouteRecordRaw[] = [
                   components: {
                      default: () => import('@/views/pages/ops/shipment/EventUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/shipment/EventUpsert.vue')
+                  }
+               }
+            ]
+         },
+         {
+            // The S05 market matrix: products by platform and country, or the cells as a list.
+            path: 'market-matrix',
+            name: 'ops-market',
+            meta: {
+               label: 'route.label.ops_market',
+               icon: PrimeIcons.TABLE,
+               requiredPermissions: [{ action: 'select', subject: 'market_cell' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-market-cells-add',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-market-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-market-list',
+                  meta: {
+                     label: 'route.label.ops_market_list',
+                     icon: PrimeIcons.TABLE,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/Index.vue')
+                  }
+               },
+               {
+                  path: 'cell/add',
+                  name: 'ops-market-cell-add',
+                  props: { default: marketCellProps, skeleton: marketCellProps },
+                  meta: {
+                     label: 'route.label.ops_market_cell_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/CellUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/CellUpsert.vue')
+                  }
+               },
+               {
+                  path: 'cell/:id/edit',
+                  name: 'ops-market-cell-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_market_cell_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/CellUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/CellUpsert.vue')
+                  }
+               },
+               {
+                  path: 'cells/add',
+                  name: 'ops-market-cells-add',
+                  meta: {
+                     label: 'route.label.ops_market_cells_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'market_cell' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/market/CellsAdd.vue'),
+                     skeleton: () => import('@/views/pages/ops/market/CellsAdd.vue')
                   }
                }
             ]

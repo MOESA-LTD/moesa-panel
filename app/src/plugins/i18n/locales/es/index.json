@@ -218,7 +218,12 @@
          "ops_supplier_purchase_orders": "Purchase orders",
          "ops_product_orders": "Orders and shipments",
          "ops_project_purchase_orders": "Purchase orders",
-         "ops_project_shipments": "Shipments"
+         "ops_project_shipments": "Shipments",
+         "ops_market": "Market matrix",
+         "ops_market_list": "Matrix",
+         "ops_market_cell_add": "New cell",
+         "ops_market_cell_edit": "Cell",
+         "ops_market_cells_add": "Add cells"
       }
    },
    "auth": {
@@ -1678,6 +1683,84 @@
       },
       "status_actions": {
          "dirty_hint": "Save or discard your changes first."
+      },
+      "market": {
+         "title": "Market matrix",
+         "view": {
+            "matrix": "Matrix",
+            "list": "List"
+         },
+         "counter": "{code}: {live} live / {target} target",
+         "add_cells": "Add cells",
+         "add_cell": "Add {sku} on {cell}",
+         "cells_added": "{added} added, {skipped} already existed",
+         "no_cells": "No cells yet. Add cells to start the matrix.",
+         "sections": {
+            "status": "Status",
+            "compliance": "Compliance",
+            "listing": "Listing",
+            "dates": "Dates"
+         },
+         "status": {
+            "candidate": "Candidate",
+            "planned": "Planned",
+            "preparing": "Preparing",
+            "uploaded": "Uploaded",
+            "live": "Live",
+            "suppressed": "Suppressed",
+            "paused": "On hold",
+            "stopped": "Closed",
+            "removed": "Removed"
+         },
+         "compliance": {
+            "green": "Green",
+            "yellow": "Yellow",
+            "red": "Red",
+            "pending": "Pending"
+         },
+         "stock_source": {
+            "customer_warehouse": "Customer warehouse",
+            "3pl": "3PL",
+            "platform": "Platform warehouse",
+            "pan_eu": "Pan-European"
+         },
+         "content_status": {
+            "none": "None",
+            "en_master": "EN master",
+            "translated": "Translated",
+            "approved": "Approved (L-G1)"
+         },
+         "fields": {
+            "customer": "Customer",
+            "sku": "SKU",
+            "product": "Product",
+            "products": "Products",
+            "project": "Project",
+            "platform": "Platform",
+            "country": "Country",
+            "countries": "Countries",
+            "status": "Status",
+            "priority": "Priority",
+            "compliance": "Compliance",
+            "compliance_note": "Compliance note",
+            "platform_product_id": "Platform product ID",
+            "platform_sku": "Platform SKU",
+            "price": "Price (incl. VAT)",
+            "currency": "Currency",
+            "stock_source": "Stock source",
+            "content_status": "Content language status",
+            "target_launch_on": "Target launch",
+            "launched_on": "Launched",
+            "last_checked_on": "Last checked",
+            "open_issue": "Open issue",
+            "notes": "Note"
+         },
+         "priority": {
+            "1": "Same account, new country",
+            "2": "New platform",
+            "3": "New region"
+         },
+         "live_missing": "Missing for live: {fields}"
       }
    },
    "glossary": {
