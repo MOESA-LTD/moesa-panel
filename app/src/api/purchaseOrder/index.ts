@@ -59,6 +59,24 @@ export const PURCHASE_ORDER_STATUSES = allValues<PurchaseOrderStatus>()([
    'cancelled'
 ]);
 
+/** The Tag severity of each status, for lists and the card. */
+export const PURCHASE_ORDER_STATUS_SEVERITY: Record<PurchaseOrderStatus, string> = {
+   draft: 'secondary',
+   sent: 'info',
+   pi_received: 'info',
+   pi_approved: 'info',
+   deposit_paid: 'warn',
+   in_production: 'warn',
+   ready: 'warn',
+   balance_paid: 'success',
+   closed: 'secondary',
+   cancelled: 'danger'
+};
+
+/** An amount for display, with two decimals and its currency (no arithmetic). */
+export const formatAmount = (value: number | null | undefined, currency?: string | null) =>
+   value === null || value === undefined ? '' : `${value.toFixed(2)} ${currency ?? ''}`.trim();
+
 export const PAYMENT_KINDS = allValues<PaymentKind>()(['deposit', 'balance', 'other']);
 
 export const PAYMENT_PAYERS = allValues<PaymentPayer>()(['moesa', 'customer']);
@@ -222,6 +240,34 @@ export function usePurchaseOrderOverview(id: MaybeRefOrGetter<string | null>) {
          return data;
       },
       enabled: computed(() => !!toValue(id))
+   });
+}
+
+/**
+ * The ids of the orders with a line of the product (purchase_order_overview.product_ids), for the
+ * order lists of a product. Disabled without a product.
+ */
+export function usePurchaseOrderIds(filter: MaybeRefOrGetter<{ productId?: string }>) {
+   const tenantKey = useTenantKey();
+
+   return useQuery({
+      queryKey: computed(() =>
+         queryKeys.list(tenantKey.value, 'purchase_order_overview', {
+            view: 'ids',
+            ...toValue(filter)
+         })
+      ),
+      queryFn: async ({ signal }) => {
+         const { productId } = toValue(filter);
+         const { data } = await supabase
+            .from('purchase_order_overview')
+            .select('id')
+            .contains('product_ids', [productId!])
+            .abortSignal(signal)
+            .throwOnError();
+         return data.flatMap(({ id }) => (id ? [id] : []));
+      },
+      enabled: computed(() => !!toValue(filter).productId)
    });
 }
 

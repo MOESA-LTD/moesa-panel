@@ -588,7 +588,16 @@
          "ops_media_edit": "Edit file",
          "security": "Security",
          "preferences": "Preferences",
-         "memberships": "Memberships"
+         "memberships": "Memberships",
+         "ops_purchase_order": "Purchase orders",
+         "ops_purchase_order_list": "Purchase order list",
+         "ops_purchase_order_manage": "Purchase order card",
+         "ops_purchase_order_general": "General",
+         "ops_purchase_order_lines": "Lines",
+         "ops_purchase_order_documents": "Documents",
+         "ops_purchase_order_media": "Media",
+         "ops_purchase_order_line_add": "New order line",
+         "ops_purchase_order_line_edit": "Edit order line"
       }
    },
    "dashboard": {
@@ -1328,6 +1337,10 @@
       },
       "purchase_order": {
          "title": "Purchase orders",
+         "spec_missing": "Spec sheet missing",
+         "locked_hint": "Fixed since the PI was approved.",
+         "no_rows": "No purchase orders.",
+         "no_lines": "No lines yet.",
          "tabs": {
             "general": "General",
             "lines": "Lines",
@@ -1355,7 +1368,16 @@
             "tolerance_pct": "Tolerance %",
             "penalty_rule": "Penalty rule",
             "packing_instruction": "Packaging and label instructions",
-            "checked_by": "Checked by"
+            "checked_by": "Checked by",
+            "notes": "Notes",
+            "position": "No.",
+            "sku": "SKU",
+            "display_name": "Name",
+            "line_total": "Line total",
+            "subtotal": "Subtotal",
+            "total": "Total",
+            "deposit_paid_on": "Deposit paid on",
+            "balance_planned_on": "Balance planned on"
          },
          "pi": {
             "subtotal": "Subtotal",

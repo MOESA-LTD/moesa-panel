@@ -468,7 +468,16 @@
          "ops_media_edit": "Dosyayı düzenle",
          "security": "Güvenlik",
          "preferences": "Tercihler",
-         "memberships": "Üyelikler"
+         "memberships": "Üyelikler",
+         "ops_purchase_order": "Satın alma siparişleri",
+         "ops_purchase_order_list": "Satın alma siparişi listesi",
+         "ops_purchase_order_manage": "Satın alma siparişi kartı",
+         "ops_purchase_order_general": "Genel",
+         "ops_purchase_order_lines": "Satırlar",
+         "ops_purchase_order_documents": "Belgeler",
+         "ops_purchase_order_media": "Ortam",
+         "ops_purchase_order_line_add": "Yeni sipariş satırı",
+         "ops_purchase_order_line_edit": "Sipariş satırını düzenle"
       }
    },
    "fields": {
@@ -1328,6 +1337,10 @@
       },
       "purchase_order": {
          "title": "Satın alma (PO)",
+         "spec_missing": "Spec sheet eksik",
+         "locked_hint": "PI onaylandığından beri sabit.",
+         "no_rows": "Satın alma siparişi yok.",
+         "no_lines": "Henüz satır yok.",
          "tabs": {
             "general": "Genel",
             "lines": "Satırlar",
@@ -1355,7 +1368,16 @@
             "tolerance_pct": "Tolerans %",
             "penalty_rule": "Ceza kuralı",
             "packing_instruction": "Ambalaj/etiket talimatı belgesi",
-            "checked_by": "Kontrol eden"
+            "checked_by": "Kontrol eden",
+            "notes": "Notlar",
+            "position": "Sıra",
+            "sku": "SKU",
+            "display_name": "Ad",
+            "line_total": "Satır toplamı",
+            "subtotal": "Ara toplam",
+            "total": "Toplam",
+            "deposit_paid_on": "Depozito ödeme tarihi",
+            "balance_planned_on": "Bakiye planlanan tarih"
          },
          "pi": {
             "subtotal": "Ara toplam",

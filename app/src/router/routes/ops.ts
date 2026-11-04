@@ -25,6 +25,7 @@ const routes: RouteRecordRaw[] = [
             { action: 'select', subject: 'customer' },
             { action: 'select', subject: 'product' },
             { action: 'select', subject: 'project' },
+            { action: 'select', subject: 'purchase_order' },
             { action: 'select', subject: 'supplier' },
             { action: 'select', subject: 'setting' },
             { action: 'select', subject: 'media' }
@@ -729,6 +730,151 @@ const routes: RouteRecordRaw[] = [
                   components: {
                      default: () => import('@/views/pages/ops/project/TaskUpsert.vue'),
                      skeleton: () => import('@/views/pages/ops/project/TaskUpsert.vue')
+                  }
+               }
+            ]
+         },
+         {
+            path: 'purchase-orders',
+            name: 'ops-purchase-order',
+            meta: {
+               label: 'route.label.ops_purchase_order',
+               icon: PrimeIcons.SHOPPING_CART,
+               requiredPermissions: [{ action: 'select', subject: 'purchase_order' }],
+               contextMenuItems: [
+                  {
+                     label: 'action.add',
+                     route: {
+                        name: 'ops-purchase-order-manage',
+                        query: { showDialog: DIALOG_POSITIONS.CENTER }
+                     }
+                  }
+               ]
+            },
+            component: CustomRouteView,
+            redirect: { name: 'ops-purchase-order-list' },
+            children: [
+               {
+                  path: 'list',
+                  name: 'ops-purchase-order-list',
+                  meta: {
+                     label: 'route.label.ops_purchase_order_list',
+                     icon: PrimeIcons.LIST,
+                     visible: false,
+                     index: -1,
+                     requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/Index.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/Index.vue')
+                  }
+               },
+               {
+                  // The purchase order card: its tabs open on their own as these child routes.
+                  path: ':id?/manage/:tab?',
+                  name: 'ops-purchase-order-manage',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_manage',
+                     icon: PrimeIcons.SHOPPING_CART,
+                     visible: false,
+                     requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/Manage.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/Manage.vue')
+                  },
+                  children: [
+                     {
+                        path: 'general',
+                        name: 'ops-purchase-order-manage-general',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_general',
+                           icon: PrimeIcons.INFO_CIRCLE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/General.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/General.vue')
+                        }
+                     },
+                     {
+                        path: 'lines',
+                        name: 'ops-purchase-order-manage-lines',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_lines',
+                           icon: PrimeIcons.LIST,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/purchase-order/tabs/Lines.vue'),
+                           skeleton: () => import('@/views/pages/ops/purchase-order/tabs/Lines.vue')
+                        }
+                     },
+                     {
+                        path: 'documents',
+                        name: 'ops-purchase-order-manage-documents',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_documents',
+                           icon: PrimeIcons.FILE,
+                           visible: false
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Documents.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/purchase-order/tabs/Documents.vue')
+                        }
+                     },
+                     {
+                        path: 'media',
+                        name: 'ops-purchase-order-manage-media',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_purchase_order_media',
+                           icon: PrimeIcons.IMAGES,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/purchase-order/tabs/Media.vue'),
+                           skeleton: () => import('@/views/pages/ops/purchase-order/tabs/Media.vue')
+                        }
+                     }
+                  ]
+               },
+               {
+                  path: ':purchaseOrderId/line/add',
+                  name: 'ops-purchase-order-line-add',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_line_add',
+                     icon: PrimeIcons.PLUS,
+                     visible: false,
+                     requiredPermissions: [{ action: 'create', subject: 'purchase_order_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue')
+                  }
+               },
+               {
+                  path: 'line/:id/edit',
+                  name: 'ops-purchase-order-line-edit',
+                  props: true,
+                  meta: {
+                     label: 'route.label.ops_purchase_order_line_edit',
+                     icon: PrimeIcons.FILE_EDIT,
+                     visible: false,
+                     requiredPermissions: [{ action: 'modify', subject: 'purchase_order_line' }]
+                  },
+                  components: {
+                     default: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue'),
+                     skeleton: () => import('@/views/pages/ops/purchase-order/LineUpsert.vue')
                   }
                }
             ]
