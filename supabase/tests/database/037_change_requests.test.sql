@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- tenant that sees none of them. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(20);
+SELECT plan(22);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -107,6 +107,20 @@ SELECT throws_ok($$ UPDATE public.change_request SET customer_approval_document_
                  '23514', 'change_request_immutable_field', 'the customer''s approval stays once the request is approved');
 SELECT throws_ok($$ UPDATE public.change_request SET created_at = now() - INTERVAL '10 days' WHERE id = '00000000-0000-4000-8000-000000037012' $$,
                  '23514', 'change_request_immutable_field', 'when the request was made does not change');
+
+-- The customer's approval may be entered after MOESA approves (the current version 2); an entered
+-- one stays.
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, version, url)
+VALUES ('00000000-0000-4000-8000-000000037041', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'change_request', '00000000-0000-4000-8000-000000037012',
+        'change_request', 'approved', 1, 'https://example.test/cr-012-approval.pdf'),
+       ('00000000-0000-4000-8000-000000037042', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'change_request', '00000000-0000-4000-8000-000000037012',
+        'change_request', 'approved', 2, 'https://example.test/cr-012-approval-2.pdf');
+
+SELECT lives_ok($$ UPDATE public.change_request SET customer_approved_on = current_date, customer_approval_document_id = '00000000-0000-4000-8000-000000037042'
+                   WHERE id = '00000000-0000-4000-8000-000000037012' $$,
+                'the customer''s approval is entered after MOESA approves');
+SELECT throws_ok($$ UPDATE public.change_request SET customer_approval_document_id = '00000000-0000-4000-8000-000000037041' WHERE id = '00000000-0000-4000-8000-000000037012' $$,
+                 '23514', 'change_request_immutable_field', 'an entered approval is not swapped');
 
 RESET ROLE;
 SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'ayse@moesa-panel.test'),

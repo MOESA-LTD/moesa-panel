@@ -26,12 +26,14 @@
 --               document needs that document's new version (result_document_id: the same record
 --               and type, a higher version; M10 "CR applied olunca ilgili belge yeni sürüm alır").
 --               Rejecting or applying closes it (closed_on, today); the client never sets it.
---               Once approved, the customer's approval date and document no longer change.
+--               Once approved, the customer's approval date and document may still be entered,
+--               but an entered one no longer changes or clears.
 --
 -- Each rule is a violation whose message is the rule's code (check_violation unless stated):
 --   change_request_customer_missing            the customer is not there (foreign_key_violation)
 --   change_request_immutable_field             the code, the customer or created_at changed, or
---                                              the customer's approval of an approved request
+--                                              the entered customer's approval of an approved
+--                                              request changed or cleared
 --   change_request_document_invalid            the affected or resulting document is another
 --                                              customer's
 --   change_request_approval_document_invalid   the customer's approval is not a signed or approved
@@ -200,14 +202,16 @@ DECLARE
     affected_entity_id UUID;
 BEGIN
     -- 1. The code, the customer and when it was made are fixed; so is the customer's approval
-    --    once the request is approved.
+    --    once the request is approved and it is entered (it may still be entered after MOESA
+    --    approves).
     IF TG_OP = 'UPDATE' AND (
         NEW.code IS DISTINCT FROM OLD.code
         OR NEW.customer_id IS DISTINCT FROM OLD.customer_id
         OR NEW.created_at IS DISTINCT FROM OLD.created_at
         OR OLD.status IN ('approved', 'applied') AND (
-            NEW.customer_approved_on IS DISTINCT FROM OLD.customer_approved_on
-            OR NEW.customer_approval_document_id IS DISTINCT FROM OLD.customer_approval_document_id
+            OLD.customer_approved_on IS NOT NULL AND NEW.customer_approved_on IS DISTINCT FROM OLD.customer_approved_on
+            OR OLD.customer_approval_document_id IS NOT NULL
+               AND NEW.customer_approval_document_id IS DISTINCT FROM OLD.customer_approval_document_id
         )
     ) THEN
         RAISE EXCEPTION 'change_request_immutable_field' USING ERRCODE = 'check_violation';
@@ -272,8 +276,7 @@ BEGIN
         -- 5. Approving: MOESA's date and approver; the customer's approval after a passed gate of
         --    the project that needs it (S08 §4).
         IF NEW.status = 'approved' THEN
-            -- NEW.moesa_approved_on is the stored value here (see the server-set columns).
-            NEW.moesa_approved_on := coalesce(NEW.moesa_approved_on, (now() AT TIME ZONE 'UTC')::DATE);
+            NEW.moesa_approved_on := (now() AT TIME ZONE 'UTC')::DATE;
             NEW.moesa_approved_by := auth.uid();
             IF NEW.project_id IS NOT NULL AND NEW.affected_gate_code IS NOT NULL
                AND EXISTS (
