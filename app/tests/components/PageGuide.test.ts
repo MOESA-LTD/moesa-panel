@@ -84,7 +84,7 @@ describe('PageGuide', () => {
 
       expect(text).toContain(i18n.t(`${DASHBOARD}.close_incident.title`));
       const steps = [1, 2, 3].map((n) =>
-         text.indexOf(i18n.t(`${DASHBOARD}.close_incident.steps.${n}`))
+         text.indexOf(stripTerms(i18n.t(`${DASHBOARD}.close_incident.steps.${n}`)))
       );
       expect(steps.every((at) => at >= 0)).toBe(true);
       expect(steps).toEqual([...steps].sort((a, b) => a - b));

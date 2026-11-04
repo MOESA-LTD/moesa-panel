@@ -2339,7 +2339,7 @@
                   "title": "Bekleyen kapıyı kapat",
                   "steps": {
                      "1": "Satırdan projeyi açın; Genel bakış sekmesinde kapı paneli görünür.",
-                     "2": "Kapının istediği kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi de ister.",
+                     "2": "Kapının istediği kanıtı ekleyin; [[(M)]] kapılar müşteri onay tarihi ve belgesi de ister.",
                      "3": "Kapıyı geçirin; proje ilerler ve satır kutudan çıkar."
                   }
                },
@@ -2352,50 +2352,50 @@
                   }
                },
                "sign_spec": {
-                  "title": "SKU'nun spec sheet'ini imzalat",
+                  "title": "[[SKU]]'nun spec sheet'ini imzalat",
                   "steps": {
-                     "1": "Müşteri satırını açın; ürün listesi imzalı spec sheet'i olmayan SKU'ları gösterir.",
+                     "1": "Müşteri satırını açın; ürün listesi imzalı spec sheet'i olmayan [[SKU]]'ları gösterir.",
                      "2": "Ürünün Belgeler sekmesinde spec sheet'i sürümü ve tarihiyle ekleyin.",
                      "3": "İmzalı, kaşeli ve resmî e-postadan geldiyse imzalı yapın."
                   }
                },
                "complete_compliance": {
-                  "title": "SKU'nun uyumunu tamamla",
+                  "title": "[[SKU]]'nun uyumunu tamamla",
                   "steps": {
                      "1": "Müşteri satırını açın; ürün listesi açılır.",
-                     "2": "Ürünün Genel sekmesinde Uyum bölümünü doldurun ve S12'nin istediği belgeleri ekleyin.",
-                     "3": "Uyum durumunu tamamlandı yapın; SKU kutudan çıkar."
+                     "2": "Ürünün Genel sekmesinde Uyum bölümünü doldurun ve [[S12]]'nin istediği belgeleri ekleyin.",
+                     "3": "Uyum durumunu tamamlandı yapın; [[SKU]] kutudan çıkar."
                   }
                },
                "advance_po": {
                   "title": "Satın alma siparişini ilerlet",
                   "steps": {
                      "1": "Satırdan siparişi açın; durumu neyi beklediğini gösterir.",
-                     "2": "Adımı yapın: gönderin, PI'ı kontrol edin (S09), ödemeyi ya da üretim notunu kaydedin.",
+                     "2": "Adımı yapın: gönderin, [[PI]]'ı kontrol edin ([[S09]]), ödemeyi ya da üretim notunu kaydedin.",
                      "3": "Durum düğmesini kullanın; koşulu eksik adım nedeniyle birlikte reddedilir."
                   }
                },
                "track_shipment": {
                   "title": "Sevkiyatı kabule kadar izle",
                   "steps": {
-                     "1": "Satırdan sevkiyatı açın; Tarihler sekmesinde ETD ve ETA'yı kontrol edin.",
-                     "2": "Her S15 adımını Olaylar sekmesine yazın; ETA kayınca güncelleyin.",
-                     "3": "Geciken sevkiyat genelde OL-09 olayı gerektirir; Olaylar sayfasından açın."
+                     "1": "Satırdan sevkiyatı açın; Tarihler sekmesinde [[ETD]] ve [[ETA]]'yı kontrol edin.",
+                     "2": "Her [[S15]] adımını Olaylar sekmesine yazın; [[ETA]] kayınca güncelleyin.",
+                     "3": "Geciken sevkiyat genelde [[OL]]-09 olayı gerektirir; Olaylar sayfasından açın."
                   }
                },
                "close_incident": {
                   "title": "Açık olayı kapat",
                   "steps": {
-                     "1": "Olayı açın; S1 ve S2'de önce yönetime bildirim zamanı girilir.",
+                     "1": "Olayı açın; [[S1]] ve [[S2]]'de önce yönetime bildirim zamanı girilir.",
                      "2": "Mal, listing ya da para güvene alınana kadar günlüğü ve süreleri güncel tutun.",
-                     "3": "Kapanışı doldurun (sonuç, kök neden, önlem) ve kapatın; S1'i yönetim kapatır."
+                     "3": "Kapanışı doldurun (sonuç, kök neden, önlem) ve kapatın; [[S1]]'i yönetim kapatır."
                   }
                },
                "decide_cr": {
                   "title": "Açık değişiklik talebine karar ver",
                   "steps": {
                      "1": "Talebi açın; eski ve yeni değeri ve etkiyi kontrol edin.",
-                     "2": "Geçmiş bir (M) kapıyı etkiliyorsa önce müşterinin yazılı onayını ekleyin.",
+                     "2": "Geçmiş bir [[(M)]] kapıyı etkiliyorsa önce müşterinin yazılı onayını ekleyin.",
                      "3": "Onaylayın ya da reddedin; yeni belge sürümü oluşunca uygulandı yapın."
                   }
                },
@@ -2403,8 +2403,8 @@
                   "title": "Pazar hücrelerini yayına taşı",
                   "steps": {
                      "1": "Müşteri satırını açın; pazar matrisi o müşteri için açılır.",
-                     "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı.",
-                     "3": "İçerik onaylıyken (L-G1) hücreyi yayına alın."
+                     "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform [[SKU]], fiyat, para birimi, stok kaynağı.",
+                     "3": "İçerik onaylıyken ([[L-G1]]) hücreyi yayına alın."
                   }
                }
             }
@@ -2445,7 +2445,7 @@
                   "title": "Teslim deposu ekle",
                   "steps": {
                      "1": "Müşteriyi, sonra Depolar sekmesini açın.",
-                     "2": "Adresi, rampa saatlerini ve randevu kuralını S14 kartındaki gibi girin.",
+                     "2": "Adresi, rampa saatlerini ve randevu kuralını [[S14]] kartındaki gibi girin.",
                      "3": "Sevkiyatlar adresi buradan alır; sevkiyatta elle yazılmaz."
                   }
                },
@@ -2454,7 +2454,7 @@
                   "steps": {
                      "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
                      "2": "Platformu ve müşterinin sattığı ülkeleri seçin.",
-                     "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz (K8)."
+                     "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz ([[K8]])."
                   }
                }
             }
@@ -2489,14 +2489,14 @@
             }
          },
          "product": {
-            "purpose": "Ürün ana tablosu (S10): her SKU için bir satır; GTIN, tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir.",
+            "purpose": "Ürün ana tablosu ([[S10]]): her [[SKU]] için bir satır; [[GTIN]], tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir.",
             "tasks": {
                "import_products": {
                   "title": "CSV'den ürün içe aktar",
                   "steps": {
-                     "1": "Listede İçe aktar'ı kullanın ve S10 CSV'sini seçin.",
+                     "1": "Listede İçe aktar'ı kullanın ve [[S10]] CSV'sini seçin.",
                      "2": "Raporu okuyun: sorunlu her satır nedeniyle listelenir.",
-                     "3": "O satırları düzeltip yeniden aktarın; iki kez kullanılan GTIN reddedilir."
+                     "3": "O satırları düzeltip yeniden aktarın; iki kez kullanılan [[GTIN]] reddedilir."
                   }
                },
                "add_spec": {
@@ -2518,7 +2518,7 @@
             }
          },
          "project": {
-            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız G2 ile G3 engeller.",
+            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız [[G2]] ile [[G3]] engeller.",
             "tasks": {
                "open_project": {
                   "title": "Proje aç",
@@ -2532,7 +2532,7 @@
                   "title": "Kapıyı geçir",
                   "steps": {
                      "1": "Genel bakışta aşama şeridindeki kapıyı açın.",
-                     "2": "Kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi ister.",
+                     "2": "Kanıtı ekleyin; [[(M)]] kapılar müşteri onay tarihi ve belgesi ister.",
                      "3": "Geçirin; aşama ilerler ve sonraki kontrol listesi gelir."
                   }
                },
@@ -2605,7 +2605,7 @@
             }
          },
          "purchase_order": {
-            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, S09 PI kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir.",
+            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, [[S09]] [[PI]] kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir.",
             "tasks": {
                "create_po": {
                   "title": "Sipariş aç",
@@ -2616,25 +2616,25 @@
                   }
                },
                "check_pi": {
-                  "title": "PI'ı kontrol et (S09)",
+                  "title": "[[PI]]'ı kontrol et ([[S09]])",
                   "steps": {
-                     "1": "PI belgesini ekleyin ve rakamlarını PI kontrol sekmesine girin.",
-                     "2": "30 maddeyi işaretleyin; kırmızı fark düzeltilmiş PI istemek demektir.",
-                     "3": "PI'ı onaylayın; satırlar ve şartlar kilitlenir."
+                     "1": "[[PI]] belgesini ekleyin ve rakamlarını PI kontrol sekmesine girin.",
+                     "2": "30 maddeyi işaretleyin; kırmızı fark düzeltilmiş [[PI]] istemek demektir.",
+                     "3": "[[PI]]'ı onaylayın; satırlar ve şartlar kilitlenir."
                   }
                },
                "record_payment": {
                   "title": "Ödeme kaydet",
                   "steps": {
-                     "1": "Ödemeler sekmesini açın; depozitoyu ve bakiyeyi PI'dan planlayın.",
+                     "1": "Ödemeler sekmesini açın; depozitoyu ve bakiyeyi [[PI]]'dan planlayın.",
                      "2": "Para çıkınca ödeme tarihini girin.",
-                     "3": "Bakiyeyi yalnızca onaylı PSI raporundan sonra ödeyin (G4)."
+                     "3": "Bakiyeyi yalnızca onaylı [[PSI]] raporundan sonra ödeyin ([[G4]])."
                   }
                }
             }
          },
          "shipment": {
-            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, S15 olay zinciri, S16 teslim kabulü ve belge kontrol listesi.",
+            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, [[S15]] olay zinciri, [[S16]] teslim kabulü ve belge kontrol listesi.",
             "tasks": {
                "plan_shipment": {
                   "title": "Sevkiyat planla",
@@ -2645,15 +2645,15 @@
                   }
                },
                "log_event": {
-                  "title": "S15 adımı yaz",
+                  "title": "[[S15]] adımı yaz",
                   "steps": {
                      "1": "Olaylar sekmesini açıp olay ekleyin.",
-                     "2": "S15 adımını, kimin kime ve hangi kanaldan bildirdiğini seçin.",
+                     "2": "[[S15]] adımını, kimin kime ve hangi kanaldan bildirdiğini seçin.",
                      "3": "Tarihler sekmesindeki tarihleri olaylarla uyumlu tutun."
                   }
                },
                "accept": {
-                  "title": "Teslimi kabul et (S16)",
+                  "title": "Teslimi kabul et ([[S16]])",
                   "steps": {
                      "1": "İmzalı teslim tutanağını Belgeler sekmesine ekleyin.",
                      "2": "Kabul sekmesinde adetlerin tutup tutmadığını ve hasarı kaydedin.",
@@ -2663,7 +2663,7 @@
             }
          },
          "market_matrix": {
-            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle (S05). Hücreler tek kaynaktır; matris görünümü onlardan türetilir.",
+            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle ([[S05]]). Hücreler tek kaynaktır; matris görünümü onlardan türetilir.",
             "tasks": {
                "add_cells": {
                   "title": "Ürün ailesi için hücre aç",
@@ -2677,7 +2677,7 @@
                   "title": "Uyum taraması yap",
                   "steps": {
                      "1": "Matristen bir hücre açın.",
-                     "2": "Yeşil, sarı ya da kırmızı seçin; sarı ve kırmızı not ister (S12).",
+                     "2": "Yeşil, sarı ya da kırmızı seçin; sarı ve kırmızı not ister ([[S12]]).",
                      "3": "Kırmızı hücre planlanmaz; nedeniyle çıkarın."
                   }
                },
@@ -2685,19 +2685,19 @@
                   "title": "Hücreyi yayına al",
                   "steps": {
                      "1": "İş ilerledikçe planlandı, hazırlanıyor ve yüklendi durumlarından geçirin.",
-                     "2": "Platform kimliği, platform SKU, fiyat, para birimi ve stok kaynağını doldurun.",
-                     "3": "İçerik onaylıyken (L-G1) Yayında'yı seçin."
+                     "2": "Platform kimliği, platform [[SKU]], fiyat, para birimi ve stok kaynağını doldurun.",
+                     "3": "İçerik onaylıyken ([[L-G1]]) Yayında'yı seçin."
                   }
                }
             }
          },
          "incident": {
-            "purpose": "Olay kayıtları (S17): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır.",
+            "purpose": "Olay kayıtları ([[S17]]): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır.",
             "tasks": {
                "open_incident": {
                   "title": "Olayı 15 dakikada kaydet",
                   "steps": {
-                     "1": "Ekle'yi kullanın; müşteriyi, aileyi ve şiddeti seçin (Y10 §4).",
+                     "1": "Ekle'yi kullanın; müşteriyi, aileyi ve şiddeti seçin ([[Y10]] §4).",
                      "2": "Ne olduğunu üç cümleyle, şu an durumun ne olduğunu ve hemen ne yapıldığını yazın; tahmin yerine \"bilinmiyor\" yazın.",
                      "3": "Kaydı bağlayın (sevkiyat, sipariş, ürün, hücre ya da proje) ve ilk kanıtı Ortam'a ekleyin."
                   }
@@ -2714,14 +2714,14 @@
                   "title": "Kapat",
                   "steps": {
                      "1": "Sonucu, kök nedeni ve yönergeye işlenen önlemi doldurun.",
-                     "2": "Kapandı durumuna alın; S1 olaylarını yönetim kapatır.",
+                     "2": "Kapandı durumuna alın; [[S1]] olaylarını yönetim kapatır.",
                      "3": "Kapanan olayın günlüğü ve süreleri artık değişmez."
                   }
                }
             }
          },
          "change_request": {
-            "purpose": "Değişiklik talepleri (S08): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar.",
+            "purpose": "Değişiklik talepleri ([[S08]]): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar.",
             "tasks": {
                "open_cr": {
                   "title": "Değişiklik talebi aç",
@@ -2735,7 +2735,7 @@
                   "title": "Onayla ya da reddet",
                   "steps": {
                      "1": "Etkiyi doldurun: maliyet ve ödeyen, gecikme, kalite ve listing.",
-                     "2": "Geçmiş (M) kapı için müşterinin yazılı onayını talebin belgesi olarak ekleyin.",
+                     "2": "Geçmiş [[(M)]] kapı için müşterinin yazılı onayını talebin belgesi olarak ekleyin.",
                      "3": "Onaylayın ya da karar notuyla reddedin."
                   }
                },

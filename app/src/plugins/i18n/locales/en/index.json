@@ -2339,7 +2339,7 @@
                   "title": "Close a waiting gate",
                   "steps": {
                      "1": "Open the project from the row; its Overview shows the gate panel.",
-                     "2": "Add the evidence the gate asks for; (M) gates also need the customer's approval date and document.",
+                     "2": "Add the evidence the gate asks for; [[(M)]] gates also need the customer's approval date and document.",
                      "3": "Pass the gate; the project moves on and the row leaves the box."
                   }
                },
@@ -2352,50 +2352,50 @@
                   }
                },
                "sign_spec": {
-                  "title": "Get a SKU's spec sheet signed",
+                  "title": "Get a [[SKU]]'s spec sheet signed",
                   "steps": {
-                     "1": "Open the customer's row; the product list shows the SKUs without a signed spec sheet.",
+                     "1": "Open the customer's row; the product list shows the [[SKU]]s without a signed spec sheet.",
                      "2": "On the product's Documents tab, add the spec sheet with its version and date.",
                      "3": "Mark it signed once it is signed, stamped and came from the official e-mail."
                   }
                },
                "complete_compliance": {
-                  "title": "Complete a SKU's compliance",
+                  "title": "Complete a [[SKU]]'s compliance",
                   "steps": {
                      "1": "Open the customer's row; the product list opens.",
-                     "2": "On the product's General tab, fill the Compliance section and add the documents S12 asks for.",
-                     "3": "Set the compliance status to complete; the SKU leaves the box."
+                     "2": "On the product's General tab, fill the Compliance section and add the documents [[S12]] asks for.",
+                     "3": "Set the compliance status to complete; the [[SKU]] leaves the box."
                   }
                },
                "advance_po": {
                   "title": "Move a purchase order forward",
                   "steps": {
                      "1": "Open the order from the row; its status shows what it waits for.",
-                     "2": "Do the step: send it, check the PI (S09), record the payment or the production note.",
+                     "2": "Do the step: send it, check the [[PI]] ([[S09]]), record the payment or the production note.",
                      "3": "Use the status button; a step whose conditions are missing is refused with the reason."
                   }
                },
                "track_shipment": {
                   "title": "Follow a shipment to acceptance",
                   "steps": {
-                     "1": "Open the shipment from the row; check ETD and ETA on Dates.",
-                     "2": "Log each S15 step on Events; update the ETA when it slips.",
-                     "3": "A late shipment usually needs an OL-09 incident; open it on the Incidents page."
+                     "1": "Open the shipment from the row; check [[ETD]] and [[ETA]] on Dates.",
+                     "2": "Log each [[S15]] step on Events; update the [[ETA]] when it slips.",
+                     "3": "A late shipment usually needs an [[OL]]-09 incident; open it on the Incidents page."
                   }
                },
                "close_incident": {
                   "title": "Close an open incident",
                   "steps": {
-                     "1": "Open the incident; S1 and S2 need the management notice time first.",
+                     "1": "Open the incident; [[S1]] and [[S2]] need the management notice time first.",
                      "2": "Keep the log and the deadlines current until the goods, listing or money are safe.",
-                     "3": "Fill the closure (outcome, root cause, preventive action) and close; management closes S1."
+                     "3": "Fill the closure (outcome, root cause, preventive action) and close; management closes [[S1]]."
                   }
                },
                "decide_cr": {
                   "title": "Decide an open change request",
                   "steps": {
                      "1": "Open the request; check the old and new values and the impact.",
-                     "2": "If it touches a passed (M) gate, add the customer's written approval first.",
+                     "2": "If it touches a passed [[(M)]] gate, add the customer's written approval first.",
                      "3": "Approve or reject; once the new document version exists, mark it applied."
                   }
                },
@@ -2403,8 +2403,8 @@
                   "title": "Move market cells to live",
                   "steps": {
                      "1": "Open the customer's row; the market matrix opens for that customer.",
-                     "2": "Open a cell and fill what live needs: platform ID, platform SKU, price, currency, stock source.",
-                     "3": "With the content approved (L-G1), move the cell to live."
+                     "2": "Open a cell and fill what live needs: platform ID, platform [[SKU]], price, currency, stock source.",
+                     "3": "With the content approved ([[L-G1]]), move the cell to live."
                   }
                }
             }
@@ -2445,7 +2445,7 @@
                   "title": "Add a delivery warehouse",
                   "steps": {
                      "1": "Open the customer, then Warehouses.",
-                     "2": "Enter the address, dock hours and appointment rule as on the S14 card.",
+                     "2": "Enter the address, dock hours and appointment rule as on the [[S14]] card.",
                      "3": "Shipments take the address from here; it is never typed on a shipment."
                   }
                },
@@ -2454,7 +2454,7 @@
                   "steps": {
                      "1": "Open the customer, then Platforms.",
                      "2": "Pick the platform and the countries the customer sells in.",
-                     "3": "Note our access; account IDs and passwords are never stored (K8)."
+                     "3": "Note our access; account IDs and passwords are never stored ([[K8]])."
                   }
                }
             }
@@ -2489,14 +2489,14 @@
             }
          },
          "product": {
-            "purpose": "The product master (S10): one row per SKU with its GTIN, supplier, status, compliance and spec sheet. The list shows at a glance which SKUs lack a signed spec sheet.",
+            "purpose": "The product master ([[S10]]): one row per [[SKU]] with its [[GTIN]], supplier, status, compliance and spec sheet. The list shows at a glance which SKUs lack a signed spec sheet.",
             "tasks": {
                "import_products": {
                   "title": "Import products from a CSV",
                   "steps": {
-                     "1": "Use Import on the list and choose the S10 CSV.",
+                     "1": "Use Import on the list and choose the [[S10]] CSV.",
                      "2": "Read the report: every row with a problem is listed with its reason.",
-                     "3": "Fix those rows and import again; a GTIN used twice is refused."
+                     "3": "Fix those rows and import again; a [[GTIN]] used twice is refused."
                   }
                },
                "add_spec": {
@@ -2518,7 +2518,7 @@
             }
          },
          "project": {
-            "purpose": "Projects take a product from brief to delivery and listing. Each gets its gate set from its type, path and packages; a gate passes only with its evidence, and only G2 and G3 block.",
+            "purpose": "Projects take a product from brief to delivery and listing. Each gets its gate set from its type, path and packages; a gate passes only with its evidence, and only [[G2]] and [[G3]] block.",
             "tasks": {
                "open_project": {
                   "title": "Open a project",
@@ -2532,7 +2532,7 @@
                   "title": "Pass a gate",
                   "steps": {
                      "1": "On Overview, open the gate in the phase strip.",
-                     "2": "Attach the evidence; (M) gates need the customer's approval date and document.",
+                     "2": "Attach the evidence; [[(M)]] gates need the customer's approval date and document.",
                      "3": "Pass it; the phase moves on and the next checklist appears."
                   }
                },
@@ -2605,7 +2605,7 @@
             }
          },
          "purchase_order": {
-            "purpose": "Purchase orders to suppliers, from draft to closed: lines with their spec sheet versions, the S09 PI check, payments and production. Lines and terms lock once the PI is approved.",
+            "purpose": "Purchase orders to suppliers, from draft to closed: lines with their spec sheet versions, the [[S09]] [[PI]] check, payments and production. Lines and terms lock once the PI is approved.",
             "tasks": {
                "create_po": {
                   "title": "Open a purchase order",
@@ -2616,25 +2616,25 @@
                   }
                },
                "check_pi": {
-                  "title": "Check the PI (S09)",
+                  "title": "Check the [[PI]] ([[S09]])",
                   "steps": {
-                     "1": "Add the PI document and enter its figures on the PI check tab.",
-                     "2": "Mark the 30 items; a red difference means asking for a corrected PI.",
-                     "3": "Approve the PI; the lines and terms lock."
+                     "1": "Add the [[PI]] document and enter its figures on the PI check tab.",
+                     "2": "Mark the 30 items; a red difference means asking for a corrected [[PI]].",
+                     "3": "Approve the [[PI]]; the lines and terms lock."
                   }
                },
                "record_payment": {
                   "title": "Record a payment",
                   "steps": {
-                     "1": "Open Payments and plan the deposit and the balance from the PI.",
+                     "1": "Open Payments and plan the deposit and the balance from the [[PI]].",
                      "2": "Enter the paid date when the money leaves.",
-                     "3": "Pay the balance only after an approved PSI report (G4)."
+                     "3": "Pay the balance only after an approved [[PSI]] report ([[G4]])."
                   }
                }
             }
          },
          "shipment": {
-            "purpose": "Shipments of a customer's orders to one of its warehouses, from planned to accepted: dates, the S15 event chain, the S16 acceptance and the document checklist.",
+            "purpose": "Shipments of a customer's orders to one of its warehouses, from planned to accepted: dates, the [[S15]] event chain, the [[S16]] acceptance and the document checklist.",
             "tasks": {
                "plan_shipment": {
                   "title": "Plan a shipment",
@@ -2645,15 +2645,15 @@
                   }
                },
                "log_event": {
-                  "title": "Log an S15 step",
+                  "title": "Log an [[S15]] step",
                   "steps": {
                      "1": "Open Events and add an event.",
-                     "2": "Pick the S15 step, who told whom and the channel.",
+                     "2": "Pick the [[S15]] step, who told whom and the channel.",
                      "3": "Keep the dates on Dates in line with the events."
                   }
                },
                "accept": {
-                  "title": "Accept the delivery (S16)",
+                  "title": "Accept the delivery ([[S16]])",
                   "steps": {
                      "1": "Add the signed delivery receipt on Documents.",
                      "2": "On Acceptance, record whether the quantities match and any damage.",
@@ -2663,7 +2663,7 @@
             }
          },
          "market_matrix": {
-            "purpose": "Where each product is sold: one cell per product, platform and country, with its status, compliance, content and listing data (S05). The cells are the single source; the matrix view is derived from them.",
+            "purpose": "Where each product is sold: one cell per product, platform and country, with its status, compliance, content and listing data ([[S05]]). The cells are the single source; the matrix view is derived from them.",
             "tasks": {
                "add_cells": {
                   "title": "Open cells for a product family",
@@ -2677,7 +2677,7 @@
                   "title": "Screen compliance",
                   "steps": {
                      "1": "Open a cell from the matrix.",
-                     "2": "Set green, yellow or red; yellow and red need a note (S12).",
+                     "2": "Set green, yellow or red; yellow and red need a note ([[S12]]).",
                      "3": "A red cell is not planned; remove it with the reason."
                   }
                },
@@ -2685,19 +2685,19 @@
                   "title": "Take a cell live",
                   "steps": {
                      "1": "Move it through planned, preparing and uploaded as the work goes.",
-                     "2": "Fill the platform ID, platform SKU, price, currency and stock source.",
-                     "3": "With the content approved (L-G1), choose Live."
+                     "2": "Fill the platform ID, platform [[SKU]], price, currency and stock source.",
+                     "3": "With the content approved ([[L-G1]]), choose Live."
                   }
                }
             }
          },
          "incident": {
-            "purpose": "Incident records (S17): what happened, where, how serious, who owns it, the log of every contact and cost, the deadlines that must not slip, and the closure with its lesson. A gate is rolled back only through an incident.",
+            "purpose": "Incident records ([[S17]]): what happened, where, how serious, who owns it, the log of every contact and cost, the deadlines that must not slip, and the closure with its lesson. A gate is rolled back only through an incident.",
             "tasks": {
                "open_incident": {
                   "title": "Record an incident in 15 minutes",
                   "steps": {
-                     "1": "Use Add; pick the customer, the family and the severity (Y10 §4).",
+                     "1": "Use Add; pick the customer, the family and the severity ([[Y10]] §4).",
                      "2": "Write what happened in three sentences, where things are now and what was done at once; write \"unknown\" rather than guess.",
                      "3": "Link the record (shipment, order, product, cell or project) and add the first evidence on Media."
                   }
@@ -2714,14 +2714,14 @@
                   "title": "Close it",
                   "steps": {
                      "1": "Fill the outcome, the root cause and the preventive action written into the guideline.",
-                     "2": "Move it to closed; management closes S1 incidents.",
+                     "2": "Move it to closed; management closes [[S1]] incidents.",
                      "3": "A closed incident's log and deadlines no longer change."
                   }
                }
             }
          },
          "change_request": {
-            "purpose": "Change requests (S08): nothing approved changes without one. Each records the old and new value, why, the impact, the approvals and the new document version it produced.",
+            "purpose": "Change requests ([[S08]]): nothing approved changes without one. Each records the old and new value, why, the impact, the approvals and the new document version it produced.",
             "tasks": {
                "open_cr": {
                   "title": "Open a change request",
@@ -2735,7 +2735,7 @@
                   "title": "Approve or reject",
                   "steps": {
                      "1": "Fill the impact: cost and who pays, delay, quality and listing.",
-                     "2": "For a passed (M) gate, add the customer's written approval as a document of the request.",
+                     "2": "For a passed [[(M)]] gate, add the customer's written approval as a document of the request.",
                      "3": "Approve, or reject with the decision note."
                   }
                },
