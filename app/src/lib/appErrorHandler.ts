@@ -7,7 +7,12 @@ export const appErrorHandler = async (error: any) => {
       error = _isEmpty(body) ? error.context : body;
    }
 
-   if (!error.status && !error.code) return;
+   // A database, HTTP or Auth error is shown by its name and code; any other Error (a failed
+   // upload, a network failure with status 0, a throw in the app) by its message under a generic
+   // summary, so a failure never passes unseen. Other values (no Error, no status or code) are not
+   // errors to report.
+   const classified = !!(error?.status || error?.code);
+   if (!classified && !(error instanceof Error)) return;
 
    // Refused: the user's permissions may have changed since they were loaded.
    if (error.code === '42501' || error.status === 403)
@@ -17,18 +22,18 @@ export const appErrorHandler = async (error: any) => {
 
    console.error(error);
 
+   const translate = (key: unknown) => {
+      const path = 'errors.' + key;
+      return i18n.te(path) ? i18n.t(path) : key || '';
+   };
+
    await nextTick(async () => {
-      const summaryKey = error.name || error.status;
-      const summaryPath = 'errors.' + summaryKey;
-      const summaryText = i18n.te(summaryPath) ? i18n.t(summaryPath) : summaryKey || '';
-
-      const detailKey =
-         error.message || error.details || error.code || error.description || error.hint;
-      const detailPath = 'errors.' + detailKey;
-      const detailText = i18n.te(detailPath) ? i18n.t(detailPath) : detailKey || '';
-
-      const summary = summaryText;
-      const detail = detailText;
+      const summary = classified ? translate(error.name || error.status) : i18n.t('errors.unknown');
+      const detail = classified
+         ? translate(
+              error.message || error.details || error.code || error.description || error.hint
+           )
+         : translate(error.message);
 
       // The bus behind useToast(); avoids importing the app instance (circular import).
       ToastEventBus.emit('add', {

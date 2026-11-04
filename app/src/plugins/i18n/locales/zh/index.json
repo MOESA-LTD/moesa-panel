@@ -90,9 +90,6 @@
          "forgot_your_password?": "忘记密码？",
          "do_you_have_invite_code?": "您有邀请码吗？"
       },
-      "logout": {
-         "logged_out_successfully": "已成功退出登录"
-      },
       "register": {
          "create_account": "创建账户",
          "create_an_account_and_join_us": "创建账户并加入我们",
@@ -416,20 +413,51 @@
       "media_already_linked": "The file is already linked to this record.",
       "media_primary_exists": "The record already has a primary image.",
       "document_file_required": "Add a Drive link or a file.",
-      "MediaFileError": "File not uploaded"
+      "MediaFileError": "File not uploaded",
+      "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
+      "avatar_size": "The photo must be at most 1 MB.",
+      "unknown": "Something went wrong."
    },
    "account": {
       "profile": {
-         "user_info": "用户信息",
-         "name": "姓名",
-         "email": "电子邮件",
-         "phone": "电话",
-         "events": "事件",
-         "logs": {
-            "created_at": "创建时间",
-            "email_confirmed_at": "电子邮件确认时间",
-            "last_sign_in_at": "最近登录时间"
-         }
+         "legend": "Profile details",
+         "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
+         "email_change_sent": "Check {email} to confirm the new address."
+      },
+      "logout": "Log out",
+      "header": {
+         "member_since": "Member since {date}",
+         "email_verified": "Verified",
+         "email_not_verified": "Not verified"
+      },
+      "avatar": {
+         "upload": "Upload photo",
+         "change": "Change photo",
+         "remove": "Remove photo",
+         "hint": "PNG, JPEG or WebP, up to 1 MB."
+      },
+      "security": {
+         "password_legend": "Change password",
+         "sessions_legend": "Sessions",
+         "sign_out_others": "Sign out other devices",
+         "sign_out_others_hint": "Ends every session except this one.",
+         "confirm_sign_out_others": {
+            "header": "Sign out other devices",
+            "question": "Every other device signed in to your account will be signed out. Continue?"
+         },
+         "signed_out_others": "Other devices were signed out."
+      },
+      "preferences": {
+         "language_legend": "Language",
+         "appearance_legend": "Appearance",
+         "stored_locally": "These settings are kept in this browser."
+      },
+      "memberships": {
+         "legend": "Companies and branches",
+         "owner": "Owner",
+         "no_roles": "No role",
+         "empty": "You are not a member of any company yet.",
+         "error": "Memberships could not be loaded."
       }
    },
    "toast": {
@@ -454,10 +482,6 @@
          "notfound": "未找到",
          "account": "账户",
          "profile": "个人资料",
-         "settings": "设置",
-         "update-profile": "更新个人资料",
-         "update-password": "更新密码",
-         "logout": "退出登录",
          "edit": "编辑",
          "add": "添加",
          "register": "注册",
@@ -537,7 +561,10 @@
          "ops_customer_media": "Media",
          "ops_product_media": "Media",
          "ops_media": "Media library",
-         "ops_media_edit": "Edit file"
+         "ops_media_edit": "Edit file",
+         "security": "Security",
+         "preferences": "Preferences",
+         "memberships": "Memberships"
       }
    },
    "dashboard": {

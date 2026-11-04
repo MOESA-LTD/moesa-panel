@@ -24,7 +24,7 @@ export const authBeforeEach: NavigationGuardWithThis<undefined> = async (to) => 
 
       window.history.replaceState({}, document.title, to.path);
 
-      return { name: 'update-password' };
+      return { name: 'account-security' };
    }
 
    const authStore = useAuthStore();

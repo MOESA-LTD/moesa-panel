@@ -90,9 +90,6 @@
          "forgot_your_password?": "Forgot your password?",
          "do_you_have_invite_code?": "Do you have an invite code?"
       },
-      "logout": {
-         "logged_out_successfully": "Logged out successfully"
-      },
       "register": {
          "create_account": "Create Account",
          "create_an_account_and_join_us": "Create an account and join us",
@@ -247,6 +244,8 @@
    "errors": {
       "audit_already_reverted": "This change has already been reverted.",
       "audit_conflict": "This change cannot be reverted: the record was changed afterwards. Revert the later changes first.",
+      "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
+      "avatar_size": "The photo must be at most 1 MB.",
       "access_denied": "Access denied",
       "confirmation_required": "Confirmation required",
       "email_change_required": "Email change required",
@@ -277,6 +276,7 @@
       "token_expired": "Token expired",
       "unauthorized_client": "Unauthorized client",
       "unexpected_error": "Unexpected error",
+      "unknown": "Something went wrong.",
       "unknown_provider": "Unknown provider",
       "user_already_registered": "User already registered",
       "user_not_found": "User not found",
@@ -419,17 +419,45 @@
       "document_file_required": "Add a Drive link or a file."
    },
    "account": {
+      "logout": "Log out",
       "profile": {
-         "user_info": "User Information",
-         "name": "Full Name",
-         "email": "Email Address",
-         "phone": "Phone Number",
-         "events": "Event History",
-         "logs": {
-            "created_at": "Account Creation Date",
-            "email_confirmed_at": "Email Verification Date",
-            "last_sign_in_at": "Last Login Date"
-         }
+         "legend": "Profile details",
+         "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
+         "email_change_sent": "Check {email} to confirm the new address."
+      },
+      "header": {
+         "member_since": "Member since {date}",
+         "email_verified": "Verified",
+         "email_not_verified": "Not verified"
+      },
+      "avatar": {
+         "upload": "Upload photo",
+         "change": "Change photo",
+         "remove": "Remove photo",
+         "hint": "PNG, JPEG or WebP, up to 1 MB."
+      },
+      "security": {
+         "password_legend": "Change password",
+         "sessions_legend": "Sessions",
+         "sign_out_others": "Sign out other devices",
+         "sign_out_others_hint": "Ends every session except this one.",
+         "confirm_sign_out_others": {
+            "header": "Sign out other devices",
+            "question": "Every other device signed in to your account will be signed out. Continue?"
+         },
+         "signed_out_others": "Other devices were signed out."
+      },
+      "preferences": {
+         "language_legend": "Language",
+         "appearance_legend": "Appearance",
+         "stored_locally": "These settings are kept in this browser."
+      },
+      "memberships": {
+         "legend": "Companies and branches",
+         "owner": "Owner",
+         "no_roles": "No role",
+         "empty": "You are not a member of any company yet.",
+         "error": "Memberships could not be loaded."
       }
    },
    "toast": {
@@ -452,12 +480,8 @@
          "dashboard": "Dashboard",
          "error": "Error",
          "notfound": "Not Found",
-         "account": "Account",
+         "account": "My account",
          "profile": "Profile",
-         "settings": "Settings",
-         "update-profile": "Update Profile",
-         "update-password": "Update Password",
-         "logout": "Logout",
          "edit": "Edit",
          "add": "Add",
          "register": "Register",
@@ -537,7 +561,10 @@
          "ops_document": "Documents",
          "ops_document_list": "Document list",
          "ops_media": "Media library",
-         "ops_media_edit": "Edit file"
+         "ops_media_edit": "Edit file",
+         "security": "Security",
+         "preferences": "Preferences",
+         "memberships": "Memberships"
       }
    },
    "dashboard": {

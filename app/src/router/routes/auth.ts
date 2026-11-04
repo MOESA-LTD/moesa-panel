@@ -1,22 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router';
-import router from '..';
-
-const logoutBeforeEnter = async () => {
-   const authStore = useAuthStore();
-   const { initialized } = authStore;
-
-   await initialized;
-
-   const { isSignedIn } = storeToRefs(authStore);
-
-   if (isSignedIn.value) {
-      await router.replace({ name: 'logout' }).catch(async () => {
-         await router.replace({ name: 'account-profile' });
-      });
-      return false;
-   }
-   return true;
-};
+import { logoutBeforeEnter } from '@/router/middlewares/before-enter/logout';
 
 const routes: RouteRecordRaw[] = [
    {

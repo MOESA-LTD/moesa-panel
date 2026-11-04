@@ -128,6 +128,8 @@
    "errors": {
       "audit_already_reverted": "Bu değişiklik zaten geri alınmış.",
       "audit_conflict": "Bu değişiklik geri alınamıyor: kayıt sonradan değiştirildi. Önce sonraki değişiklikleri geri alın.",
+      "avatar_type": "Fotoğraf PNG, JPEG ya da WebP olmalı.",
+      "avatar_size": "Fotoğraf en fazla 1 MB olmalı.",
       "access_denied": "Erişim reddedildi",
       "confirmation_required": "Onay gerekiyor",
       "email_change_required": "E-posta değişikliği gerekiyor",
@@ -158,6 +160,7 @@
       "token_expired": "Belirteç süresi doldu",
       "unauthorized_client": "Yetkisiz istemci",
       "unexpected_error": "Beklenmeyen hata",
+      "unknown": "Bir şeyler ters gitti.",
       "unknown_provider": "Bilinmeyen sağlayıcı",
       "user_already_registered": "Kullanıcı zaten kayıtlı",
       "user_not_found": "Kullanıcı bulunamadı",
@@ -300,17 +303,45 @@
       "document_file_required": "Drive bağlantısı ya da dosya ekleyin."
    },
    "account": {
+      "logout": "Çıkış yap",
       "profile": {
-         "user_info": "Kullanıcı Bilgisi",
-         "name": "Ad Soyad",
-         "email": "E-posta",
-         "phone": "Telefon",
-         "events": "Etkinlikler",
-         "logs": {
-            "created_at": "Oluşturulma Tarihi",
-            "email_confirmed_at": "E-posta Onay Tarihi",
-            "last_sign_in_at": "Son Giriş Tarihi"
-         }
+         "legend": "Profil bilgileri",
+         "email_change_hint": "E-posta adresinizi değiştirirseniz yeni adrese bir onay bağlantısı gönderilir. Değişiklik, bağlantıyı açtığınızda geçerli olur.",
+         "email_change_sent": "Yeni adresi onaylamak için {email} adresini kontrol edin."
+      },
+      "header": {
+         "member_since": "{date} tarihinden beri üye",
+         "email_verified": "Doğrulandı",
+         "email_not_verified": "Doğrulanmadı"
+      },
+      "avatar": {
+         "upload": "Fotoğraf yükle",
+         "change": "Fotoğrafı değiştir",
+         "remove": "Fotoğrafı kaldır",
+         "hint": "PNG, JPEG ya da WebP, en fazla 1 MB."
+      },
+      "security": {
+         "password_legend": "Şifreyi değiştir",
+         "sessions_legend": "Oturumlar",
+         "sign_out_others": "Diğer cihazlardan çıkış yap",
+         "sign_out_others_hint": "Bu oturum dışındaki tüm oturumları kapatır.",
+         "confirm_sign_out_others": {
+            "header": "Diğer cihazlardan çıkış",
+            "question": "Hesabınıza giriş yapmış diğer tüm cihazlarda oturum kapatılacak. Devam edilsin mi?"
+         },
+         "signed_out_others": "Diğer cihazlarda oturum kapatıldı."
+      },
+      "preferences": {
+         "language_legend": "Dil",
+         "appearance_legend": "Görünüm",
+         "stored_locally": "Bu ayarlar bu tarayıcıda saklanır."
+      },
+      "memberships": {
+         "legend": "Şirketler ve şubeler",
+         "owner": "Sahip",
+         "no_roles": "Rol yok",
+         "empty": "Henüz hiçbir şirketin üyesi değilsiniz.",
+         "error": "Üyelikler yüklenemedi."
       }
    },
    "toast": {
@@ -333,12 +364,8 @@
          "dashboard": "Konsol",
          "error": "Hata",
          "notfound": "Bulunamadı",
-         "account": "Hesap",
+         "account": "Hesabım",
          "profile": "Profil",
-         "settings": "Ayarlar",
-         "update-profile": "Profil Güncelle",
-         "update-password": "Şifre Güncelle",
-         "logout": "Çıkış Yap",
          "edit": "Düzenle",
          "add": "Ekle",
          "register": "Kayıt Ol",
@@ -418,7 +445,10 @@
          "ops_document": "Belgeler",
          "ops_document_list": "Belge listesi",
          "ops_media": "Ortam kütüphanesi",
-         "ops_media_edit": "Dosyayı düzenle"
+         "ops_media_edit": "Dosyayı düzenle",
+         "security": "Güvenlik",
+         "preferences": "Tercihler",
+         "memberships": "Üyelikler"
       }
    },
    "fields": {
@@ -613,9 +643,6 @@
          "please_login_to_continue": "Devam etmek için lütfen giriş yapınız",
          "forgot_your_password?": "Şifrenizi unuttunuz mı?",
          "do_you_have_invite_code?": "Davet kodunuz var mı?"
-      },
-      "logout": {
-         "logged_out_successfully": "Başarıyla çıkış yapıldı"
       },
       "register": {
          "create_account": "Hesap Oluştur",

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeAvatarUrl } from '@/api/account/avatar';
 import {
    toUserFormValues,
    toUserPayload,
@@ -63,7 +64,7 @@ const metadata = computed(
             :alt="metadata.display_name"
             preview
             class="w-32 rounded-[var(--content-border-radius)] overflow-hidden"
-            :src="metadata.avatar_url"
+            :src="safeAvatarUrl(metadata.avatar_url)"
             :placeholder="metadata.display_name || values.email"
          />
          <Badge

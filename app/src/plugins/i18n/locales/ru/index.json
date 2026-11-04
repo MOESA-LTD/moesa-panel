@@ -90,9 +90,6 @@
          "forgot_your_password?": "Забыли пароль?",
          "do_you_have_invite_code?": "У вас есть пригласительный код?"
       },
-      "logout": {
-         "logged_out_successfully": "Вы успешно вышли"
-      },
       "register": {
          "create_account": "Создать аккаунт",
          "create_an_account_and_join_us": "Создайте аккаунт и присоединитесь к нам",
@@ -416,20 +413,51 @@
       "media_already_linked": "The file is already linked to this record.",
       "media_primary_exists": "The record already has a primary image.",
       "document_file_required": "Add a Drive link or a file.",
-      "MediaFileError": "File not uploaded"
+      "MediaFileError": "File not uploaded",
+      "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
+      "avatar_size": "The photo must be at most 1 MB.",
+      "unknown": "Something went wrong."
    },
    "account": {
       "profile": {
-         "user_info": "Информация о пользователе",
-         "name": "Имя",
-         "email": "Электронная почта",
-         "phone": "Телефон",
-         "events": "События",
-         "logs": {
-            "created_at": "Дата создания",
-            "email_confirmed_at": "Дата подтверждения электронной почты",
-            "last_sign_in_at": "Дата последнего входа"
-         }
+         "legend": "Profile details",
+         "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
+         "email_change_sent": "Check {email} to confirm the new address."
+      },
+      "logout": "Log out",
+      "header": {
+         "member_since": "Member since {date}",
+         "email_verified": "Verified",
+         "email_not_verified": "Not verified"
+      },
+      "avatar": {
+         "upload": "Upload photo",
+         "change": "Change photo",
+         "remove": "Remove photo",
+         "hint": "PNG, JPEG or WebP, up to 1 MB."
+      },
+      "security": {
+         "password_legend": "Change password",
+         "sessions_legend": "Sessions",
+         "sign_out_others": "Sign out other devices",
+         "sign_out_others_hint": "Ends every session except this one.",
+         "confirm_sign_out_others": {
+            "header": "Sign out other devices",
+            "question": "Every other device signed in to your account will be signed out. Continue?"
+         },
+         "signed_out_others": "Other devices were signed out."
+      },
+      "preferences": {
+         "language_legend": "Language",
+         "appearance_legend": "Appearance",
+         "stored_locally": "These settings are kept in this browser."
+      },
+      "memberships": {
+         "legend": "Companies and branches",
+         "owner": "Owner",
+         "no_roles": "No role",
+         "empty": "You are not a member of any company yet.",
+         "error": "Memberships could not be loaded."
       }
    },
    "toast": {
@@ -454,10 +482,6 @@
          "notfound": "Страница не найдена",
          "account": "Аккаунт",
          "profile": "Профиль",
-         "settings": "Настройки",
-         "update-profile": "Обновить профиль",
-         "update-password": "Изменить пароль",
-         "logout": "Выйти",
          "edit": "Редактировать",
          "add": "Добавить",
          "register": "Регистрация",
@@ -537,7 +561,10 @@
          "ops_customer_media": "Media",
          "ops_product_media": "Media",
          "ops_media": "Media library",
-         "ops_media_edit": "Edit file"
+         "ops_media_edit": "Edit file",
+         "security": "Security",
+         "preferences": "Preferences",
+         "memberships": "Memberships"
       }
    },
    "dashboard": {

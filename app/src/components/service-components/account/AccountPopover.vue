@@ -1,12 +1,30 @@
 <script setup>
+import { safeAvatarUrl } from '@/api/account/avatar';
+import { useLogout } from '@/composables/useLogout';
 import { useMenuSection } from '@/router/menu';
+import { useToast } from 'primevue/usetoast';
+import { buildAccountMenu } from './accountMenu';
 
 const accountMenu = ref();
 
 const { user } = storeToRefs(useAuthStore());
+const { confirmLogout } = useLogout();
+const toast = useToast();
+
+const logout = () => {
+   accountMenu.value?.hide();
+   confirmLogout().catch((error) =>
+      toast.add({
+         life: 5000,
+         severity: ToastSeverity.ERROR,
+         summary: i18n.t('toast.error'),
+         detail: error?.message
+      })
+   );
+};
 
 const account = useMenuSection('account');
-const accountMenuItems = computed(() => account.value?.items);
+const accountMenuItems = computed(() => buildAccountMenu(account.value?.items, logout));
 </script>
 
 <template>
@@ -32,7 +50,7 @@ const accountMenuItems = computed(() => account.value?.items);
                <AvatarPlaceholder
                   :alt="user?.user_metadata?.display_name"
                   class="account_popover__avatar"
-                  :src="user?.user_metadata?.avatar_url"
+                  :src="safeAvatarUrl(user?.user_metadata?.avatar_url)"
                   :placeholder="user.user_metadata?.display_name || user?.email"
                />
                <p
@@ -47,25 +65,34 @@ const accountMenuItems = computed(() => account.value?.items);
          <template #item="{ item, props, hasSubmenu }">
             <span
                :class="{
-                  'account_popover__menu_item--active': $route.matched.some(
-                     ({ name }) => name === item.route.name
-                  )
+                  'account_popover__menu_item--active':
+                     !!item.route?.name &&
+                     $route.matched.some(({ name }) => name === item.route.name)
                }"
                class="account_popover__menu_item"
             >
-               <CustomLink v-if="!hasSubmenu" :to="item.route" v-slot="{ navigate }">
+               <button
+                  v-if="item.command"
+                  type="button"
+                  v-bind="props.action"
+                  class="account_popover__menu_item_button"
+               >
+                  <span class="account_popover__menu_item_icon" :class="item.icon" />
+                  <span class="account_popover__menu_item_label" v-text="item.label" />
+               </button>
+               <CustomLink v-else-if="!hasSubmenu" :to="item.route" v-slot="{ navigate }">
                   <button
                      @click="navigate"
                      v-bind="props.action"
                      class="account_popover__menu_item_button"
                   >
                      <span class="account_popover__menu_item_icon" :class="item.icon" />
-                     <span class="account_popover__menu_item_label" v-text="$t(item.label)" />
+                     <span class="account_popover__menu_item_label" v-text="item.label" />
                   </button>
                </CustomLink>
                <div v-bind="props.action" v-else class="account_popover__menu_group">
                   <span :class="item.icon" />
-                  <label class="account_popover__menu_item_label" v-text="$t(item.label)" />
+                  <label class="account_popover__menu_item_label" v-text="item.label" />
                   <span
                      v-if="hasSubmenu"
                      :class="PrimeIcons.ANGLE_RIGHT"

@@ -24,15 +24,23 @@ const lookup = (key: string) =>
          messages
       );
 
+/** The dotted keys passed literally to t / $t; segments may hold `-` (route.label.access-denied). */
+const literalKeys = (code: string) =>
+   [...code.matchAll(/\b(?:\$t|t)\(\s*'([a-z0-9_-]+(?:\.[a-z0-9_-]+)+)'/gi)].map(
+      (match) => match[1]!
+   );
+
 describe('i18n keys used in the code', () => {
+   it('finds hyphenated keys too', () => {
+      expect(literalKeys("t('route.label.access-denied') $t('account.logout')")).toEqual([
+         'route.label.access-denied',
+         'account.logout'
+      ]);
+   });
+
    it('every literal key passed to t / $t exists in the source locale', () => {
       const missing = sourceFiles(SRC).flatMap((file) =>
-         [
-            ...readFileSync(file, 'utf-8').matchAll(
-               /\b(?:\$t|t)\(\s*'([a-z0-9_]+(?:\.[a-z0-9_]+)+)'/gi
-            )
-         ]
-            .map((match) => match[1])
+         literalKeys(readFileSync(file, 'utf-8'))
             .filter((key) => lookup(key) === undefined)
             .map((key) => `${relative(SRC, file)}: ${key}`)
       );

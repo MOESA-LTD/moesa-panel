@@ -90,9 +90,6 @@
          "forgot_your_password?": "Mot de passe oublié ?",
          "do_you_have_invite_code?": "Avez-vous un code d'invitation ?"
       },
-      "logout": {
-         "logged_out_successfully": "Déconnexion réussie"
-      },
       "register": {
          "create_account": "Créer un compte",
          "create_an_account_and_join_us": "Créez un compte et rejoignez-nous",
@@ -416,20 +413,51 @@
       "media_already_linked": "The file is already linked to this record.",
       "media_primary_exists": "The record already has a primary image.",
       "document_file_required": "Add a Drive link or a file.",
-      "MediaFileError": "File not uploaded"
+      "MediaFileError": "File not uploaded",
+      "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
+      "avatar_size": "The photo must be at most 1 MB.",
+      "unknown": "Something went wrong."
    },
    "account": {
       "profile": {
-         "user_info": "Informations utilisateur",
-         "name": "Nom",
-         "email": "Adresse e-mail",
-         "phone": "Téléphone",
-         "events": "Événements",
-         "logs": {
-            "created_at": "Créé le",
-            "email_confirmed_at": "E-mail confirmé le",
-            "last_sign_in_at": "Dernière connexion"
-         }
+         "legend": "Profile details",
+         "email_change_hint": "Changing your email sends a confirmation link to the new address. The change applies once you open it.",
+         "email_change_sent": "Check {email} to confirm the new address."
+      },
+      "logout": "Log out",
+      "header": {
+         "member_since": "Member since {date}",
+         "email_verified": "Verified",
+         "email_not_verified": "Not verified"
+      },
+      "avatar": {
+         "upload": "Upload photo",
+         "change": "Change photo",
+         "remove": "Remove photo",
+         "hint": "PNG, JPEG or WebP, up to 1 MB."
+      },
+      "security": {
+         "password_legend": "Change password",
+         "sessions_legend": "Sessions",
+         "sign_out_others": "Sign out other devices",
+         "sign_out_others_hint": "Ends every session except this one.",
+         "confirm_sign_out_others": {
+            "header": "Sign out other devices",
+            "question": "Every other device signed in to your account will be signed out. Continue?"
+         },
+         "signed_out_others": "Other devices were signed out."
+      },
+      "preferences": {
+         "language_legend": "Language",
+         "appearance_legend": "Appearance",
+         "stored_locally": "These settings are kept in this browser."
+      },
+      "memberships": {
+         "legend": "Companies and branches",
+         "owner": "Owner",
+         "no_roles": "No role",
+         "empty": "You are not a member of any company yet.",
+         "error": "Memberships could not be loaded."
       }
    },
    "toast": {
@@ -454,10 +482,6 @@
          "notfound": "Page non trouvée",
          "account": "Compte",
          "profile": "Profil",
-         "settings": "Paramètres",
-         "update-profile": "Mettre à jour le profil",
-         "update-password": "Mettre à jour le mot de passe",
-         "logout": "Déconnexion",
          "edit": "Modifier",
          "add": "Ajouter",
          "register": "S'inscrire",
@@ -537,7 +561,10 @@
          "ops_customer_media": "Media",
          "ops_product_media": "Media",
          "ops_media": "Media library",
-         "ops_media_edit": "Edit file"
+         "ops_media_edit": "Edit file",
+         "security": "Security",
+         "preferences": "Preferences",
+         "memberships": "Memberships"
       }
    },
    "dashboard": {
