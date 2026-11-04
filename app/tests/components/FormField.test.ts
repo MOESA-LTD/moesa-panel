@@ -19,8 +19,12 @@ describe('FormField term', () => {
    it('marks the code in its label', () => {
       const label = mountField({ label: 'PI document', term: 'PI' }).get('label');
 
-      expect(label.find('abbr[data-term="PI"]').exists()).toBe(true);
+      const abbr = label.find('abbr[data-term="PI"]');
+      expect(abbr.exists()).toBe(true);
+      expect(abbr.attributes('role')).toBe('button');
       expect(label.text()).toBe('PI document');
+      // The label names the input: nothing inside it overrides its text with another name.
+      expect(label.find('[aria-label], [aria-labelledby]').exists()).toBe(false);
       expect(label.attributes('title')).toBe('PI document');
    });
 

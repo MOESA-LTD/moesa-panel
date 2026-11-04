@@ -62,6 +62,17 @@ describe('TermText', () => {
       expect(showTerm).toHaveBeenCalledWith('S09');
    });
 
+   it('names the term by its code and describes what it does', () => {
+      const abbr = mountText('[[PI]]').find('abbr[data-term="PI"]');
+
+      expect(abbr.attributes('role')).toBe('button');
+      expect(abbr.attributes('aria-label')).toBeUndefined();
+      expect(abbr.text()).toBe('PI');
+      expect(abbr.attributes('aria-description')).toBe(
+         i18n.t('guide.panel.term_open', { code: 'PI' })
+      );
+   });
+
    it('stops the click at the term', () => {
       const parentClick = vi.fn();
       const wrapper = mount(

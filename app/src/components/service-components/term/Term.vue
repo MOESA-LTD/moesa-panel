@@ -16,6 +16,10 @@ const short = computed(() => stripTerms(t(termKeys(props.code).short)));
 const select = () => (pageSelect ?? useGuideStore().showTerm)(props.code);
 </script>
 
+<!--
+   The interactive term keeps its code as its name and says what it does as a description: it sits
+   inside form labels, whose accessible name must stay the plain label text.
+-->
 <template>
    <template v-if="known">
       <abbr
@@ -32,7 +36,7 @@ const select = () => (pageSelect ?? useGuideStore().showTerm)(props.code);
          class="underline decoration-dotted underline-offset-2 cursor-help"
          role="button"
          tabindex="0"
-         :aria-label="t('guide.panel.term_open', { code: props.code })"
+         :aria-description="t('guide.panel.term_open', { code: props.code })"
          @click.prevent.stop="select"
          @keydown.enter.prevent.stop="select"
          @keydown.space.prevent.stop="select"
