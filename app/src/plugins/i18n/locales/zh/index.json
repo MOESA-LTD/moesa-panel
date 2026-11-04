@@ -2308,5 +2308,139 @@
    "status_actions": {
       "confirm": "Move to \"{status}\"?",
       "done": "Status changed."
+   },
+   "guide": {
+      "panel": {
+         "title": "Page guide",
+         "purpose": "What this page is for",
+         "tasks": "Common tasks",
+         "related": "Related pages",
+         "terms": "Terms on this page",
+         "needs": "Needs: {action} on {subject}",
+         "no_tasks": "Your role has no task on this page; you can read it.",
+         "open": "How does this page work?",
+         "close_card": "How do I close this card?"
+      },
+      "actions": {
+         "read": "read",
+         "create": "create",
+         "update": "change",
+         "delete": "delete"
+      },
+      "pages": {
+         "dashboard": {
+            "purpose": "The single screen of the Monday, Wednesday and Friday meetings. Each box counts what is waiting and lists the first records; a row opens its record. Nothing is entered here.",
+            "tasks": {
+               "close_gates": {
+                  "title": "Close a waiting gate",
+                  "steps": {
+                     "1": "Open the project from the row; its Overview shows the gate panel.",
+                     "2": "Add the evidence the gate asks for; (M) gates also need the customer's approval date and document.",
+                     "3": "Pass the gate; the project moves on and the row leaves the box."
+                  }
+               },
+               "close_tasks": {
+                  "title": "Clear a late or due task",
+                  "steps": {
+                     "1": "Open the project from the row; the Tasks tab opens.",
+                     "2": "Mark the task done, or give it a new due date with a note.",
+                     "3": "A blocking task holds its gate until it is done."
+                  }
+               },
+               "sign_spec": {
+                  "title": "Get a SKU's spec sheet signed",
+                  "steps": {
+                     "1": "Open the customer's row; the product list shows the SKUs without a signed spec sheet.",
+                     "2": "On the product's Documents tab, add the spec sheet with its version and date.",
+                     "3": "Mark it signed once it is signed, stamped and came from the official e-mail."
+                  }
+               },
+               "complete_compliance": {
+                  "title": "Complete a SKU's compliance",
+                  "steps": {
+                     "1": "Open the customer's row; the product list opens.",
+                     "2": "On the product's General tab, fill the Compliance section and add the documents S12 asks for.",
+                     "3": "Set the compliance status to complete; the SKU leaves the box."
+                  }
+               },
+               "advance_po": {
+                  "title": "Move a purchase order forward",
+                  "steps": {
+                     "1": "Open the order from the row; its status shows what it waits for.",
+                     "2": "Do the step: send it, check the PI (S09), record the payment or the production note.",
+                     "3": "Use the status button; a step whose conditions are missing is refused with the reason."
+                  }
+               },
+               "track_shipment": {
+                  "title": "Follow a shipment to acceptance",
+                  "steps": {
+                     "1": "Open the shipment from the row; check ETD and ETA on Dates.",
+                     "2": "Log each S15 step on Events; update the ETA when it slips.",
+                     "3": "A late shipment usually needs an OL-09 incident; open it on the Incidents page."
+                  }
+               },
+               "close_incident": {
+                  "title": "Close an open incident",
+                  "steps": {
+                     "1": "Open the incident; S1 and S2 need the management notice time first.",
+                     "2": "Keep the log and the deadlines current until the goods, listing or money are safe.",
+                     "3": "Fill the closure (outcome, root cause, preventive action) and close; management closes S1."
+                  }
+               },
+               "decide_cr": {
+                  "title": "Decide an open change request",
+                  "steps": {
+                     "1": "Open the request; check the old and new values and the impact.",
+                     "2": "If it touches a passed (M) gate, add the customer's written approval first.",
+                     "3": "Approve or reject; once the new document version exists, mark it applied."
+                  }
+               },
+               "update_market": {
+                  "title": "Move market cells to live",
+                  "steps": {
+                     "1": "Open the customer's row; the market matrix opens for that customer.",
+                     "2": "Open a cell and fill what live needs: platform ID, platform SKU, price, currency, stock source.",
+                     "3": "With the content approved (L-G1), move the cell to live."
+                  }
+               }
+            }
+         },
+         "setting": {
+            "purpose": "The company numbers the rules read: the default deposit, the spec sheet date, the document request time and the incident notice hours. Only management changes them; every change is logged."
+         },
+         "customer": {
+            "purpose": "Every customer of MOESA with its contract terms, warehouses, marketplace accounts and brands. Choosing a customer in the top filter narrows every operations list to it."
+         },
+         "supplier": {
+            "purpose": "The suppliers MOESA buys from, with their terms (Incoterm, deposit, damage notice) and contacts. Purchase orders take their defaults from here."
+         },
+         "product": {
+            "purpose": "The product master (S10): one row per SKU with its GTIN, supplier, status, compliance and spec sheet. The list shows at a glance which SKUs lack a signed spec sheet."
+         },
+         "project": {
+            "purpose": "Projects take a product from brief to delivery and listing. Each gets its gate set from its type, path and packages; a gate passes only with its evidence, and only G2 and G3 block."
+         },
+         "document": {
+            "purpose": "Every document of every record in one list: type, version, status and its link or file. \"Is the spec sheet signed?\" is answered here, without opening files."
+         },
+         "media": {
+            "purpose": "The library of photos, images, PDFs and videos. A file is stored once and linked to any record; a document can point to a file instead of a Drive link."
+         },
+         "purchase_order": {
+            "purpose": "Purchase orders to suppliers, from draft to closed: lines with their spec sheet versions, the S09 PI check, payments and production. Lines and terms lock once the PI is approved."
+         },
+         "shipment": {
+            "purpose": "Shipments of a customer's orders to one of its warehouses, from planned to accepted: dates, the S15 event chain, the S16 acceptance and the document checklist."
+         },
+         "market_matrix": {
+            "purpose": "Where each product is sold: one cell per product, platform and country, with its status, compliance, content and listing data (S05). The cells are the single source; the matrix view is derived from them."
+         },
+         "incident": {
+            "purpose": "Incident records (S17): what happened, where, how serious, who owns it, the log of every contact and cost, the deadlines that must not slip, and the closure with its lesson. A gate is rolled back only through an incident."
+         },
+         "change_request": {
+            "purpose": "Change requests (S08): nothing approved changes without one. Each records the old and new value, why, the impact, the approvals and the new document version it produced."
+         }
+      }
    }
 }

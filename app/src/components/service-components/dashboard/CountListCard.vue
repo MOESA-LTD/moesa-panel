@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGuideStore } from '@/store/guide';
 import type { RouteLocationRaw } from 'vue-router';
 
 export type CountListItem = {
@@ -20,9 +21,14 @@ const props = withDefaults(
       emptyText?: string;
       /** Whether the box shows "None" instead of its rows; by default when the count is zero. */
       empty?: boolean;
+      /** The dashboard guide's task that says how to clear this box; shown as a link under it. */
+      guideTask?: string;
    }>(),
-   { severity: 'secondary', emptyText: undefined, empty: undefined }
+   { severity: 'secondary', emptyText: undefined, empty: undefined, guideTask: undefined }
 );
+
+// The store is reached on click only, so the box needs no pinia until its guide link is used.
+const openGuide = () => useGuideStore().show('dashboard', props.guideTask);
 
 const isEmpty = computed(() => props.empty ?? props.count === 0);
 
@@ -71,6 +77,15 @@ const select = (item: CountListItem, navigate: () => unknown) => {
                </CustomLink>
             </li>
          </ul>
+         <Button
+            v-if="guideTask"
+            :label="$t('guide.panel.close_card')"
+            :icon="PrimeIcons.QUESTION_CIRCLE"
+            text
+            size="small"
+            class="mt-2 !px-0"
+            @click="openGuide"
+         />
       </template>
    </Card>
 </template>

@@ -65,7 +65,10 @@ const containerClass = computed(() => {
                   <Suspense>
                      <component :is="Component" />
                   </Suspense>
-                  <span class="ms-auto my-auto" id="page-toolbar" />
+                  <span class="ms-auto my-auto flex items-center gap-2">
+                     <PageGuideButton />
+                     <span id="page-toolbar" />
+                  </span>
                </div>
             </RouterView>
 
@@ -95,6 +98,7 @@ const containerClass = computed(() => {
             </footer>
          </Transition>
       </RouterView>
+      <PageGuide v-if="isSignedIn" />
       <ProgressBar
          mode="indeterminate"
          v-if="isFetching"

@@ -2308,5 +2308,139 @@
    "status_actions": {
       "confirm": "\"{status}\" durumuna geçilsin mi?",
       "done": "Durum değişti."
+   },
+   "guide": {
+      "panel": {
+         "title": "Sayfa rehberi",
+         "purpose": "Bu sayfa ne için",
+         "tasks": "Sık yapılan işler",
+         "related": "İlgili sayfalar",
+         "terms": "Bu sayfanın terimleri",
+         "needs": "Gerekir: {subject} için {action}",
+         "no_tasks": "Rolünüzün bu sayfada işi yok; okuyabilirsiniz.",
+         "open": "Bu sayfa nasıl çalışır?",
+         "close_card": "Bu kartı nasıl kapatırım?"
+      },
+      "actions": {
+         "read": "okuma",
+         "create": "ekleme",
+         "update": "değiştirme",
+         "delete": "silme"
+      },
+      "pages": {
+         "dashboard": {
+            "purpose": "Pazartesi, Çarşamba ve Cuma toplantılarının tek ekranı. Her kutu bekleyen işleri sayar ve ilk kayıtları listeler; satır kaydı açar. Burada veri girilmez.",
+            "tasks": {
+               "close_gates": {
+                  "title": "Bekleyen kapıyı kapat",
+                  "steps": {
+                     "1": "Satırdan projeyi açın; Genel bakış sekmesinde kapı paneli görünür.",
+                     "2": "Kapının istediği kanıtı ekleyin; (M) kapılar müşteri onay tarihi ve belgesi de ister.",
+                     "3": "Kapıyı geçirin; proje ilerler ve satır kutudan çıkar."
+                  }
+               },
+               "close_tasks": {
+                  "title": "Geciken ya da yaklaşan görevi kapat",
+                  "steps": {
+                     "1": "Satırdan projeyi açın; Görevler sekmesi açılır.",
+                     "2": "Görevi tamamlandı yapın ya da notla yeni termin verin.",
+                     "3": "Kapıyı bloke eden görev tamamlanana kadar kapı geçmez."
+                  }
+               },
+               "sign_spec": {
+                  "title": "SKU'nun spec sheet'ini imzalat",
+                  "steps": {
+                     "1": "Müşteri satırını açın; ürün listesi imzalı spec sheet'i olmayan SKU'ları gösterir.",
+                     "2": "Ürünün Belgeler sekmesinde spec sheet'i sürümü ve tarihiyle ekleyin.",
+                     "3": "İmzalı, kaşeli ve resmî e-postadan geldiyse imzalı yapın."
+                  }
+               },
+               "complete_compliance": {
+                  "title": "SKU'nun uyumunu tamamla",
+                  "steps": {
+                     "1": "Müşteri satırını açın; ürün listesi açılır.",
+                     "2": "Ürünün Genel sekmesinde Uyum bölümünü doldurun ve S12'nin istediği belgeleri ekleyin.",
+                     "3": "Uyum durumunu tamamlandı yapın; SKU kutudan çıkar."
+                  }
+               },
+               "advance_po": {
+                  "title": "Satın alma siparişini ilerlet",
+                  "steps": {
+                     "1": "Satırdan siparişi açın; durumu neyi beklediğini gösterir.",
+                     "2": "Adımı yapın: gönderin, PI'ı kontrol edin (S09), ödemeyi ya da üretim notunu kaydedin.",
+                     "3": "Durum düğmesini kullanın; koşulu eksik adım nedeniyle birlikte reddedilir."
+                  }
+               },
+               "track_shipment": {
+                  "title": "Sevkiyatı kabule kadar izle",
+                  "steps": {
+                     "1": "Satırdan sevkiyatı açın; Tarihler sekmesinde ETD ve ETA'yı kontrol edin.",
+                     "2": "Her S15 adımını Olaylar sekmesine yazın; ETA kayınca güncelleyin.",
+                     "3": "Geciken sevkiyat genelde OL-09 olayı gerektirir; Olaylar sayfasından açın."
+                  }
+               },
+               "close_incident": {
+                  "title": "Açık olayı kapat",
+                  "steps": {
+                     "1": "Olayı açın; S1 ve S2'de önce yönetime bildirim zamanı girilir.",
+                     "2": "Mal, listing ya da para güvene alınana kadar günlüğü ve süreleri güncel tutun.",
+                     "3": "Kapanışı doldurun (sonuç, kök neden, önlem) ve kapatın; S1'i yönetim kapatır."
+                  }
+               },
+               "decide_cr": {
+                  "title": "Açık değişiklik talebine karar ver",
+                  "steps": {
+                     "1": "Talebi açın; eski ve yeni değeri ve etkiyi kontrol edin.",
+                     "2": "Geçmiş bir (M) kapıyı etkiliyorsa önce müşterinin yazılı onayını ekleyin.",
+                     "3": "Onaylayın ya da reddedin; yeni belge sürümü oluşunca uygulandı yapın."
+                  }
+               },
+               "update_market": {
+                  "title": "Pazar hücrelerini yayına taşı",
+                  "steps": {
+                     "1": "Müşteri satırını açın; pazar matrisi o müşteri için açılır.",
+                     "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı.",
+                     "3": "İçerik onaylıyken (L-G1) hücreyi yayına alın."
+                  }
+               }
+            }
+         },
+         "setting": {
+            "purpose": "Kuralların okuduğu şirket sayıları: varsayılan depozito, spec sheet tarihi, belge talebi süresi ve olay bildirim saatleri. Yalnızca yönetim değiştirir; her değişiklik kayda geçer."
+         },
+         "customer": {
+            "purpose": "MOESA'nın her müşterisi; sözleşme şartları, depoları, pazar yeri hesapları ve markalarıyla. Üstteki filtreden müşteri seçmek tüm operasyon listelerini o müşteriye daraltır."
+         },
+         "supplier": {
+            "purpose": "MOESA'nın satın aldığı tedarikçiler; şartları (Incoterm, depozito, hasar bildirimi) ve kişileriyle. Satın alma siparişleri varsayılanlarını buradan alır."
+         },
+         "product": {
+            "purpose": "Ürün ana tablosu (S10): her SKU için bir satır; GTIN, tedarikçi, durum, uyum ve spec sheet ile. Liste hangi SKU'nun imzalı spec sheet'i olmadığını bir bakışta gösterir."
+         },
+         "project": {
+            "purpose": "Projeler bir ürünü brief'ten teslime ve listing'e taşır. Her birinin kapı seti tipine, yoluna ve paketlerine göre gelir; kapı yalnızca kanıtıyla geçer ve yalnız G2 ile G3 engeller."
+         },
+         "document": {
+            "purpose": "Her kaydın her belgesi tek listede: tür, sürüm, durum ve bağlantı ya da dosya. \"Spec sheet imzalı mı?\" sorusu dosya açmadan burada cevaplanır."
+         },
+         "media": {
+            "purpose": "Fotoğraf, görsel, PDF ve video kütüphanesi. Dosya bir kez saklanır ve her kayda bağlanır; belge Drive bağlantısı yerine dosyayı gösterebilir."
+         },
+         "purchase_order": {
+            "purpose": "Tedarikçiye satın alma siparişleri, taslaktan kapanışa: spec sheet sürümlü satırlar, S09 PI kontrolü, ödemeler ve üretim. PI onaylanınca satırlar ve şartlar kilitlenir."
+         },
+         "shipment": {
+            "purpose": "Müşterinin siparişlerinin depolarından birine sevkiyatı, planlanandan kabule: tarihler, S15 olay zinciri, S16 teslim kabulü ve belge kontrol listesi."
+         },
+         "market_matrix": {
+            "purpose": "Her ürünün nerede satıldığı: ürün, platform ve ülke başına bir hücre; durumu, uyumu, içeriği ve listing verisiyle (S05). Hücreler tek kaynaktır; matris görünümü onlardan türetilir."
+         },
+         "incident": {
+            "purpose": "Olay kayıtları (S17): ne oldu, nerede, ne kadar ciddi, sahibi kim; her temasın ve maliyetin günlüğü, kaçırılmayacak süre sınırları ve dersiyle kapanış. Kapı yalnızca olay üzerinden geri alınır."
+         },
+         "change_request": {
+            "purpose": "Değişiklik talepleri (S08): onaylanmış hiçbir şey talep olmadan değişmez. Her talep eski ve yeni değeri, nedenini, etkisini, onayları ve ürettiği yeni belge sürümünü tutar."
+         }
+      }
    }
 }
