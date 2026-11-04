@@ -2,13 +2,13 @@ import { appErrorHandler } from '@/lib/appErrorHandler';
 import en from '@/plugins/i18n/locales/en/index.json';
 import i18n from '@plugins/i18n';
 import ToastEventBus from 'primevue/toasteventbus';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
 
 // The toasts the handler adds, through the bus behind useToast().
 const toasts = () => emit.mock.calls.filter(([type]) => type === 'add').map(([, toast]) => toast);
-let emit: ReturnType<typeof vi.spyOn<typeof ToastEventBus, 'emit'>>;
+let emit: MockInstance<(type: string, event?: unknown) => void>;
 
 describe('appErrorHandler', () => {
    beforeAll(() => i18n.setLocaleMessage('en', en));
