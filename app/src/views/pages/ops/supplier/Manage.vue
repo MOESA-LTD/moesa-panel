@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { supplierResource } from '@/api/supplier';
+import { useAbility } from '@casl/vue';
 import Contacts from './tabs/Contacts.vue';
 import Documents from './tabs/Documents.vue';
 import General from './tabs/General.vue';
+import PurchaseOrders from './tabs/PurchaseOrders.vue';
 
-// The supplier card. Contacts and documents belong to a saved supplier, so their tabs open once
-// the general tab has saved it.
+// The supplier card. Contacts, documents and the purchase order history (M2, read-only, for those
+// who may read orders) belong to a saved supplier, so their tabs open once the general tab has
+// saved it.
 const props = defineProps<{
    id?: string | null;
    /** The tab opened first (the route's tab segment). */
@@ -25,11 +28,16 @@ watch(
 const { data: supplier, suspense } = supplierResource.useOne(supplierId);
 if (supplierId.value) await suspense();
 
-const TABS = ['general', 'contacts', 'documents'] as const;
+const TABS = ['general', 'contacts', 'documents', 'purchase_orders'] as const;
 type TabKey = (typeof TABS)[number];
 
+const ability = useAbility();
+const tabs = computed(() =>
+   TABS.filter((key) => key !== 'purchase_orders' || ability.can('read', 'purchase_order'))
+);
+
 const fromRoute = (): TabKey =>
-   TABS.find((key) => route.name === `ops-supplier-manage-${key}` || props.tab === key) ??
+   tabs.value.find((key) => route.name === `ops-supplier-manage-${key}` || props.tab === key) ??
    'general';
 
 const activeTab = ref<TabKey>(supplierId.value ? fromRoute() : 'general');
@@ -48,7 +56,7 @@ const title = computed(() =>
       <h2 v-if="title" class="m-4 mb-0 text-xl font-semibold" v-text="title" />
       <Tabs v-model:value="activeTab">
          <TabList>
-            <Tab v-for="key in TABS" :key :value="key" :disabled="key !== 'general' && !supplierId">
+            <Tab v-for="key in tabs" :key :value="key" :disabled="key !== 'general' && !supplierId">
                {{ $t(`ops.supplier.tabs.${key}`) }}
             </Tab>
          </TabList>
@@ -61,6 +69,12 @@ const title = computed(() =>
             </TabPanel>
             <TabPanel value="documents">
                <Documents v-if="supplierId && activeTab === 'documents'" :id="supplierId" />
+            </TabPanel>
+            <TabPanel v-if="tabs.includes('purchase_orders')" value="purchase_orders">
+               <PurchaseOrders
+                  v-if="supplierId && activeTab === 'purchase_orders'"
+                  :id="supplierId"
+               />
             </TabPanel>
          </TabPanels>
       </Tabs>

@@ -461,7 +461,8 @@
       "shipment_line_po_not_linked": "Add the line's order to the shipment first.",
       "shipment_line_duplicate": "This order line is already on the shipment.",
       "shipment_quantity_exceeds_po": "More than ordered (tolerance included) would be shipped.",
-      "shipment_locked": "The goods are loaded; orders and lines no longer change."
+      "shipment_locked": "The goods are loaded; orders and lines no longer change.",
+      "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved."
    },
    "account": {
       "profile": {
@@ -639,7 +640,11 @@
          "ops_shipment_line_add": "New shipment line",
          "ops_shipment_line_edit": "Edit shipment line",
          "ops_shipment_event_add": "New shipment event",
-         "ops_shipment_event_edit": "Edit shipment event"
+         "ops_shipment_event_edit": "Edit shipment event",
+         "ops_supplier_purchase_orders": "Purchase orders",
+         "ops_product_orders": "Orders and shipments",
+         "ops_project_purchase_orders": "Purchase orders",
+         "ops_project_shipments": "Shipments"
       }
    },
    "dashboard": {
@@ -930,7 +935,8 @@
          "tabs": {
             "general": "General",
             "contacts": "Contacts",
-            "documents": "Documents"
+            "documents": "Documents",
+            "purchase_orders": "Purchase orders"
          },
          "sections": {
             "general": "Supplier",
@@ -1084,7 +1090,8 @@
             "dimensions": "Dimensions",
             "cost": "Cost",
             "documents": "Documents",
-            "media": "Media"
+            "media": "Media",
+            "orders": "Orders and shipments"
          },
          "sections": {
             "identity": "Product",
@@ -1202,7 +1209,9 @@
             "overview": "Overview",
             "tasks": "Tasks",
             "products": "Products",
-            "documents": "Documents"
+            "documents": "Documents",
+            "purchase_orders": "Purchase orders",
+            "shipments": "Shipments"
          },
          "sections": {
             "general": "Project",
@@ -1329,7 +1338,8 @@
             "PL_G4": "PL-G4",
             "L_G1": "L-G1",
             "L_G2": "L-G2"
-         }
+         },
+         "new_purchase_order": "New purchase order"
       },
       "media": {
          "title": "Media",

@@ -7,7 +7,7 @@ import { dateOnly, optional, parseDateOnly, required, requiredText } from '@/lib
 import { supabase } from '@/lib/supabase';
 import i18n from '@plugins/i18n';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { computed } from 'vue';
+import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
 
 type Enums = Db['public']['Enums'];
@@ -244,6 +244,55 @@ export type PassGateInput = {
    approvalDocumentId?: string | null;
    evidenceDocumentIds?: string[];
 };
+
+/**
+ * The entities whose documents a gate may cite (032_gate_links.sql): the gate, its project, the
+ * project's purchase orders and the shipments of those orders.
+ */
+export const gateEvidenceEntityIds = ({
+   gateId,
+   projectId,
+   purchaseOrderIds,
+   shipmentIds
+}: {
+   gateId: string;
+   projectId: string;
+   purchaseOrderIds: readonly string[];
+   shipmentIds: readonly string[];
+}): string[] => [gateId, projectId, ...purchaseOrderIds, ...shipmentIds];
+
+/**
+ * The project's purchase orders and the shipments linked to them, as id lists. The shipments are
+ * looked up only once there are orders: an empty `in` is skipped and would match every link.
+ */
+export function useProjectOperations(
+   projectId: MaybeRefOrGetter<string>,
+   /** Loads only while true, e.g. while the pass dialog is open. */
+   enabled: MaybeRefOrGetter<boolean> = true
+) {
+   const { data: orders } = useLookup<{ id: string }>(
+      'purchase_order',
+      () => ({ select: 'id', in: { column: 'project_id', values: [toValue(projectId)] } }),
+      () => toValue(enabled) && !!toValue(projectId)
+   );
+   const purchaseOrderIds = computed(() => (orders.value ?? []).map(({ id }) => id));
+
+   const { data: links } = useLookup<{ shipment_id: string }>(
+      'shipment_purchase_order',
+      () => ({
+         select: 'shipment_id',
+         in: { column: 'purchase_order_id', values: purchaseOrderIds.value }
+      }),
+      () => toValue(enabled) && purchaseOrderIds.value.length > 0
+   );
+   const shipmentIds = computed(() =>
+      purchaseOrderIds.value.length
+         ? [...new Set((links.value ?? []).map(({ shipment_id }) => shipment_id))]
+         : []
+   );
+
+   return { purchaseOrderIds, shipmentIds };
+}
 
 // Passing or rolling back a gate moves the project's phase and may add its checklists.
 const GATE_TABLES = ['project_gate', 'project', 'project_task'] as const;

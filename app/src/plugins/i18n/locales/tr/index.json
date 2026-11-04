@@ -273,6 +273,7 @@
       "gate_reason_required": "Geri alma için sebep yazın.",
       "gate_rollback_order": "Önce sonraki geçmiş kapıları geri alın.",
       "gate_not_passed": "Yalnızca geçmiş bir kapı geri alınabilir.",
+      "gate_pi_required": "G3 için onaylı PI gerekir: projenin PI'ı onaylanmış bir siparişinin PI belgesini kanıt olarak ekleyin.",
       "project_not_active": "Proje beklemede, kapalı ya da iptal.",
       "project_immutable_field": "Projenin müşterisi, tipi, yolu ve paketleri değiştirilemez.",
       "project_code_immutable": "Proje kodu değiştirilemez.",
@@ -440,6 +441,7 @@
          "ops_supplier_general": "Genel",
          "ops_supplier_contacts": "Kişiler",
          "ops_supplier_documents": "Belgeler",
+         "ops_supplier_purchase_orders": "PO geçmişi",
          "ops_supplier_contact_add": "Kişi ekle",
          "ops_supplier_contact_edit": "Kişiyi düzenle",
          "ops_customer": "Müşteriler",
@@ -466,6 +468,7 @@
          "ops_product_general": "Genel",
          "ops_product_dimensions": "Ölçüler",
          "ops_product_cost": "Maliyet",
+         "ops_product_orders": "PO/sevkiyat geçmişi",
          "ops_product_documents": "Belgeler",
          "ops_product_media": "Ortam",
          "ops_product_import": "Ürün içe aktar",
@@ -476,6 +479,8 @@
          "ops_project_overview": "Genel bakış",
          "ops_project_tasks": "Görevler",
          "ops_project_products": "Ürünler",
+         "ops_project_purchase_orders": "Satın alma",
+         "ops_project_shipments": "Sevkiyatlar",
          "ops_project_documents": "Belgeler",
          "ops_project_task_add": "Yeni görev",
          "ops_project_task_edit": "Görevi düzenle",
@@ -930,7 +935,8 @@
          "tabs": {
             "general": "Genel",
             "contacts": "Kişiler",
-            "documents": "Belgeler"
+            "documents": "Belgeler",
+            "purchase_orders": "PO geçmişi"
          },
          "sections": {
             "general": "Tedarikçi",
@@ -1083,6 +1089,7 @@
             "general": "Genel",
             "dimensions": "Ölçüler",
             "cost": "Maliyet",
+            "orders": "PO/sevkiyat geçmişi",
             "documents": "Belgeler",
             "media": "Ortam"
          },
@@ -1202,8 +1209,11 @@
             "overview": "Genel bakış",
             "tasks": "Görevler",
             "products": "Ürünler",
+            "purchase_orders": "Satın alma",
+            "shipments": "Sevkiyatlar",
             "documents": "Belgeler"
          },
+         "new_purchase_order": "Yeni PO",
          "sections": {
             "general": "Proje",
             "plan": "Plan",

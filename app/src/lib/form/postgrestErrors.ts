@@ -265,7 +265,9 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'shipment_delivery_receipt_required',
       'shipment_acceptance_issue',
       'shipment_po_has_lines'
-   ].map((name) => ({ code: '23514', name, message: `errors.${name}` }))
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
+   // Raised by passing G3 (pass_gate): shown as a toast.
+   { code: '23514', name: 'gate_pi_required', message: 'errors.gate_pi_required' }
 ];
 
 /**

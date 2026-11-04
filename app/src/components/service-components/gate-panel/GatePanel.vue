@@ -3,7 +3,9 @@ import type { DocumentRow } from '@/api/document';
 import { glossaryKey } from '@/api/glossary';
 import {
    byPosition,
+   gateEvidenceEntityIds,
    usePassGate,
+   useProjectOperations,
    useRollbackGate,
    type GateStatus,
    type ProjectCard,
@@ -60,13 +62,23 @@ const pass = reactive({
    evidenceDocumentIds: [] as string[]
 });
 
-// The gate's and the project's documents: the approval is one of the gate's, evidence either.
+// The documents of the gate, the project, its purchase orders and their shipments: the approval
+// is one of the gate's, evidence any of them (032_gate_links.sql; G3 needs an order's approved PI).
+const { purchaseOrderIds, shipmentIds } = useProjectOperations(() => props.project.id, passing);
 const { data: documents } = useLookup<GateDocument>(
    'document',
    () => ({
       select: 'id, entity_id, type, version, file_name',
       order: 'version',
-      in: { column: 'entity_id', values: [props.gate.id, props.project.id] }
+      in: {
+         column: 'entity_id',
+         values: gateEvidenceEntityIds({
+            gateId: props.gate.id,
+            projectId: props.project.id,
+            purchaseOrderIds: purchaseOrderIds.value,
+            shipmentIds: shipmentIds.value
+         })
+      }
    }),
    passing
 );

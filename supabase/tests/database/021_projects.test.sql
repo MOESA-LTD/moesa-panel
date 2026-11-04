@@ -331,8 +331,25 @@ SELECT public.pass_gate(current_setting('test.g2')::UUID, 'samples ok', '2026-11
 UPDATE public.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000214' AND phase = 'P3' AND blocks_gate;
 
+-- G3 needs an approved PI of one of the project's orders (032): an order of the project whose PI
+-- is approved, seeded past the PO rules.
+INSERT INTO public.supplier (id, tenant_id, code, display_name, country, status)
+VALUES ('00000000-0000-4000-8000-000000021901', current_setting('test.tenant_id')::UUID, 'AT1', 'Atlas Hose Works', 'Türkiye', 'approved');
+INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, project_id, currency, incoterm)
+VALUES ('00000000-0000-4000-8000-000000021902', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', '00000000-0000-4000-8000-000000021901', '00000000-0000-4000-8000-000000000214', 'USD', 'FOB');
+INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+VALUES ('00000000-0000-4000-8000-000000021903', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000021902', '00000000-0000-4000-8000-000000000213', 10, 1);
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, url)
+VALUES ('00000000-0000-4000-8000-000000021904', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'purchase_order', '00000000-0000-4000-8000-000000021902', 'pi', 'https://example.test/pi.pdf');
+RESET ROLE;
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+UPDATE public.purchase_order SET pi_document_id = '00000000-0000-4000-8000-000000021904', status = 'pi_approved' WHERE id = '00000000-0000-4000-8000-000000021902';
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+SELECT private.impersonate((SELECT u.id FROM public.user u WHERE u.email = 'ayse@moesa-panel.test'), current_setting('test.tenant_id')::UUID);
+
 SELECT public.pass_gate(current_setting('test.g3')::UUID, 'PI ok', '2026-11-05',
-                        '00000000-0000-4000-8000-000000000221');
+                        '00000000-0000-4000-8000-000000000221',
+                        ARRAY['00000000-0000-4000-8000-000000021904']::UUID[]);
 
 UPDATE public.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000214' AND phase = 'P4' AND blocks_gate;

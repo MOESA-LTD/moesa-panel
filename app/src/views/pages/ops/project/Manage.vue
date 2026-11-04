@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { projectResource, type ProjectStatus } from '@/api/project';
+import { useAbility } from '@casl/vue';
 import Documents from './tabs/Documents.vue';
 import Overview from './tabs/Overview.vue';
 import Products from './tabs/Products.vue';
+import PurchaseOrders from './tabs/PurchaseOrders.vue';
+import Shipments from './tabs/Shipments.vue';
 import Tasks from './tabs/Tasks.vue';
 
-// The project card: phase strip and gates, checklist, products and documents of a saved project.
+// The project card: phase strip and gates, checklist, products, its purchase orders and shipments
+// (read-only history, shown to those who may read them) and documents of a saved project.
 const props = defineProps<{
    id: string;
    /** The tab opened first (the route's tab segment). */
@@ -18,11 +22,28 @@ const route = useRoute();
 const { data: project, suspense } = projectResource.useOne(() => props.id);
 await suspense();
 
-const TABS = ['overview', 'tasks', 'products', 'documents'] as const;
+const TABS = [
+   'overview',
+   'tasks',
+   'products',
+   'purchase_orders',
+   'shipments',
+   'documents'
+] as const;
 type TabKey = (typeof TABS)[number];
 
+const ability = useAbility();
+const TAB_SUBJECT: Partial<Record<TabKey, string>> = {
+   purchase_orders: 'purchase_order',
+   shipments: 'shipment'
+};
+const tabs = computed(() =>
+   TABS.filter((key) => !TAB_SUBJECT[key] || ability.can('read', TAB_SUBJECT[key]))
+);
+
 const activeTab = ref<TabKey>(
-   TABS.find((key) => route.name === `ops-project-manage-${key}` || props.tab === key) ?? 'overview'
+   tabs.value.find((key) => route.name === `ops-project-manage-${key}` || props.tab === key) ??
+      'overview'
 );
 
 const STATUS_SEVERITY: Record<ProjectStatus, string> = {
@@ -48,7 +69,7 @@ const STATUS_SEVERITY: Record<ProjectStatus, string> = {
       </div>
       <Tabs v-model:value="activeTab">
          <TabList>
-            <Tab v-for="key in TABS" :key :value="key">
+            <Tab v-for="key in tabs" :key :value="key">
                {{ $t(`ops.project.tabs.${key}`) }}
             </Tab>
          </TabList>
@@ -61,6 +82,12 @@ const STATUS_SEVERITY: Record<ProjectStatus, string> = {
             </TabPanel>
             <TabPanel value="products">
                <Products v-if="activeTab === 'products'" :id />
+            </TabPanel>
+            <TabPanel v-if="tabs.includes('purchase_orders')" value="purchase_orders">
+               <PurchaseOrders v-if="activeTab === 'purchase_orders'" :id />
+            </TabPanel>
+            <TabPanel v-if="tabs.includes('shipments')" value="shipments">
+               <Shipments v-if="activeTab === 'shipments'" :id />
             </TabPanel>
             <TabPanel value="documents">
                <Documents v-if="activeTab === 'documents'" :id />

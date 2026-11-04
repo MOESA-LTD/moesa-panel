@@ -425,6 +425,23 @@ const routes: RouteRecordRaw[] = [
                            default: () => import('@/views/pages/ops/supplier/tabs/Documents.vue'),
                            skeleton: () => import('@/views/pages/ops/supplier/tabs/Documents.vue')
                         }
+                     },
+                     {
+                        path: 'purchase_orders',
+                        name: 'ops-supplier-manage-purchase_orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_supplier_purchase_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/supplier/tabs/PurchaseOrders.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/supplier/tabs/PurchaseOrders.vue')
+                        }
                      }
                   ]
                },
@@ -551,6 +568,24 @@ const routes: RouteRecordRaw[] = [
                         components: {
                            default: () => import('@/views/pages/ops/product/tabs/Cost.vue'),
                            skeleton: () => import('@/views/pages/ops/product/tabs/Cost.vue')
+                        }
+                     },
+                     {
+                        path: 'orders',
+                        name: 'ops-product-manage-orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false,
+                           anyPermission: [
+                              { action: 'select', subject: 'purchase_order' },
+                              { action: 'select', subject: 'shipment' }
+                           ]
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Orders.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Orders.vue')
                         }
                      },
                      {
@@ -691,6 +726,38 @@ const routes: RouteRecordRaw[] = [
                         components: {
                            default: () => import('@/views/pages/ops/project/tabs/Products.vue'),
                            skeleton: () => import('@/views/pages/ops/project/tabs/Products.vue')
+                        }
+                     },
+                     {
+                        path: 'purchase_orders',
+                        name: 'ops-project-manage-purchase_orders',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_purchase_orders',
+                           icon: PrimeIcons.SHOPPING_CART,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'purchase_order' }]
+                        },
+                        components: {
+                           default: () =>
+                              import('@/views/pages/ops/project/tabs/PurchaseOrders.vue'),
+                           skeleton: () =>
+                              import('@/views/pages/ops/project/tabs/PurchaseOrders.vue')
+                        }
+                     },
+                     {
+                        path: 'shipments',
+                        name: 'ops-project-manage-shipments',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_project_shipments',
+                           icon: PrimeIcons.SEND,
+                           visible: false,
+                           requiredPermissions: [{ action: 'select', subject: 'shipment' }]
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/project/tabs/Shipments.vue'),
+                           skeleton: () => import('@/views/pages/ops/project/tabs/Shipments.vue')
                         }
                      },
                      {

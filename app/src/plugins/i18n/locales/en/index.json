@@ -397,6 +397,7 @@
       "gate_reason_required": "Give a reason for the rollback.",
       "gate_rollback_order": "Roll back the later passed gates first.",
       "gate_not_passed": "Only a passed gate can be rolled back.",
+      "gate_pi_required": "G3 needs an approved PI: cite the PI of one of the project's orders whose PI is approved.",
       "project_not_active": "The project is on hold, closed or cancelled.",
       "project_immutable_field": "A project's customer, type, path and packages cannot be changed.",
       "project_code_immutable": "A project's code cannot be changed.",
@@ -564,6 +565,7 @@
          "ops_supplier_general": "General",
          "ops_supplier_contacts": "Contacts",
          "ops_supplier_documents": "Documents",
+         "ops_supplier_purchase_orders": "Purchase orders",
          "ops_supplier_contact_add": "Add contact",
          "ops_supplier_contact_edit": "Edit contact",
          "ops_customer": "Customers",
@@ -590,6 +592,7 @@
          "ops_product_general": "General",
          "ops_product_dimensions": "Dimensions",
          "ops_product_cost": "Cost",
+         "ops_product_orders": "Orders and shipments",
          "ops_product_documents": "Documents",
          "ops_product_media": "Media",
          "ops_product_import": "Import products",
@@ -600,6 +603,8 @@
          "ops_project_overview": "Overview",
          "ops_project_tasks": "Tasks",
          "ops_project_products": "Products",
+         "ops_project_purchase_orders": "Purchase orders",
+         "ops_project_shipments": "Shipments",
          "ops_project_documents": "Documents",
          "ops_project_task_add": "New task",
          "ops_project_task_edit": "Edit task",
@@ -930,7 +935,8 @@
          "tabs": {
             "general": "General",
             "contacts": "Contacts",
-            "documents": "Documents"
+            "documents": "Documents",
+            "purchase_orders": "Purchase orders"
          },
          "sections": {
             "general": "Supplier",
@@ -1083,6 +1089,7 @@
             "general": "General",
             "dimensions": "Dimensions",
             "cost": "Cost",
+            "orders": "Orders and shipments",
             "documents": "Documents",
             "media": "Media"
          },
@@ -1202,8 +1209,11 @@
             "overview": "Overview",
             "tasks": "Tasks",
             "products": "Products",
+            "purchase_orders": "Purchase orders",
+            "shipments": "Shipments",
             "documents": "Documents"
          },
+         "new_purchase_order": "New purchase order",
          "sections": {
             "general": "Project",
             "plan": "Plan",
