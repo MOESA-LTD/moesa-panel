@@ -2,6 +2,7 @@ import { signOutOtherSessions } from '@/api/account';
 import {
    AvatarFileError,
    removeAvatar,
+   safeAvatarUrl,
    uploadAvatar,
    validateAvatarFile
 } from '@/api/account/avatar';
@@ -120,5 +121,26 @@ describe('signOutOtherSessions', () => {
       mock.signOut.mockResolvedValue({ error: failure });
 
       await expect(signOutOtherSessions()).rejects.toBe(failure);
+   });
+});
+
+describe('safeAvatarUrl', () => {
+   const bucket = `${import.meta.env.VITE_SUPABASE_PROJECT_URL}/storage/v1/object/public/avatar/`;
+
+   it('keeps a URL in the avatar bucket of this project', () => {
+      const url = `${bucket}u1/avatar.png?v=1`;
+      expect(safeAvatarUrl(url)).toBe(url);
+   });
+
+   it('drops a URL anywhere else', () => {
+      expect(safeAvatarUrl('https://evil.test/track.png')).toBeUndefined();
+      expect(safeAvatarUrl(`${bucket.replace('/avatar/', '/tenant_logo/')}x.png`)).toBeUndefined();
+      expect(safeAvatarUrl(`${bucket}../tenant_logo/x.png`)).toBeUndefined();
+   });
+
+   it('gives nothing for no URL', () => {
+      expect(safeAvatarUrl(null)).toBeUndefined();
+      expect(safeAvatarUrl(undefined)).toBeUndefined();
+      expect(safeAvatarUrl('')).toBeUndefined();
    });
 });

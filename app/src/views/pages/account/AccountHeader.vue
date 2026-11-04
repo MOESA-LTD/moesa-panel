@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { AVATAR_TYPES, removeAvatar, uploadAvatar, validateAvatarFile } from '@/api/account/avatar';
+import {
+   AVATAR_TYPES,
+   removeAvatar,
+   safeAvatarUrl,
+   uploadAvatar,
+   validateAvatarFile
+} from '@/api/account/avatar';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { localeDateString } from '@/lib/dayjs';
 import type { FileUploadSelectEvent } from 'primevue';
@@ -13,7 +19,10 @@ const authStore = useAuthStore();
 
 const user = computed(() => authStore.user);
 const name = computed(() => user.value?.user_metadata?.display_name || '');
-const avatarUrl = computed(() => user.value?.user_metadata?.avatar_url || undefined);
+// Whether a photo is set, and the one shown: only a file of the avatar bucket (see safeAvatarUrl).
+// Any other URL is not loaded but can still be removed.
+const hasAvatar = computed(() => !!user.value?.user_metadata?.avatar_url);
+const avatarUrl = computed(() => safeAvatarUrl(user.value?.user_metadata?.avatar_url));
 const memberSince = computed(() =>
    user.value?.created_at ? localeDateString({ value: user.value.created_at, validate: false }) : ''
 );
@@ -103,13 +112,13 @@ const onRemove = async () => {
             auto
             customUpload
             :accept="AVATAR_TYPES.join(',')"
-            :chooseLabel="$t(avatarUrl ? 'account.avatar.change' : 'account.avatar.upload')"
+            :chooseLabel="$t(hasAvatar ? 'account.avatar.change' : 'account.avatar.upload')"
             :chooseButtonProps="{ size: 'small', outlined: true, loading: uploading }"
             :disabled="uploading || removing"
             @select="onSelect"
          />
          <Button
-            v-if="avatarUrl"
+            v-if="hasAvatar"
             data-avatar-remove
             size="small"
             text

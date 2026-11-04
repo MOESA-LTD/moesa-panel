@@ -1,4 +1,5 @@
 <script setup>
+import { safeAvatarUrl } from '@/api/account/avatar';
 import { useLogout } from '@/composables/useLogout';
 import { useMenuSection } from '@/router/menu';
 import { useToast } from 'primevue/usetoast';
@@ -49,7 +50,7 @@ const accountMenuItems = computed(() => buildAccountMenu(account.value?.items, l
                <AvatarPlaceholder
                   :alt="user?.user_metadata?.display_name"
                   class="account_popover__avatar"
-                  :src="user?.user_metadata?.avatar_url"
+                  :src="safeAvatarUrl(user?.user_metadata?.avatar_url)"
                   :placeholder="user.user_metadata?.display_name || user?.email"
                />
                <p

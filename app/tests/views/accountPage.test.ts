@@ -53,6 +53,8 @@ const AvatarPlaceholder = defineComponent({
    setup: (props) => () => h('img', { 'data-avatar': props.src ?? '', alt: props.placeholder })
 });
 
+const bucketUrl = `${import.meta.env.VITE_SUPABASE_PROJECT_URL}/storage/v1/object/public/avatar/u1/avatar.png?v=1`;
+
 const user = (overrides: Record<string, unknown> = {}) => ({
    id: 'u1',
    email: 'ada@x.test',
@@ -191,14 +193,22 @@ describe('My account page', () => {
       let wrapper = await mountPage();
       expect(remove().exists()).toBe(false);
 
-      auth.user = user({
-         user_metadata: { display_name: 'Ada Lovelace', avatar_url: 'https://x.test/a.png' }
-      });
+      auth.user = user({ user_metadata: { display_name: 'Ada Lovelace', avatar_url: bucketUrl } });
       wrapper = await mountPage();
-      expect(wrapper.get('[data-avatar]').attributes('data-avatar')).toBe('https://x.test/a.png');
+      expect(wrapper.get('[data-avatar]').attributes('data-avatar')).toBe(bucketUrl);
       await remove().trigger('click');
       await flushPromises();
 
       expect(api.removeAvatar).toHaveBeenCalledWith('u1');
+   });
+
+   it('does not load a photo URL outside the avatar bucket, but offers to remove it', async () => {
+      auth.user = user({
+         user_metadata: { display_name: 'Ada Lovelace', avatar_url: 'https://x.test/a.png' }
+      });
+      const wrapper = await mountPage();
+
+      expect(wrapper.get('[data-avatar]').attributes('data-avatar')).toBe('');
+      expect(wrapper.find('[data-avatar-remove]').exists()).toBe(true);
    });
 });

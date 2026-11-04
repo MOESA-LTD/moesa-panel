@@ -9,6 +9,27 @@ export const AVATAR_BUCKET = 'avatar';
 export const AVATAR_TYPES = LOGO_TYPES;
 export const AVATAR_MAX_BYTES = LOGO_MAX_BYTES;
 
+/** Where this project's avatar bucket serves its files publicly. */
+const AVATAR_PUBLIC_PREFIX = `${String(import.meta.env.VITE_SUPABASE_PROJECT_URL ?? '').replace(
+   /\/+$/,
+   ''
+)}/storage/v1/object/public/${AVATAR_BUCKET}/`;
+
+/**
+ * The photo URL to show, only when it is a file of this project's avatar bucket. `avatar_url` is
+ * user metadata, which the user can set to anything through Auth, so another address (a tracking
+ * pixel, another site's image) is not loaded. Compared once the URL is resolved, so `..` cannot
+ * leave the bucket.
+ */
+export function safeAvatarUrl(url?: string | null): string | undefined {
+   if (!url) return undefined;
+   try {
+      return new URL(url).href.startsWith(AVATAR_PUBLIC_PREFIX) ? url : undefined;
+   } catch {
+      return undefined;
+   }
+}
+
 export type AvatarErrorCode = 'avatar_type' | 'avatar_size';
 
 /** Why a photo cannot be used, or null when it can. */
