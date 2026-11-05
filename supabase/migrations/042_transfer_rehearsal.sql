@@ -22,7 +22,8 @@
 --                              row links or references (document.media_id): the latter copy_only.
 --                            - Product-only (product_ids): the customer row copy_only, without its
 --                              contacts, warehouses, accounts, brands, orders, projects, ... or
---                              documents; the selected products, their variants and the parent of a
+--                              documents, but with its contract document (contract_document_id) and
+--                              that document's file, both copy_only; the selected products, their variants and the parent of a
 --                              selected variant, with what hangs from them (market cells, documents,
 --                              media links); the media they use, copy_only (another product left
 --                              behind may use it too). A row of another table that refers to a
@@ -39,6 +40,7 @@ SET
    search_path = '' AS $$
 DECLARE
     caller UUID := auth.uid();
+    e RECORD;
     source_e RECORD;
     target_e RECORD;
 BEGIN
@@ -50,10 +52,19 @@ BEGIN
         RETURN 'transfer_same_tenant';
     END IF;
 
-    SELECT e.company_id, e.modules, e.writable INTO source_e
-    FROM private.entitlements(ARRAY[source_tenant, target_tenant]) e WHERE e.tenant_id = source_tenant;
-    SELECT e.company_id, e.modules, e.writable INTO target_e
-    FROM private.entitlements(ARRAY[source_tenant, target_tenant]) e WHERE e.tenant_id = target_tenant;
+    -- One read of both; an unknown tenant keeps NULLs.
+    SELECT NULL::UUID AS tenant_id, NULL::UUID AS company_id, NULL::TEXT[] AS modules, NULL::BOOLEAN AS writable
+    INTO source_e;
+    target_e := source_e;
+
+    FOR e IN SELECT x.tenant_id, x.company_id, x.modules, x.writable
+             FROM private.entitlements(ARRAY[source_tenant, target_tenant]) x LOOP
+        IF e.tenant_id = source_tenant THEN
+            source_e := e;
+        ELSE
+            target_e := e;
+        END IF;
+    END LOOP;
 
     -- Two companies: an owner of both (an unknown tenant has no company and lands here too).
     IF source_e.company_id IS DISTINCT FROM target_e.company_id
@@ -103,6 +114,7 @@ DECLARE
     only_products BOOLEAN := product_ids IS NOT NULL;
     products UUID[];
     suppliers UUID[];
+    contract_document UUID;
     reg RECORD;
     source_expr TEXT;
     key_expr TEXT;
@@ -159,6 +171,13 @@ BEGIN
           AND o.supplier_id IS NOT NULL
     );
 
+    -- A product-only transfer copies the customer row with its contract_document_id, so it carries
+    -- that document (and its file) too, copy_only: no link is dropped.
+    IF only_products THEN
+        SELECT c.contract_document_id INTO contract_document
+        FROM public.customer c WHERE c.id = transfer_collect.customer_id AND c.tenant_id = source_tenant;
+    END IF;
+
     FOR reg IN SELECT * FROM private.transfer_registry r ORDER BY r.position LOOP
         IF reg.key_columns IS NULL THEN
             source_expr := 'x.id';
@@ -185,14 +204,20 @@ BEGIN
             where_sql := format(
                 '(NOT $5 AND x.customer_id = $2) '
                 'OR EXISTS (SELECT 1 FROM public.media_link l WHERE l.tenant_id = $1 AND l.media_id = x.id AND EXISTS (%s)) '
-                'OR EXISTS (SELECT 1 FROM public.document d WHERE d.tenant_id = $1 AND d.media_id = x.id AND EXISTS (%s))',
+                'OR EXISTS (SELECT 1 FROM public.document d WHERE d.tenant_id = $1 AND d.media_id = x.id '
+                'AND (d.id = $6 OR EXISTS (%s)))',
                 format(entity_match, 'l'),
                 format(entity_match, 'd')
             );
             copy_expr := '(x.customer_id IS NULL OR $5)';
         ELSIF reg.parent_column = 'entity' THEN
-            from_sql := from_sql || format(' JOIN LATERAL (%s) p ON TRUE', format(entity_match, 'x'));
-            copy_expr := 'p.copy_only';
+            from_sql := from_sql || format(' LEFT JOIN LATERAL (%s) p ON TRUE', format(entity_match, 'x'));
+            IF reg.table_name = 'document' THEN
+                where_sql := 'p.copy_only IS NOT NULL OR x.id = $6';
+            ELSE
+                where_sql := 'p.copy_only IS NOT NULL';
+            END IF;
+            copy_expr := 'coalesce(p.copy_only, TRUE)';
         ELSIF reg.parent_table IS NULL OR (only_products AND reg.parent_table = 'customer') THEN
             CONTINUE;
         ELSE
@@ -209,7 +234,7 @@ BEGIN
             'SELECT %L, %s, %s, to_jsonb(x), %s FROM %s WHERE x.tenant_id = $1 AND (%s)',
             reg.table_name, source_expr, key_expr, copy_expr, from_sql, where_sql
         )
-        USING source_tenant, transfer_collect.customer_id, products, suppliers, only_products;
+        USING source_tenant, transfer_collect.customer_id, products, suppliers, only_products, contract_document;
     END LOOP;
 END;
 $$;

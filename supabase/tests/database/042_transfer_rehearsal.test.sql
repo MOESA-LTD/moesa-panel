@@ -3,11 +3,12 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- The transfer rehearsal (042) on the MOESA demo company of seed.sql: a dry run collects the THO
 -- package and writes nothing; the refusals come in their order (mode, same tenant, owner of both
 -- companies, target read-only, permissions, source read-only); a missing customer and a product of
--- another customer are refused; a product-only run leaves the customer's contacts out. What it
--- writes is rolled back.
+-- another customer are refused; a product-only run leaves the customer's contacts out but keeps
+-- its contract document; the media, supplier contacts and supplier documents are collected with
+-- their copy_only flags. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(18);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -137,6 +138,74 @@ SELECT set_config('test.r', public.transfer_customer(
 SELECT is((current_setting('test.r')::JSONB -> 'counts' ->> 'product')::INT, 1, 'a product-only run takes the selected product');
 SELECT ok(NOT (current_setting('test.r')::JSONB -> 'counts') ? 'customer_contact', 'and leaves the customer''s contacts out');
 RESET ROLE;
+
+-- 15–18. The satellites, collected as postgres straight into pg_temp.transfer_rows. Media: a
+-- shared file (no customer) linked to the mop (…011), a THO file linked to the cones (…012), and
+-- THO's file of the contract (…013). The contract document (…014), a document (…015) and a
+-- contact (…016) of TR1 (the mop's supplier), the two links (…017, …018).
+SELECT set_config('test.cones', (SELECT id FROM public.product WHERE sku = 'THO-CONES-100')::TEXT, TRUE);
+SELECT set_config('test.tr1', (SELECT id FROM public.supplier WHERE code = 'TR1' AND tenant_id = current_setting('test.moesa')::UUID)::TEXT, TRUE);
+
+INSERT INTO storage.objects (bucket_id, name, metadata)
+SELECT 'media', current_setting('test.moesa') || '/' || f.id || '/' || f.name, jsonb_build_object('mimetype', f.mime, 'size', 1000)
+FROM (VALUES ('00000000-0000-4000-8000-000000042011', 'shared.png', 'image/png'),
+             ('00000000-0000-4000-8000-000000042012', 'cones.png', 'image/png'),
+             ('00000000-0000-4000-8000-000000042013', 'contract.pdf', 'application/pdf')) AS f (id, name, mime);
+
+INSERT INTO public.media (id, tenant_id, customer_id, storage_path, file_name, mime_type, size_bytes)
+SELECT f.id::UUID, current_setting('test.moesa')::UUID, f.customer::UUID,
+       current_setting('test.moesa') || '/' || f.id || '/' || f.name, f.name, f.mime, 1000
+FROM (VALUES ('00000000-0000-4000-8000-000000042011', NULL, 'shared.png', 'image/png'),
+             ('00000000-0000-4000-8000-000000042012', current_setting('test.tho'), 'cones.png', 'image/png'),
+             ('00000000-0000-4000-8000-000000042013', current_setting('test.tho'), 'contract.pdf', 'application/pdf')) AS f (id, customer, name, mime);
+
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url, media_id)
+VALUES ('00000000-0000-4000-8000-000000042014', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'customer',
+        current_setting('test.tho')::UUID, 'contract', 'draft', NULL, '00000000-0000-4000-8000-000000042013'),
+       ('00000000-0000-4000-8000-000000042015', current_setting('test.moesa')::UUID, NULL, 'supplier',
+        current_setting('test.tr1')::UUID, 'certificate', 'approved', 'https://example.test/tr1.pdf', NULL);
+
+UPDATE public.customer SET contract_document_id = '00000000-0000-4000-8000-000000042014' WHERE id = current_setting('test.tho')::UUID;
+
+INSERT INTO public.supplier_contact (id, tenant_id, supplier_id, name)
+VALUES ('00000000-0000-4000-8000-000000042016', current_setting('test.moesa')::UUID, current_setting('test.tr1')::UUID, 'Kutlu satış');
+
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+INSERT INTO public.media_link (id, tenant_id, media_id, entity_type, entity_id, role)
+VALUES ('00000000-0000-4000-8000-000000042017', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042011', 'product',
+        current_setting('test.mop')::UUID, 'gallery'),
+       ('00000000-0000-4000-8000-000000042018', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042012', 'product',
+        current_setting('test.cones')::UUID, 'gallery');
+RESET ROLE;
+
+CREATE FUNCTION pg_temp.satellite_counts () RETURNS JSONB LANGUAGE sql AS $$
+    SELECT jsonb_object_agg(c.table_name, c.n) FROM (
+        SELECT r.table_name, count(*) AS n FROM pg_temp.transfer_rows r
+        WHERE r.table_name IN ('supplier_contact', 'media', 'media_link', 'document') GROUP BY r.table_name
+    ) c;
+$$;
+CREATE FUNCTION pg_temp.fixture_flags () RETURNS JSONB LANGUAGE sql AS $$
+    SELECT jsonb_object_agg(right(r.source_id::TEXT, 3), r.copy_only) FROM pg_temp.transfer_rows r
+    WHERE r.source_id::TEXT LIKE '00000000-0000-4000-8000-00000004201_';
+$$;
+
+SELECT private.transfer_collect(current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, NULL);
+SELECT is(pg_temp.satellite_counts(), '{"supplier_contact": 1, "media": 3, "media_link": 2, "document": 3}'::JSONB,
+          'a full run takes the supplier contact, the three files, both links and the three documents');
+SELECT is(
+    pg_temp.fixture_flags(),
+    '{"011": true, "012": false, "013": false, "014": false, "015": true, "016": true, "017": false, "018": false}'::JSONB,
+    'in a full run only the shared file and the supplier''s rows are copy_only'
+);
+
+SELECT private.transfer_collect(current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, ARRAY[current_setting('test.mop')::UUID]);
+SELECT is(pg_temp.satellite_counts(), '{"supplier_contact": 1, "media": 2, "media_link": 1, "document": 3}'::JSONB,
+          'a product-only run takes the mop''s file and link, the contract and its file, the supplier''s rows');
+SELECT is(
+    pg_temp.fixture_flags(),
+    '{"011": true, "013": true, "014": true, "015": true, "016": true, "017": false}'::JSONB,
+    'in a product-only run the contract, the files and the supplier''s rows are copy_only; the cones'' file stays out'
+);
 
 SELECT * FROM finish();
 
