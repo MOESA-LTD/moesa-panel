@@ -20,7 +20,7 @@ const row = computed(() => form.row.value ?? null);
 
 const memberOptions = useMemberOptions();
 const approver = computed(() => {
-   const by = row.value?.moesa_approved_by;
+   const by = row.value?.company_approved_by;
    if (!by) return null;
    return memberOptions.value.find(({ value }) => value === by)?.label ?? null;
 });
@@ -75,11 +75,13 @@ const resultOptions = useNewerDocumentOptions(affectedDocument);
       :draft
    >
       <div class="flex flex-col gap-2">
-         <span class="text-muted-color">{{ $t('ops.change_request.fields.moesa_approved') }}</span>
-         <span data-test="moesa-approved">
+         <span class="text-muted-color">{{
+            $t('ops.change_request.fields.company_approved')
+         }}</span>
+         <span data-test="company-approved">
             {{
-               row?.moesa_approved_on
-                  ? [row.moesa_approved_on, approver].filter(Boolean).join(' · ')
+               row?.company_approved_on
+                  ? [row.company_approved_on, approver].filter(Boolean).join(' · ')
                   : '—'
             }}
          </span>

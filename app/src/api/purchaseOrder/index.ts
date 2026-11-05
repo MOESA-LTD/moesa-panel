@@ -79,7 +79,7 @@ export const formatAmount = (value: number | null | undefined, currency?: string
 
 export const PAYMENT_KINDS = allValues<PaymentKind>()(['deposit', 'balance', 'other']);
 
-export const PAYMENT_PAYERS = allValues<PaymentPayer>()(['moesa', 'customer']);
+export const PAYMENT_PAYERS = allValues<PaymentPayer>()(['company', 'customer']);
 
 /** The eleven Incoterms 2020 terms (S09 item 12; private.incoterm_valid). */
 export const INCOTERMS = [
@@ -530,7 +530,7 @@ export const toPurchaseOrderPaymentFormValues = (
    currency: payment?.currency ?? '',
    planned_on: parseDateOnly(payment?.planned_on),
    paid_on: parseDateOnly(payment?.paid_on),
-   paid_by: payment?.paid_by ?? 'moesa',
+   paid_by: payment?.paid_by ?? 'company',
    notes: payment?.notes ?? ''
 });
 
@@ -561,9 +561,9 @@ export function suggestPayments(
    const has = (kind: PaymentKind) => existing.some((payment) => payment.kind === kind);
    const suggested: SuggestedPayment[] = [];
    if (figures.deposit > 0 && !has('deposit'))
-      suggested.push({ kind: 'deposit', amount: figures.deposit, currency, paid_by: 'moesa' });
+      suggested.push({ kind: 'deposit', amount: figures.deposit, currency, paid_by: 'company' });
    if (!has('balance'))
-      suggested.push({ kind: 'balance', amount: figures.balance, currency, paid_by: 'moesa' });
+      suggested.push({ kind: 'balance', amount: figures.balance, currency, paid_by: 'company' });
    return suggested;
 }
 

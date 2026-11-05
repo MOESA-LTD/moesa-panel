@@ -31,7 +31,7 @@ VALUES ('00000000-0000-4000-8000-000000038021', current_setting('test.moesa')::U
        ('00000000-0000-4000-8000-000000038022', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'ot', 's3', 'Late sample', 'The supplier sent the sample late.', now()),
        ('00000000-0000-4000-8000-000000038023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'om', 's3', 'Old', 'Closed.', now());
 INSERT INTO public.change_request (id, tenant_id, customer_id, title, source, change_kinds, current_value, requested_value, reason, created_at)
-VALUES ('00000000-0000-4000-8000-000000038031', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Carton print', 'moesa', ARRAY['packaging']::public.change_kind[],
+VALUES ('00000000-0000-4000-8000-000000038031', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Carton print', 'company', ARRAY['packaging']::public.change_kind[],
         'Black print', 'Two-colour print', 'Brand guide v2.', now() - INTERVAL '10 days'),
        ('00000000-0000-4000-8000-000000038032', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Price', 'supplier', ARRAY['price']::public.change_kind[],
         '1.90 USD', '1.95 USD', 'Cotton price.', now());

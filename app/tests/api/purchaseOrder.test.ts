@@ -389,15 +389,15 @@ describe('payments', () => {
    it('suggests the missing deposit and balance', () => {
       const figures = { subtotal: 2000, total: 2000, deposit: 600, balance: 1400 };
       expect(suggestPayments(figures, 'USD', [{ kind: 'deposit' }])).toEqual([
-         { kind: 'balance', amount: 1400, currency: 'USD', paid_by: 'moesa' }
+         { kind: 'balance', amount: 1400, currency: 'USD', paid_by: 'company' }
       ]);
       expect(suggestPayments(figures, 'USD', [])).toEqual([
-         { kind: 'deposit', amount: 600, currency: 'USD', paid_by: 'moesa' },
-         { kind: 'balance', amount: 1400, currency: 'USD', paid_by: 'moesa' }
+         { kind: 'deposit', amount: 600, currency: 'USD', paid_by: 'company' },
+         { kind: 'balance', amount: 1400, currency: 'USD', paid_by: 'company' }
       ]);
       expect(
          suggestPayments({ ...figures, deposit: 0, balance: 2000 }, 'USD', [{ kind: 'other' }])
-      ).toEqual([{ kind: 'balance', amount: 2000, currency: 'USD', paid_by: 'moesa' }]);
+      ).toEqual([{ kind: 'balance', amount: 2000, currency: 'USD', paid_by: 'company' }]);
       expect(suggestPayments(figures, 'USD', [{ kind: 'deposit' }, { kind: 'balance' }])).toEqual(
          []
       );
@@ -411,7 +411,7 @@ describe('payments', () => {
          currency: 'USD',
          paid_on: '2026-11-04'
       });
-      expect(values.paid_by).toBe('moesa');
+      expect(values.paid_by).toBe('company');
       expect(purchaseOrderPaymentSchema.safeParse({ ...values, amount: 0 }).success).toBe(false);
       expect(toPurchaseOrderPaymentPayload(purchaseOrderPaymentSchema.parse(values))).toEqual({
          purchase_order_id: ORDER,
@@ -420,7 +420,7 @@ describe('payments', () => {
          currency: 'USD',
          planned_on: null,
          paid_on: '2026-11-04',
-         paid_by: 'moesa',
+         paid_by: 'company',
          notes: null
       });
    });

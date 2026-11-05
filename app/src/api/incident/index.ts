@@ -71,7 +71,7 @@ export const INCIDENT_OUTCOMES = allValues<IncidentOutcome>()([
 ]);
 
 export const COST_PAYERS = allValues<CostPayer>()([
-   'moesa',
+   'company',
    'customer',
    'supplier',
    'carrier_insurance'

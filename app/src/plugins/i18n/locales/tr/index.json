@@ -1606,7 +1606,7 @@
                "other": "Diğer"
             },
             "payer": {
-               "moesa": "Şirketiniz",
+               "company": "Şirketiniz",
                "customer": "Müşteri"
             },
             "fields": {
@@ -1933,7 +1933,7 @@
             "other": "Diğer"
          },
          "cost_payer": {
-            "moesa": "Şirketiniz",
+            "company": "Şirketiniz",
             "customer": "Müşteri",
             "supplier": "Tedarikçi",
             "carrier_insurance": "Taşıyıcı-sigorta"
@@ -2023,7 +2023,7 @@
          "source": {
             "customer": "Müşteri",
             "supplier": "Tedarikçi",
-            "moesa": "Şirketiniz",
+            "company": "Şirketiniz",
             "regulation": "Mevzuat-platform"
          },
          "urgency": {
@@ -2063,7 +2063,7 @@
             "quality_impact": "Kalite / uyum etkisi",
             "listing_impact": "Stok / listing etkisi",
             "decision_note": "Karar notu",
-            "moesa_approved": "Şirket onayı",
+            "company_approved": "Şirket onayı",
             "customer_approved_on": "Müşteri onay tarihi",
             "customer_approval_document": "Müşteri onay belgesi",
             "result_document": "Yeni sürüm",
@@ -2276,7 +2276,7 @@
          "other": "Diğer süre sınırları; tarihini girin."
       },
       "cost_payer": {
-         "moesa": "Maliyeti şirketiniz üstlenir.",
+         "company": "Maliyeti şirketiniz üstlenir.",
          "customer": "Müşteriye yansır; müşterinin yazılı onayı gerekir.",
          "supplier": "Tedarikçiye yansır.",
          "carrier_insurance": "Taşıyıcıdan ya da sigortadan talep edilir."
@@ -2290,7 +2290,7 @@
       "change_request_source": {
          "customer": "Müşteri istedi.",
          "supplier": "Tedarikçi istedi ya da yol açtı.",
-         "moesa": "Şirketiniz öneriyor.",
+         "company": "Şirketiniz öneriyor.",
          "regulation": "Mevzuat ya da platform kuralı gerektiriyor."
       },
       "change_request_urgency": {

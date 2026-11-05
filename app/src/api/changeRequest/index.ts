@@ -56,7 +56,7 @@ export const CHANGE_REQUEST_STATUSES = allValues<ChangeRequestStatus>()([
 export const CHANGE_REQUEST_SOURCES = allValues<ChangeRequestSource>()([
    'customer',
    'supplier',
-   'moesa',
+   'company',
    'regulation'
 ]);
 

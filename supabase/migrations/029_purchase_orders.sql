@@ -13,7 +13,7 @@
 --                         product of the order's customer; the line takes the order's customer
 --                         whatever the client sends.
 -- purchase_order_payment  The deposit, the balance and other payments, planned and paid, and who
---                         paid (MOESA or the customer).
+--                         paid (the company or the customer).
 -- purchase_order_update   Dated production notes. Production photos go to the order's Media tab
 --                         (media_link role evidence_photo).
 --
@@ -64,7 +64,7 @@ CREATE TYPE public.purchase_order_status AS ENUM (
 
 CREATE TYPE public.payment_kind AS ENUM ('deposit', 'balance', 'other');
 
-CREATE TYPE public.payment_payer AS ENUM ('moesa', 'customer');
+CREATE TYPE public.payment_payer AS ENUM ('company', 'customer');
 
 -- A company's setting: the root tenant's value, NULL when it is missing or JSON null. SECURITY
 -- DEFINER: the rules read it whatever settings the caller may read, and branches have no setting
@@ -337,7 +337,7 @@ CREATE TABLE IF NOT EXISTS public.purchase_order_payment (
    currency valid_currency_code NOT NULL,
    planned_on DATE,
    paid_on DATE,
-   paid_by public.payment_payer NOT NULL DEFAULT 'moesa',
+   paid_by public.payment_payer NOT NULL DEFAULT 'company',
    notes TEXT,
    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -53,7 +53,7 @@ SELECT is((SELECT decision_due_on FROM public.change_request WHERE id = '0000000
 SELECT is((SELECT decision_due_on FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037012'),
           current_date + 1, 'an urgent one in 24 hours');
 SELECT throws_ok($$ INSERT INTO public.change_request (tenant_id, customer_id, title, source, change_kinds, current_value, requested_value, reason)
-                    VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Nothing', 'moesa', ARRAY[]::public.change_kind[], 'a', 'b', 'c') $$,
+                    VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Nothing', 'company', ARRAY[]::public.change_kind[], 'a', 'b', 'c') $$,
                  '23514', NULL, 'at least one kind of change');
 SELECT throws_ok($$ UPDATE public.change_request SET affected_document_id = '00000000-0000-4000-8000-000000037004' WHERE id = '00000000-0000-4000-8000-000000037011' $$,
                  '23514', 'change_request_document_invalid', 'not another customer''s document');
@@ -70,7 +70,7 @@ VALUES ('00000000-0000-4000-8000-000000037021', current_setting('test.moesa')::U
 UPDATE public.change_request SET customer_approved_on = current_date, customer_approval_document_id = '00000000-0000-4000-8000-000000037021', status = 'approved'
 WHERE id = '00000000-0000-4000-8000-000000037011';
 
-SELECT is((SELECT moesa_approved_on = current_date AND moesa_approved_by = current_setting('test.koordinator')::UUID FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037011'),
+SELECT is((SELECT company_approved_on = current_date AND company_approved_by = current_setting('test.koordinator')::UUID FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037011'),
           TRUE, 'approval records MOESA''s date and approver');
 SELECT throws_ok($$ UPDATE public.change_request SET status = 'applied' WHERE id = '00000000-0000-4000-8000-000000037011' $$,
                  '23514', 'change_request_new_version_required', 'applied needs the new version');
@@ -99,10 +99,10 @@ SELECT throws_ok($$ DELETE FROM public.change_request WHERE id = '00000000-0000-
                  '42501', NULL, 'change requests are not deleted');
 
 -- The approver, the approval date and the closing date are the server's, whatever the client sends.
-UPDATE public.change_request SET status = 'approved', moesa_approved_by = current_setting('test.akif')::UUID, moesa_approved_on = '2020-01-01', closed_on = '2020-01-01'
+UPDATE public.change_request SET status = 'approved', company_approved_by = current_setting('test.akif')::UUID, company_approved_on = '2020-01-01', closed_on = '2020-01-01'
 WHERE id = '00000000-0000-4000-8000-000000037012';
 
-SELECT is((SELECT moesa_approved_by = current_setting('test.koordinator')::UUID AND moesa_approved_on = current_date AND closed_on IS NULL
+SELECT is((SELECT company_approved_by = current_setting('test.koordinator')::UUID AND company_approved_on = current_date AND closed_on IS NULL
            FROM public.change_request WHERE id = '00000000-0000-4000-8000-000000037012'),
           TRUE, 'the approver, approval date and closing date are not the client''s');
 SELECT throws_ok($$ UPDATE public.change_request SET result_document_id = '00000000-0000-4000-8000-000000037004' WHERE id = '00000000-0000-4000-8000-000000037012' $$,

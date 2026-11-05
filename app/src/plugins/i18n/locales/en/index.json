@@ -1606,7 +1606,7 @@
                "other": "Other"
             },
             "payer": {
-               "moesa": "Your company",
+               "company": "Your company",
                "customer": "Customer"
             },
             "fields": {
@@ -1933,7 +1933,7 @@
             "other": "Other"
          },
          "cost_payer": {
-            "moesa": "Your company",
+            "company": "Your company",
             "customer": "Customer",
             "supplier": "Supplier",
             "carrier_insurance": "Carrier or insurance"
@@ -2023,7 +2023,7 @@
          "source": {
             "customer": "Customer",
             "supplier": "Supplier",
-            "moesa": "Your company",
+            "company": "Your company",
             "regulation": "Regulation or platform"
          },
          "urgency": {
@@ -2063,7 +2063,7 @@
             "quality_impact": "Quality / compliance impact",
             "listing_impact": "Stock / listing impact",
             "decision_note": "Decision note",
-            "moesa_approved": "Your company's approval",
+            "company_approved": "Your company's approval",
             "customer_approved_on": "Customer approved on",
             "customer_approval_document": "Customer approval document",
             "result_document": "New version",
@@ -2276,7 +2276,7 @@
          "other": "Any other deadline; enter its date."
       },
       "cost_payer": {
-         "moesa": "Your company bears the cost.",
+         "company": "Your company bears the cost.",
          "customer": "Charged to the customer; needs the customer's written approval.",
          "supplier": "Charged to the supplier.",
          "carrier_insurance": "Claimed from the carrier or the insurance."
@@ -2290,7 +2290,7 @@
       "change_request_source": {
          "customer": "The customer asked for it.",
          "supplier": "The supplier asked for it or caused it.",
-         "moesa": "Your company proposes it.",
+         "company": "Your company proposes it.",
          "regulation": "A regulation or a platform rule requires it."
       },
       "change_request_urgency": {
