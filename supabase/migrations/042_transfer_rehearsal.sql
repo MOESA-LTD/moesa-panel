@@ -41,13 +41,16 @@
 --                              customer (map, and skip in a copy); gtin, an active GTIN in a copy
 --                              (clear_gtin, skip), not for a product with a sku conflict (it is
 --                              mapped or skipped, so never written: one decision per key);
---                              document_version, under a mapped customer or product (map, skip
---                              in a copy); platform_account, a platform the mapped customer already
---                              has an account on (map, skip in a copy); market_cell, a platform and
+--                              customer_contact, customer_warehouse, customer_brand, a child the
+--                              mapped customer already has on a natural key (lower e-mail, or lower
+--                              name without one; lower name and type; lower name) (map, skip in a
+--                              copy); platform_account, a platform the mapped customer already has
+--                              an account on (map, skip in a copy); market_cell, a platform and
 --                              country the mapped product already has a cell for (map, skip in a
---                              copy); media_link, a primary image of a mapped customer or product
---                              that already has one (map, demote: copied as a gallery image, and
---                              skip in a copy). A map names the target row found (existing_id). A
+--                              copy); document_version, under a mapped customer, product or market
+--                              cell (map, skip in a copy); media_link, a primary image of a mapped
+--                              customer, product or market cell that already has one (map, demote:
+--                              copied as a gallery image, and skip in a copy). A map names the target row found (existing_id). A
 --                              move never offers skip.
 --                            - users: the users of a registry user column who are neither in the
 --                              target's tenant_user nor owners of its company (Call 7).
@@ -489,6 +492,8 @@ DECLARE
     conflicts JSONB := '[]';
     sku_conflicts JSONB;
     mapped_products JSONB;
+    cell_conflicts JSONB;
+    mapped_cells JSONB;
     part JSONB;
     reg RECORD;
     ref RECORD;
@@ -583,7 +588,7 @@ BEGIN
         conflicts := conflicts || part;
     END LOOP;
 
-    -- Document versions under a mapped customer or a mapped product.
+    -- The products and market cells a valid map decision names (for the conflicts under them).
     mapped_products := coalesce((
         SELECT jsonb_object_agg(k ->> 'source_id', k ->> 'existing_id')
         FROM jsonb_array_elements(sku_conflicts) k
@@ -591,22 +596,32 @@ BEGIN
           AND private.transfer_decision_error(k, picks -> (k ->> 'key'), target_tenant) IS NULL
     ), '{}');
 
+    -- The contacts, warehouses and brands the mapped customer already has, on a natural key: the
+    -- e-mail (the name without one), the name and type, the name.
     conflicts := conflicts || coalesce((
         SELECT jsonb_agg(jsonb_build_object(
-            'key', 'document:' || r.source_id, 'kind', 'document_version', 'table', 'document', 'source_id', r.source_id,
-            'label', (r.row ->> 'type') || ' v' || (r.row ->> 'version'), 'existing_id', d.id, 'actions', map_or_skip
+            'key', r.table_name || ':' || r.source_id, 'kind', r.table_name, 'table', r.table_name, 'source_id', r.source_id,
+            'label', coalesce(r.row ->> 'email', r.row ->> 'name', r.row ->> 'display_name'), 'existing_id', t.id,
+            'actions', map_or_skip
         ))
         FROM pg_temp.transfer_rows r
         CROSS JOIN LATERAL (
-            SELECT CASE r.row ->> 'entity_type'
-                WHEN 'customer' THEN CASE WHEN r.row ->> 'entity_id' = source_customer::TEXT THEN target_customer END
-                WHEN 'product' THEN (mapped_products ->> (r.row ->> 'entity_id'))::UUID
-            END AS entity_id
-        ) m
-        JOIN public.document d
-          ON d.tenant_id = target_tenant AND d.entity_type::TEXT = r.row ->> 'entity_type' AND d.entity_id = m.entity_id
-         AND d.type::TEXT = r.row ->> 'type' AND d.version = (r.row ->> 'version')::INT
-        WHERE r.table_name = 'document'
+            SELECT x.id FROM public.customer_contact x
+            WHERE r.table_name = 'customer_contact' AND x.tenant_id = target_tenant AND x.customer_id = target_customer
+              AND CASE WHEN r.row ->> 'email' IS NOT NULL THEN lower(x.email) = lower(r.row ->> 'email')
+                       ELSE lower(x.name) = lower(r.row ->> 'name') END
+            UNION ALL
+            SELECT x.id FROM public.customer_warehouse x
+            WHERE r.table_name = 'customer_warehouse' AND x.tenant_id = target_tenant AND x.customer_id = target_customer
+              AND lower(x.display_name) = lower(r.row ->> 'display_name') AND x.type::TEXT = r.row ->> 'type'
+            UNION ALL
+            SELECT x.id FROM public.customer_brand x
+            WHERE r.table_name = 'customer_brand' AND x.tenant_id = target_tenant AND x.customer_id = target_customer
+              AND lower(x.name) = lower(r.row ->> 'name')
+            ORDER BY 1
+            LIMIT 1
+        ) t
+        WHERE r.table_name IN ('customer_contact', 'customer_warehouse', 'customer_brand') AND target_customer IS NOT NULL
     ), '[]');
 
     -- A platform the mapped customer already has an account on (one account per platform).
@@ -623,7 +638,7 @@ BEGIN
     ), '[]');
 
     -- A platform and country the mapped product already has a cell for.
-    conflicts := conflicts || coalesce((
+    cell_conflicts := coalesce((
         SELECT jsonb_agg(jsonb_build_object(
             'key', 'market_cell:' || r.source_id, 'kind', 'market_cell', 'table', 'market_cell', 'source_id', r.source_id,
             'label', (r.row ->> 'platform_id') || ' ' || (r.row ->> 'country'), 'existing_id', m.id, 'actions', map_or_skip
@@ -634,8 +649,36 @@ BEGIN
          AND m.platform_id = r.row ->> 'platform_id' AND m.country = r.row ->> 'country'
         WHERE r.table_name = 'market_cell'
     ), '[]');
+    conflicts := conflicts || cell_conflicts;
 
-    -- A primary image of a mapped customer or product that already has one.
+    mapped_cells := coalesce((
+        SELECT jsonb_object_agg(k ->> 'source_id', k ->> 'existing_id')
+        FROM jsonb_array_elements(cell_conflicts) k
+        WHERE picks -> (k ->> 'key') ->> 'action' = 'map'
+          AND private.transfer_decision_error(k, picks -> (k ->> 'key'), target_tenant) IS NULL
+    ), '{}');
+
+    -- Document versions under a mapped customer, product or market cell.
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'document:' || r.source_id, 'kind', 'document_version', 'table', 'document', 'source_id', r.source_id,
+            'label', (r.row ->> 'type') || ' v' || (r.row ->> 'version'), 'existing_id', d.id, 'actions', map_or_skip
+        ))
+        FROM pg_temp.transfer_rows r
+        CROSS JOIN LATERAL (
+            SELECT CASE r.row ->> 'entity_type'
+                WHEN 'customer' THEN CASE WHEN r.row ->> 'entity_id' = source_customer::TEXT THEN target_customer END
+                WHEN 'product' THEN (mapped_products ->> (r.row ->> 'entity_id'))::UUID
+                WHEN 'market_cell' THEN (mapped_cells ->> (r.row ->> 'entity_id'))::UUID
+            END AS entity_id
+        ) m
+        JOIN public.document d
+          ON d.tenant_id = target_tenant AND d.entity_type::TEXT = r.row ->> 'entity_type' AND d.entity_id = m.entity_id
+         AND d.type::TEXT = r.row ->> 'type' AND d.version = (r.row ->> 'version')::INT
+        WHERE r.table_name = 'document'
+    ), '[]');
+
+    -- A primary image of a mapped customer, product or market cell that already has one.
     conflicts := conflicts || coalesce((
         SELECT jsonb_agg(jsonb_build_object(
             'key', 'media_link:' || r.source_id, 'kind', 'media_link', 'table', 'media_link', 'source_id', r.source_id,
@@ -648,6 +691,7 @@ BEGIN
             SELECT CASE r.row ->> 'entity_type'
                 WHEN 'customer' THEN CASE WHEN r.row ->> 'entity_id' = source_customer::TEXT THEN target_customer END
                 WHEN 'product' THEN (mapped_products ->> (r.row ->> 'entity_id'))::UUID
+                WHEN 'market_cell' THEN (mapped_cells ->> (r.row ->> 'entity_id'))::UUID
             END AS entity_id
         ) e
         JOIN public.media_link l

@@ -8,11 +8,13 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- target's audit transaction is the transfer's, and a second identical run is stale. Then THO is
 -- copied again onto that Europe THO: its platform account, market cell and primary image meet the
 -- copy's (map, demote), the suppliers are mapped, the mop is skipped with what hangs from it, the
--- pilot and the order get new codes, and the mapped customer keeps its contract. What it writes is
--- rolled back.
+-- pilot and the order get new codes, and the mapped customer keeps its contract; its contact,
+-- warehouse and brand meet Europe's and are mapped (the shipment follows the warehouse, one default
+-- stays), the market cell's document and image are reported under the mapped cell, and the mop's
+-- file, used only by the skipped mop, is not copied. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(34);
+SELECT plan(41);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -24,6 +26,8 @@ FROM (VALUES
     ('pilot', (SELECT id FROM public.project WHERE display_name = 'Mop ailesi çok ülke pilotu')),
     ('mop', (SELECT id FROM public.product WHERE sku = 'THO-MOP40-2P')),
     ('cones', (SELECT id FROM public.product WHERE sku = 'THO-CONES-100')),
+    ('rosbach', (SELECT id FROM public.customer_warehouse WHERE display_name = 'Rosbach')),
+    ('contact', (SELECT id FROM public.customer_contact WHERE name = 'Thometzki Einkauf')),
     ('spec_mop', (SELECT d.id FROM public.document d JOIN public.product p ON p.id = d.entity_id
                   WHERE p.sku = 'THO-MOP40-2P' AND d.type = 'spec_sheet'))
 ) AS x (k, v);
@@ -61,8 +65,12 @@ UPDATE public.project_gate
 SET approval_document_id = current_setting('test.spec_mop')::UUID,
     evidence_document_ids = ARRAY[current_setting('test.spec_mop')::UUID, '00000000-0000-4000-8000-000000043004'::UUID]
 WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1';
-INSERT INTO public.market_cell (tenant_id, customer_id, product_id, platform_id, country)
-VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.cones')::UUID, 'amazon', 'DE');
+INSERT INTO public.market_cell (id, tenant_id, customer_id, product_id, platform_id, country)
+VALUES ('00000000-0000-4000-8000-000000043006', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
+        current_setting('test.cones')::UUID, 'amazon', 'DE');
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+VALUES ('00000000-0000-4000-8000-000000043007', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'market_cell',
+        '00000000-0000-4000-8000-000000043006', 'other', 'draft', 'https://example.test/listing.pdf');
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 
 INSERT INTO storage.objects (bucket_id, name, metadata)
@@ -81,7 +89,12 @@ VALUES ('00000000-0000-4000-8000-000000043011', current_setting('test.moesa')::U
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043011', 'product', current_setting('test.mop')::UUID, 'primary_image'),
-       (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'product', current_setting('test.cones')::UUID, 'primary_image');
+       (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'product', current_setting('test.cones')::UUID, 'primary_image'),
+       (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'market_cell', '00000000-0000-4000-8000-000000043006', 'primary_image');
+-- A shipment of THO to Rosbach (…005).
+INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+VALUES ('00000000-0000-4000-8000-000000043005', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road',
+        current_setting('test.rosbach')::UUID);
 
 -- akif rehearses a copy into Europe, clears the three GTINs, rehearses again and runs it.
 CREATE FUNCTION pg_temp.rehearse (decisions JSONB DEFAULT '{}') RETURNS JSONB LANGUAGE sql AS $$
@@ -234,6 +247,10 @@ SELECT is(
 SELECT set_config('test.eu_tho', current_setting('test.r')::JSONB ->> 'target_customer_id', TRUE);
 SELECT set_config('test.eu_contract', (SELECT contract_document_id::TEXT FROM public.customer WHERE id = current_setting('test.eu_tho')::UUID), TRUE);
 SELECT set_config('test.cones_link', (SELECT id::TEXT FROM public.media_link WHERE entity_id = current_setting('test.cones')::UUID), TRUE);
+SELECT set_config('test.cell_link', (SELECT id::TEXT FROM public.media_link WHERE entity_id = '00000000-0000-4000-8000-000000043006'), TRUE);
+-- A second default warehouse of THO in MOESA, which Europe does not have.
+INSERT INTO public.customer_warehouse (tenant_id, customer_id, display_name, type, is_default)
+VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Lager Zwei', 'own', TRUE);
 SELECT set_config('test.eu_amazon', (SELECT id::TEXT FROM public.customer_platform_account WHERE customer_id = current_setting('test.eu_tho')::UUID), TRUE);
 
 CREATE FUNCTION pg_temp.decide_all (d JSONB) RETURNS JSONB LANGUAGE sql AS $$
@@ -249,9 +266,9 @@ CREATE FUNCTION pg_temp.decide_all (d JSONB) RETURNS JSONB LANGUAGE sql AS $$
 $$;
 
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-SELECT set_config('test.d2', pg_temp.decide_all(pg_temp.decide_all(pg_temp.decide_all(jsonb_build_object(
+SELECT set_config('test.d2', pg_temp.decide_all(pg_temp.decide_all(pg_temp.decide_all(pg_temp.decide_all(jsonb_build_object(
     'customer:' || current_setting('test.tho'), jsonb_build_object('action', 'map', 'target_id', current_setting('test.eu_tho'))
-))))::TEXT, TRUE);
+)))))::TEXT, TRUE);
 SELECT set_config('test.r2', pg_temp.rehearse(current_setting('test.d2')::JSONB)::TEXT, TRUE);
 
 SELECT ok(
@@ -353,6 +370,59 @@ SELECT is(
         (SELECT count(*) FROM public.market_cell WHERE tenant_id = current_setting('test.europe')::UUID))),
     row('gallery'::TEXT, 1::BIGINT, 1::BIGINT),
     'a demoted primary image, one account and one market cell'
+);
+
+-- 35–38. THO's contact, warehouse and brand meet Europe's.
+SELECT ok(
+    current_setting('test.r2')::JSONB -> 'conflicts' @> jsonb_build_array(
+        jsonb_build_object('kind', 'customer_contact', 'label', 'einkauf@thometzki.test', 'actions', '["map", "skip"]'::JSONB,
+                           'existing_id', pg_temp.copy_of('customer_contact', current_setting('test.contact'))),
+        jsonb_build_object('kind', 'customer_warehouse', 'label', 'Rosbach',
+                           'existing_id', pg_temp.copy_of('customer_warehouse', current_setting('test.rosbach'))),
+        jsonb_build_object('kind', 'customer_brand', 'label', 'OKAEI')
+    ),
+    'the mapped THO has the contact, the warehouse and the brand already'
+);
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.customer_contact WHERE customer_id = current_setting('test.eu_tho')::UUID),
+        (SELECT count(*) FROM public.customer_warehouse WHERE customer_id = current_setting('test.eu_tho')::UUID),
+        (SELECT count(*) FROM public.customer_brand WHERE customer_id = current_setting('test.eu_tho')::UUID))),
+    row(1::BIGINT, 2::BIGINT, 1::BIGINT),
+    'mapped children are not written twice; the new warehouse is copied'
+);
+SELECT is(
+    (SELECT delivery_warehouse_id FROM public.shipment WHERE id = pg_temp.copy2_of('shipment', '00000000-0000-4000-8000-000000043005')),
+    pg_temp.copy_of('customer_warehouse', current_setting('test.rosbach')),
+    'the shipment goes to Europe''s Rosbach'
+);
+SELECT is(
+    (SELECT count(*) FROM public.customer_warehouse WHERE customer_id = current_setting('test.eu_tho')::UUID AND is_default),
+    1::BIGINT,
+    'the mapped THO keeps one default warehouse'
+);
+
+-- 39–40. The market cell's document and primary image, under the mapped cell.
+SELECT ok(
+    current_setting('test.r2')::JSONB -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
+        'key', 'document:00000000-0000-4000-8000-000000043007', 'kind', 'document_version', 'label', 'other v1',
+        'existing_id', pg_temp.copy_of('document', '00000000-0000-4000-8000-000000043007')
+    )),
+    'the mapped cell has the listing document already'
+);
+SELECT ok(
+    current_setting('test.r2')::JSONB -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
+        'key', 'media_link:' || current_setting('test.cell_link'), 'kind', 'media_link'
+    )),
+    'the mapped cell has a primary image already'
+);
+
+-- 41. Files: the mop's file (used only by the skipped mop) is not copied, the shared file is.
+SELECT ok(
+    NOT (current_setting('test.r3')::JSONB -> 'id_map' -> 'media') ? '00000000-0000-4000-8000-000000043011'
+    AND (current_setting('test.r3')::JSONB -> 'id_map' -> 'media') ? '00000000-0000-4000-8000-000000043012'
+    AND jsonb_array_length(current_setting('test.r3')::JSONB -> 'files') = 1,
+    'a file only skipped or mapped rows use is not copied'
 );
 
 SELECT * FROM finish();

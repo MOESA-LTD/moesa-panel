@@ -19,7 +19,9 @@
 --                            path. A skipped row has no entry, nor has a row that hangs from it: its
 --                            children (parent_table, entity), the rows whose NOT NULL reference names
 --                            it, and so on. The contacts and documents of a mapped supplier have none
---                            either (only the supplier's id is mapped).
+--                            either (only the supplier's id is mapped). Nor has a media row that only
+--                            omitted or mapped links and documents use (a shared file always; the
+--                            customer's own files in a copy only, since a move takes them along).
 -- private.transfer_write     Writes the package rows of one table into the target, each taken from
 --                            pg_temp.transfer_rows.row and rewritten: id from the map, tenant_id the
 --                            target; every reference (transfer_references) through the map of its
@@ -40,7 +42,9 @@
 --                            written as the owner of these functions, so the SECURITY INVOKER
 --                            triggers run; the transfer flag lets the business rules pass, the
 --                            integrity checks (tenant, entity, media customer, file type and size)
---                            still hold. only_copy writes the copy_only rows alone (cheap path).
+--                            still hold. A copied warehouse is not the default when the target
+--                            customer has one already. only_copy writes the copy_only rows alone
+--                            (cheap path).
 -- private.transfer_suppliers  The package suppliers: a mapped one is not written, any other is
 --                            copied with a new id together with its contacts. The suppliers'
 --                            documents are written with the other documents (a document may cite a
@@ -120,8 +124,10 @@ SET
    search_path = '' AS $$
 DECLARE
     picks JSONB;
+    transfer_mode TEXT;
 BEGIN
-    SELECT coalesce(t.decisions, '{}') INTO picks FROM public.transfer t WHERE t.id = transfer_build_map.transfer_id;
+    SELECT coalesce(t.decisions, '{}'), t.mode INTO picks, transfer_mode
+    FROM public.transfer t WHERE t.id = transfer_build_map.transfer_id;
 
     IF to_regclass('pg_temp.transfer_map') IS NOT NULL THEN
         DROP TABLE pg_temp.transfer_map;
@@ -190,6 +196,21 @@ BEGIN
     ) d
     WHERE r.source_id IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM omitted o WHERE o.table_name = r.table_name AND o.source_id = r.source_id);
+
+    -- A file used only by links and documents that are not written is not copied.
+    DELETE FROM pg_temp.transfer_map f
+    USING pg_temp.transfer_rows r
+    WHERE f.table_name = 'media' AND r.table_name = 'media' AND r.source_id = f.source_id
+      AND (r.copy_only OR transfer_mode = 'copy')
+      AND EXISTS (
+          SELECT 1 FROM pg_temp.transfer_rows u
+          WHERE u.table_name IN ('media_link', 'document') AND u.row ->> 'media_id' = f.source_id::TEXT
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM pg_temp.transfer_rows u
+          JOIN pg_temp.transfer_map w ON w.table_name = u.table_name AND w.source_id = u.source_id AND NOT w.mapped
+          WHERE u.table_name IN ('media_link', 'document') AND u.row ->> 'media_id' = f.source_id::TEXT
+      );
 END;
 $$;
 
@@ -341,6 +362,15 @@ BEGIN
             data := data || '{"gtin": null}'::JSONB;
         ELSIF pick ->> 'action' = 'demote' THEN
             data := data || '{"role": "gallery"}'::JSONB;
+        END IF;
+
+        -- One default warehouse per customer.
+        IF transfer_write.tbl = 'customer_warehouse' AND coalesce((data ->> 'is_default')::BOOLEAN, FALSE)
+           AND EXISTS (
+               SELECT 1 FROM public.customer_warehouse w
+               WHERE w.tenant_id = target AND w.customer_id = (data ->> 'customer_id')::UUID AND w.is_default
+           ) THEN
+            data := data || '{"is_default": false}'::JSONB;
         END IF;
 
         IF transfer_write.tbl = 'media' THEN
