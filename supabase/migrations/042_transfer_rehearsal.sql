@@ -60,6 +60,10 @@
 --                            rehearsal and on the run: under the transfer flag the guard is off.
 -- private.transfer_report    The rehearsal's report, {customer, path, mode, counts, conflicts,
 --                            users, left_behind, settings_gaps, files, unresolved, report_hash}:
+--                            - counts, {table: n}: the rows the run writes, after the decisions:
+--                              no skipped row nor what the skip drops, no mapped row (nor the
+--                              contacts, documents and links of a mapped supplier), no file left
+--                              uncopied (transfer_unused_media). The confirm and the result show it.
 --                            - conflicts, keyed <table>:<source_id>, ordered by registry position
 --                              and label; a decided conflict stays listed. customer_code and
 --                              supplier_code (map, new_code); code, a project or prefixed code taken
@@ -710,6 +714,7 @@ DECLARE
     required_from DATE;
     gaps JSONB;
     files BIGINT;
+    unused_media UUID[];
     counts JSONB;
     unresolved BIGINT;
     path TEXT;
@@ -1090,14 +1095,24 @@ BEGIN
             AND d.row ->> 'type' = 'spec_sheet' AND d.row ->> 'status' = 'signed'
       );
 
+    unused_media := ARRAY(SELECT u.source_id FROM private.transfer_unused_media(picks, mode) u);
+
     -- The files the run copies: not those only omitted or mapped rows use.
     SELECT count(*) + count(r.row ->> 'thumbnail_path') INTO files
     FROM pg_temp.transfer_rows r
-    WHERE r.table_name = 'media'
-      AND r.source_id NOT IN (SELECT u.source_id FROM private.transfer_unused_media(picks, mode) u);
+    WHERE r.table_name = 'media' AND NOT r.source_id = ANY (unused_media);
 
+    -- The rows the run writes, by table: not an omitted row (a skip and what it drops, what hangs
+    -- from a mapped supplier), a mapped one, or a file not copied.
     SELECT coalesce(jsonb_object_agg(t.table_name, t.n), '{}') INTO counts
-    FROM (SELECT r.table_name, count(*) AS n FROM pg_temp.transfer_rows r GROUP BY r.table_name) t;
+    FROM (
+        SELECT r.table_name, count(*) AS n
+        FROM pg_temp.transfer_rows r
+        WHERE NOT r.seq IN (SELECT o.seq FROM private.transfer_omitted(picks) o)
+          AND coalesce(picks -> (r.table_name || ':' || r.source_id) ->> 'action', '') <> 'map'
+          AND NOT (r.table_name = 'media' AND r.source_id = ANY (unused_media))
+        GROUP BY r.table_name
+    ) t;
 
     -- One read of both tenants.
     SELECT (array_agg(e.company_id) FILTER (WHERE e.tenant_id = source_tenant))[1],

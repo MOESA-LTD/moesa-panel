@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { provideFormTenant } from '@/api/formTenant';
+import { transferRecordCount } from '@/api/transfer';
 import { useConfirmAction } from '@/composables/useConfirmAction';
 import ConflictDecision from './ConflictDecision.vue';
 import type { TransferWizard } from './useTransferWizard';
@@ -44,7 +45,7 @@ const columnLabel = (column: string) => {
 const counts = computed(() =>
    Object.entries(report.value?.counts ?? {}).filter(([, count]) => count > 0)
 );
-const total = computed(() => counts.value.reduce((sum, [, count]) => sum + count, 0));
+const total = computed(() => (report.value ? transferRecordCount(report.value) : 0));
 
 const gapText = (gap: { rule: string; label: string | null; source_id: string }) => {
    const label = gap.label ?? gap.source_id;

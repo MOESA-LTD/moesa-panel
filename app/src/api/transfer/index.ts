@@ -137,6 +137,14 @@ export const asTransferFiles = (json: Json): TransferFile[] => transferFilesSche
  */
 export const asTransferReport = (json: Json): TransferReport => transferReportSchema.parse(json);
 
+/**
+ * How many records a transfer writes: the sum of the report's counts, which leave out skipped and
+ * mapped rows (042). The confirm and the result both show it; the ID map has no entry for a table
+ * without ids, and holds the mapped rows, so it does not count them.
+ */
+export const transferRecordCount = (report: Pick<TransferReport, 'counts'>): number =>
+   Object.values(report.counts).reduce((sum, count) => sum + count, 0);
+
 // --- requests ---
 
 /**

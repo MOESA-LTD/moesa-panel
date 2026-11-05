@@ -36,6 +36,7 @@ const api = vi.hoisted(() => ({
    forTenant: [] as (string | null | undefined)[],
    transferReads: [] as [unknown, unknown][],
    push: vi.fn(),
+   confirmed: [] as string[],
    requests: [] as { table: string; headers: Record<string, string>; in: unknown[] }[]
 }));
 
@@ -77,7 +78,8 @@ vi.mock('@/api/useTenantKey', async () => {
 vi.mock('@/composables/useConfirmAction', () => ({
    useConfirmAction:
       () =>
-      async ({ accept }: { accept: () => Promise<void> | void }) => {
+      async ({ message, accept }: { message: string; accept: () => Promise<void> | void }) => {
+         api.confirmed.push(message);
          await accept();
          return true;
       }
@@ -196,6 +198,7 @@ beforeEach(() => {
    api.forTenant = [];
    api.transferReads = [];
    api.push.mockReset();
+   api.confirmed = [];
    api.requests = [];
    document.body.innerHTML = '';
 });
@@ -512,6 +515,30 @@ describe('transfer wizard', () => {
          '﻿' + idMapCsv(asIdMap(idMap))
       );
       expect(download).toBe(`transfer_THO_${dayjs().format('YYYYMMDD')}.csv`);
+   });
+
+   it('the confirm and the result count the same records, a table without ids included', async () => {
+      // project_product has no id, so the ID map has no entry for it; the report counts it.
+      const counted = report({ counts: { customer: 1, product: 2, project_product: 1 } });
+      const transfer = {
+         id: 'tr1',
+         id_map: { customer: { c1: 'tc1' }, product: { p1: 'tp1', p2: 'tp2' } },
+         files_status: 'done',
+         missing_files: []
+      };
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      await rehearseTo(counted);
+      api.run.mockResolvedValueOnce(transfer);
+      await wrapper.find('[data-run]').trigger('click');
+      await flushPromises();
+      expect(api.confirmed).toEqual(['Copy 4 records to Branch?']);
+
+      const result = mount(ResultStep, {
+         props: { transfer: transfer as unknown as TransferRow, report: counted, target: 'branch' },
+         global: { plugins: [i18NPlugin, PrimeVue] }
+      });
+      expect(result.find('[data-done]').text()).toBe('Transferred: 4 records.');
    });
 
    it('the product list offers Transfer only for one customer', async () => {

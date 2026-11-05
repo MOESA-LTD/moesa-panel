@@ -2,6 +2,7 @@
 import {
    asIdMap,
    idMapCsv,
+   transferRecordCount,
    useTransfer,
    type TransferReport,
    type TransferRow
@@ -9,7 +10,7 @@ import {
 import TransferFilesNotice from '@/components/service-components/transfer/TransferFilesNotice.vue';
 import dayjs from 'dayjs';
 
-// The run's result: how many records it wrote, its ID map to download and its files. The row is
+// The run's result: how many records it wrote (the report's count, as the confirm said), its ID map to download and its files. The row is
 // read again as the target tenant (it belongs to the target), so a retried file copy shows here.
 const props = defineProps<{
    transfer: TransferRow;
@@ -25,9 +26,7 @@ const { data: current } = useTransfer(
 const row = computed(() => current.value ?? props.transfer);
 
 const idMap = computed(() => asIdMap(row.value.id_map));
-const count = computed(() =>
-   Object.values(idMap.value).reduce((sum, ids) => sum + Object.keys(ids).length, 0)
-);
+const count = computed(() => transferRecordCount(props.report));
 
 const downloadIdMap = () => {
    // With a byte order mark, so spreadsheets read the file as UTF-8 (as the product export).

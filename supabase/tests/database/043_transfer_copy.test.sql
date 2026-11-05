@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- stay), and a product on an order line that stays is refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(70);
+SELECT plan(71);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -448,6 +448,19 @@ SELECT is(
 
 -- 44. The rehearsal counts the files the run copies: the shared file alone.
 SELECT is((current_setting('test.r2')::JSONB ->> 'files')::INT, 1, 'the rehearsal and the run agree on the files');
+
+-- 44b. The rehearsal counts the rows the run writes, table by table: no skipped row, nor what a
+-- skip drops, nor a mapped one (the customer, the suppliers, ...), nor a file left uncopied.
+SELECT is(
+    (current_setting('test.r2')::JSONB -> 'counts'),
+    (SELECT jsonb_object_agg(a.table_name, a.n) FROM (
+        SELECT l.table_name, count(*) AS n FROM public.audit_log l
+        WHERE l.transaction_id = (current_setting('test.r3')::JSONB -> 'audit_transaction_ids' ->> 0)::UUID
+          AND l.operation = 'INSERT' AND l.table_name IN (SELECT table_name FROM private.transfer_registry)
+        GROUP BY l.table_name
+    ) a),
+    'the rehearsal counts what the run writes'
+);
 
 -- 45. A child of the mapped customer is mapped, never skipped.
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
