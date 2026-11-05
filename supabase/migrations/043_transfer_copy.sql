@@ -2,12 +2,6 @@
 -- writes the transfer row, raises the flag and calls private.transfer_apply, which writes the
 -- package into the target with new ids.
 --
--- private.transfer_references  The columns of the registry tables that hold the id of a row of a
---                            registry table, found through the foreign keys between them: a column
---                            matched to a referenced id, or to a referenced column that is itself
---                            such a column (purchase_order_line.customer_id through the order,
---                            shipment_line.purchase_order_id through the shipment's order link).
---                            not_null is the column's NOT NULL. Tenant columns are not references.
 -- private.transfer_media_paths  The Storage paths of a media row in the target, in the folder
 --                            media_path_in_folder asks for: <target>/<media id>/<file name>, and
 --                            <target>/<media id>/thumb/thumb.webp for a thumbnail. The caller sets
@@ -16,12 +10,9 @@
 --                            every package row with an id: a map decision's target_id (mapped: TRUE,
 --                            the row is not written); a new id for a copy_only row, and for every
 --                            other row in the copy path (keep_ids FALSE) or its own id in the cheap
---                            path. A skipped row has no entry, nor has a row that hangs from it: its
---                            children (parent_table, entity), the rows whose NOT NULL reference names
---                            it, and so on. The contacts and documents of a mapped supplier have none
---                            either (only the supplier's id is mapped). Nor has a media row that only
---                            omitted or mapped links and documents use (a shared file always; the
---                            customer's own files in a copy only, since a move takes them along).
+--                            path. The rows private.transfer_omitted gives (042: a skip and what
+--                            hangs from it, a mapped supplier's contacts and documents) have no
+--                            entry, nor have the files private.transfer_unused_media gives.
 -- private.transfer_write     Writes the package rows of one table into the target, each taken from
 --                            pg_temp.transfer_rows.row and rewritten: id from the map, tenant_id the
 --                            target; every reference (transfer_references) through the map of its
@@ -62,40 +53,6 @@
 --                            written), then the transfer row's id_map, files, files_status (pending
 --                            while there are files to copy) and target_customer_id.
 -- private.transfer_apply     The dispatcher, on public.transfer.path.
-
--- The references between registry tables (see the header).
-CREATE OR REPLACE FUNCTION private.transfer_references () RETURNS TABLE (
-   table_name TEXT,
-   column_name TEXT,
-   ref_table TEXT,
-   not_null BOOLEAN
-) LANGUAGE sql STABLE SECURITY DEFINER
-SET
-   search_path = '' AS $$
-    WITH RECURSIVE pairs AS (
-        SELECT rel.relname::TEXT AS t, a.attname::TEXT AS col, frel.relname::TEXT AS ft, fa.attname::TEXT AS fcol,
-               a.attnotnull AS nn
-        FROM pg_catalog.pg_constraint c
-        JOIN pg_catalog.pg_class rel ON rel.oid = c.conrelid
-        JOIN pg_catalog.pg_namespace n ON n.oid = rel.relnamespace AND n.nspname = 'public'
-        JOIN pg_catalog.pg_class frel ON frel.oid = c.confrelid
-        JOIN pg_catalog.pg_namespace fn ON fn.oid = frel.relnamespace AND fn.nspname = 'public'
-        JOIN private.transfer_registry fr ON fr.table_name = rel.relname
-        JOIN private.transfer_registry tr ON tr.table_name = frel.relname
-        CROSS JOIN LATERAL unnest(c.conkey, c.confkey) AS k (attnum, fattnum)
-        JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
-        JOIN pg_catalog.pg_attribute fa ON fa.attrelid = c.confrelid AND fa.attnum = k.fattnum
-        WHERE c.contype = 'f' AND fa.attname <> 'tenant_id'
-    ),
-    resolved (t, col, rt, nn) AS (
-        SELECT p.t, p.col, p.ft, p.nn FROM pairs p WHERE p.fcol = 'id'
-        UNION
-        SELECT p.t, p.col, r.rt, p.nn FROM pairs p JOIN resolved r ON r.t = p.ft AND r.col = p.fcol WHERE p.fcol <> 'id'
-    )
-    SELECT DISTINCT r.t, r.col, r.rt, r.nn FROM resolved r;
-$$;
-
-REVOKE ALL ON FUNCTION private.transfer_references () FROM PUBLIC, anon, authenticated;
 
 -- The target paths of a media row (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_media_paths (
@@ -141,45 +98,6 @@ BEGIN
         PRIMARY KEY (table_name, source_id)
     ) ON COMMIT DROP;
 
-    WITH RECURSIVE refs AS (
-        SELECT * FROM private.transfer_references() f WHERE f.not_null
-    ),
-    entities AS (
-        SELECT e.table_name, e.entity::TEXT AS entity FROM private.transfer_registry e WHERE e.entity IS NOT NULL
-    ),
-    omitted (table_name, source_id) AS (
-        -- The skipped rows, and the contacts, documents and media links of a mapped supplier.
-        SELECT r.table_name, r.source_id
-        FROM pg_temp.transfer_rows r
-        WHERE r.source_id IS NOT NULL AND picks -> (r.table_name || ':' || r.source_id) ->> 'action' = 'skip'
-        UNION
-        SELECT r.table_name, r.source_id
-        FROM pg_temp.transfer_rows r
-        JOIN pg_temp.transfer_rows s ON s.table_name = 'supplier'
-         AND picks -> ('supplier:' || s.source_id) ->> 'action' = 'map'
-        WHERE r.source_id IS NOT NULL
-          AND (
-              (r.table_name = 'supplier_contact' AND r.row ->> 'supplier_id' = s.source_id::TEXT)
-              OR (r.table_name IN ('document', 'media_link') AND r.row ->> 'entity_type' = 'supplier'
-                  AND r.row ->> 'entity_id' = s.source_id::TEXT)
-          )
-        UNION
-        -- What hangs from an omitted row: a NOT NULL reference (the parent columns are) or the
-        -- entity of a document or media link.
-        SELECT r.table_name, r.source_id
-        FROM omitted o
-        JOIN pg_temp.transfer_rows r ON r.source_id IS NOT NULL
-        WHERE EXISTS (
-                  SELECT 1 FROM refs f
-                  WHERE f.table_name = r.table_name AND f.ref_table = o.table_name
-                    AND r.row ->> f.column_name = o.source_id::TEXT
-              )
-           OR (r.table_name IN ('document', 'media_link')
-               AND r.row ->> 'entity_id' = o.source_id::TEXT
-               AND EXISTS (
-                   SELECT 1 FROM entities e WHERE e.table_name = o.table_name AND e.entity = r.row ->> 'entity_type'
-               ))
-    )
     INSERT INTO pg_temp.transfer_map (table_name, source_id, target_id, mapped)
     SELECT r.table_name,
            r.source_id,
@@ -195,22 +113,12 @@ BEGIN
                picks -> (r.table_name || ':' || r.source_id) ->> 'target_id' AS target
     ) d
     WHERE r.source_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM omitted o WHERE o.table_name = r.table_name AND o.source_id = r.source_id);
+      AND NOT r.seq IN (SELECT o.seq FROM private.transfer_omitted(picks) o);
 
     -- A file used only by links and documents that are not written is not copied.
     DELETE FROM pg_temp.transfer_map f
-    USING pg_temp.transfer_rows r
-    WHERE f.table_name = 'media' AND r.table_name = 'media' AND r.source_id = f.source_id
-      AND (r.copy_only OR transfer_mode = 'copy')
-      AND EXISTS (
-          SELECT 1 FROM pg_temp.transfer_rows u
-          WHERE u.table_name IN ('media_link', 'document') AND u.row ->> 'media_id' = f.source_id::TEXT
-      )
-      AND NOT EXISTS (
-          SELECT 1 FROM pg_temp.transfer_rows u
-          JOIN pg_temp.transfer_map w ON w.table_name = u.table_name AND w.source_id = u.source_id AND NOT w.mapped
-          WHERE u.table_name IN ('media_link', 'document') AND u.row ->> 'media_id' = f.source_id::TEXT
-      );
+    WHERE f.table_name = 'media'
+      AND f.source_id IN (SELECT u.source_id FROM private.transfer_unused_media(picks, transfer_mode) u);
 END;
 $$;
 

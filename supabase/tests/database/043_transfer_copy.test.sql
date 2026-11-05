@@ -11,10 +11,12 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- pilot and the order get new codes, and the mapped customer keeps its contract; its contact,
 -- warehouse and brand meet Europe's and are mapped (the shipment follows the warehouse, one default
 -- stays), the market cell's document and image are reported under the mapped cell, and the mop's
--- file, used only by the skipped mop, is not copied. What it writes is rolled back.
+-- file, used only by the skipped mop, is not copied (the rehearsal counts the same files); a skip
+-- reports what it drops; a mapped customer's contact cannot be skipped. What it writes is rolled
+-- back.
 BEGIN;
 
-SELECT plan(41);
+SELECT plan(45);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -375,7 +377,7 @@ SELECT is(
 -- 35–38. THO's contact, warehouse and brand meet Europe's.
 SELECT ok(
     current_setting('test.r2')::JSONB -> 'conflicts' @> jsonb_build_array(
-        jsonb_build_object('kind', 'customer_contact', 'label', 'einkauf@thometzki.test', 'actions', '["map", "skip"]'::JSONB,
+        jsonb_build_object('kind', 'customer_contact', 'label', 'einkauf@thometzki.test', 'actions', '["map"]'::JSONB,
                            'existing_id', pg_temp.copy_of('customer_contact', current_setting('test.contact'))),
         jsonb_build_object('kind', 'customer_warehouse', 'label', 'Rosbach',
                            'existing_id', pg_temp.copy_of('customer_warehouse', current_setting('test.rosbach'))),
@@ -424,6 +426,37 @@ SELECT ok(
     AND jsonb_array_length(current_setting('test.r3')::JSONB -> 'files') = 1,
     'a file only skipped or mapped rows use is not copied'
 );
+
+-- 42–43. What a skip drops: the mop's spec sheet, order line and project link; nothing under the
+-- platform account.
+SELECT ok(
+    (SELECT c -> 'skip_drops' @> '{"document": 1, "purchase_order_line": 1, "project_product": 1}'
+     FROM jsonb_array_elements(current_setting('test.r2')::JSONB -> 'conflicts') c
+     WHERE c ->> 'key' = 'product:' || current_setting('test.mop') AND c ->> 'kind' = 'sku'),
+    'skipping the mop drops its spec sheet, order line and project link'
+);
+SELECT is(
+    (SELECT c -> 'skip_drops' FROM jsonb_array_elements(current_setting('test.r2')::JSONB -> 'conflicts') c
+     WHERE c ->> 'kind' = 'platform_account'),
+    '{}'::JSONB,
+    'skipping the platform account drops nothing else'
+);
+
+-- 44. The rehearsal counts the files the run copies: the shared file alone.
+SELECT is((current_setting('test.r2')::JSONB ->> 'files')::INT, 1, 'the rehearsal and the run agree on the files');
+
+-- 45. A child of the mapped customer is mapped, never skipped.
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_like(
+    format(
+        $$ SELECT pg_temp.run(%1$L::JSONB, pg_temp.rehearse(%1$L::JSONB) ->> 'report_hash') $$,
+        current_setting('test.d2')::JSONB
+            || jsonb_build_object('customer_contact:' || current_setting('test.contact'), '{"action": "skip"}'::JSONB)
+    ),
+    '%transfer_decision_invalid%',
+    'a contact of the mapped customer is not skipped'
+);
+RESET ROLE;
 
 SELECT * FROM finish();
 

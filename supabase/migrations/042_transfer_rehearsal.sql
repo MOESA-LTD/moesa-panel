@@ -28,6 +28,24 @@
 --                              media links); the media they use, copy_only (another product left
 --                              behind may use it too). A row of another table that refers to a
 --                              package product stays behind as a link (left_behind below).
+-- private.transfer_references  The columns of the registry tables that hold the id of a row of a
+--                            registry table, found through the foreign keys between them: a column
+--                            matched to a referenced id, or to a referenced column that is itself
+--                            such a column (purchase_order_line.customer_id through the order,
+--                            shipment_line.purchase_order_id through the shipment's order link).
+--                            not_null is the column's NOT NULL. Tenant columns are not references.
+-- private.transfer_omission_closure  The package rows (pg_temp.transfer_rows seq) that go with the
+--                            seed rows, seeds included: a row whose NOT NULL reference (the parent
+--                            columns are) names one of them, a document or media link whose entity
+--                            is one of them, and so on. The rows a skip drops.
+-- private.transfer_omitted   The closure of what the decisions leave out: the skipped rows, and the
+--                            contacts, documents and media links of a mapped supplier (only the
+--                            supplier's id is mapped). The run omits these rows (043).
+-- private.transfer_unused_media  The media rows not copied: a file that package links or
+--                            documents use, none of which is written (each omitted or mapped). A
+--                            shared (copy_only) file always; the customer's own files in a copy
+--                            only, since a move takes them along. The report's files and the run
+--                            agree on it.
 -- private.transfer_check_gates  For every package project: the gate codes, by position 1..n, are
 --                            public.gates_for(type, path, packages), and no gate is passed while
 --                            an earlier one is not. Otherwise transfer_gate_invalid (409), on the
@@ -43,15 +61,19 @@
 --                              mapped or skipped, so never written: one decision per key);
 --                              customer_contact, customer_warehouse, customer_brand, a child the
 --                              mapped customer already has on a natural key (lower e-mail, or lower
---                              name without one; lower name and type; lower name) (map, skip in a
---                              copy); platform_account, a platform the mapped customer already has
---                              an account on (map, skip in a copy); market_cell, a platform and
+--                              name without one; lower name and type; lower name) (map only: a
+--                              skipped child would drop the rows under it); platform_account, a
+--                              platform the mapped customer already has an account on (map, skip
+--                              in a copy); market_cell, a platform and
 --                              country the mapped product already has a cell for (map, skip in a
 --                              copy); document_version, under a mapped customer, product or market
 --                              cell (map, skip in a copy); media_link, a primary image of a mapped
 --                              customer, product or market cell that already has one (map, demote:
---                              copied as a gallery image, and skip in a copy). A map names the target row found (existing_id). A
---                              move never offers skip.
+--                              copied as a gallery image, and skip in a copy). A map names the
+--                              target row found (existing_id). A move never offers skip. A
+--                              conflict that offers skip says what the skip drops with the row:
+--                              skip_drops, {table: count}, from transfer_omission_closure seeded
+--                              with that row alone.
 --                            - users: the users of a registry user column who are neither in the
 --                              target's tenant_user nor owners of its company (Call 7).
 --                            - left_behind, {table, source_id, column, label, refers_to}, through
@@ -66,7 +88,8 @@
 --                              spec_sheet_required_from would hold back, without a signed spec
 --                              sheet in the package (Call 10).
 --                            - files: the media rows and their thumbnails, copy_only ones included:
---                              the files to copy, not the files to move.
+--                              the files to copy, not the files to move; without the files no
+--                              written row uses (transfer_unused_media).
 --                            - unresolved: the conflicts without a valid decision.
 --                            - path: cheap for a whole-customer move within one company out of a
 --                              writable source with no conflict but suppliers; else copy.
@@ -305,6 +328,131 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION private.transfer_collect (UUID, UUID, UUID[]) FROM PUBLIC, anon, authenticated;
+
+-- The references between registry tables (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_references () RETURNS TABLE (
+   table_name TEXT,
+   column_name TEXT,
+   ref_table TEXT,
+   not_null BOOLEAN
+) LANGUAGE sql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+    WITH RECURSIVE pairs AS (
+        SELECT rel.relname::TEXT AS t, a.attname::TEXT AS col, frel.relname::TEXT AS ft, fa.attname::TEXT AS fcol,
+               a.attnotnull AS nn
+        FROM pg_catalog.pg_constraint c
+        JOIN pg_catalog.pg_class rel ON rel.oid = c.conrelid
+        JOIN pg_catalog.pg_namespace n ON n.oid = rel.relnamespace AND n.nspname = 'public'
+        JOIN pg_catalog.pg_class frel ON frel.oid = c.confrelid
+        JOIN pg_catalog.pg_namespace fn ON fn.oid = frel.relnamespace AND fn.nspname = 'public'
+        JOIN private.transfer_registry fr ON fr.table_name = rel.relname
+        JOIN private.transfer_registry tr ON tr.table_name = frel.relname
+        CROSS JOIN LATERAL unnest(c.conkey, c.confkey) AS k (attnum, fattnum)
+        JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
+        JOIN pg_catalog.pg_attribute fa ON fa.attrelid = c.confrelid AND fa.attnum = k.fattnum
+        WHERE c.contype = 'f' AND fa.attname <> 'tenant_id'
+    ),
+    resolved (t, col, rt, nn) AS (
+        SELECT p.t, p.col, p.ft, p.nn FROM pairs p WHERE p.fcol = 'id'
+        UNION
+        SELECT p.t, p.col, r.rt, p.nn FROM pairs p JOIN resolved r ON r.t = p.ft AND r.col = p.fcol WHERE p.fcol <> 'id'
+    )
+    SELECT DISTINCT r.t, r.col, r.rt, r.nn FROM resolved r;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_references () FROM PUBLIC, anon, authenticated;
+
+-- The rows that go with the seed rows of pg_temp.transfer_rows (see the header), seeds included.
+CREATE OR REPLACE FUNCTION private.transfer_omission_closure (seeds BIGINT[]) RETURNS TABLE (seq BIGINT) LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN QUERY
+    WITH RECURSIVE refs AS (
+        SELECT f.table_name, f.column_name, f.ref_table FROM private.transfer_references() f WHERE f.not_null
+    ),
+    entities AS (
+        SELECT e.table_name, e.entity::TEXT AS entity FROM private.transfer_registry e WHERE e.entity IS NOT NULL
+    ),
+    omitted (seq, table_name, source_id) AS (
+        SELECT r.seq, r.table_name, r.source_id FROM pg_temp.transfer_rows r WHERE r.seq = ANY (transfer_omission_closure.seeds)
+        UNION
+        -- A NOT NULL reference (the parent columns are one) or the entity of a document or link.
+        SELECT r.seq, r.table_name, r.source_id
+        FROM omitted o
+        JOIN pg_temp.transfer_rows r ON o.source_id IS NOT NULL
+        WHERE EXISTS (
+                  SELECT 1 FROM refs f
+                  WHERE f.table_name = r.table_name AND f.ref_table = o.table_name
+                    AND r.row ->> f.column_name = o.source_id::TEXT
+              )
+           OR (r.table_name IN ('document', 'media_link')
+               AND r.row ->> 'entity_id' = o.source_id::TEXT
+               AND EXISTS (
+                   SELECT 1 FROM entities e WHERE e.table_name = o.table_name AND e.entity = r.row ->> 'entity_type'
+               ))
+    )
+    SELECT o.seq FROM omitted o;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_omission_closure (BIGINT[]) FROM PUBLIC, anon, authenticated;
+
+-- The rows the decisions leave out (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_omitted (decisions JSONB) RETURNS TABLE (seq BIGINT) LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    picks JSONB := CASE WHEN jsonb_typeof(decisions) = 'object' THEN decisions ELSE '{}'::JSONB END;
+BEGIN
+    RETURN QUERY
+    SELECT c.seq FROM private.transfer_omission_closure(ARRAY(
+        -- The skipped rows.
+        SELECT r.seq FROM pg_temp.transfer_rows r
+        WHERE r.source_id IS NOT NULL AND picks -> (r.table_name || ':' || r.source_id) ->> 'action' = 'skip'
+        UNION
+        -- The contacts, documents and media links of a mapped supplier.
+        SELECT r.seq
+        FROM pg_temp.transfer_rows r
+        JOIN pg_temp.transfer_rows s ON s.table_name = 'supplier'
+         AND picks -> ('supplier:' || s.source_id) ->> 'action' = 'map'
+        WHERE (r.table_name = 'supplier_contact' AND r.row ->> 'supplier_id' = s.source_id::TEXT)
+           OR (r.table_name IN ('document', 'media_link') AND r.row ->> 'entity_type' = 'supplier'
+               AND r.row ->> 'entity_id' = s.source_id::TEXT)
+    )) c;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_omitted (JSONB) FROM PUBLIC, anon, authenticated;
+
+-- The media rows not copied (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_unused_media (decisions JSONB, mode TEXT) RETURNS TABLE (source_id UUID) LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    picks JSONB := CASE WHEN jsonb_typeof(decisions) = 'object' THEN decisions ELSE '{}'::JSONB END;
+    omitted BIGINT[] := ARRAY(SELECT o.seq FROM private.transfer_omitted(picks) o);
+BEGIN
+    RETURN QUERY
+    SELECT f.source_id
+    FROM pg_temp.transfer_rows f
+    WHERE f.table_name = 'media'
+      AND (f.copy_only OR transfer_unused_media.mode = 'copy')
+      AND EXISTS (
+          SELECT 1 FROM pg_temp.transfer_rows u
+          WHERE u.table_name IN ('media_link', 'document') AND u.row ->> 'media_id' = f.source_id::TEXT
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM pg_temp.transfer_rows u
+          WHERE u.table_name IN ('media_link', 'document') AND u.row ->> 'media_id' = f.source_id::TEXT
+            AND NOT u.seq = ANY (omitted)
+            AND coalesce(picks -> (u.table_name || ':' || u.source_id) ->> 'action', '') <> 'map'
+      );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_unused_media (JSONB, TEXT) FROM PUBLIC, anon, authenticated;
 
 -- A refusal in the next_code pattern.
 CREATE OR REPLACE FUNCTION private.transfer_raise (code TEXT, status INT) RETURNS VOID LANGUAGE plpgsql
@@ -602,7 +750,7 @@ BEGIN
         SELECT jsonb_agg(jsonb_build_object(
             'key', r.table_name || ':' || r.source_id, 'kind', r.table_name, 'table', r.table_name, 'source_id', r.source_id,
             'label', coalesce(r.row ->> 'email', r.row ->> 'name', r.row ->> 'display_name'), 'existing_id', t.id,
-            'actions', map_or_skip
+            'actions', '["map"]'::JSONB
         ))
         FROM pg_temp.transfer_rows r
         CROSS JOIN LATERAL (
@@ -699,6 +847,24 @@ BEGIN
          AND l.role = 'primary_image'
         LEFT JOIN pg_temp.transfer_rows f ON f.table_name = 'media' AND f.source_id::TEXT = r.row ->> 'media_id'
         WHERE r.table_name = 'media_link' AND r.row ->> 'role' = 'primary_image'
+    ), '[]');
+
+    -- What a skip drops with the row.
+    conflicts := coalesce((
+        SELECT jsonb_agg(CASE WHEN c -> 'actions' ? 'skip' THEN c || jsonb_build_object('skip_drops', coalesce((
+            SELECT jsonb_object_agg(d.table_name, d.n)
+            FROM (
+                SELECT r.table_name, count(*) AS n
+                FROM private.transfer_omission_closure(ARRAY(
+                    SELECT s.seq FROM pg_temp.transfer_rows s
+                    WHERE s.table_name = c ->> 'table' AND s.source_id::TEXT = c ->> 'source_id'
+                )) o
+                JOIN pg_temp.transfer_rows r ON r.seq = o.seq
+                WHERE NOT (r.table_name = c ->> 'table' AND r.source_id::TEXT = c ->> 'source_id')
+                GROUP BY r.table_name
+            ) d
+        ), '{}'::JSONB)) ELSE c END)
+        FROM jsonb_array_elements(conflicts) c
     ), '[]');
 
     conflicts := coalesce((
@@ -830,8 +996,11 @@ BEGIN
             AND d.row ->> 'type' = 'spec_sheet' AND d.row ->> 'status' = 'signed'
       );
 
+    -- The files the run copies: not those only omitted or mapped rows use.
     SELECT count(*) + count(r.row ->> 'thumbnail_path') INTO files
-    FROM pg_temp.transfer_rows r WHERE r.table_name = 'media';
+    FROM pg_temp.transfer_rows r
+    WHERE r.table_name = 'media'
+      AND r.source_id NOT IN (SELECT u.source_id FROM private.transfer_unused_media(picks, mode) u);
 
     SELECT coalesce(jsonb_object_agg(t.table_name, t.n), '{}') INTO counts
     FROM (SELECT r.table_name, count(*) AS n FROM pg_temp.transfer_rows r GROUP BY r.table_name) t;
