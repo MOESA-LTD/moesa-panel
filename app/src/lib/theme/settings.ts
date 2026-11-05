@@ -1,3 +1,4 @@
+import { getStorage } from '@/lib/storage';
 import * as z from 'zod';
 import { PRIMARY_COLORS, SURFACES } from './palettes';
 import { PRESET_NAMES } from './presets';
@@ -81,7 +82,8 @@ const fromLegacyProfile = (profile: LegacyProfile = {}) => ({
 const POSITIONAL_KEY = /^\d+(_\d+)*$/;
 
 /** Moves app-state to the current settings once, then removes it. */
-export function migrateLegacySettings(storage: Storage = localStorage) {
+export function migrateLegacySettings(storage: Storage | null = getStorage()) {
+   if (!storage) return;
    const raw = storage.getItem(LEGACY_SETTINGS_KEY);
    if (raw === null) return;
 
