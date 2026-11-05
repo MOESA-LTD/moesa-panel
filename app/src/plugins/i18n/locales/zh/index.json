@@ -722,17 +722,6 @@
       }
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "上周",
-         "last_month": "上月",
-         "last_quarter": "上季度",
-         "last_half": "上半年度",
-         "last_year": "上年度",
-         "total": "总计",
-         "branches": "分店",
-         "users": "用户",
-         "roles": "角色"
-      },
       "notifications": {
          "today": "今日",
          "yesterday": "昨日",

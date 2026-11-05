@@ -199,17 +199,6 @@
       "readed": "Letto"
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "Settimana precedente",
-         "last_month": "Mese precedente",
-         "last_quarter": "Trimestre precedente",
-         "last_half": "Semestre precedente",
-         "last_year": "Anno precedente",
-         "total": "Totale",
-         "branches": "Filiali",
-         "users": "Utenti",
-         "roles": "Ruoli"
-      },
       "notifications": {
          "today": "Oggi",
          "yesterday": "Ieri",

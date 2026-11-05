@@ -11,6 +11,7 @@ import en from '@/plugins/i18n/locales/en/index.json';
 import { useBoxView } from '@/views/pages/dashboard/boxes/useBoxView';
 import {
    evidenceView,
+   feedPreview,
    gatesView,
    incidentsView,
    marketView,
@@ -120,4 +121,16 @@ it('a box component runs its hook and hands the view to the shell', () => {
    const w = mount(Probe, { props: { box: { id: 'gates_team' }, size: 'narrow' } });
    expect(useRows).toHaveBeenCalledOnce();
    expect(w.text()).toBe('1:A');
+});
+it('previews the first items of the feed, grouped by period', () => {
+   const items = [
+      { id: 1, since: 'today' },
+      { id: 2, since: 'today' },
+      { id: 3, since: 'older' },
+      { id: 4, since: 'older' }
+   ];
+   expect(feedPreview(items, 3)).toEqual([
+      { since: 'today', items: items.slice(0, 2) },
+      { since: 'older', items: [items[2]] }
+   ]);
 });

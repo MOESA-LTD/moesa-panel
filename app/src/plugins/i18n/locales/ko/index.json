@@ -722,17 +722,6 @@
       }
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "지난 주",
-         "last_month": "지난 달",
-         "last_quarter": "지난 분기",
-         "last_half": "지난 반년",
-         "last_year": "지난 해",
-         "total": "총",
-         "branches": "지점",
-         "users": "사용자",
-         "roles": "역할"
-      },
       "notifications": {
          "today": "오늘",
          "yesterday": "어제",

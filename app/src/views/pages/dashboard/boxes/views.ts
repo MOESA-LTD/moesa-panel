@@ -251,3 +251,18 @@ export const marketView =
          }))
       };
    };
+
+/** The first `limit` items of the notification feed, grouped by period in first-seen order. */
+export const feedPreview = <Item extends { since: string | null }>(
+   items: readonly Item[],
+   limit: number
+): { since: string; items: Item[] }[] => {
+   const groups: { since: string; items: Item[] }[] = [];
+   for (const item of items.slice(0, limit)) {
+      const since = item.since ?? '';
+      const group = groups.find((g) => g.since === since);
+      if (group) group.items.push(item);
+      else groups.push({ since, items: [item] });
+   }
+   return groups;
+};

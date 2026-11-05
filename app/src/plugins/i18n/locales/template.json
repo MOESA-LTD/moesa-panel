@@ -151,17 +151,6 @@
       "readed": ""
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "",
-         "last_month": "",
-         "last_quarter": "",
-         "last_half": "",
-         "last_year": "",
-         "total": "",
-         "branches": "",
-         "users": "",
-         "roles": ""
-      },
       "notifications": {
          "today": "",
          "yesterday": "",

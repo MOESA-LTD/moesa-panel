@@ -722,17 +722,6 @@
       }
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "За последнюю неделю",
-         "last_month": "За последний месяц",
-         "last_quarter": "За последний квартал",
-         "last_half": "За последнюю половину",
-         "last_year": "За последний год",
-         "total": "Всего",
-         "branches": "Филиалы",
-         "users": "Пользователи",
-         "roles": "Роли"
-      },
       "notifications": {
          "today": "Сегодня",
          "yesterday": "Вчера",

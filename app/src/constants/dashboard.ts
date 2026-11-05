@@ -1,4 +1,5 @@
-import type { Component, InjectionKey, Ref } from 'vue';
+import { PrimeIcons } from '@primevue/core/api';
+import { defineAsyncComponent, type Component, type InjectionKey, type Ref } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 
 /** Every dashboard box, in today's order (the default layout). */
@@ -107,3 +108,196 @@ export type DashboardRow = {
    /** Runs before the row navigates to `to` (e.g. to set a filter the target page reads). */
    onSelect?: () => void;
 };
+
+// Loaded on first render, so the registry itself imports no API code.
+const GatesBox = defineAsyncComponent(() => import('@/views/pages/dashboard/boxes/GatesBox.vue'));
+const TasksBox = defineAsyncComponent(() => import('@/views/pages/dashboard/boxes/TasksBox.vue'));
+const EvidenceBox = defineAsyncComponent(
+   () => import('@/views/pages/dashboard/boxes/EvidenceBox.vue')
+);
+const PurchaseOrdersBox = defineAsyncComponent(
+   () => import('@/views/pages/dashboard/boxes/PurchaseOrdersBox.vue')
+);
+const ShipmentsBox = defineAsyncComponent(
+   () => import('@/views/pages/dashboard/boxes/ShipmentsBox.vue')
+);
+const IncidentsBox = defineAsyncComponent(
+   () => import('@/views/pages/dashboard/boxes/IncidentsBox.vue')
+);
+const ChangeRequestsBox = defineAsyncComponent(
+   () => import('@/views/pages/dashboard/boxes/ChangeRequestsBox.vue')
+);
+const MarketBox = defineAsyncComponent(() => import('@/views/pages/dashboard/boxes/MarketBox.vue'));
+const NotificationsBox = defineAsyncComponent(
+   () => import('@/views/pages/dashboard/boxes/NotificationsBox.vue')
+);
+
+/** Every dashboard box, in `DASHBOARD_BOX_IDS` order (today's layout). */
+export const DASHBOARD_BOXES: readonly DashboardBoxDef[] = [
+   {
+      id: 'gates_team',
+      title: 'dashboard.ops.gates_team',
+      icon: PrimeIcons.FLAG,
+      area: 'projects',
+      size: 'narrow',
+      permission: 'project_gate',
+      to: { name: 'ops-project-list' },
+      guideTask: 'close_gates',
+      component: GatesBox
+   },
+   {
+      id: 'gates_management',
+      title: 'dashboard.ops.gates_management',
+      icon: PrimeIcons.BRIEFCASE,
+      area: 'projects',
+      size: 'narrow',
+      permission: 'project_gate',
+      to: { name: 'ops-project-list' },
+      guideTask: 'close_gates',
+      component: GatesBox
+   },
+   {
+      id: 'gates_customer',
+      title: 'dashboard.ops.gates_customer',
+      icon: PrimeIcons.USER,
+      area: 'projects',
+      size: 'narrow',
+      permission: 'project_gate',
+      to: { name: 'ops-project-list' },
+      guideTask: 'close_gates',
+      component: GatesBox
+   },
+   {
+      id: 'tasks_overdue',
+      title: 'dashboard.ops.tasks_overdue',
+      icon: PrimeIcons.EXCLAMATION_TRIANGLE,
+      area: 'projects',
+      size: 'narrow',
+      permission: 'project_task',
+      guideTask: 'close_tasks',
+      component: TasksBox
+   },
+   {
+      id: 'tasks_due_soon',
+      title: 'dashboard.ops.tasks_due_soon',
+      icon: PrimeIcons.CLOCK,
+      area: 'projects',
+      size: 'narrow',
+      permission: 'project_task',
+      guideTask: 'close_tasks',
+      component: TasksBox
+   },
+   {
+      id: 'unsigned_skus',
+      title: 'dashboard.ops.unsigned_skus',
+      icon: PrimeIcons.FILE_EDIT,
+      area: 'products',
+      size: 'narrow',
+      permission: 'product',
+      to: { name: 'ops-product-list', query: { spec: 'false' } },
+      guideTask: 'sign_spec',
+      component: EvidenceBox
+   },
+   {
+      id: 'incomplete_compliance',
+      title: 'dashboard.ops.incomplete_compliance',
+      icon: PrimeIcons.SHIELD,
+      area: 'products',
+      size: 'narrow',
+      permission: 'product',
+      to: { name: 'ops-product-list' },
+      guideTask: 'complete_compliance',
+      component: EvidenceBox
+   },
+   {
+      id: 'po_action',
+      title: 'dashboard.ops.po_action',
+      icon: PrimeIcons.SHOPPING_CART,
+      area: 'supply',
+      size: 'narrow',
+      permission: 'purchase_order',
+      to: { name: 'ops-purchase-order-list' },
+      guideTask: 'advance_po',
+      component: PurchaseOrdersBox
+   },
+   {
+      id: 'po_production',
+      title: 'dashboard.ops.po_production',
+      icon: PrimeIcons.COG,
+      area: 'supply',
+      size: 'narrow',
+      permission: 'purchase_order',
+      to: { name: 'ops-purchase-order-list' },
+      guideTask: 'advance_po',
+      component: PurchaseOrdersBox
+   },
+   {
+      id: 'shipments_in_transit',
+      title: 'dashboard.ops.shipments_in_transit',
+      icon: PrimeIcons.SEND,
+      area: 'logistics',
+      size: 'narrow',
+      permission: 'shipment',
+      to: { name: 'ops-shipment-list' },
+      guideTask: 'track_shipment',
+      component: ShipmentsBox
+   },
+   {
+      id: 'shipments_late',
+      title: 'dashboard.ops.shipments_late',
+      icon: PrimeIcons.EXCLAMATION_TRIANGLE,
+      area: 'logistics',
+      size: 'narrow',
+      permission: 'shipment',
+      to: { name: 'ops-shipment-list' },
+      guideTask: 'track_shipment',
+      component: ShipmentsBox
+   },
+   {
+      id: 'incidents_open',
+      title: 'dashboard.ops.incidents_open',
+      icon: PrimeIcons.EXCLAMATION_CIRCLE,
+      area: 'incidents',
+      size: 'narrow',
+      permission: 'incident',
+      to: { name: 'ops-incident-list' },
+      guideTask: 'close_incident',
+      component: IncidentsBox
+   },
+   {
+      id: 'change_requests_open',
+      title: 'dashboard.ops.change_requests_open',
+      icon: PrimeIcons.SYNC,
+      area: 'change_requests',
+      size: 'narrow',
+      permission: 'change_request',
+      to: { name: 'ops-change-request-list' },
+      guideTask: 'decide_cr',
+      component: ChangeRequestsBox
+   },
+   {
+      id: 'market_summary',
+      title: 'dashboard.ops.market_summary',
+      icon: PrimeIcons.TABLE,
+      area: 'market',
+      size: 'narrow',
+      permission: 'market_cell',
+      to: { name: 'ops-market-list' },
+      guideTask: 'update_market',
+      component: MarketBox
+   },
+   {
+      id: 'notifications',
+      title: 'dashboard.notifications.title',
+      icon: PrimeIcons.BELL,
+      area: 'notifications',
+      size: 'narrow',
+      permission: 'audit_log',
+      to: { name: 'branch-audit-log-list' },
+      component: NotificationsBox
+   }
+];
+
+/** The registry entry of a box. */
+export const boxById = (id: DashboardBoxId): DashboardBoxDef =>
+   DASHBOARD_BOXES.find((box) => box.id === id)!;

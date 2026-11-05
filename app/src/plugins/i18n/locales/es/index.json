@@ -1,16 +1,5 @@
 {
    "dashboard": {
-      "statistics": {
-         "last_week": "Última semana",
-         "last_month": "Último mes",
-         "last_quarter": "Último trimestre",
-         "last_half": "Última mitad",
-         "last_year": "Último año",
-         "total": "Total",
-         "branches": "Sucursales",
-         "users": "Usuarios",
-         "roles": "Roles"
-      },
       "notifications": {
          "today": "Hoy",
          "yesterday": "Ayer",

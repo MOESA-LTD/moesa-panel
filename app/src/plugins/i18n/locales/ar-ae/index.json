@@ -199,17 +199,6 @@
       "readed": "تم القراءة"
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "الأسبوع الماضي",
-         "last_month": "الشهر الماضي",
-         "last_quarter": "الربع الماضي",
-         "last_half": "النصف الماضي",
-         "last_year": "السنة الماضية",
-         "total": "الإجمالي",
-         "branches": "الفروع",
-         "users": "المستخدمون",
-         "roles": "الأدوار"
-      },
       "notifications": {
          "today": "اليوم",
          "yesterday": "أمس",

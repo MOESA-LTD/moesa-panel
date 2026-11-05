@@ -722,17 +722,6 @@
       }
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "Last Week",
-         "last_month": "Last Month",
-         "last_quarter": "Last Quarter",
-         "last_half": "Last Half",
-         "last_year": "Last Year",
-         "total": "Total",
-         "branches": "Branches",
-         "users": "Users",
-         "roles": "Roles"
-      },
       "notifications": {
          "today": "Today",
          "yesterday": "Yesterday",

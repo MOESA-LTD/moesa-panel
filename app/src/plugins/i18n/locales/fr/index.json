@@ -722,17 +722,6 @@
       }
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "La semaine dernière",
-         "last_month": "Le mois dernier",
-         "last_quarter": "Le trimestre dernier",
-         "last_half": "La moitié de l'année dernière",
-         "last_year": "L'année dernière",
-         "total": "Total",
-         "branches": "Agences",
-         "users": "Utilisateurs",
-         "roles": "Rôles"
-      },
       "notifications": {
          "today": "Aujourd'hui",
          "yesterday": "Hier",

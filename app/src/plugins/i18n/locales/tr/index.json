@@ -668,17 +668,6 @@
       "change_request_product": "Değişiklik talebi ürünü"
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "Geçen Hafta",
-         "last_month": "Geçen Ay",
-         "last_quarter": "Geçen Üç Ay",
-         "last_half": "Geçen Yarı Yıl",
-         "last_year": "Geçen Yıl",
-         "total": "Toplam",
-         "branches": "Şubeler",
-         "users": "Kullanıcılar",
-         "roles": "Roller"
-      },
       "notifications": {
          "today": "Bugün",
          "yesterday": "Dün",
