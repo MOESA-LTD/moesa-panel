@@ -86,11 +86,18 @@ export const useDashboardLayout = defineStore('dashboardLayout', () => {
    const draft = ref<DashboardLayout | null>(null);
    // The user whose layout is loaded, as the last load recorded it.
    let userId: string | null = null;
+   let loaded = false;
 
    const editing = computed(() => draft.value !== null);
    const layout = computed(() => draft.value ?? saved.value);
 
+   /**
+    * Reads the user's layout from storage. For the user already loaded it does nothing: the store
+    * holds their layout, and after a refused write that in-memory layout is the only copy.
+    */
    const load = (id: string | null) => {
+      if (loaded && id === userId) return;
+      loaded = true;
       userId = id;
       draft.value = null;
       saved.value = id === null ? defaultLayout() : readLayout(id);

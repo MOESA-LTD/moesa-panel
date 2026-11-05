@@ -87,7 +87,7 @@ describe('useDashboardLayout', () => {
             throw new Error('blocked');
          }
       });
-      s.load('u1');
+      s.load('u2');
       expect(s.layout).toEqual(defaultLayout());
       s.load(null);
       expect(s.layout).toEqual(defaultLayout());
@@ -148,6 +148,23 @@ describe('useDashboardLayout', () => {
       expect(s.save()).toBe(false);
       expect(s.saved.hidden).toEqual(['po_action']);
       expect(s.editing).toBe(false);
+   });
+   it('keeps that in-memory layout when the same user loads again, rereads for another user', () => {
+      store('u1', { order: ALL, hidden: ['notifications'] });
+      const s = editing();
+      stubStorage({
+         setItem: () => {
+            throw new Error('blocked');
+         }
+      });
+      s.hide('po_action');
+      expect(s.save()).toBe(false);
+      s.load('u1');
+      expect(s.layout.hidden).toEqual(['notifications', 'po_action']);
+      s.load('u2');
+      expect(s.layout).toEqual(defaultLayout());
+      s.load('u1');
+      expect(s.layout.hidden).toEqual(['notifications']);
    });
    it('does nothing outside edit mode', () => {
       const s = useDashboardLayout();
