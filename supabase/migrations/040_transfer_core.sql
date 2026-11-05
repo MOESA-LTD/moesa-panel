@@ -21,7 +21,8 @@
 --                A user cannot insert a transfer row, and a row of another transaction never
 --                matches, so only public.transfer_customer can raise it. private.rules_bypassed()
 --                honours it: the business-rule guards let the transfer write the rows as they
---                are. The code and immutability triggers ignore it, as they ignore the 030 bypass.
+--                are. The code, default and immutability triggers honour it too, from 041 (see
+--                its header for which checks a transfer skips and which stay on).
 -- Ownership      private.owns_company(user, tenant): the user owns the company at the root of the
 --                tenant's tree (tenant_owner on private.entitlements' company_id), not a branch.
 -- Revert guard   public.revert_audit_transaction refuses (409 audit_transfer_not_revertable) a

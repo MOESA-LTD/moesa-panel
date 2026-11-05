@@ -13,6 +13,8 @@
 --      shipment_set_code, incident_set_code, change_request_set_code, incident_notice_due,
 --      incident_deadline_defaults, change_request_due, document_supersede,
 --      media_link_demote_primary.
+--    The code setters thus also skip their customer lookup: the composite foreign key to the
+--    customer (deferred or not) still refuses a missing one, and a closed customer is a state rule.
 -- 2. Frozen-row and state rules are skipped (RETURN NEW, OLD on DELETE, NULL for an AFTER
 --    trigger): a carried row may be passed, frozen or linked already:
 --      customer_code_immutable, customer_contract_guard, project_immutable, project_gate_guard,
@@ -21,10 +23,11 @@
 --      exit (030) of purchase_order_line_guard, shipment_guard, market_cell_guard,
 --      incident_guard and change_request_guard (the exit moves to the top). shipment_line_guard
 --      already starts with that exit, so its tenant rule needs no change. media_check_file skips
---      the Storage lookup on INSERT (the files are copied after the rows) and the immutability
---      check on UPDATE, and keeps the mime_type and size_bytes it is given; the CHECK
---      media_path_in_folder still applies. media_link_check exits only from its
---      media_link_identity_immutable branch.
+--      the Storage lookups (the files are copied after the rows) and the immutability check on
+--      UPDATE, and keeps the mime_type and size_bytes it is given; the type allowlist and the
+--      target tenant's size cap hold for them, and the CHECK media_path_in_folder still applies.
+--      media_link_check skips only the RAISE of its media_link_identity_immutable branch and goes
+--      on to its permission, customer and image checks.
 -- 3. Integrity stays on: the entity, media and tenant checks that keep a row consistent with the
 --    rows it refers to are not touched: document_check_entity, document_check_media,
 --    document_signed_requires, the entity check of media_link_check,
@@ -36,7 +39,9 @@
 -- Each exit reads moesa.transfer_id first and calls private.transferring() only when it is set.
 -- Some of these functions are SECURITY INVOKER, and authenticated cannot call
 -- private.transferring(): plpgsql prepares the inner IF only when it reaches it, so a user's write
--- never resolves the name. A transfer runs inside public.transfer_customer (SECURITY DEFINER),
+-- never resolves the name (and a user who sets moesa.transfer_id gets a permission error from an
+-- INVOKER trigger, and nothing from a DEFINER one: transferring() needs a transfer row of the
+-- transaction). A transfer runs inside public.transfer_customer (SECURITY DEFINER),
 -- where it does.
 --
 -- Deferrable foreign keys. The 49 composite foreign keys (id, tenant_id) between the tables a
@@ -1444,12 +1449,26 @@ SET
    search_path = '' AS $$
 DECLARE
     meta JSONB;
+    transfer BOOLEAN := FALSE;
 BEGIN
-    -- A running transfer (041).
+    -- A running transfer (041): no Storage lookups (its files are copied after the rows) and no
+    -- immutability; the type and the target tenant's size cap hold for the values it gives.
     IF current_setting('moesa.transfer_id', TRUE) <> '' THEN
-        IF private.transferring() THEN
-            RETURN NEW;
+        transfer := private.transferring();
+    END IF;
+
+    IF transfer THEN
+        IF TG_OP = 'INSERT' THEN
+            IF NEW.mime_type IS NULL
+               OR NEW.mime_type NOT IN ('image/png', 'image/jpeg', 'image/webp', 'application/pdf', 'video/mp4') THEN
+                RAISE EXCEPTION 'media_type_not_allowed' USING ERRCODE = 'check_violation';
+            END IF;
+
+            IF NEW.size_bytes > private.media_max_bytes(NEW.tenant_id) THEN
+                RAISE EXCEPTION 'media_too_large' USING ERRCODE = 'check_violation';
+            END IF;
         END IF;
+        RETURN NEW;
     END IF;
 
     IF TG_OP = 'UPDATE' THEN
@@ -1517,13 +1536,11 @@ BEGIN
             OR NEW.entity_type IS DISTINCT FROM OLD.entity_type
             OR NEW.entity_id IS DISTINCT FROM OLD.entity_id
             OR NEW.tenant_id IS DISTINCT FROM OLD.tenant_id) THEN
-        -- A running transfer (041).
-        IF current_setting('moesa.transfer_id', TRUE) <> '' THEN
-            IF private.transferring() THEN
-                RETURN NEW;
-            END IF;
+        -- A running transfer (041) skips this rule alone: the permission, customer and image
+        -- checks below still run.
+        IF NOT (coalesce(current_setting('moesa.transfer_id', TRUE), '') <> '' AND private.transferring()) THEN
+            RAISE EXCEPTION 'media_link_identity_immutable' USING ERRCODE = 'check_violation';
         END IF;
-        RAISE EXCEPTION 'media_link_identity_immutable' USING ERRCODE = 'check_violation';
     END IF;
 
     IF TG_OP = 'INSERT' THEN

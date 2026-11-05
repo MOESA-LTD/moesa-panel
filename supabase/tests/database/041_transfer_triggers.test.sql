@@ -2,12 +2,13 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- Transfer-aware triggers (041) on the MOESA demo company of seed.sql: the 49 composite foreign
 -- keys are deferrable and keep their ON DELETE action, a passed gate is frozen unless a transfer
--- runs, a transfer keeps a project's code and phase and creates no gates, a transfer writes a media
--- row without its Storage object, and the code counters take a tenant. What it writes is rolled
+-- runs, a spoofed flag gains a user nothing, a transfer keeps a project's code and phase and
+-- creates no gates, a transfer writes a media row without its Storage object but within the type
+-- allowlist, a moved link still gets the customer check, and the code counters take a tenant. What it writes is rolled
 -- back.
 BEGIN;
 
-SELECT plan(12);
+SELECT plan(16);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -17,7 +18,8 @@ FROM (VALUES
     ('koordinator', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')),
     ('akif', (SELECT id FROM public.user WHERE email = 'akif@moesa-panel.test')),
     ('tho', (SELECT id FROM public.customer WHERE code = 'THO')),
-    ('pilot', (SELECT id FROM public.project WHERE display_name = 'Mop ailesi çok ülke pilotu'))
+    ('pilot', (SELECT id FROM public.project WHERE display_name = 'Mop ailesi çok ülke pilotu')),
+    ('mop', (SELECT id FROM public.product WHERE sku = 'THO-MOP40-2P'))
 ) AS x (k, v);
 -- A phase that is not the initial one.
 SELECT set_config('test.phase', (SELECT p::TEXT FROM unnest(enum_range(NULL::public.project_phase)) AS p OFFSET 2 LIMIT 1), TRUE);
@@ -74,6 +76,24 @@ SELECT throws_like(
     'without the flag, a passed gate is not changed'
 );
 
+-- A user who sets the flag to an id of no transfer of this transaction gains nothing: a DEFINER
+-- guard still applies its rule, an INVOKER trigger fails closed.
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+SELECT set_config('moesa.transfer_id', gen_random_uuid()::TEXT, TRUE);
+
+SELECT throws_like(
+    $$ UPDATE public.project_gate SET passed_at = passed_at - INTERVAL '1 day' WHERE code = 'G1' AND project_id = current_setting('test.pilot')::UUID $$,
+    '%gate_not_pending%',
+    'a spoofed flag does not unfreeze a passed gate'
+);
+SELECT throws_ok(
+    $$ UPDATE public.project SET code = 'THO-2020-998' WHERE id = current_setting('test.pilot')::UUID $$,
+    '42501', NULL,
+    'a spoofed flag does not let a user change a project code'
+);
+
+RESET ROLE;
+
 SELECT set_config('moesa.transfer_id', '00000000-0000-4000-8000-000000041002', TRUE);
 
 SELECT lives_ok(
@@ -100,6 +120,30 @@ SELECT lives_ok(
     'a transfer writes a media row without its Storage object'
 );
 SELECT is((SELECT mime_type FROM public.media WHERE id = '00000000-0000-4000-8000-000000041004'), 'image/png', 'and keeps its mime type');
+SELECT throws_like(
+    $$ INSERT INTO public.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
+       VALUES ('00000000-0000-4000-8000-000000041005', current_setting('test.moesa')::UUID,
+               current_setting('test.moesa') || '/00000000-0000-4000-8000-000000041005/x.txt', 'x.txt', 'text/plain', 10) $$,
+    '%media_type_not_allowed%',
+    'the type allowlist holds for a transfer''s media'
+);
+
+-- A transfer that moves a link still gets the customer check.
+INSERT INTO public.media (id, tenant_id, customer_id, storage_path, file_name, mime_type, size_bytes)
+VALUES ('00000000-0000-4000-8000-000000041006', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
+        current_setting('test.moesa') || '/00000000-0000-4000-8000-000000041006/y.png', 'y.png', 'image/png', 10);
+INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+VALUES ('00000000-0000-4000-8000-000000041007', current_setting('test.moesa')::UUID, 'ZZZ', 'Zed Trading', 'trading_partner');
+INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name)
+VALUES ('00000000-0000-4000-8000-000000041008', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000041007', 'ZZZ-1', 'Zed lamp');
+INSERT INTO public.media_link (id, tenant_id, media_id, entity_type, entity_id)
+VALUES ('00000000-0000-4000-8000-000000041009', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000041006', 'product', current_setting('test.mop')::UUID);
+
+SELECT throws_like(
+    $$ UPDATE public.media_link SET entity_id = '00000000-0000-4000-8000-000000041008' WHERE id = '00000000-0000-4000-8000-000000041009' $$,
+    '%media_customer_mismatch%',
+    'a transfer skips only the identity rule of a link'
+);
 
 -- The counters per tenant.
 SELECT is(private.next_code_in(current_setting('test.trading')::UUID, 'project', 'THO'), 'THO-' || extract(year FROM now())::INT || '-001',
