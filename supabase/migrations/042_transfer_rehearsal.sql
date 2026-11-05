@@ -83,8 +83,12 @@
 --                            and builds the report; a dry run returns it. A real run refuses
 --                            without a hash (transfer_report_required), with another hash
 --                            (transfer_report_stale), a move leaving links behind
---                            (transfer_product_in_use) and the decisions above; the writes come
---                            with 043, and until then a real run fails (feature_not_supported).
+--                            (transfer_product_in_use) and the decisions above. Then it raises the
+--                            transfer flag (moesa.transfer_id), writes the transfer row as its first
+--                            write (so the target's audit transaction is about transfer: the "came
+--                            by transfer" entry), records that audit transaction in
+--                            audit_transaction_ids, calls private.transfer_apply (043), clears the
+--                            flag and returns the transfer row.
 
 -- The first refusal, or NULL (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_refusal (source_tenant UUID, target_tenant UUID, mode TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER
@@ -869,6 +873,8 @@ SET
 DECLARE
     refusal TEXT := private.transfer_refusal(source_tenant, target_tenant, transfer_customer.mode);
     report JSONB;
+    new_id UUID;
+    result JSONB;
 BEGIN
     IF refusal IS NOT NULL THEN
         PERFORM private.transfer_raise(
@@ -922,8 +928,29 @@ BEGIN
 
     PERFORM private.transfer_check_decisions(report, transfer_customer.decisions, target_tenant, transfer_customer.mode);
 
-    -- The writes come with 043 (private.transfer_apply); until then a real run writes nothing.
-    RAISE EXCEPTION 'A real transfer run is not available before migration 043.' USING ERRCODE = 'feature_not_supported';
+    -- The run: the flag, then the transfer row as the first write (the target's audit transaction
+    -- is about it), its audit transaction, the package (043), and the flag cleared.
+    new_id := gen_random_uuid();
+    PERFORM set_config('moesa.transfer_id', new_id::TEXT, TRUE);
+
+    INSERT INTO public.transfer (
+        id, tenant_id, source_tenant_id, customer_id, product_ids, mode, path, started_by, report, decisions
+    )
+    VALUES (
+        new_id, target_tenant, source_tenant, transfer_customer.customer_id, transfer_customer.product_ids,
+        transfer_customer.mode, report ->> 'path', auth.uid(), report, coalesce(transfer_customer.decisions, '{}')
+    );
+
+    UPDATE public.transfer t
+    SET audit_transaction_ids = array_remove(ARRAY[nullif(current_setting('audit.transaction_id', TRUE), '')::UUID], NULL)
+    WHERE t.id = new_id;
+
+    PERFORM private.transfer_apply(new_id);
+
+    PERFORM set_config('moesa.transfer_id', '', TRUE);
+
+    SELECT to_jsonb(t) INTO result FROM public.transfer t WHERE t.id = new_id;
+    RETURN result;
 END;
 $$;
 

@@ -1,0 +1,480 @@
+-- Cross-tenant customer transfer (M21), its copy path: a real run of public.transfer_customer (042)
+-- writes the transfer row, raises the flag and calls private.transfer_apply, which writes the
+-- package into the target with new ids.
+--
+-- private.transfer_references  The columns of the registry tables that hold the id of a row of a
+--                            registry table, found through the foreign keys between them: a column
+--                            matched to a referenced id, or to a referenced column that is itself
+--                            such a column (purchase_order_line.customer_id through the order,
+--                            shipment_line.purchase_order_id through the shipment's order link).
+--                            not_null is the column's NOT NULL. Tenant columns are not references.
+-- private.transfer_media_paths  The Storage paths of a media row in the target, in the folder
+--                            media_path_in_folder asks for: <target>/<media id>/<file name>, and
+--                            <target>/<media id>/thumb/thumb.webp for a thumbnail. The caller sets
+--                            tenant_id and both paths in one INSERT or UPDATE (the CHECK is per row).
+-- private.transfer_build_map  Fills pg_temp.transfer_map (dropped at commit) with the target id of
+--                            every package row with an id: a map decision's target_id (mapped: TRUE,
+--                            the row is not written); a new id for a copy_only row, and for every
+--                            other row in the copy path (keep_ids FALSE) or its own id in the cheap
+--                            path. A skipped row has no entry, nor has a row that hangs from it: its
+--                            children (parent_table, entity), the rows whose NOT NULL reference names
+--                            it, and so on. The contacts and documents of a mapped supplier have none
+--                            either (only the supplier's id is mapped).
+-- private.transfer_write     Writes the package rows of one table into the target, each taken from
+--                            pg_temp.transfer_rows.row and rewritten: id from the map, tenant_id the
+--                            target; every reference (transfer_references) through the map of its
+--                            table: a reference to an omitted package row drops the row when NOT
+--                            NULL and is cleared otherwise, a nullable reference to a row outside the
+--                            package (left_behind) is cleared; entity_id through the table whose
+--                            entity is entity_type (a row whose entity is omitted is dropped, an
+--                            incident's link is cleared); late columns NULL, array columns '{}'; the
+--                            users rule (Call 7: a non-member author becomes the caller, a
+--                            non-member assignee NULL, a decision record stays); codes kept, or a
+--                            new_code decision's typed code (customer, supplier) or
+--                            private.next_code_in(target, kind, <target customer code>); clear_gtin;
+--                            media paths from transfer_media_paths, each file and thumbnail returned
+--                            as {media_id, from, to, keep_source = copy_only}. Products without a
+--                            parent come first. The column list leaves out GENERATED columns
+--                            (purchase_order_line.line_total is computed again). The rows are
+--                            written as the owner of these functions, so the SECURITY INVOKER
+--                            triggers run; the transfer flag lets the business rules pass, the
+--                            integrity checks (tenant, entity, media customer, file type and size)
+--                            still hold. only_copy writes the copy_only rows alone (cheap path).
+-- private.transfer_suppliers  The package suppliers: a mapped one is not written, any other is
+--                            copied with a new id together with its contacts. The suppliers'
+--                            documents are written with the other documents (a document may cite a
+--                            media row, which is written after the suppliers).
+-- private.transfer_apply_copy  The copy path: the map, (in a move, the source deletion: 043 part 2),
+--                            the suppliers, every other registry table in position order, then the
+--                            late pass (late and array columns through the map, for the rows
+--                            written), then the transfer row's id_map, files, files_status (pending
+--                            while there are files to copy) and target_customer_id.
+-- private.transfer_apply     The dispatcher, on public.transfer.path.
+
+-- The references between registry tables (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_references () RETURNS TABLE (
+   table_name TEXT,
+   column_name TEXT,
+   ref_table TEXT,
+   not_null BOOLEAN
+) LANGUAGE sql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+    WITH RECURSIVE pairs AS (
+        SELECT rel.relname::TEXT AS t, a.attname::TEXT AS col, frel.relname::TEXT AS ft, fa.attname::TEXT AS fcol,
+               a.attnotnull AS nn
+        FROM pg_catalog.pg_constraint c
+        JOIN pg_catalog.pg_class rel ON rel.oid = c.conrelid
+        JOIN pg_catalog.pg_namespace n ON n.oid = rel.relnamespace AND n.nspname = 'public'
+        JOIN pg_catalog.pg_class frel ON frel.oid = c.confrelid
+        JOIN pg_catalog.pg_namespace fn ON fn.oid = frel.relnamespace AND fn.nspname = 'public'
+        JOIN private.transfer_registry fr ON fr.table_name = rel.relname
+        JOIN private.transfer_registry tr ON tr.table_name = frel.relname
+        CROSS JOIN LATERAL unnest(c.conkey, c.confkey) AS k (attnum, fattnum)
+        JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
+        JOIN pg_catalog.pg_attribute fa ON fa.attrelid = c.confrelid AND fa.attnum = k.fattnum
+        WHERE c.contype = 'f' AND fa.attname <> 'tenant_id'
+    ),
+    resolved (t, col, rt, nn) AS (
+        SELECT p.t, p.col, p.ft, p.nn FROM pairs p WHERE p.fcol = 'id'
+        UNION
+        SELECT p.t, p.col, r.rt, p.nn FROM pairs p JOIN resolved r ON r.t = p.ft AND r.col = p.fcol WHERE p.fcol <> 'id'
+    )
+    SELECT DISTINCT r.t, r.col, r.rt, r.nn FROM resolved r;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_references () FROM PUBLIC, anon, authenticated;
+
+-- The target paths of a media row (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_media_paths (
+   target UUID,
+   media_id UUID,
+   storage_path TEXT,
+   thumbnail_path TEXT,
+   OUT target_storage_path TEXT,
+   OUT target_thumbnail_path TEXT
+) LANGUAGE sql IMMUTABLE
+SET
+   search_path = '' AS $$
+    SELECT
+        transfer_media_paths.target::TEXT || '/' || transfer_media_paths.media_id::TEXT || '/'
+            || regexp_replace(transfer_media_paths.storage_path, '^.*/', ''),
+        CASE WHEN transfer_media_paths.thumbnail_path IS NOT NULL THEN
+            transfer_media_paths.target::TEXT || '/' || transfer_media_paths.media_id::TEXT || '/thumb/thumb.webp'
+        END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_media_paths (UUID, UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+
+-- The id map (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_build_map (transfer_id UUID, keep_ids BOOLEAN) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    picks JSONB;
+BEGIN
+    SELECT coalesce(t.decisions, '{}') INTO picks FROM public.transfer t WHERE t.id = transfer_build_map.transfer_id;
+
+    IF to_regclass('pg_temp.transfer_map') IS NOT NULL THEN
+        DROP TABLE pg_temp.transfer_map;
+    END IF;
+
+    CREATE TEMP TABLE transfer_map (
+        table_name TEXT NOT NULL,
+        source_id UUID NOT NULL,
+        target_id UUID NOT NULL,
+        mapped BOOLEAN NOT NULL DEFAULT FALSE,
+        PRIMARY KEY (table_name, source_id)
+    ) ON COMMIT DROP;
+
+    WITH RECURSIVE refs AS (
+        SELECT * FROM private.transfer_references() f WHERE f.not_null
+    ),
+    entities AS (
+        SELECT e.table_name, e.entity::TEXT AS entity FROM private.transfer_registry e WHERE e.entity IS NOT NULL
+    ),
+    omitted (table_name, source_id) AS (
+        -- The skipped rows, and the contacts, documents and media links of a mapped supplier.
+        SELECT r.table_name, r.source_id
+        FROM pg_temp.transfer_rows r
+        WHERE r.source_id IS NOT NULL AND picks -> (r.table_name || ':' || r.source_id) ->> 'action' = 'skip'
+        UNION
+        SELECT r.table_name, r.source_id
+        FROM pg_temp.transfer_rows r
+        JOIN pg_temp.transfer_rows s ON s.table_name = 'supplier'
+         AND picks -> ('supplier:' || s.source_id) ->> 'action' = 'map'
+        WHERE r.source_id IS NOT NULL
+          AND (
+              (r.table_name = 'supplier_contact' AND r.row ->> 'supplier_id' = s.source_id::TEXT)
+              OR (r.table_name IN ('document', 'media_link') AND r.row ->> 'entity_type' = 'supplier'
+                  AND r.row ->> 'entity_id' = s.source_id::TEXT)
+          )
+        UNION
+        -- What hangs from an omitted row: a NOT NULL reference (the parent columns are) or the
+        -- entity of a document or media link.
+        SELECT r.table_name, r.source_id
+        FROM omitted o
+        JOIN pg_temp.transfer_rows r ON r.source_id IS NOT NULL
+        WHERE EXISTS (
+                  SELECT 1 FROM refs f
+                  WHERE f.table_name = r.table_name AND f.ref_table = o.table_name
+                    AND r.row ->> f.column_name = o.source_id::TEXT
+              )
+           OR (r.table_name IN ('document', 'media_link')
+               AND r.row ->> 'entity_id' = o.source_id::TEXT
+               AND EXISTS (
+                   SELECT 1 FROM entities e WHERE e.table_name = o.table_name AND e.entity = r.row ->> 'entity_type'
+               ))
+    )
+    INSERT INTO pg_temp.transfer_map (table_name, source_id, target_id, mapped)
+    SELECT r.table_name,
+           r.source_id,
+           CASE
+               WHEN d.action = 'map' THEN private.transfer_uuid(d.target)
+               WHEN r.copy_only OR NOT transfer_build_map.keep_ids THEN gen_random_uuid()
+               ELSE r.source_id
+           END,
+           coalesce(d.action = 'map', FALSE)
+    FROM pg_temp.transfer_rows r
+    CROSS JOIN LATERAL (
+        SELECT picks -> (r.table_name || ':' || r.source_id) ->> 'action' AS action,
+               picks -> (r.table_name || ':' || r.source_id) ->> 'target_id' AS target
+    ) d
+    WHERE r.source_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM omitted o WHERE o.table_name = r.table_name AND o.source_id = r.source_id);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_build_map (UUID, BOOLEAN) FROM PUBLIC, anon, authenticated;
+
+-- The package rows of one table into the target (see the header). Returns the files to copy.
+CREATE OR REPLACE FUNCTION private.transfer_write (transfer_id UUID, tbl TEXT, only_copy BOOLEAN DEFAULT FALSE) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    target UUID;
+    picks JSONB;
+    reg private.transfer_registry;
+    columns TEXT;
+    insert_sql TEXT;
+    refs JSONB;
+    ref RECORD;
+    uc RECORD;
+    r RECORD;
+    data JSONB;
+    v TEXT;
+    found_id UUID;
+    omit BOOLEAN;
+    pick JSONB;
+    col TEXT;
+    members JSONB := '{}';
+    customer_code TEXT;
+    paths RECORD;
+    files JSONB := '[]';
+BEGIN
+    SELECT t.tenant_id, coalesce(t.decisions, '{}') INTO target, picks
+    FROM public.transfer t WHERE t.id = transfer_write.transfer_id;
+
+    SELECT * INTO reg FROM private.transfer_registry g WHERE g.table_name = transfer_write.tbl;
+
+    -- Every column but the generated ones, introspected once.
+    SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum) INTO columns
+    FROM pg_catalog.pg_attribute a
+    WHERE a.attrelid = format('public.%I', transfer_write.tbl)::REGCLASS
+      AND a.attnum > 0 AND NOT a.attisdropped AND a.attgenerated = '';
+
+    insert_sql := format(
+        'INSERT INTO public.%1$I (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::public.%1$I, $1)',
+        transfer_write.tbl, columns
+    );
+
+    SELECT coalesce(jsonb_agg(jsonb_build_object('col', f.column_name, 'table', f.ref_table, 'not_null', f.not_null)), '[]')
+    INTO refs
+    FROM private.transfer_references() f
+    WHERE f.table_name = transfer_write.tbl;
+
+    FOR r IN
+        SELECT x.source_id, x.row, x.copy_only, m.target_id
+        FROM pg_temp.transfer_rows x
+        LEFT JOIN pg_temp.transfer_map m ON m.table_name = x.table_name AND m.source_id = x.source_id
+        WHERE x.table_name = transfer_write.tbl
+          AND (NOT transfer_write.only_copy OR x.copy_only)
+          AND (x.source_id IS NULL OR (m.source_id IS NOT NULL AND NOT m.mapped))
+        ORDER BY (x.row ->> 'parent_id') IS NOT NULL, x.seq
+    LOOP
+        data := r.row || jsonb_build_object('tenant_id', target);
+        IF r.source_id IS NOT NULL THEN
+            data := data || jsonb_build_object('id', r.target_id);
+        END IF;
+        omit := FALSE;
+
+        -- References through the map; late columns wait for the late pass.
+        FOR ref IN
+            SELECT e ->> 'col' AS col, e ->> 'table' AS rt, (e ->> 'not_null')::BOOLEAN AS nn
+            FROM jsonb_array_elements(refs) e
+        LOOP
+            v := r.row ->> ref.col;
+            CONTINUE WHEN v IS NULL OR ref.col = ANY (reg.late_columns);
+
+            SELECT m.target_id INTO found_id
+            FROM pg_temp.transfer_map m WHERE m.table_name = ref.rt AND m.source_id = v::UUID;
+
+            IF FOUND THEN
+                data := data || jsonb_build_object(ref.col, found_id);
+            ELSIF EXISTS (SELECT 1 FROM pg_temp.transfer_rows p WHERE p.table_name = ref.rt AND p.source_id = v::UUID) THEN
+                -- An omitted package row.
+                IF ref.nn THEN
+                    omit := TRUE;
+                    EXIT;
+                END IF;
+                data := data || jsonb_build_object(ref.col, NULL);
+            ELSIF NOT ref.nn THEN
+                -- A row outside the package (left_behind): the link is cleared.
+                data := data || jsonb_build_object(ref.col, NULL);
+            END IF;
+        END LOOP;
+
+        CONTINUE WHEN omit;
+
+        -- The polymorphic entity.
+        IF r.row ->> 'entity_type' IS NOT NULL AND r.row ->> 'entity_id' IS NOT NULL THEN
+            SELECT m.target_id INTO found_id
+            FROM private.transfer_registry e
+            JOIN pg_temp.transfer_map m ON m.table_name = e.table_name AND m.source_id = (r.row ->> 'entity_id')::UUID
+            WHERE e.entity::TEXT = r.row ->> 'entity_type';
+
+            IF FOUND THEN
+                data := data || jsonb_build_object('entity_id', found_id);
+            ELSIF transfer_write.tbl = 'incident' THEN
+                data := data || '{"entity_type": null, "entity_id": null}'::JSONB;
+            ELSE
+                CONTINUE;
+            END IF;
+        END IF;
+
+        FOREACH col IN ARRAY reg.late_columns LOOP
+            data := data || jsonb_build_object(col, NULL);
+        END LOOP;
+        FOR col IN SELECT jsonb_object_keys(reg.array_columns) LOOP
+            data := data || jsonb_build_object(col, '[]'::JSONB);
+        END LOOP;
+
+        -- The users rule (Call 7).
+        FOR uc IN SELECT u.key AS col, u.value #>> '{}' AS action FROM jsonb_each(reg.user_columns) u LOOP
+            v := r.row ->> uc.col;
+            CONTINUE WHEN v IS NULL OR uc.action = 'keep';
+
+            IF NOT members ? v THEN
+                members := members || jsonb_build_object(v,
+                    EXISTS (SELECT 1 FROM public.tenant_user tu WHERE tu.user_id = v::UUID AND tu.tenant_id = target)
+                    OR private.owns_company(v::UUID, target));
+            END IF;
+
+            IF NOT (members ->> v)::BOOLEAN THEN
+                data := data || jsonb_build_object(uc.col, CASE uc.action WHEN 'actor' THEN auth.uid() END);
+            END IF;
+        END LOOP;
+
+        pick := CASE WHEN r.source_id IS NOT NULL THEN picks -> (transfer_write.tbl || ':' || r.source_id) END;
+
+        IF pick ->> 'action' = 'new_code' THEN
+            IF reg.code_kind = 'typed' THEN
+                data := data || jsonb_build_object('code', pick ->> 'code');
+            ELSE
+                IF customer_code IS NULL THEN
+                    SELECT c.code::TEXT INTO customer_code
+                    FROM pg_temp.transfer_map m
+                    JOIN public.customer c ON c.id = m.target_id AND c.tenant_id = target
+                    WHERE m.table_name = 'customer';
+                END IF;
+                data := data || jsonb_build_object('code', private.next_code_in(
+                    target,
+                    CASE reg.code_kind WHEN 'project' THEN 'project' ELSE lower(split_part(r.row ->> 'code', '-', 1)) END,
+                    customer_code
+                ));
+            END IF;
+        ELSIF pick ->> 'action' = 'clear_gtin' THEN
+            data := data || '{"gtin": null}'::JSONB;
+        END IF;
+
+        IF transfer_write.tbl = 'media' THEN
+            SELECT * INTO paths
+            FROM private.transfer_media_paths(target, r.target_id, r.row ->> 'storage_path', r.row ->> 'thumbnail_path');
+            data := data || jsonb_build_object(
+                'storage_path', paths.target_storage_path, 'thumbnail_path', paths.target_thumbnail_path
+            );
+            files := files || jsonb_build_array(jsonb_build_object(
+                'media_id', r.target_id, 'from', r.row ->> 'storage_path', 'to', paths.target_storage_path,
+                'keep_source', r.copy_only
+            ));
+            IF paths.target_thumbnail_path IS NOT NULL THEN
+                files := files || jsonb_build_array(jsonb_build_object(
+                    'media_id', r.target_id, 'from', r.row ->> 'thumbnail_path', 'to', paths.target_thumbnail_path,
+                    'keep_source', r.copy_only
+                ));
+            END IF;
+        END IF;
+
+        EXECUTE insert_sql USING data;
+    END LOOP;
+
+    RETURN files;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_write (UUID, TEXT, BOOLEAN) FROM PUBLIC, anon, authenticated;
+
+-- The package suppliers (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_suppliers (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    PERFORM private.transfer_write(transfer_suppliers.transfer_id, 'supplier', TRUE);
+    PERFORM private.transfer_write(transfer_suppliers.transfer_id, 'supplier_contact', TRUE);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_suppliers (UUID) FROM PUBLIC, anon, authenticated;
+
+-- The copy path (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_apply_copy (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    run public.transfer;
+    reg RECORD;
+    col TEXT;
+    ref_table TEXT;
+    listed JSONB := '[]';
+BEGIN
+    SELECT * INTO run FROM public.transfer t WHERE t.id = transfer_apply_copy.transfer_id;
+
+    -- 1. The id map.
+    PERFORM private.transfer_build_map(run.id, FALSE);
+
+    -- 2. A move deletes the source package first (043 part 2); until then it writes nothing.
+    IF run.mode = 'move' THEN
+        RAISE EXCEPTION 'A move through the copy path is not available yet.' USING ERRCODE = 'feature_not_supported';
+    END IF;
+
+    -- 3. The suppliers.
+    PERFORM private.transfer_suppliers(run.id);
+
+    -- 4. Every other table, in registry order.
+    FOR reg IN SELECT g.table_name FROM private.transfer_registry g WHERE g.root <> 'supplier' ORDER BY g.position LOOP
+        listed := listed || private.transfer_write(run.id, reg.table_name);
+    END LOOP;
+
+    -- 5. The late pass, for the rows written (not the mapped ones).
+    FOR reg IN
+        SELECT g.table_name, g.late_columns, g.array_columns FROM private.transfer_registry g
+        WHERE cardinality(g.late_columns) > 0 OR g.array_columns <> '{}'
+        ORDER BY g.position
+    LOOP
+        FOREACH col IN ARRAY reg.late_columns LOOP
+            SELECT f.ref_table INTO ref_table
+            FROM private.transfer_references() f WHERE f.table_name = reg.table_name AND f.column_name = col;
+
+            EXECUTE format(
+                'UPDATE public.%1$I x SET %2$I = n.target_id '
+                'FROM pg_temp.transfer_rows r '
+                'JOIN pg_temp.transfer_map m ON m.table_name = r.table_name AND m.source_id = r.source_id AND NOT m.mapped '
+                'JOIN pg_temp.transfer_map n ON n.table_name = %3$L AND n.source_id = (r.row ->> %2$L)::UUID '
+                'WHERE r.table_name = %1$L AND x.id = m.target_id AND x.tenant_id = $1',
+                reg.table_name, col, ref_table
+            )
+            USING run.tenant_id;
+        END LOOP;
+
+        FOR col, ref_table IN SELECT a.key, a.value FROM jsonb_each_text(reg.array_columns) a LOOP
+            EXECUTE format(
+                'UPDATE public.%1$I x SET %2$I = ARRAY('
+                '    SELECT n.target_id FROM jsonb_array_elements_text(r.row -> %2$L) WITH ORDINALITY AS e (id, i) '
+                '    JOIN pg_temp.transfer_map n ON n.table_name = %3$L AND n.source_id = e.id::UUID ORDER BY e.i) '
+                'FROM pg_temp.transfer_rows r '
+                'JOIN pg_temp.transfer_map m ON m.table_name = r.table_name AND m.source_id = r.source_id AND NOT m.mapped '
+                'WHERE r.table_name = %1$L AND x.id = m.target_id AND x.tenant_id = $1 '
+                '  AND jsonb_array_length(coalesce(r.row -> %2$L, ''[]'')) > 0',
+                reg.table_name, col, ref_table
+            )
+            USING run.tenant_id;
+        END LOOP;
+    END LOOP;
+
+    -- 6. The transfer row.
+    UPDATE public.transfer t
+    SET id_map = coalesce((
+            SELECT jsonb_object_agg(g.table_name, g.ids)
+            FROM (
+                SELECT m.table_name, jsonb_object_agg(m.source_id::TEXT, m.target_id) AS ids
+                FROM pg_temp.transfer_map m GROUP BY m.table_name
+            ) g
+        ), '{}'),
+        files = listed,
+        files_status = CASE WHEN jsonb_array_length(listed) > 0 THEN 'pending' ELSE 'done' END,
+        target_customer_id = (SELECT m.target_id FROM pg_temp.transfer_map m WHERE m.table_name = 'customer')
+    WHERE t.id = run.id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_apply_copy (UUID) FROM PUBLIC, anon, authenticated;
+
+-- The dispatcher (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_apply (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    transfer_path TEXT;
+BEGIN
+    SELECT t.path INTO transfer_path FROM public.transfer t WHERE t.id = transfer_apply.transfer_id;
+
+    IF transfer_path = 'copy' THEN
+        PERFORM private.transfer_apply_copy(transfer_apply.transfer_id);
+    ELSE
+        -- The cheap path (private.transfer_apply_cheap) comes with 044.
+        RAISE EXCEPTION 'The cheap transfer path is not available before migration 044.' USING ERRCODE = 'feature_not_supported';
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_apply (UUID) FROM PUBLIC, anon, authenticated;
