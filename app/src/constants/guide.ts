@@ -59,7 +59,8 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('track_shipment', 'update', 'shipment'),
          task('close_incident', 'update', 'incident'),
          task('decide_cr', 'update', 'change_request'),
-         task('update_market', 'update', 'market_cell')
+         task('update_market', 'update', 'market_cell'),
+         task('edit_dashboard', 'read', 'tenant')
       ],
       related: ['ops-project', 'ops-purchase-order', 'ops-shipment', 'ops-incident', 'ops-market'],
       terms: ['(M)', 'SKU', 'S12', 'PI', 'S09', 'ETD', 'ETA', 'S15', 'OL'],

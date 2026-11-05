@@ -1,17 +1,25 @@
 import '../setup/mockMain';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
+import { useDashboardLayout } from '@/store/dashboardLayout';
+import DashboardBoxEditBar from '@/views/pages/dashboard/DashboardBoxEditBar.vue';
 import Index from '@/views/pages/dashboard/Index.vue';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
-import { reactive } from 'vue';
+import { reactive, ref, type Ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+const ui = vi.hoisted(() => ({ toast: vi.fn(), wideScreen: null as unknown as Ref<boolean> }));
+vi.mock('@vueuse/core', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@vueuse/core')>()),
+   useMediaQuery: () => ui.wideScreen
+}));
+vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: ui.toast }) }));
 vi.mock('@/composables/useDialogRef', async () => {
    const { ref } = await import('vue');
    return { useDialogRef: () => ref(null) };
@@ -65,6 +73,8 @@ const store = (userId: string, layout: unknown) =>
 
 beforeAll(() => i18n.setLocaleMessage('en', en));
 beforeEach(() => {
+   ui.wideScreen = ref(true);
+   ui.toast.mockClear();
    setActivePinia(createPinia());
    auth.value = reactive({ user: { id: 'u1' }, accessReady: () => Promise.resolve() });
    stored.clear();
@@ -137,4 +147,141 @@ it('says the role has no box only once the access is loaded', async () => {
    resolve();
    await flushPromises();
    expect(w.text()).toContain(i18n.t('dashboard.layout.no_boxes'));
+});
+
+const t = (key: string) => i18n.t(key);
+const button = (label: string) =>
+   [...document.body.querySelectorAll('button')].find((b) => b.textContent?.trim() === label) as
+      | HTMLButtonElement
+      | undefined;
+const click = async (el: Element | undefined) => {
+   expect(el).toBeDefined();
+   (el as HTMLElement).click();
+   await flushPromises();
+};
+const inBox = (w: VueWrapper, id: string) => w.get(`[data-box-id="${id}"]`);
+const byLabel = (w: VueWrapper, id: string, label: string) =>
+   inBox(w, id).get(`button[aria-label="${label}"]`).element;
+const menuItem = (w: VueWrapper, id: string, label: string) =>
+   inBox(w, id)
+      .findAll('[role="menuitem"]')
+      .find((i) => i.text() === label)!;
+const startEditing = async () => {
+   allow('project_gate', 'purchase_order');
+   const w = await mountDashboard();
+   await click(button(t('dashboard.layout.edit')));
+   return w;
+};
+
+it('opens the edit toolbar from Edit, and only from md up', async () => {
+   const w = await startEditing();
+   for (const label of [
+      'dashboard.layout.save',
+      'dashboard.layout.discard',
+      'dashboard.layout.reset'
+   ])
+      expect(button(t(label))).toBeDefined();
+   expect(w.findAllComponents(DashboardBoxEditBar)).toHaveLength(boxIds(w).length);
+   ui.wideScreen.value = false;
+   await flushPromises();
+   expect(button(t('dashboard.layout.edit'))).toBeUndefined();
+   expect(button(t('dashboard.layout.save'))).toBeUndefined();
+   expect(w.findAllComponents(DashboardBoxEditBar)).toHaveLength(0);
+});
+it('tells the boxes they are being edited, so their links are inert', async () => {
+   const w = await startEditing();
+   expect(
+      w.findAll('[data-test="box"]').every((b) => b.attributes('data-editing') === 'true')
+   ).toBe(true);
+   await click(button(t('dashboard.layout.discard')));
+   expect(
+      w.findAll('[data-test="box"]').every((b) => b.attributes('data-editing') === 'false')
+   ).toBe(true);
+});
+it('hides a box into the strip and brings it back at the end', async () => {
+   const w = await startEditing();
+   await click(byLabel(w, 'gates_team', t('dashboard.layout.hide')));
+   expect(boxIds(w)).not.toContain('gates_team');
+   await click(button(t('dashboard.ops.gates_team')));
+   expect(boxIds(w).at(-1)).toBe('gates_team');
+});
+it('switches a box to wide', async () => {
+   const w = await startEditing();
+   await click(
+      inBox(w, 'po_action')
+         .findAll('button')
+         .find((b) => b.text() === t('dashboard.layout.size_wide'))!.element
+   );
+   expect(inBox(w, 'po_action').classes()).toContain('md:col-span-2');
+   expect(inBox(w, 'po_action').get('[data-test="box"]').text()).toBe('po_action:wide');
+});
+it('moves a box with the menu, Move left disabled on the first box', async () => {
+   const w = await startEditing();
+   await click(byLabel(w, 'gates_management', t('dashboard.layout.menu')));
+   await click(
+      menuItem(w, 'gates_management', t('dashboard.layout.move_left')).get(
+         'a, .p-menu-item-content'
+      ).element
+   );
+   expect(boxIds(w).slice(0, 2)).toEqual(['gates_management', 'gates_team']);
+   await click(byLabel(w, 'gates_management', t('dashboard.layout.menu')));
+   expect(
+      menuItem(w, 'gates_management', t('dashboard.layout.move_left')).attributes('aria-disabled')
+   ).toBe('true');
+});
+it('saves the layout and keeps it after a remount', async () => {
+   const w = await startEditing();
+   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(button(t('dashboard.layout.save')));
+   expect(JSON.parse(stored.get('dashboard.layout.u1')!).hidden).toEqual(['po_action']);
+   expect(button(t('dashboard.layout.save'))).toBeUndefined();
+   w.unmount();
+   setActivePinia(createPinia());
+   expect(boxIds(await mountDashboard())).not.toContain('po_action');
+});
+it('discard reverts to the saved layout', async () => {
+   const w = await startEditing();
+   const before = boxIds(w);
+   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(button(t('dashboard.layout.discard')));
+   expect(boxIds(w)).toEqual(before);
+   expect(stored.size).toBe(0);
+});
+it('does not offer a box the user cannot see in the strip', async () => {
+   store('u1', { order: [], hidden: ['incidents_open'] });
+   const w = await startEditing();
+   expect(w.text()).toContain(t('dashboard.layout.hidden_empty'));
+   expect(button(t('dashboard.ops.incidents_open'))).toBeUndefined();
+});
+it('warns when the browser refuses to save', async () => {
+   const w = await startEditing();
+   vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => {
+         throw new Error('blocked');
+      },
+      removeItem: vi.fn()
+   });
+   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(button(t('dashboard.layout.save')));
+   expect(ui.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ severity: 'warn', summary: t('dashboard.layout.not_persisted') })
+   );
+   expect(boxIds(w)).not.toContain('po_action');
+});
+it('drops an unsaved draft when the dashboard is left or the screen gets narrow', async () => {
+   let w = await startEditing();
+   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   w.unmount();
+   expect(useDashboardLayout().editing).toBe(false);
+   expect(useDashboardLayout().layout.order).toContain('po_action');
+   w = await mountDashboard();
+   await click(button(t('dashboard.layout.edit')));
+   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   ui.wideScreen.value = false;
+   await flushPromises();
+   ui.wideScreen.value = true;
+   await flushPromises();
+   expect(boxIds(w)).toContain('po_action');
+   expect(stored.size).toBe(0);
 });

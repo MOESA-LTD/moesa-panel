@@ -56,3 +56,10 @@ it('points every "open all" route and guide task at something that exists', () =
    }
    expect(boxById('tasks_overdue').to).toBeUndefined();
 });
+it('the dashboard guide explains the edit mode to every role', () => {
+   expect(PAGE_GUIDES.dashboard.tasks.find((t) => t.id === 'edit_dashboard')).toEqual({
+      id: 'edit_dashboard',
+      steps: 3,
+      permission: { action: 'read', subject: 'tenant' }
+   });
+});
