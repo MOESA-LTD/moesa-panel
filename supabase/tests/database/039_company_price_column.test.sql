@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
--- The product's company price (040): the column is company_price_eur on the product and on the
+-- The product's company price (039): the column is company_price_eur on the product and on the
 -- product list view, moesa_price_eur is gone, the S10 import writes the new column, and no product
 -- change in the audit trail keeps the old key. What it writes is rolled back.
 BEGIN;
