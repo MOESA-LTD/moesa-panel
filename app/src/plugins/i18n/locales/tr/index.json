@@ -2209,6 +2209,8 @@
          },
          "run": "Aktar",
          "open": "Aktar…",
+         "open_count": "{count} ürünü aktar…",
+         "open_disabled_empty": "Önce ürün seçin.",
          "open_disabled_mixed": "Aktarmak için tek müşterinin ürünlerini seçin.",
          "result": {
             "done": "Aktarıldı: {count} kayıt.",

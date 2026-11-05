@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useRetryTransferFiles, type TransferRow } from '@/api/transfer';
-import { transferErrorText } from '@/views/pages/ops/transfer/useTransferWizard';
+import { transferErrorText, useRetryTransferFiles, type TransferRow } from '@/api/transfer';
 
 // The file status of a transfer (its files are copied after the run): pending, partly copied or
 // done, with a retry of the copy until every file is there.

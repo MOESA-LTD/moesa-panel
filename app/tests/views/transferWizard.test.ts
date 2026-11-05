@@ -2,6 +2,7 @@ import '../setup/mockMain';
 import {
    asIdMap,
    idMapCsv,
+   transferErrorText,
    type TransferOptions,
    type TransferReport,
    type TransferRow
@@ -13,7 +14,6 @@ import ReportStep from '@/views/pages/ops/transfer/ReportStep.vue';
 import ResultStep from '@/views/pages/ops/transfer/ResultStep.vue';
 import TargetStep from '@/views/pages/ops/transfer/TargetStep.vue';
 import {
-   transferErrorText,
    useTransferWizard,
    type TransferWizard
 } from '@/views/pages/ops/transfer/useTransferWizard';
@@ -607,11 +607,15 @@ describe('transfer wizard', () => {
    it('the product list offers Transfer only for one customer', async () => {
       setActivePinia(createPinia());
       ability.update([{ action: 'manage', subject: 'all' }]);
-      // The table is a stand-in: its toolbar and the selection it reports.
+      // The table is a stand-in: its toolbar, the selection it reports and the filters it holds.
       const Table = defineComponent({
          name: 'ResourceTable',
-         props: { selection: { type: Array, default: undefined }, selectionMode: String },
-         emits: ['update:selection'],
+         props: {
+            selection: { type: Array, default: undefined },
+            selectionMode: String,
+            filters: { type: Object, default: undefined }
+         },
+         emits: ['update:selection', 'update:filters'],
          setup:
             (_props, { slots }) =>
             () =>
@@ -625,7 +629,6 @@ describe('transfer wizard', () => {
                [VueQueryPlugin, { queryClient: new QueryClient() }],
                [abilitiesPlugin, ability, { useGlobalProperties: true }]
             ],
-            directives: { tooltip: {} },
             stubs: { ResourceTable: Table, CustomLink: true, teleport: true }
          }
       });
@@ -633,21 +636,33 @@ describe('transfer wizard', () => {
       expect(table.props('selectionMode')).toBe('multiple');
 
       const transfer = () => wrapper.find('[data-transfer] button');
-      expect(transfer().attributes('disabled')).toBeDefined();
+      // PrimeVue's tooltip keeps its value on the element it is bound to.
+      const hint = () =>
+         (wrapper.find('[data-transfer]').element as HTMLElement & { $_ptooltipValue?: unknown })
+            .$_ptooltipValue;
+      const select = async (rows: { id: string; customer_id: string }[]) => {
+         table.vm.$emit('update:selection', rows);
+         await nextTick();
+      };
 
-      table.vm.$emit('update:selection', [
+      // Nothing selected: disabled, and the hint asks for a selection, not for one customer.
+      expect(transfer().attributes('disabled')).toBeDefined();
+      expect(transfer().text()).toBe(en.ops.transfer.open);
+      expect(hint()).toBe(en.ops.transfer.open_disabled_empty);
+
+      await select([
          { id: 'a', customer_id: 'c1' },
          { id: 'b', customer_id: 'c2' }
       ]);
-      await nextTick();
       expect(transfer().attributes('disabled')).toBeDefined();
+      expect(hint()).toBe(en.ops.transfer.open_disabled_mixed);
 
-      table.vm.$emit('update:selection', [
+      await select([
          { id: 'a', customer_id: 'c1' },
          { id: 'b', customer_id: 'c1' }
       ]);
-      await nextTick();
       expect(transfer().attributes('disabled')).toBeUndefined();
+      expect(transfer().text()).toBe(en.ops.transfer.open_count.replace('{count}', '2'));
       await transfer().trigger('click');
       expect(api.push).toHaveBeenCalledWith(
          expect.objectContaining({
@@ -655,5 +670,25 @@ describe('transfer wizard', () => {
             query: expect.objectContaining({ customer_id: 'c1', product_ids: 'a,b' })
          })
       );
+      // The push clears the selection.
+      await flushPromises();
+      expect(table.props('selection')).toEqual([]);
+
+      // So does a change of the filters.
+      await select([{ id: 'a', customer_id: 'c1' }]);
+      expect(table.props('selection')).toHaveLength(1);
+      const filters = table.props('filters') as Record<
+         string,
+         { constraints: { value: unknown }[] }
+      >;
+      table.vm.$emit('update:filters', {
+         ...filters,
+         customer_id: {
+            ...filters.customer_id,
+            constraints: [{ value: 'c9', matchMode: 'equals' }]
+         }
+      });
+      await flushPromises();
+      expect(table.props('selection')).toEqual([]);
    });
 });

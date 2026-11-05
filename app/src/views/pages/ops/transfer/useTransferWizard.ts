@@ -7,10 +7,9 @@ import {
    type TransferDecisions,
    type TransferMode,
    type TransferReport,
-   type TransferRow
+   type TransferRow,
+   transferErrorText
 } from '@/api/transfer';
-import { NAMED_ERRORS } from '@/lib/form/postgrestErrors';
-import i18n from '@plugins/i18n';
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 
 export type TransferStep = 'target' | 'report' | 'result';
@@ -26,15 +25,6 @@ const stableStringify = (value: unknown): string =>
            )
          : item
    );
-
-/** The text of a failed rehearsal or run: a named transfer error by its message, else as is. */
-export const transferErrorText = (error: unknown): string => {
-   const { message } = (error ?? {}) as { message?: string };
-   const named = NAMED_ERRORS.find(({ name }) => message?.includes(name));
-   if (named) return i18n.t(named.message);
-   if (message && i18n.te(`errors.${message}`)) return i18n.t(`errors.${message}`);
-   return message || i18n.t('errors.unknown');
-};
 
 export type TransferWizardOptions = {
    sourceTenant: MaybeRefOrGetter<string | null>;

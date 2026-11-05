@@ -2209,6 +2209,8 @@
          },
          "run": "Transfer",
          "open": "Transfer…",
+         "open_count": "Transfer {count}…",
+         "open_disabled_empty": "Select products first.",
          "open_disabled_mixed": "Pick products of one customer to transfer them.",
          "result": {
             "done": "Transferred: {count} records.",

@@ -2220,7 +2220,9 @@
             "partial": "{count} file could not be copied. | {count} files could not be copied.",
             "retry": "Retry file copy",
             "notice": "Files of a transfer into this customer are missing."
-         }
+         },
+         "open_count": "Transfer {count}…",
+         "open_disabled_empty": "Select products first."
       }
    },
    "glossary": {

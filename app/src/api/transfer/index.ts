@@ -3,9 +3,11 @@ import { MEDIA_BUCKET } from '@/api/media';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { serializeCsv } from '@/lib/csv/serialize';
+import { NAMED_ERRORS } from '@/lib/form/postgrestErrors';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+import i18n from '@plugins/i18n';
 import * as z from 'zod';
 
 // --- types ---
@@ -150,6 +152,15 @@ export const asTransferReport = (json: Json): TransferReport => transferReportSc
  */
 export const transferRecordCount = (report: Pick<TransferReport, 'counts'>): number =>
    Object.values(report.counts).reduce((sum, count) => sum + count, 0);
+
+/** The text of a failed rehearsal, run or file copy: a named transfer error by its message, else as is. */
+export const transferErrorText = (error: unknown): string => {
+   const { message } = (error ?? {}) as { message?: string };
+   const named = NAMED_ERRORS.find(({ name }) => message?.includes(name));
+   if (named) return i18n.t(named.message);
+   if (message && i18n.te(`errors.${message}`)) return i18n.t(`errors.${message}`);
+   return message || i18n.t('errors.unknown');
+};
 
 // --- requests ---
 

@@ -177,15 +177,25 @@ const exportCsv = async () => {
 };
 
 // Transfer: the selected products, when they are all one customer's (a transfer moves or copies
-// products of one customer).
+// products of one customer). The selection is cleared once the dialog opens and whenever the
+// filters change (rows it holds may no longer be listed).
 const selected = ref<TableRow<'product_with_evidence'>[]>([]);
 const transferCustomer = computed(() => {
    const customers = new Set(selected.value.map(({ customer_id }) => customer_id));
    return customers.size === 1 ? [...customers][0] : null;
 });
-const openTransfer = () =>
-   transferCustomer.value &&
-   router.push({
+const transferHint = computed(() => {
+   if (!selected.value.length) return t('ops.transfer.open_disabled_empty');
+   return transferCustomer.value ? null : t('ops.transfer.open_disabled_mixed');
+});
+// By value: the customer filter is written again on mount with the same constraints.
+watch(
+   () => JSON.stringify(filters.value),
+   () => (selected.value = [])
+);
+const openTransfer = async () => {
+   if (!transferCustomer.value) return;
+   await router.push({
       name: 'ops-transfer',
       query: {
          customer_id: transferCustomer.value,
@@ -193,6 +203,8 @@ const openTransfer = () =>
          showDialog: DIALOG_POSITIONS.CENTER
       }
    });
+   selected.value = [];
+};
 
 const dialogRef = useDialogRef();
 </script>
@@ -214,15 +226,17 @@ const dialogRef = useDialogRef();
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
                <span
                   v-if="$can('create', 'transfer')"
-                  v-tooltip.bottom="
-                     transferCustomer ? null : $t('ops.transfer.open_disabled_mixed')
-                  "
+                  v-tooltip.bottom="transferHint"
                   data-transfer
                >
                   <Button
                      variant="outlined"
                      :icon="PrimeIcons.ARROW_RIGHT_ARROW_LEFT"
-                     :label="$t('ops.transfer.open')"
+                     :label="
+                        selected.length
+                           ? $t('ops.transfer.open_count', { count: selected.length })
+                           : $t('ops.transfer.open')
+                     "
                      :disabled="!transferCustomer"
                      @click="openTransfer"
                   />
