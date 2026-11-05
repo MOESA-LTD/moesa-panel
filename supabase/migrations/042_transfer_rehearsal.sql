@@ -88,14 +88,18 @@
 --                              with that row alone.
 --                            - users: the users of a registry user column who are neither in the
 --                              target's tenant_user nor owners of its company (Call 7).
---                            - left_behind, {table, source_id, column, label, refers_to}, through
+--                            - left_behind, {table, source_id, column, label, refers_to,
+--                              refers_to_id, refers_to_label}, through
 --                              every FK between registry tables (its first column; a table without
 --                              id is matched on its key columns) and every array of ids: a row that stays (outside the package; in a move also a
 --                              copy_only row) referring to a package row that is not copy_only;
 --                              and a package row referring to a row outside the package (a
 --                              nullable reference, cleared on the copy: market_cell.project_id, a
 --                              document FK column naming a document outside the package, ...).
---                              source_id is NULL for the three tables without id.
+--                              source_id is NULL for the three tables without id. refers_to is
+--                              the referred table, refers_to_id its row (the first key column of a
+--                              table without id), refers_to_label that row's label when it is a
+--                              package row (NULL for a row outside the package).
 --                            - settings_gaps: the source products the target company's
 --                              spec_sheet_required_from would hold back, without a signed spec
 --                              sheet in the package (Call 10).
@@ -1047,7 +1051,8 @@ BEGIN
 
         EXECUTE format(
             'SELECT coalesce(jsonb_agg(jsonb_build_object(''table'', %1$L, ''source_id'', %2$s, ''column'', %3$L, '
-            '''label'', private.transfer_label(%1$L, to_jsonb(x)), ''refers_to'', %4$L || '':'' || v.id)), ''[]'') '
+            '''label'', private.transfer_label(%1$L, to_jsonb(x)), ''refers_to'', %4$L, ''refers_to_id'', v.id::TEXT, '
+            '''refers_to_label'', private.transfer_label(%4$L, t.row))), ''[]'') '
             'FROM public.%1$I x CROSS JOIN LATERAL %5$s AS v (id) '
             'JOIN pg_temp.transfer_rows t ON t.table_name = %4$L AND %7$s AND NOT t.copy_only '
             'LEFT JOIN pg_temp.transfer_rows p ON p.table_name = %1$L AND %6$s '
@@ -1067,7 +1072,8 @@ BEGIN
         left_behind := left_behind || coalesce((
             SELECT jsonb_agg(jsonb_build_object(
                 'table', p.table_name, 'source_id', p.source_id, 'column', ref.col,
-                'label', private.transfer_label(p.table_name, p.row), 'refers_to', ref.to_table || ':' || v.id
+                'label', private.transfer_label(p.table_name, p.row), 'refers_to', ref.to_table, 'refers_to_id', v.id,
+                'refers_to_label', NULL
             ))
             FROM pg_temp.transfer_rows p
             CROSS JOIN LATERAL (
@@ -1091,7 +1097,8 @@ BEGIN
 
     left_behind := coalesce((
         SELECT jsonb_agg(
-            e ORDER BY g.position, e ->> 'label' COLLATE "C", e ->> 'source_id', e ->> 'column', e ->> 'refers_to'
+            e ORDER BY g.position, e ->> 'label' COLLATE "C", e ->> 'source_id', e ->> 'column', e ->> 'refers_to',
+                       e ->> 'refers_to_id'
         )
         FROM jsonb_array_elements(left_behind) e
         JOIN private.transfer_registry g ON g.table_name = e ->> 'table'

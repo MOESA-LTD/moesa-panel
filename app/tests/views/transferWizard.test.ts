@@ -358,7 +358,18 @@ describe('transfer wizard', () => {
                   source_id: 'l1',
                   column: 'product_id',
                   label: 'PO-1',
-                  refers_to: 'product'
+                  refers_to: 'product',
+                  refers_to_id: '56c0b450-5127-413d-ac05-1de0fedd0559',
+                  refers_to_label: 'SKU-1'
+               },
+               {
+                  table: 'market_cell',
+                  source_id: 'm1',
+                  column: 'project_id',
+                  label: 'amazon DE',
+                  refers_to: 'project',
+                  refers_to_id: '9a1b2c3d-0000-4000-8000-000000000001',
+                  refers_to_label: null
                }
             ]
          })
@@ -366,9 +377,12 @@ describe('transfer wizard', () => {
 
       expect(wizard.canRun.value).toBe(false);
       expect(wrapper.find('[data-move-blocked]').exists()).toBe(true);
-      expect(wrapper.find('[data-left-behind]').text()).toContain(
-         'Purchase order line PO-1: its Product refers to a Product outside the transfer'
-      );
+      const items = wrapper.findAll('[data-left-behind] li').map((item) => item.text());
+      // The referred row by its label, else by a short id; never the raw table:id.
+      expect(items).toEqual([
+         'Purchase order line PO-1: its Product refers to Product SKU-1, outside the transfer',
+         'Market cell amazon DE: its Project refers to Project 9a1b2c3d, outside the transfer'
+      ]);
       expect(wrapper.find('[data-run]').attributes('disabled')).toBeDefined();
    });
 

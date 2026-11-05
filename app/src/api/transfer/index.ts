@@ -75,14 +75,17 @@ export const transferReportSchema = z.object({
          rows: z.number()
       })
    ),
-   // A row referring across the package boundary; source_id is null for a table without id.
+   // A row referring across the package boundary; source_id is null for a table without id. The
+   // referred row: its table (refers_to), id, and label when it is a package row.
    left_behind: z.array(
       z.object({
          table: z.string(),
          source_id: z.string().nullable(),
          column: z.string(),
          label: z.string().nullable(),
-         refers_to: z.string()
+         refers_to: z.string(),
+         refers_to_id: z.string(),
+         refers_to_label: z.string().nullable()
       })
    ),
    // The products the target's settings would hold back (Call 10); rule 'spec_sheet_required'.

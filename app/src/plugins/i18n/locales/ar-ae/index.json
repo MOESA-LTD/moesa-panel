@@ -2148,7 +2148,7 @@
             "users": "Users who are not members of the target",
             "users_hint": "Their records are credited to you and their assignments are cleared.",
             "left_behind": "Links that stay in the source",
-            "left_behind_item": "{table} {label}: its {column} refers to a {refers_to} outside the transfer",
+            "left_behind_item": "{table} {label}: its {column} refers to {refers_to} {ref}, outside the transfer",
             "settings_gaps": "Missing under the target's settings",
             "spec_sheet_required": "{label}: the target requires a spec sheet",
             "files": "Files to copy: {count}"

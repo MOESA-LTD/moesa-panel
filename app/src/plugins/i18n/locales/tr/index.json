@@ -2148,7 +2148,7 @@
             "users": "Hedefte üye olmayan kullanıcılar",
             "users_hint": "Kayıtları size yazılır, atamaları boşaltılır.",
             "left_behind": "Kaynakta kalan bağlantılar",
-            "left_behind_item": "{table} {label}: {column} alanı aktarım dışındaki bir {refers_to} kaydına bağlı",
+            "left_behind_item": "{table} {label}: {column} alanı aktarım dışındaki {refers_to} {ref} kaydına bağlı",
             "settings_gaps": "Hedefin ayarlarına göre eksik kalacaklar",
             "spec_sheet_required": "{label}: hedef spec sheet istiyor",
             "files": "Kopyalanacak dosya: {count}"

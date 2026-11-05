@@ -382,8 +382,11 @@ SELECT throws_like(
     'a product in a project that stays is not moved'
 );
 SELECT ok(
-    current_setting('test.r')::JSONB -> 'left_behind' @> '[{"table": "project_product"}]',
-    'the rehearsal lists the project link left behind'
+    current_setting('test.r')::JSONB -> 'left_behind' @> jsonb_build_array(jsonb_build_object(
+        'table', 'project_product', 'column', 'product_id',
+        'refers_to', 'product', 'refers_to_id', current_setting('test.mop'), 'refers_to_label', 'THO-MOP40-2P'
+    )),
+    'the rehearsal lists the project link left behind, naming the table, id and label it refers to'
 );
 
 -- 40. The hash is stable.

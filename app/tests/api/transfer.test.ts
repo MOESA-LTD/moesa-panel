@@ -117,7 +117,9 @@ const report = {
          source_id: 'p',
          column: 'project_id',
          label: 'SKU1',
-         refers_to: 'project:q'
+         refers_to: 'project',
+         refers_to_id: 'q',
+         refers_to_label: null
       }
    ],
    settings_gaps: [

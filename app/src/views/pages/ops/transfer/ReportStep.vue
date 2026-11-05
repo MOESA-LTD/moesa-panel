@@ -129,7 +129,8 @@ const onRun = () =>
                      table: tableLabel(link.table),
                      label: link.label ?? link.source_id ?? '',
                      column: columnLabel(link.column),
-                     refers_to: tableLabel(link.refers_to)
+                     refers_to: tableLabel(link.refers_to),
+                     ref: link.refers_to_label ?? link.refers_to_id.slice(0, 8)
                   })
                }}
             </li>
