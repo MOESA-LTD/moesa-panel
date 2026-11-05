@@ -114,7 +114,7 @@ describe('incident enums', () => {
          'customer'
       ]);
       expect(INCIDENT_OUTCOMES).toEqual(['full_recovery', 'partial_recovery', 'loss']);
-      expect(COST_PAYERS).toEqual(['moesa', 'customer', 'supplier', 'carrier_insurance']);
+      expect(COST_PAYERS).toEqual(['company', 'customer', 'supplier', 'carrier_insurance']);
       expect(INCIDENT_DEADLINE_KINDS).toEqual([
          'supplier_damage',
          'carrier_claim',

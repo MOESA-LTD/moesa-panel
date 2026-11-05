@@ -55,7 +55,7 @@ const cr = computed(() => form.row.value ?? null);
 // --- status actions ---
 
 // No move while the form has unsaved edits: saved afterwards, they would overwrite what the move
-// set (MOESA's approval, the closing date).
+// set (the company's approval, the closing date).
 const { isDirty } = form;
 
 const { t } = useI18n();

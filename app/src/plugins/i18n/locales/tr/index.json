@@ -1606,7 +1606,7 @@
                "other": "Diğer"
             },
             "payer": {
-               "moesa": "MOESA",
+               "company": "Şirketiniz",
                "customer": "Müşteri"
             },
             "fields": {
@@ -1869,7 +1869,7 @@
             "OL-08": "Gümrükte bekletme, muayene, HS kodu itirazı, ek vergi",
             "OL-09": "Sevkiyat gecikmesi",
             "OL-10": "Üretilen mal zamanında çekilmedi",
-            "OL-11": "İletişim kopukluğu: forwarder, broker ve depo birbirini aramıyor, herkes MOESA'yı arıyor",
+            "OL-11": "İletişim kopukluğu: forwarder, broker ve depo birbirini aramıyor, herkes şirketinizi arıyor",
             "OL-12": "FBA gönderimi reddedildi veya yanlış gönderim planı",
             "OA-01": "Listing kaldırıldı: politika ihlali",
             "OA-02": "Belge talebi: GPSR güvenlik bilgisi, SDS, ürün güvenliği görselleri",
@@ -1933,7 +1933,7 @@
             "other": "Diğer"
          },
          "cost_payer": {
-            "moesa": "MOESA",
+            "company": "Şirketiniz",
             "customer": "Müşteri",
             "supplier": "Tedarikçi",
             "carrier_insurance": "Taşıyıcı-sigorta"
@@ -2023,7 +2023,7 @@
          "source": {
             "customer": "Müşteri",
             "supplier": "Tedarikçi",
-            "moesa": "MOESA",
+            "company": "Şirketiniz",
             "regulation": "Mevzuat-platform"
          },
          "urgency": {
@@ -2063,7 +2063,7 @@
             "quality_impact": "Kalite / uyum etkisi",
             "listing_impact": "Stok / listing etkisi",
             "decision_note": "Karar notu",
-            "moesa_approved": "MOESA onayı",
+            "company_approved": "Şirket onayı",
             "customer_approved_on": "Müşteri onay tarihi",
             "customer_approval_document": "Müşteri onay belgesi",
             "result_document": "Yeni sürüm",
@@ -2276,21 +2276,21 @@
          "other": "Diğer süre sınırları; tarihini girin."
       },
       "cost_payer": {
-         "moesa": "Maliyeti MOESA üstlenir.",
+         "company": "Maliyeti şirketiniz üstlenir.",
          "customer": "Müşteriye yansır; müşterinin yazılı onayı gerekir.",
          "supplier": "Tedarikçiye yansır.",
          "carrier_insurance": "Taşıyıcıdan ya da sigortadan talep edilir."
       },
       "change_request_status": {
          "open": "Kayıtlı; etki ve karar bekliyor.",
-         "approved": "MOESA onayladı (geçmiş [[(M)]] kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
+         "approved": "Şirketiniz onayladı (geçmiş [[(M)]] kapı etkileniyorsa müşteri de); henüz uygulanmadı.",
          "rejected": "Reddedildi; karar notu nedenini söyler.",
          "applied": "Uygulandı: etkilenen belge yeni sürümünü aldı."
       },
       "change_request_source": {
          "customer": "Müşteri istedi.",
          "supplier": "Tedarikçi istedi ya da yol açtı.",
-         "moesa": "MOESA öneriyor.",
+         "company": "Şirketiniz öneriyor.",
          "regulation": "Mevzuat ya da platform kuralı gerektiriyor."
       },
       "change_request_urgency": {
@@ -2431,7 +2431,7 @@
             }
          },
          "customer": {
-            "purpose": "MOESA'nın her müşterisi; sözleşme şartları, depoları, pazar yeri hesapları ve markalarıyla. Üstteki filtreden müşteri seçmek tüm operasyon listelerini o müşteriye daraltır.",
+            "purpose": "Şirketinizin her müşterisi; sözleşme şartları, depoları, pazar yeri hesapları ve markalarıyla. Üstteki filtreden müşteri seçmek tüm operasyon listelerini o müşteriye daraltır.",
             "tasks": {
                "add_customer": {
                   "title": "Müşteri ekle",
@@ -2460,7 +2460,7 @@
             }
          },
          "supplier": {
-            "purpose": "MOESA'nın satın aldığı tedarikçiler; şartları (Incoterm, depozito, hasar bildirimi) ve kişileriyle. Satın alma siparişleri varsayılanlarını buradan alır.",
+            "purpose": "Şirketinizin satın aldığı tedarikçiler; şartları (Incoterm, depozito, hasar bildirimi) ve kişileriyle. Satın alma siparişleri varsayılanlarını buradan alır.",
             "tasks": {
                "add_supplier": {
                   "title": "Tedarikçi ekle",
@@ -2762,7 +2762,7 @@
          },
          "process": {
             "title": "Süreç belgeleri",
-            "intro": "Panelin izlediği MOESA iş akışının yönerge (Y) ve şablon (S) belgeleri."
+            "intro": "Panelin izlediği iş akışının yönerge (Y) ve şablon (S) belgeleri."
          },
          "rules": {
             "title": "Panel kuralları",
@@ -2770,7 +2770,7 @@
          },
          "packages": {
             "title": "Hizmet paketleri",
-            "intro": "MOESA'nın sattığı hizmetler; projenin kapıları paketlerinden gelir."
+            "intro": "Şirketinizin sattığı hizmetler; projenin kapıları paketlerinden gelir."
          },
          "gates": {
             "title": "Kapı seti",
@@ -2815,7 +2815,7 @@
       },
       "S07": {
          "short": "Spec sheet: üreticinin üreteceği ürün için imzaladığı teknik föy.",
-         "long": "Formu MOESA değil üretici doldurur; resmî e-postadan, imzalı, kaşeli, sürüm numaralı ve tarihli gelmezse taslaktır. İmzalı spec sheet olmadan [[G2]] geçilmez, sipariş ve sevkiyat yapılmaz. Her değişiklik [[S08]] ile yeni sürüm ister; eski sürüm geçersiz olarak saklanır."
+         "long": "Formu şirketiniz değil üretici doldurur; resmî e-postadan, imzalı, kaşeli, sürüm numaralı ve tarihli gelmezse taslaktır. İmzalı spec sheet olmadan [[G2]] geçilmez, sipariş ve sevkiyat yapılmaz. Her değişiklik [[S08]] ile yeni sürüm ister; eski sürüm geçersiz olarak saklanır."
       },
       "S08": {
          "short": "Değişiklik talebi: onaylanmış hiçbir şey talep olmadan değişmez.",

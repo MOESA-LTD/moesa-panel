@@ -168,6 +168,8 @@ export type Database = {
           change_kinds: Database["public"]["Enums"]["change_kind"][]
           closed_on: string | null
           code: string | null
+          company_approved_by: string | null
+          company_approved_on: string | null
           cost_impact: string | null
           cost_payer: Database["public"]["Enums"]["cost_payer"] | null
           created_at: string
@@ -180,8 +182,6 @@ export type Database = {
           delay_days: number | null
           id: string
           listing_impact: string | null
-          moesa_approved_by: string | null
-          moesa_approved_on: string | null
           other_documents: string | null
           project_id: string | null
           quality_impact: string | null
@@ -201,6 +201,8 @@ export type Database = {
           change_kinds: Database["public"]["Enums"]["change_kind"][]
           closed_on?: string | null
           code?: string | null
+          company_approved_by?: string | null
+          company_approved_on?: string | null
           cost_impact?: string | null
           cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
           created_at?: string
@@ -213,8 +215,6 @@ export type Database = {
           delay_days?: number | null
           id?: string
           listing_impact?: string | null
-          moesa_approved_by?: string | null
-          moesa_approved_on?: string | null
           other_documents?: string | null
           project_id?: string | null
           quality_impact?: string | null
@@ -234,6 +234,8 @@ export type Database = {
           change_kinds?: Database["public"]["Enums"]["change_kind"][]
           closed_on?: string | null
           code?: string | null
+          company_approved_by?: string | null
+          company_approved_on?: string | null
           cost_impact?: string | null
           cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
           created_at?: string
@@ -246,8 +248,6 @@ export type Database = {
           delay_days?: number | null
           id?: string
           listing_impact?: string | null
-          moesa_approved_by?: string | null
-          moesa_approved_on?: string | null
           other_documents?: string | null
           project_id?: string | null
           quality_impact?: string | null
@@ -278,7 +278,7 @@ export type Database = {
           },
           {
             foreignKeyName: "change_request_approver_fkey"
-            columns: ["moesa_approved_by"]
+            columns: ["company_approved_by"]
             isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
@@ -4885,7 +4885,7 @@ export type Database = {
         | "deadline"
         | "supplier"
         | "content"
-      change_request_source: "customer" | "supplier" | "moesa" | "regulation"
+      change_request_source: "customer" | "supplier" | "company" | "regulation"
       change_request_status: "open" | "approved" | "rejected" | "applied"
       change_request_urgency: "normal" | "urgent"
       commercial_model:
@@ -4894,7 +4894,7 @@ export type Database = {
         | "operations_partner"
       compliance_status: "none" | "partial" | "complete"
       content_status: "none" | "en_master" | "translated" | "approved"
-      cost_payer: "moesa" | "customer" | "supplier" | "carrier_insurance"
+      cost_payer: "company" | "customer" | "supplier" | "carrier_insurance"
       customer_status: "lead" | "onboarding" | "active" | "paused" | "closed"
       document_entity:
         | "customer"
@@ -4982,7 +4982,7 @@ export type Database = {
       market_compliance: "green" | "yellow" | "red" | "pending"
       media_role: "primary_image" | "gallery" | "evidence_photo" | "attachment"
       payment_kind: "deposit" | "balance" | "other"
-      payment_payer: "moesa" | "customer"
+      payment_payer: "company" | "customer"
       platform_access: "authorized_user" | "none"
       product_status:
         | "concept"

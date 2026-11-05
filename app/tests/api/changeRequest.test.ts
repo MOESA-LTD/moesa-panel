@@ -85,7 +85,7 @@ beforeEach(() => {
 describe('change request enums', () => {
    it('lists every value in enum order', () => {
       expect(CHANGE_REQUEST_STATUSES).toEqual(['open', 'approved', 'rejected', 'applied']);
-      expect(CHANGE_REQUEST_SOURCES).toEqual(['customer', 'supplier', 'moesa', 'regulation']);
+      expect(CHANGE_REQUEST_SOURCES).toEqual(['customer', 'supplier', 'company', 'regulation']);
       expect(CHANGE_REQUEST_URGENCIES).toEqual(['normal', 'urgent']);
       expect(CHANGE_KINDS).toEqual([
          'spec',
@@ -170,7 +170,7 @@ describe('change request status flow', () => {
 const filled = {
    customer_id: C,
    title: 't',
-   source: 'moesa',
+   source: 'company',
    current_value: 'a',
    requested_value: 'b',
    reason: 'c'
@@ -234,8 +234,8 @@ describe('toChangeRequestPayload', () => {
          'status',
          'decision_due_on',
          'product_ids',
-         'moesa_approved_on',
-         'moesa_approved_by',
+         'company_approved_on',
+         'company_approved_by',
          'closed_on'
       ])
          expect(payload).not.toHaveProperty(key);
@@ -244,7 +244,7 @@ describe('toChangeRequestPayload', () => {
       const insert = toChangeRequestPayload(
          changeRequestSchema.parse({ ...values, ...filled, change_kinds: ['spec'] })
       );
-      expect(insert).toMatchObject({ customer_id: C, source: 'moesa' });
+      expect(insert).toMatchObject({ customer_id: C, source: 'company' });
       expect(insert).not.toHaveProperty('id');
       expect(insert).not.toHaveProperty('product_ids');
    });

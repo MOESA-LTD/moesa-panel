@@ -72,6 +72,8 @@ Müşteri portalı (M15, Faz 3) için gereken satır kısıtı, mevcut izin kata
 
 Kiracı ağacı (şubeler) MOESA'nın kendi ofisleri için kullanılabilir durur; müşteri için kullanılmaz. **Yönetim onayına sunulan karar** (bkz. §11 madde 1).
 
+İşleten şirket enum değerlerinde ve arayüz metninde adıyla değil `company` olarak anılır (`payment_payer`, `cost_payer`, `change_request_source`, `company_approved_*`); panel çok kiracılıdır, `moesa` yazılmaz (sahip kararı 2026-11-05).
+
 ### K2. Belge = bağlantı + sürüm + durum **[belgelerden + benim kararım]**
 
 Tek bir `document` tablosu her şeye bağlanır (ürün, proje, kapı, PO, sevkiyat, olay, müşteri, tedarikçi). Alanlar: tür (spec sheet, PI, PSI raporu, kapı onayı, CR, SDS, DoC, packing list, B/L, teslim tutanağı…), sürüm, tarih, durum (taslak / imzalı / onaylı / eski), Drive bağlantısı, dosya adı (06 §7.6 standardıyla otomatik üretilir), notlar. Supabase Storage'a yükleme Faz 2'de yalnızca kanıt türleri için açılır.

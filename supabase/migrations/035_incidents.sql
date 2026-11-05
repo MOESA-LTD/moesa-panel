@@ -190,7 +190,7 @@ CREATE TYPE public.incident_deadline_kind AS ENUM (
 );
 
 -- S17 D: who bears a cost (also used by change requests).
-CREATE TYPE public.cost_payer AS ENUM ('moesa', 'customer', 'supplier', 'carrier_insurance');
+CREATE TYPE public.cost_payer AS ENUM ('company', 'customer', 'supplier', 'carrier_insurance');
 
 -- Incidents
 CREATE TABLE IF NOT EXISTS public.incident (

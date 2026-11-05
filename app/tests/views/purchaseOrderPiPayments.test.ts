@@ -105,7 +105,7 @@ const payment = (kind: string, amount: number): PurchaseOrderPaymentRow =>
       currency: 'USD',
       planned_on: null,
       paid_on: null,
-      paid_by: 'moesa',
+      paid_by: 'company',
       notes: null,
       created_at: '2026-11-01T00:00:00Z'
    }) as unknown as PurchaseOrderPaymentRow;
@@ -336,7 +336,7 @@ describe('payments tab', () => {
             kind: 'deposit',
             amount: 600,
             currency: 'USD',
-            paid_by: 'moesa',
+            paid_by: 'company',
             planned_on: null,
             paid_on: null,
             notes: null
@@ -346,7 +346,7 @@ describe('payments tab', () => {
             kind: 'balance',
             amount: 1400,
             currency: 'USD',
-            paid_by: 'moesa',
+            paid_by: 'company',
             planned_on: null,
             paid_on: null,
             notes: null

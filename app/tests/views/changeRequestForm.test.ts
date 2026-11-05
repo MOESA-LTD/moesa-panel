@@ -139,8 +139,8 @@ const card = (values: Partial<ChangeRequestCard> = {}) =>
       customer_approval_document_id: null,
       decision_note: null,
       decision_due_on: '2026-11-11',
-      moesa_approved_on: null,
-      moesa_approved_by: null,
+      company_approved_on: null,
+      company_approved_by: null,
       closed_on: null,
       change_request_product: [],
       ...values

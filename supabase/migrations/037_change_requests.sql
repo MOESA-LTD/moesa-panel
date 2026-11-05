@@ -18,7 +18,7 @@
 --               (24 saat)"). Business days are Monday to Friday, with no holiday calendar
 --               (public.add_business_days); every date is UTC.
 -- Status flow   open → approved | rejected; approved → applied; rejected and applied are final.
---               Approving records MOESA's date and approver (moesa_approved_on, moesa_approved_by:
+--               Approving records the company's date and approver (company_approved_on, company_approved_by:
 --               today and the caller, whatever the client sends). When the request names a gate of its project that is already passed
 --               and needs the customer's approval, approving needs the customer's approval date and
 --               written approval (S08 §4): a signed or approved document of this request.
@@ -68,7 +68,7 @@
 CREATE TYPE public.change_request_status AS ENUM ('open', 'approved', 'rejected', 'applied');
 
 -- S08 A: who asked for the change.
-CREATE TYPE public.change_request_source AS ENUM ('customer', 'supplier', 'moesa', 'regulation');
+CREATE TYPE public.change_request_source AS ENUM ('customer', 'supplier', 'company', 'regulation');
 
 CREATE TYPE public.change_request_urgency AS ENUM ('normal', 'urgent');
 
@@ -103,10 +103,10 @@ CREATE TABLE IF NOT EXISTS public.change_request (
    delay_days INT CHECK (delay_days >= 0),
    quality_impact TEXT,
    listing_impact TEXT,
-   -- Decision (S08 E, F). moesa_approved_* and closed_on are set by the guard only.
+   -- Decision (S08 E, F). company_approved_* and closed_on are set by the guard only.
    decision_note TEXT,
-   moesa_approved_by UUID,
-   moesa_approved_on DATE,
+   company_approved_by UUID,
+   company_approved_on DATE,
    customer_approved_on DATE,
    customer_approval_document_id UUID,
    result_document_id UUID,
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS public.change_request (
    CONSTRAINT change_request_affected_document_fkey FOREIGN KEY (affected_document_id, tenant_id) REFERENCES public.document (id, tenant_id) ON DELETE RESTRICT,
    CONSTRAINT change_request_approval_document_fkey FOREIGN KEY (customer_approval_document_id, tenant_id) REFERENCES public.document (id, tenant_id) ON DELETE RESTRICT,
    CONSTRAINT change_request_result_document_fkey FOREIGN KEY (result_document_id, tenant_id) REFERENCES public.document (id, tenant_id) ON DELETE RESTRICT,
-   CONSTRAINT change_request_approver_fkey FOREIGN KEY (moesa_approved_by) REFERENCES public.user (id) ON DELETE SET NULL,
+   CONSTRAINT change_request_approver_fkey FOREIGN KEY (company_approved_by) REFERENCES public.user (id) ON DELETE SET NULL,
    CONSTRAINT change_request_kinds_required CHECK (cardinality(change_kinds) > 0)
 );
 
@@ -204,7 +204,7 @@ DECLARE
     affected_entity_id UUID;
 BEGIN
     -- 1. The code, the customer and when it was made are fixed; so is the customer's approval
-    --    once the request is approved and it is entered (it may still be entered after MOESA
+    --    once the request is approved and it is entered (it may still be entered after the company
     --    approves); and a closed (applied or rejected) request keeps its documents, project and
     --    gate.
     IF TG_OP = 'UPDATE' AND (
@@ -230,15 +230,15 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- Server-set: MOESA's approval and the closing date are set below on the transition that sets
+    -- Server-set: the company's approval and the closing date are set below on the transition that sets
     -- them; otherwise whatever the client sends is ignored.
     IF TG_OP = 'INSERT' THEN
-        NEW.moesa_approved_on := NULL;
-        NEW.moesa_approved_by := NULL;
+        NEW.company_approved_on := NULL;
+        NEW.company_approved_by := NULL;
         NEW.closed_on := NULL;
     ELSE
-        NEW.moesa_approved_on := OLD.moesa_approved_on;
-        NEW.moesa_approved_by := OLD.moesa_approved_by;
+        NEW.company_approved_on := OLD.company_approved_on;
+        NEW.company_approved_by := OLD.company_approved_by;
         NEW.closed_on := OLD.closed_on;
     END IF;
 
@@ -282,11 +282,11 @@ BEGIN
             RAISE EXCEPTION 'change_request_status_order' USING ERRCODE = 'check_violation';
         END IF;
 
-        -- 5. Approving: MOESA's date and approver; the customer's approval after a passed gate of
+        -- 5. Approving: the company's date and approver; the customer's approval after a passed gate of
         --    the project that needs it (S08 §4).
         IF NEW.status = 'approved' THEN
-            NEW.moesa_approved_on := (now() AT TIME ZONE 'UTC')::DATE;
-            NEW.moesa_approved_by := auth.uid();
+            NEW.company_approved_on := (now() AT TIME ZONE 'UTC')::DATE;
+            NEW.company_approved_by := auth.uid();
             IF NEW.project_id IS NOT NULL AND NEW.affected_gate_code IS NOT NULL
                AND EXISTS (
                    SELECT 1 FROM public.project_gate g

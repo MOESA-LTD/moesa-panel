@@ -56,7 +56,7 @@ export const CHANGE_REQUEST_STATUSES = allValues<ChangeRequestStatus>()([
 export const CHANGE_REQUEST_SOURCES = allValues<ChangeRequestSource>()([
    'customer',
    'supplier',
-   'moesa',
+   'company',
    'regulation'
 ]);
 
@@ -226,7 +226,7 @@ export const toChangeRequestFormValues = (
 
 /**
  * The row to save, empty fields as NULL. The code, the status (useSetChangeRequestStatus), the
- * decision date, MOESA's approval and the closing date are the database's; the customer never
+ * decision date, the company's approval and the closing date are the database's; the customer never
  * changes, so it goes with a new request only; the products are saved by
  * useSetChangeRequestProducts.
  */
