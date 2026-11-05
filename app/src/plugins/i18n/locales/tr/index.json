@@ -2203,7 +2203,8 @@
          "move_blocked": "Taşıma kaynakta bağlantı bırakamaz. Bu kayıtları da aktarın ya da kopyalayın.",
          "confirm": {
             "copy": "{count} kayıt {target} hedefine kopyalansın mı?",
-            "move": "{count} kayıt {target} hedefine taşınsın mı? Kaynaktan silinirler."
+            "move_copy": "{count} kayıt {target} hedefine taşınsın mı? Oraya kopyalanır ve kaynaktan silinirler.",
+            "move_in_place": "{count} kayıt {target} hedefine taşınsın mı? Kimliklerini korurlar ve kaynaktan çıkarlar."
          },
          "run": "Aktar",
          "open": "Aktar…",

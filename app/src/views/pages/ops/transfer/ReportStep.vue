@@ -56,10 +56,15 @@ const gapText = (gap: { rule: string; label: string | null; source_id: string })
 
 const back = () => (step.value = 'target');
 
+// A move in place keeps the rows (they change tenant); the copy path deletes them from the source.
+const confirmKey = computed(() =>
+   mode.value === 'copy' ? 'copy' : report.value?.path === 'cheap' ? 'move_in_place' : 'move_copy'
+);
+
 const onRun = () =>
    confirmAction({
       header: t('ops.transfer.run'),
-      message: t(`ops.transfer.confirm.${mode.value}`, {
+      message: t(`ops.transfer.confirm.${confirmKey.value}`, {
          count: total.value,
          target: targetOption.value?.display_name ?? ''
       }),

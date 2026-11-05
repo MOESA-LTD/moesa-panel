@@ -2203,7 +2203,8 @@
          "move_blocked": "A move cannot leave links in the source. Transfer these records too, or copy instead.",
          "confirm": {
             "copy": "Copy {count} records to {target}?",
-            "move": "Move {count} records to {target}? They are deleted from the source."
+            "move_copy": "Move {count} records to {target}? They are copied there and deleted from the source.",
+            "move_in_place": "Move {count} records to {target}? They keep their IDs and leave the source."
          },
          "run": "Transfer",
          "open": "Transfer…",

@@ -581,6 +581,29 @@ describe('transfer wizard', () => {
       expect(result.find('[data-done]').text()).toBe('Transferred: 4 records.');
    });
 
+   it('a move confirms deletion from the source only on the copy path', async () => {
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      wizard.mode.value = 'move';
+      api.run.mockResolvedValue({ id: 'tr1', id_map: {}, files_status: 'done', missing_files: [] });
+
+      await rehearseTo(report({ mode: 'move', path: 'cheap' }));
+      await wrapper.find('[data-run]').trigger('click');
+      await flushPromises();
+      wizard.step.value = 'report';
+      await rehearseTo(report({ mode: 'move', path: 'copy' }));
+      await wrapper.find('[data-run]').trigger('click');
+      await flushPromises();
+
+      expect(api.confirmed).toEqual([
+         en.ops.transfer.confirm.move_in_place
+            .replace('{count}', '3')
+            .replace('{target}', 'Branch'),
+         en.ops.transfer.confirm.move_copy.replace('{count}', '3').replace('{target}', 'Branch')
+      ]);
+      expect(api.confirmed[0]).not.toContain('deleted');
+   });
+
    it('the product list offers Transfer only for one customer', async () => {
       setActivePinia(createPinia());
       ability.update([{ action: 'manage', subject: 'all' }]);
