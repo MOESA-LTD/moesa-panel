@@ -16,6 +16,8 @@ const {
    report,
    stale,
    moveBlocked,
+   duplicateCodes,
+   error,
    canRehearse,
    canRun,
    rehearsing,
@@ -32,6 +34,12 @@ const { t, te } = useI18n();
 const confirmAction = useConfirmAction();
 
 const tableLabel = (table: string) => (te(`fields.${table}`) ? t(`fields.${table}`) : table);
+// A column by its field label; a foreign key (`product_id`) by its table's, else the raw name.
+const columnLabel = (column: string) => {
+   if (te(`fields.${column}`)) return t(`fields.${column}`);
+   const table = column.replace(/_id$/, '');
+   return table !== column && te(`fields.${table}`) ? t(`fields.${table}`) : column;
+};
 
 const counts = computed(() =>
    Object.entries(report.value?.counts ?? {}).filter(([, count]) => count > 0)
@@ -91,6 +99,7 @@ const onRun = () =>
                :conflict
                :decision="decisions[conflict.key] ?? null"
                :target
+               :duplicate="duplicateCodes.has(conflict.key)"
                @decide="decide(conflict.key, $event)"
             />
          </div>
@@ -105,7 +114,7 @@ const onRun = () =>
          <ul class="list-disc ps-5">
             <li v-for="user in report.users" :key="user.user_id">
                {{ user.display_name ?? user.user_id }}
-               ({{ user.columns.join(', ') }}: {{ user.rows }})
+               ({{ user.columns.map(columnLabel).join(', ') }}: {{ user.rows }})
             </li>
          </ul>
       </section>
@@ -118,7 +127,7 @@ const onRun = () =>
                   $t('ops.transfer.report.left_behind_item', {
                      table: tableLabel(link.table),
                      label: link.label ?? link.source_id ?? '',
-                     column: link.column,
+                     column: columnLabel(link.column),
                      refers_to: tableLabel(link.refers_to)
                   })
                }}
@@ -139,6 +148,8 @@ const onRun = () =>
       <p v-if="report.files" data-files>
          {{ $t('ops.transfer.report.files', { count: report.files }) }}
       </p>
+
+      <Message v-if="error" severity="error" size="small" data-run-error>{{ error }}</Message>
 
       <div class="flex flex-wrap justify-end gap-2">
          <Button

@@ -268,6 +268,8 @@ describe('transfer wizard', () => {
    it("run sends the last report's hash", async () => {
       const wrapper = await mountWizard();
       wizard.target.value = 'branch';
+      await rehearseTo(report({ report_hash: 'hash-1' }));
+      // Rehearsed again with nothing changed: the run must carry the newer hash.
       await rehearseTo(report({ report_hash: 'hash-7' }));
       api.run.mockResolvedValueOnce({ id: 'tr1' });
 
@@ -309,7 +311,9 @@ describe('transfer wizard', () => {
 
       expect(wizard.canRun.value).toBe(false);
       expect(wrapper.find('[data-move-blocked]').exists()).toBe(true);
-      expect(wrapper.find('[data-left-behind]').text()).toContain('product_id');
+      expect(wrapper.find('[data-left-behind]').text()).toContain(
+         'Purchase order line PO-1: its Product refers to a Product outside the transfer'
+      );
       expect(wrapper.find('[data-run]').attributes('disabled')).toBeDefined();
    });
 
@@ -325,5 +329,99 @@ describe('transfer wizard', () => {
       expect(lookup?.headers).toEqual({ 'x-tenant-id': 'branch', 'x-tenant-ids': 'branch' });
       expect(lookup?.in).toEqual([['tenant_id', ['branch']]]);
       expect(api.forTenant).toContain('branch');
+   });
+   it('blocks the run while two conflicts of one table get the same new code', async () => {
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      const supplier = (id: string) => ({
+         ...customerCode,
+         key: `supplier:${id}`,
+         kind: 'supplier_code' as const,
+         table: 'supplier',
+         source_id: id,
+         label: id,
+         existing_id: null
+      });
+      wizard.decide('supplier:s1', { action: 'new_code', code: 'AB1' });
+      wizard.decide('supplier:s2', { action: 'new_code', code: 'AB1' });
+      // The rehearsal checks each decision alone, so it reports them resolved.
+      await rehearseTo(report({ conflicts: [supplier('s1'), supplier('s2')], unresolved: 0 }));
+
+      expect(wizard.duplicateCodes.value).toEqual(new Set(['supplier:s1', 'supplier:s2']));
+      expect(wizard.canRun.value).toBe(false);
+      for (const key of ['supplier:s1', 'supplier:s2']) {
+         const row = wrapper.find(`[data-conflict="${key}"]`);
+         expect(row.find('[data-code]').attributes('aria-invalid')).toBe('true');
+         expect(row.find('[data-code-reason]').text()).toBe(
+            en.ops.transfer.conflict.duplicate_code
+         );
+      }
+
+      wizard.decide('supplier:s2', { action: 'new_code', code: 'AB2' });
+      await rehearseTo(report({ conflicts: [supplier('s1'), supplier('s2')], unresolved: 0 }));
+      expect(wizard.duplicateCodes.value.size).toBe(0);
+      expect(wizard.canRun.value).toBe(true);
+   });
+
+   it('says why a typed code taken in the target stays unresolved', async () => {
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      await rehearseTo(report({ conflicts: [customerCode], unresolved: 1 }));
+
+      // The stand-in lookup holds the target's customer ABC.
+      wizard.decide('customer:c1', { action: 'new_code', code: 'ABC' });
+      await flushPromises();
+
+      const row = wrapper.find('[data-conflict="customer:c1"]');
+      expect(row.find('[data-code]').attributes('aria-invalid')).toBe('true');
+      expect(row.find('[data-code-reason]').text()).toBe(en.ops.transfer.conflict.code_taken);
+
+      wizard.decide('customer:c1', { action: 'new_code', code: 'XYZ' });
+      await flushPromises();
+      expect(row.find('[data-code-reason]').exists()).toBe(false);
+   });
+
+   it('shows a failed rehearsal or run in the dialog', async () => {
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      const refused = { code: 'P0001', message: 'transfer_code_invalid' };
+
+      api.rehearse.mockRejectedValueOnce(refused);
+      await expect(wizard.rehearse()).rejects.toBe(refused);
+      await nextTick();
+      expect(wrapper.find('[data-error]').text()).toBe(en.errors.transfer_code_invalid);
+
+      await rehearseTo(report());
+      expect(wizard.error.value).toBeNull();
+
+      api.run.mockRejectedValueOnce({ code: 'P0001', message: 'transfer_report_stale' });
+      await expect(wizard.run()).rejects.toBeDefined();
+      await nextTick();
+      expect(wrapper.find('[data-run-error]').text()).toBe(en.errors.transfer_report_stale);
+   });
+
+   it('does not read a decision set again in another order as a change', async () => {
+      await mountWizard();
+      wizard.target.value = 'branch';
+      wizard.decide('customer:c1', { action: 'map', target_id: 'tc1' });
+      wizard.decide('project:p1', { action: 'skip' });
+      await rehearseTo(report({ conflicts: [customerCode, projectCode] }));
+
+      wizard.decide('customer:c1', null);
+      wizard.decide('customer:c1', { target_id: 'tc1', action: 'map' });
+      expect(wizard.stale.value).toBe(false);
+   });
+
+   it("labels the users' columns", async () => {
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      await rehearseTo(
+         report({
+            users: [
+               { user_id: 'u1', display_name: 'Ayşe', columns: ['user_id', 'odd_col'], rows: 2 }
+            ]
+         })
+      );
+      expect(wrapper.find('[data-users] li').text()).toBe('Ayşe (User, odd_col: 2)');
    });
 });

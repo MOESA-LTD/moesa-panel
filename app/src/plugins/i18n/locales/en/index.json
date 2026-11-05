@@ -2180,7 +2180,10 @@
             "platform_account": "The customer in the target already has an account on {code}",
             "market_cell": "The product in the target already has the market cell {code}",
             "media_link": "{code} already has a primary image in the target",
-            "unknown": "{code} conflicts with a record in the target"
+            "unknown": "{code} conflicts with a record in the target",
+            "duplicate_code": "Another conflict of this table is given the same code.",
+            "code_taken": "This code is taken in the target.",
+            "code_format": "The code has the wrong format."
          },
          "action": {
             "map": "Link to the target's record",

@@ -13,6 +13,8 @@ const props = defineProps<{
    conflict: TransferConflict;
    decision: TransferDecision | null;
    target: string;
+   /** Another code conflict of this table is given the same new code (the run refuses it). */
+   duplicate?: boolean;
 }>();
 const emit = defineEmits<{ decide: [decision: TransferDecision | null] }>();
 
@@ -60,8 +62,11 @@ const action = computed({
    }
 });
 
-// The target's rows of the conflict's table, for a code kind's map only.
-const lookupEnabled = computed(() => typedCode.value && action.value === 'map');
+// The target's rows of the conflict's table, for a code kind: the rows to map to, and the codes a
+// new code must not take.
+const lookupEnabled = computed(
+   () => typedCode.value && (action.value === 'map' || action.value === 'new_code')
+);
 const { data: rows, isLoading: rowsLoading } = useLookup<{
    id: string;
    code: string;
@@ -94,7 +99,16 @@ const code = computed({
    set: (value: string) =>
       emit('decide', { action: 'new_code', ...(value ? { code: value.toUpperCase() } : {}) })
 });
-const codeInvalid = computed(() => !!code.value && !codePattern.value.test(code.value));
+// Why a typed code cannot be used: the rehearsal leaves such a conflict unresolved (format,
+// taken), or the run refuses it (the same code twice in one table).
+const codeReason = computed(() => {
+   if (!code.value) return null;
+   if (!codePattern.value.test(code.value)) return t('ops.transfer.conflict.code_format');
+   if ((rows.value ?? []).some((row) => row.code === code.value))
+      return t('ops.transfer.conflict.code_taken');
+   if (props.duplicate) return t('ops.transfer.conflict.duplicate_code');
+   return null;
+});
 
 const message = computed(() =>
    t(`ops.transfer.conflict.${props.conflict.kind}`, {
@@ -151,9 +165,10 @@ const message = computed(() =>
                v-model="code"
                :placeholder="$t('ops.transfer.decision.code')"
                :aria-label="$t('ops.transfer.decision.code')"
-               :invalid="codeInvalid"
+               :invalid="!!codeReason"
                data-code
             />
+            <small v-if="codeReason" class="text-red-500" data-code-reason>{{ codeReason }}</small>
          </span>
 
          <small

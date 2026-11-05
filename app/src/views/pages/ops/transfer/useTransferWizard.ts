@@ -9,9 +9,32 @@ import {
    type TransferReport,
    type TransferRow
 } from '@/api/transfer';
+import { NAMED_ERRORS } from '@/lib/form/postgrestErrors';
+import i18n from '@plugins/i18n';
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 
 export type TransferStep = 'target' | 'report' | 'result';
+
+/** JSON with every object's keys sorted, so the same decisions read the same in any order. */
+const stableStringify = (value: unknown): string =>
+   JSON.stringify(value, (_key, item: unknown) =>
+      item && typeof item === 'object' && !Array.isArray(item)
+         ? Object.fromEntries(
+              Object.entries(item as Record<string, unknown>).sort(([a], [b]) =>
+                 a < b ? -1 : a > b ? 1 : 0
+              )
+           )
+         : item
+   );
+
+/** The text of a failed rehearsal or run: a named transfer error by its message, else as is. */
+export const transferErrorText = (error: unknown): string => {
+   const { message } = (error ?? {}) as { message?: string };
+   const named = NAMED_ERRORS.find(({ name }) => message?.includes(name));
+   if (named) return i18n.t(named.message);
+   if (message && i18n.te(`errors.${message}`)) return i18n.t(`errors.${message}`);
+   return message || i18n.t('errors.unknown');
+};
 
 export type TransferWizardOptions = {
    sourceTenant: MaybeRefOrGetter<string | null>;
@@ -39,7 +62,9 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
    const transfer = ref<TransferRow | null>(null);
 
    const snapshot = () =>
-      JSON.stringify({ target: target.value, mode: mode.value, decisions: decisions.value });
+      stableStringify({ target: target.value, mode: mode.value, decisions: decisions.value });
+   /** The text of the last failed rehearsal or run; cleared by the next attempt. */
+   const error = ref<string | null>(null);
    /** What the last rehearsal was asked with; null before one. */
    const rehearsedWith = ref<string | null>(null);
 
@@ -64,6 +89,7 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
          decisions.value = {};
          report.value = null;
          rehearsedWith.value = null;
+         error.value = null;
          if (step.value === 'report') step.value = 'target';
       },
       { flush: 'sync' }
@@ -75,6 +101,22 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
    const moveBlocked = computed(
       () => mode.value === 'move' && !!report.value && report.value.left_behind.length > 0
    );
+
+   /**
+    * The code conflicts given the same new code as another of their table. The rehearsal checks
+    * each decision alone, so it reports them resolved; the run refuses them (transfer_code_invalid).
+    */
+   const duplicateCodes = computed(() => {
+      const byCode = new Map<string, string[]>();
+      for (const { key, kind, table } of report.value?.conflicts ?? []) {
+         if (kind !== 'customer_code' && kind !== 'supplier_code') continue;
+         const decision = decisions.value[key];
+         if (decision?.action !== 'new_code' || !decision.code) continue;
+         const group = `${table}:${decision.code}`;
+         byCode.set(group, [...(byCode.get(group) ?? []), key]);
+      }
+      return new Set([...byCode.values()].filter((keys) => keys.length > 1).flat());
+   });
 
    const canRehearse = computed(
       () =>
@@ -92,6 +134,7 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
          report.value.unresolved === 0 &&
          !stale.value &&
          !moveBlocked.value &&
+         duplicateCodes.value.size === 0 &&
          !rehearsing.value &&
          !running.value
    );
@@ -115,7 +158,15 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
    const rehearse = async () => {
       if (!canRehearse.value) return;
       const asked = snapshot();
-      const result = await rehearseTransfer(args());
+      error.value = null;
+      let result: TransferReport;
+      try {
+         result = await rehearseTransfer(args());
+      } catch (failure) {
+         // Shown in the dialog; rethrown for the app's error toast.
+         error.value = transferErrorText(failure);
+         throw failure;
+      }
       report.value = result;
       rehearsedWith.value = asked;
       step.value = 'report';
@@ -123,7 +174,14 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
 
    const run = async () => {
       if (!canRun.value || !report.value) throw new Error('The transfer is not ready to run');
-      const row = await runTransfer({ args: args(), reportHash: report.value.report_hash });
+      error.value = null;
+      let row: TransferRow;
+      try {
+         row = await runTransfer({ args: args(), reportHash: report.value.report_hash });
+      } catch (failure) {
+         error.value = transferErrorText(failure);
+         throw failure;
+      }
       transfer.value = row;
       step.value = 'result';
       return row;
@@ -142,6 +200,8 @@ export function useTransferWizard({ sourceTenant, customerId, productIds }: Tran
       transfer,
       stale,
       moveBlocked,
+      duplicateCodes,
+      error,
       canRehearse,
       canRun,
       rehearsing,

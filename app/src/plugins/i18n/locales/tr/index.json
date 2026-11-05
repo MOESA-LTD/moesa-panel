@@ -2180,7 +2180,10 @@
             "platform_account": "Hedefteki müşterinin {code} üzerinde zaten hesabı var",
             "market_cell": "Hedefteki üründe {code} pazar hücresi zaten var",
             "media_link": "{code} hedefte zaten bir ana görsele sahip",
-            "unknown": "{code} hedefteki bir kayıtla çakışıyor"
+            "unknown": "{code} hedefteki bir kayıtla çakışıyor",
+            "duplicate_code": "Bu tablodaki başka bir çakışmaya da aynı kod verildi.",
+            "code_taken": "Bu kod hedefte kullanılıyor.",
+            "code_format": "Kodun biçimi hatalı."
          },
          "action": {
             "map": "Hedefteki kayda bağla",

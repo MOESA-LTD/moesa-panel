@@ -5,8 +5,18 @@ import type { TransferWizard } from './useTransferWizard';
 // The first step: where to, and whether the source keeps its rows. A refused target (read-only,
 // another plan, not the caller's to write) is listed with its reason but cannot be picked.
 const props = defineProps<{ wizard: TransferWizard }>();
-const { options, optionsLoading, sourceWritable, target, mode, canRehearse, rehearsing, rehearse } =
-   props.wizard;
+const {
+   options,
+   optionsLoading,
+   sourceWritable,
+   target,
+   mode,
+   canRehearse,
+   rehearsing,
+   rehearse,
+   error,
+   step
+} = props.wizard;
 
 const { t } = useI18n();
 
@@ -80,6 +90,10 @@ const modeOptions = computed(() =>
             {{ $t('ops.transfer.mode.move_read_only') }}
          </Message>
       </div>
+
+      <Message v-if="error && step === 'target'" severity="error" size="small" data-error>
+         {{ error }}
+      </Message>
 
       <div class="flex justify-end">
          <Button
