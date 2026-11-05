@@ -287,6 +287,7 @@
       "transfer_code_invalid": "The new code has the wrong format or is taken in the target.",
       "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer.",
       "transfer_not_found": "Transfer not found.",
+      "transfer_files_pending": "The files of an earlier transfer into this customer are not all copied yet. Finish that transfer first: \"Retry file copy\" on the customer's page.",
       "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
       "avatar_size": "The photo must be at most 1 MB.",
       "access_denied": "Access denied",

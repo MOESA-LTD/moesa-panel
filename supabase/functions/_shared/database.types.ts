@@ -5018,6 +5018,7 @@ export type Database = {
       transfer_options: {
         Args: {
           source_tenant: string
+          customer_id?: string
         }
         Returns: Json
       }

@@ -5,11 +5,13 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- roots the caller owns, read-only for an owner, owner required for a member); a file missing from
 -- Storage leaves the transfer partial, and that check cannot be reverted from the log; once every
 -- file is in, the transfer is done; a user who neither started the transfer nor may transfer does
--- not find it; both functions are SECURITY DEFINER with an empty search_path. What it writes is
--- rolled back.
+-- not find it; both functions are SECURITY DEFINER with an empty search_path. A customer an
+-- earlier transfer is still copying files into is refused (transfer_files_pending), in the options
+-- given that customer and in the rehearsal; so is a package file such a transfer has not copied
+-- yet. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(10);
+SELECT plan(14);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -127,7 +129,63 @@ SELECT throws_like(
 );
 RESET ROLE;
 
--- 10. Both run as their owner, with an empty search_path; authenticated may call them, anon may not.
+-- 10–11. A transfer into MOESA's THO whose files are still pending: THO is not transferred again.
+INSERT INTO public.transfer (id, tenant_id, source_tenant_id, customer_id, target_customer_id, mode, path, started_by, report, files, files_status)
+VALUES (
+    '00000000-0000-4000-8000-000000045011', current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID,
+    gen_random_uuid(), current_setting('test.tho')::UUID, 'copy', 'copy', current_setting('test.akif')::UUID, '{}', '[]', 'pending'
+);
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT ok(
+    public.transfer_options(current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID) -> 'targets'
+        @> jsonb_build_array(jsonb_build_object('id', current_setting('test.europe'), 'refusal', 'transfer_files_pending'))
+    AND public.transfer_options(current_setting('test.moesa')::UUID) -> 'targets'
+        @> jsonb_build_array(jsonb_build_object('id', current_setting('test.europe'), 'refusal', NULL)),
+    'given the customer, the options refuse it while files are pending'
+);
+SELECT throws_like(
+    $$ SELECT public.transfer_customer(current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID, current_setting('test.tho')::UUID, 'copy') $$,
+    '%transfer_files_pending%',
+    'and so does the rehearsal'
+);
+RESET ROLE;
+
+-- 12–13. That transfer done, but another one (into some other customer) still has to copy a file
+-- of a THO media row: a missing one blocks THO, a copied one does not.
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+INSERT INTO storage.objects (bucket_id, name, metadata)
+VALUES ('media', current_setting('test.moesa') || '/00000000-0000-4000-8000-000000045012/z.png', '{"mimetype": "image/png", "size": 1000}'::JSONB);
+INSERT INTO public.media (id, tenant_id, customer_id, storage_path, file_name, mime_type, size_bytes)
+VALUES ('00000000-0000-4000-8000-000000045012', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
+        current_setting('test.moesa') || '/00000000-0000-4000-8000-000000045012/z.png', 'z.png', 'image/png', 1000);
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+UPDATE public.transfer SET files_status = 'done' WHERE id = '00000000-0000-4000-8000-000000045011';
+INSERT INTO public.transfer (id, tenant_id, source_tenant_id, customer_id, target_customer_id, mode, path, started_by, report, files, files_status, missing_files)
+VALUES (
+    '00000000-0000-4000-8000-000000045013', current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID,
+    gen_random_uuid(), gen_random_uuid(), 'copy', 'copy', current_setting('test.akif')::UUID, '{}',
+    jsonb_build_array(jsonb_build_object(
+        'media_id', '00000000-0000-4000-8000-000000045012', 'from', 'x', 'keep_source', FALSE,
+        'to', current_setting('test.moesa') || '/00000000-0000-4000-8000-000000045012/z.png'
+    )),
+    'partial', ARRAY[current_setting('test.moesa') || '/00000000-0000-4000-8000-000000045012/z.png']
+);
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_like(
+    $$ SELECT public.transfer_customer(current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID, current_setting('test.tho')::UUID, 'copy') $$,
+    '%transfer_files_pending%',
+    'a package file another transfer has not copied yet is refused'
+);
+RESET ROLE;
+UPDATE public.transfer SET missing_files = '{}' WHERE id = '00000000-0000-4000-8000-000000045013';
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT lives_ok(
+    $$ SELECT public.transfer_customer(current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID, current_setting('test.tho')::UUID, 'copy') $$,
+    'a package file a partial transfer did copy is not'
+);
+RESET ROLE;
+
+-- 14. Both run as their owner, with an empty search_path; authenticated may call them, anon may not.
 SELECT is(
     ARRAY(
         SELECT p.proname::TEXT FROM pg_proc p

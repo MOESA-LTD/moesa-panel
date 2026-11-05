@@ -5,8 +5,10 @@
 --                              refusal}]}. The targets are the tenants the caller belongs to
 --                              (tenant_user) or owns (private.owned_tenants), without the source,
 --                              ordered by display_name. refusal is private.transfer_refusal(source,
---                              target, 'copy') (042: owner of both companies, then target
---                              read-only, then plan, then permissions), NULL when the copy is
+--                              target, 'copy', customer_id) (042: owner of both companies, then
+--                              target read-only, then plan, then permissions, then, given the
+--                              customer, an earlier transfer into it whose files are not all copied
+--                              yet: transfer_files_pending), NULL when the copy is
 --                              allowed; a move is refused on top of it when source_writable is
 --                              FALSE. A source the caller neither belongs to nor owns gives
 --                              {source_writable: FALSE, targets: []}: nothing about a tenant the
@@ -28,7 +30,7 @@
 --                              after any other write.
 
 -- The candidate targets (see the header).
-CREATE OR REPLACE FUNCTION public.transfer_options (source_tenant UUID) RETURNS JSONB LANGUAGE plpgsql STABLE SECURITY DEFINER
+CREATE OR REPLACE FUNCTION public.transfer_options (source_tenant UUID, customer_id UUID DEFAULT NULL) RETURNS JSONB LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
 DECLARE
@@ -56,7 +58,7 @@ BEGIN
                     'id', t.id,
                     'display_name', t.display_name,
                     'same_company', e.company_id IS NOT DISTINCT FROM source_e.company_id,
-                    'refusal', private.transfer_refusal(source_tenant, t.id, 'copy')
+                    'refusal', private.transfer_refusal(source_tenant, t.id, 'copy', transfer_options.customer_id)
                 )
                 ORDER BY t.display_name, t.id
             )
@@ -68,9 +70,9 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.transfer_options (UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.transfer_options (UUID, UUID) FROM PUBLIC, anon;
 
-GRANT EXECUTE ON FUNCTION public.transfer_options (UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.transfer_options (UUID, UUID) TO authenticated;
 
 -- The file check (see the header).
 CREATE OR REPLACE FUNCTION public.transfer_check_files (transfer_id UUID) RETURNS public.transfer LANGUAGE plpgsql SECURITY DEFINER

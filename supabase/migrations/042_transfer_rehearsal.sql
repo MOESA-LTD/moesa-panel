@@ -8,7 +8,11 @@
 --                            module; the permissions (public.transfer insert in both tenants, select
 --                            on every registry table in the source, insert on every registry table
 --                            in the target that has an insert permission); a move out of a
---                            read-only source (a read-only source may still be copied from).
+--                            read-only source (a read-only source may still be copied from);
+--                            given a customer, an earlier transfer into it whose files are not
+--                            all copied yet (files_status pending or partial): its media rows
+--                            name files that may not be there, so it is not transferred again
+--                            until that transfer is done (transfer_files_pending).
 -- private.transfer_collect   Fills pg_temp.transfer_rows and transfer_edges (dropped at commit) with the package: the
 --                            rows of the source a transfer carries, walked in registry order.
 --                            source_id is the row's id; the three tables without one keep their
@@ -114,8 +118,11 @@
 --                            transfer_decision_required
 --                            while a conflict is unresolved.
 -- public.transfer_customer   The entry point (SECURITY DEFINER: a transfer reads and writes past
---                            the caller's RLS once the checks above have passed). It refuses,
---                            locks the customer, checks the products, collects, checks the gates
+--                            the caller's RLS once the checks above have passed). It refuses
+--                            (transfer_files_pending 409, the other refusals 400/403), locks the
+--                            customer, checks the products, collects, refuses a package file an
+--                            earlier transfer into the source has not copied yet (pending, or
+--                            missing in a partial one: transfer_files_pending), checks the gates
 --                            and builds the report; a dry run returns it. A real run first locks
 --                            every collected row with an id FOR UPDATE (private.transfer_lock_rows,
 --                            held until commit), collects again and locks what that adds: an edit
@@ -131,7 +138,12 @@
 --                            flag and returns the transfer row.
 
 -- The first refusal, or NULL (see the header).
-CREATE OR REPLACE FUNCTION private.transfer_refusal (source_tenant UUID, target_tenant UUID, mode TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER
+CREATE OR REPLACE FUNCTION private.transfer_refusal (
+   source_tenant UUID,
+   target_tenant UUID,
+   mode TEXT,
+   customer_id UUID DEFAULT NULL
+) RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
 DECLARE
@@ -196,11 +208,19 @@ BEGIN
         RETURN 'transfer_source_read_only';
     END IF;
 
+    IF EXISTS (
+        SELECT 1 FROM public.transfer t
+        WHERE t.tenant_id = source_tenant AND t.target_customer_id = transfer_refusal.customer_id
+          AND t.files_status <> 'done'
+    ) THEN
+        RETURN 'transfer_files_pending';
+    END IF;
+
     RETURN NULL;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION private.transfer_refusal (UUID, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.transfer_refusal (UUID, UUID, TEXT, UUID) FROM PUBLIC, anon, authenticated;
 
 -- The package into pg_temp.transfer_rows (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_collect (source_tenant UUID, customer_id UUID, product_ids UUID[]) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
@@ -1233,14 +1253,16 @@ CREATE OR REPLACE FUNCTION public.transfer_customer (
 SET
    search_path = '' AS $$
 DECLARE
-    refusal TEXT := private.transfer_refusal(source_tenant, target_tenant, transfer_customer.mode);
+    refusal TEXT := private.transfer_refusal(source_tenant, target_tenant, transfer_customer.mode, transfer_customer.customer_id);
     report JSONB;
     new_id UUID;
     result JSONB;
 BEGIN
     IF refusal IS NOT NULL THEN
         PERFORM private.transfer_raise(
-            refusal, CASE WHEN refusal IN ('transfer_invalid_mode', 'transfer_same_tenant') THEN 400 ELSE 403 END
+            refusal, CASE WHEN refusal IN ('transfer_invalid_mode', 'transfer_same_tenant') THEN 400
+                          WHEN refusal = 'transfer_files_pending' THEN 409
+                          ELSE 403 END
         );
     END IF;
 
@@ -1273,6 +1295,19 @@ BEGIN
         PERFORM private.transfer_lock_rows();
         PERFORM private.transfer_collect(source_tenant, transfer_customer.customer_id, transfer_customer.product_ids);
         PERFORM private.transfer_lock_rows();
+    END IF;
+
+    -- A package file that an earlier transfer into the source has not copied yet (one moved in
+    -- with another customer, or shared): transfer_files_pending, as for the customer above.
+    IF EXISTS (
+        SELECT 1
+        FROM public.transfer t
+        CROSS JOIN LATERAL jsonb_array_elements(t.files) f
+        JOIN pg_temp.transfer_rows r ON r.table_name = 'media' AND r.source_id::TEXT = f ->> 'media_id'
+        WHERE t.tenant_id = source_tenant AND t.files_status <> 'done'
+          AND (t.files_status = 'pending' OR f ->> 'to' = ANY (t.missing_files))
+    ) THEN
+        PERFORM private.transfer_raise('transfer_files_pending', 409);
     END IF;
 
     PERFORM private.transfer_check_gates();

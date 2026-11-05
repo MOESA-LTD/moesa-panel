@@ -3,6 +3,7 @@ import {
    asTransferFiles,
    asTransferReport,
    copyTransferFiles,
+   fetchTransferOptions,
    idMapCsv,
    rehearseTransfer,
    runTransfer,
@@ -163,6 +164,18 @@ beforeEach(() => {
    mock.copy.mockReset().mockResolvedValue({ data: {}, error: null });
    mock.remove.mockReset().mockResolvedValue({ data: [], error: null });
    mock.bucket.mockReset();
+});
+
+describe('fetchTransferOptions', () => {
+   it('asks for the targets of a customer, so a refusal about that customer comes too', async () => {
+      mock.rpcResults.transfer_options = { source_writable: true, targets: [] };
+
+      await fetchTransferOptions('s', 'c');
+      expect(mock.rpc).toHaveBeenCalledWith('transfer_options', {
+         source_tenant: 's',
+         customer_id: 'c'
+      });
+   });
 });
 
 describe('rehearseTransfer and runTransfer', () => {

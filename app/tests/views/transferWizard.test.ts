@@ -13,6 +13,7 @@ import ReportStep from '@/views/pages/ops/transfer/ReportStep.vue';
 import ResultStep from '@/views/pages/ops/transfer/ResultStep.vue';
 import TargetStep from '@/views/pages/ops/transfer/TargetStep.vue';
 import {
+   transferErrorText,
    useTransferWizard,
    type TransferWizard
 } from '@/views/pages/ops/transfer/useTransferWizard';
@@ -271,6 +272,30 @@ describe('transfer wizard', () => {
             ?.closest('li')
             ?.getAttribute('aria-disabled')
       ).toBe('false');
+   });
+
+   it('says a customer whose earlier transfer still copies files cannot be transferred', async () => {
+      api.options = {
+         source_writable: true,
+         targets: [
+            {
+               id: 'branch',
+               display_name: 'Branch',
+               same_company: true,
+               refusal: 'transfer_files_pending'
+            }
+         ]
+      };
+      const wrapper = await mountWizard();
+      await wrapper.find('[data-pc-name="select"]').trigger('click');
+      await flushPromises();
+
+      expect(
+         document.body.querySelector('[data-target="branch"] [data-refusal]')?.textContent?.trim()
+      ).toBe(en.errors.transfer_files_pending);
+      expect(transferErrorText({ code: 'P0001', message: 'transfer_files_pending' })).toBe(
+         en.errors.transfer_files_pending
+      );
    });
 
    it('shows a code input only for typed codes', async () => {

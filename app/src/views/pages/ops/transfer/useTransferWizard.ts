@@ -50,7 +50,10 @@ export type TransferWizardOptions = {
  * and, in a move, nothing left behind (the server refuses that move).
  */
 export function useTransferWizard({ sourceTenant, customerId, productIds }: TransferWizardOptions) {
-   const { data: options, isLoading: optionsLoading } = useTransferOptions(sourceTenant);
+   const { data: options, isLoading: optionsLoading } = useTransferOptions(
+      sourceTenant,
+      customerId
+   );
    const { mutateAsync: rehearseTransfer, isPending: rehearsing } = useRehearseTransfer();
    const { mutateAsync: runTransfer, isPending: running } = useRunTransfer();
 

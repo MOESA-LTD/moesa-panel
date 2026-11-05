@@ -139,9 +139,17 @@ export const asTransferReport = (json: Json): TransferReport => transferReportSc
 
 // --- requests ---
 
-export async function fetchTransferOptions(sourceTenant: string): Promise<TransferOptions> {
+/**
+ * The targets of a transfer out of `sourceTenant`. Given the customer, a refusal about it comes
+ * too (transfer_files_pending: an earlier transfer into it still copies files).
+ */
+export async function fetchTransferOptions(
+   sourceTenant: string,
+   customerId: string | null = null
+): Promise<TransferOptions> {
+   // The generated Args type has no null for the defaulted parameter; null is its default.
    const { data } = await supabase
-      .rpc('transfer_options', { source_tenant: sourceTenant })
+      .rpc('transfer_options', { source_tenant: sourceTenant, customer_id: customerId as string })
       .throwOnError();
    return data as TransferOptions;
 }
@@ -252,18 +260,22 @@ const invalidateTenants = (queryClient: QueryClient, tenantIds: readonly string[
          queryKey[1].split(',').some((id) => tenantIds.includes(id))
    });
 
-/** The candidate targets of a transfer out of `sourceTenant`. */
-export function useTransferOptions(sourceTenant: MaybeRefOrGetter<string | null>) {
+/** The candidate targets of a transfer of `customerId` out of `sourceTenant`. */
+export function useTransferOptions(
+   sourceTenant: MaybeRefOrGetter<string | null>,
+   customerId: MaybeRefOrGetter<string | null> = null
+) {
    const tenantKey = useTenantKey();
 
    return useQuery({
       queryKey: computed(() =>
          queryKeys.list(tenantKey.value, 'transfer', {
             view: 'options',
-            sourceTenant: toValue(sourceTenant)
+            sourceTenant: toValue(sourceTenant),
+            customerId: toValue(customerId)
          })
       ),
-      queryFn: () => fetchTransferOptions(toValue(sourceTenant)!),
+      queryFn: () => fetchTransferOptions(toValue(sourceTenant)!, toValue(customerId)),
       enabled: computed(() => !!toValue(sourceTenant))
    });
 }
