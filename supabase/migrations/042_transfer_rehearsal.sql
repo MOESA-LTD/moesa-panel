@@ -56,11 +56,15 @@
 --                            - settings_gaps: the source products the target company's
 --                              spec_sheet_required_from would hold back, without a signed spec
 --                              sheet in the package (Call 10).
---                            - files: the media rows and their thumbnails.
+--                            - files: the media rows and their thumbnails, copy_only ones included:
+--                              the files to copy, not the files to move.
 --                            - unresolved: the conflicts without a valid decision.
 --                            - path: cheap for a whole-customer move within one company out of a
 --                              writable source with no conflict but suppliers; else copy.
---                            - report_hash: sha256 of the report without it (every array ordered).
+--                            - report_hash: sha256 of {report (without the hash), target_tenant,
+--                              product_ids (sorted)}, every array ordered. It covers what the
+--                              report shows (counts, labels, conflicts, ...), not every column: a
+--                              renamed product does not make a report stale.
 -- private.transfer_decision_error  Why a decision does not settle its conflict, or NULL: the
 --                            action is one the conflict offers; a map names a target customer or
 --                            supplier, or the one SKU or document version found; a typed new code
@@ -68,7 +72,10 @@
 --                            target (transfer_code_invalid).
 -- private.transfer_check_decisions  Every decision first (400 transfer_decision_invalid or
 --                            transfer_code_invalid; a key without a conflict is valid only as a
---                            map of a package supplier), then 409 transfer_decision_required
+--                            map of a package supplier), then a typed code repeated across the
+--                            decisions of a table or equal to the code of another package row of
+--                            that table that keeps it (transfer_code_invalid), then 409
+--                            transfer_decision_required
 --                            while a conflict is unresolved.
 -- public.transfer_customer   The entry point (SECURITY DEFINER: a transfer reads and writes past
 --                            the caller's RLS once the checks above have passed). It refuses,
@@ -483,6 +490,9 @@ DECLARE
     counts JSONB;
     unresolved BIGINT;
     path TEXT;
+    source_company UUID;
+    source_writable BOOLEAN;
+    target_company UUID;
     report JSONB;
 BEGIN
     SELECT r.source_id, r.row INTO source_customer, customer_row
@@ -723,12 +733,18 @@ BEGIN
     SELECT coalesce(jsonb_object_agg(t.table_name, t.n), '{}') INTO counts
     FROM (SELECT r.table_name, count(*) AS n FROM pg_temp.transfer_rows r GROUP BY r.table_name) t;
 
+    -- One read of both tenants.
+    SELECT (array_agg(e.company_id) FILTER (WHERE e.tenant_id = source_tenant))[1],
+           (array_agg(e.writable) FILTER (WHERE e.tenant_id = source_tenant))[1],
+           (array_agg(e.company_id) FILTER (WHERE e.tenant_id = target_tenant))[1]
+    INTO source_company, source_writable, target_company
+    FROM private.entitlements(ARRAY[source_tenant, target_tenant]) e;
+
     path := CASE
         WHEN mode = 'move'
          AND product_ids IS NULL
-         AND (SELECT e.company_id FROM private.entitlements(ARRAY[source_tenant]) e)
-             = (SELECT e.company_id FROM private.entitlements(ARRAY[target_tenant]) e)
-         AND coalesce((SELECT e.writable FROM private.entitlements(ARRAY[source_tenant]) e), FALSE)
+         AND source_company = target_company
+         AND coalesce(source_writable, FALSE)
          AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(conflicts) c WHERE c ->> 'table' <> 'supplier')
         THEN 'cheap'
         ELSE 'copy'
@@ -749,7 +765,12 @@ BEGIN
         'unresolved', unresolved
     );
 
-    RETURN report || jsonb_build_object('report_hash', encode(sha256(convert_to(report::TEXT, 'UTF8')), 'hex'));
+    -- The hash also covers the target and the product selection, which the report does not show.
+    RETURN report || jsonb_build_object('report_hash', encode(sha256(convert_to(jsonb_build_object(
+        'report', report,
+        'target_tenant', target_tenant,
+        'product_ids', (SELECT to_jsonb(array_agg(DISTINCT p ORDER BY p)) FROM unnest(product_ids) AS p)
+    )::TEXT, 'UTF8')), 'hex'));
 END;
 $$;
 
@@ -788,6 +809,7 @@ BEGIN
             ELSE
                 failure := 'transfer_decision_invalid';
             END IF;
+        -- Defence in depth: a move's conflicts never offer skip, so transfer_decision_error refuses it too.
         ELSIF mode = 'move' AND jsonb_typeof(pick.value) = 'object' AND pick.value ->> 'action' = 'skip' THEN
             failure := 'transfer_decision_invalid';
         ELSE
@@ -802,6 +824,26 @@ BEGIN
             PERFORM private.transfer_raise(failure, 400);
         END IF;
     END LOOP;
+
+    -- A typed code repeated across the decisions of one table, or equal to the code of another
+    -- package row of that table that is written with its code (neither mapped nor recoded).
+    IF EXISTS (
+        WITH typed AS (
+            SELECT c ->> 'table' AS tbl, c ->> 'source_id' AS source_id, d.value ->> 'code' AS code
+            FROM jsonb_array_elements(report -> 'conflicts') c
+            JOIN jsonb_each(coalesce(decisions, '{}'::JSONB)) d ON d.key = c ->> 'key'
+            WHERE c ->> 'kind' IN ('customer_code', 'supplier_code') AND d.value ->> 'action' = 'new_code'
+        )
+        SELECT 1 FROM typed t GROUP BY t.tbl, t.code HAVING count(*) > 1
+        UNION ALL
+        SELECT 1
+        FROM typed t
+        JOIN pg_temp.transfer_rows r
+          ON r.table_name = t.tbl AND r.source_id::TEXT <> t.source_id AND r.row ->> 'code' = t.code
+        WHERE coalesce(decisions -> (t.tbl || ':' || r.source_id) ->> 'action', '') NOT IN ('map', 'new_code')
+    ) THEN
+        PERFORM private.transfer_raise('transfer_code_invalid', 400);
+    END IF;
 
     IF (report ->> 'unresolved')::INT > 0 THEN
         PERFORM private.transfer_raise('transfer_decision_required', 409);

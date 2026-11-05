@@ -6,13 +6,15 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- another customer are refused; a product-only run leaves the customer's contacts out but keeps
 -- its contract document; the media, supplier contacts and supplier documents are collected with
 -- their copy_only flags. The report: conflicts (customer, supplier, GTINs, a SKU under a mapped
--- customer), non-member users, settings gaps, a link left behind and a stable hash. A real run
+-- customer, project code, document version), non-member users, settings gaps, a link left behind
+-- and a stable hash that names the target. A real run
 -- is refused when stale, without a hash or decisions, with a decision that does not fit or a bad
--- code, or with a product in use; gates out of order and a target plan without a business module
+-- code (lower case, taken, repeated, another supplier's), a map onto a wrong row, an unknown key,
+-- or with a product in use; gates out of order or missing and a target plan without a business module
 -- are refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(38);
+SELECT plan(51);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -211,7 +213,7 @@ SELECT is(
     'in a product-only run the contract, the files and the supplier''s rows are copy_only; the cones'' file stays out'
 );
 
--- 19–38. The report and the checks of a real run, as akif. Every call names MOESA, Europe and THO.
+-- 19–51. The report and the checks of a real run, as akif. Every call names MOESA, Europe and THO.
 CREATE FUNCTION pg_temp.rehearse (mode TEXT, decisions JSONB DEFAULT '{}', product_ids UUID[] DEFAULT NULL) RETURNS JSONB LANGUAGE sql AS $$
     SELECT public.transfer_customer(
         current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID, current_setting('test.tho')::UUID, mode,
@@ -238,6 +240,30 @@ SELECT throws_like($$ SELECT pg_temp.rehearse('copy') $$, '%transfer_target_plan
 RESET ROLE;
 UPDATE public.module SET is_core = TRUE WHERE id = 'change_request';
 
+-- 21–23. baris (owner of MOESA and of MOESA Trading) rehearses the same copy into Europe and into
+-- Trading: the two reports are equal, the hashes are not, and one target's hash does not run the other.
+-- akif (author of the media links) joins Trading for the case, so that the users match too.
+INSERT INTO public.tenant_user (user_id, tenant_id) VALUES (current_setting('test.akif')::UUID, current_setting('test.trading')::UUID);
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+SELECT set_config('test.he', pg_temp.rehearse('copy')::TEXT, TRUE);
+SELECT set_config('test.ht', public.transfer_customer(
+    current_setting('test.moesa')::UUID, current_setting('test.trading')::UUID, current_setting('test.tho')::UUID, 'copy'
+)::TEXT, TRUE);
+SELECT is(current_setting('test.he')::JSONB - 'report_hash', current_setting('test.ht')::JSONB - 'report_hash',
+          'Europe and Trading give the same report');
+SELECT isnt(current_setting('test.he')::JSONB ->> 'report_hash', current_setting('test.ht')::JSONB ->> 'report_hash',
+            'the hash names the target');
+SELECT throws_like(
+    $$ SELECT public.transfer_customer(current_setting('test.moesa')::UUID, current_setting('test.trading')::UUID,
+           current_setting('test.tho')::UUID, 'copy', dry_run => FALSE,
+           report_hash => current_setting('test.he')::JSONB ->> 'report_hash') $$,
+    '%transfer_report_stale%',
+    'a rehearsal into Europe does not run into Trading'
+);
+RESET ROLE;
+DELETE FROM public.tenant_user WHERE user_id = current_setting('test.akif')::UUID AND tenant_id = current_setting('test.trading')::UUID;
+
+
 -- In Europe: THO (…021), TR1 (…022) and THO's THO-TIPS-6-50 (…023). The company's spec sheets are
 -- required from 2020 (Europe reads MOESA's setting).
 SELECT set_config('moesa.rules_bypass', '1', TRUE);
@@ -255,7 +281,7 @@ SELECT set_config('moesa.rules_bypass', '', TRUE);
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.r', pg_temp.rehearse('copy')::TEXT, TRUE);
 
--- 21–27. A copy into Europe.
+-- 24–30. A copy into Europe.
 SELECT ok(
     current_setting('test.r')::JSONB -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
         'key', 'customer:' || current_setting('test.tho'), 'kind', 'customer_code', 'actions', '["map", "new_code"]'::JSONB
@@ -284,7 +310,7 @@ SELECT ok(
     'mapped onto Europe''s THO, the tips meet Europe''s tips'
 );
 
--- 28. The pilot's coordinator is not a member of Europe.
+-- 31. The pilot's coordinator is not a member of Europe.
 SELECT ok(
     current_setting('test.r')::JSONB -> 'users' @> jsonb_build_array(jsonb_build_object(
         'user_id', current_setting('test.koordinator')::UUID, 'columns', '["coordinator_id"]'::JSONB
@@ -292,7 +318,7 @@ SELECT ok(
     'the coordinator is reported as a non-member'
 );
 
--- 29. The mop has a signed spec sheet in the package; the others would be held back.
+-- 32. The mop has a signed spec sheet in the package; the others would be held back.
 SELECT is(
     ARRAY(SELECT g ->> 'label' FROM jsonb_array_elements(current_setting('test.r')::JSONB -> 'settings_gaps') g ORDER BY 1),
     ARRAY['THO-CONES-100', 'THO-TIPS-6-50'],
@@ -300,7 +326,7 @@ SELECT is(
 );
 RESET ROLE;
 
--- 30. A new contact after the rehearsal.
+-- 33. A new contact after the rehearsal.
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.h', pg_temp.rehearse('copy') ->> 'report_hash', TRUE);
 RESET ROLE;
@@ -313,10 +339,10 @@ SELECT throws_like(
     'a new contact makes the report stale'
 );
 
--- 31. No hash.
+-- 34. No hash.
 SELECT throws_like($$ SELECT pg_temp.run('copy') $$, '%transfer_report_required%', 'a real run needs the rehearsal''s hash');
 
--- 32. No decisions.
+-- 35. No decisions.
 SELECT set_config('test.h', pg_temp.rehearse('copy') ->> 'report_hash', TRUE);
 SELECT throws_like(
     $$ SELECT pg_temp.run('copy', report_hash => current_setting('test.h')) $$,
@@ -324,7 +350,7 @@ SELECT throws_like(
     'every conflict needs a decision'
 );
 
--- 33. A move offers no skip.
+-- 36. A move offers no skip.
 SELECT set_config('test.d', jsonb_build_object(
     'customer:' || current_setting('test.tho'), '{"action": "skip"}'::JSONB,
     'supplier:' || current_setting('test.tr1'), '{"action": "map", "target_id": "00000000-0000-4000-8000-000000042022"}'::JSONB
@@ -336,7 +362,7 @@ SELECT throws_like(
     'a move cannot skip a code conflict'
 );
 
--- 34. A typed customer code in lower case.
+-- 37. A typed customer code in lower case.
 SELECT set_config('test.d', jsonb_build_object(
     'customer:' || current_setting('test.tho'), '{"action": "new_code", "code": "th1"}'::JSONB
 )::TEXT, TRUE);
@@ -347,7 +373,7 @@ SELECT throws_like(
     'a new customer code is three capitals'
 );
 
--- 35–36. The mop alone, moved: the pilot's product list keeps it.
+-- 38–39. The mop alone, moved: the pilot's product list keeps it.
 SELECT set_config('test.r', pg_temp.rehearse('move', product_ids => ARRAY[current_setting('test.mop')::UUID])::TEXT, TRUE);
 SELECT throws_like(
     $$ SELECT pg_temp.run('move', report_hash => current_setting('test.r')::JSONB ->> 'report_hash',
@@ -360,11 +386,121 @@ SELECT ok(
     'the rehearsal lists the project link left behind'
 );
 
--- 37. The hash is stable.
+-- 40. The hash is stable.
 SELECT is(pg_temp.rehearse('copy') ->> 'report_hash', pg_temp.rehearse('copy') ->> 'report_hash', 'two identical rehearsals give one hash');
 RESET ROLE;
 
--- 38. G2 passed while G1 is pending, past the guard. The last case: the final ROLLBACK undoes it (a
+-- 41–50. More conflicts and decisions. In Europe: a project of THO, which takes the pilot's code
+-- (Europe's first THO project of the year), THO's contract v1 (…024) and a supplier CN1 (…025).
+SELECT set_config('test.cn1', (SELECT id FROM public.supplier WHERE code = 'CN1' AND tenant_id = current_setting('test.moesa')::UUID)::TEXT, TRUE);
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+VALUES ('00000000-0000-4000-8000-000000042024', current_setting('test.europe')::UUID, '00000000-0000-4000-8000-000000042021',
+        'customer', '00000000-0000-4000-8000-000000042021', 'contract', 'draft', 'https://example.test/eu-contract.pdf');
+INSERT INTO public.supplier (id, tenant_id, code, display_name, country)
+VALUES ('00000000-0000-4000-8000-000000042025', current_setting('test.europe')::UUID, 'CN1', 'CN1 Europa', 'CN');
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.europe')::UUID);
+INSERT INTO public.project (tenant_id, customer_id, display_name, type, path)
+VALUES (current_setting('test.europe')::UUID, '00000000-0000-4000-8000-000000042021', 'Europa projesi', 'npi', 'a_sourcing');
+RESET ROLE;
+
+-- A rehearsal, then a real run with its hash and the same decisions.
+CREATE FUNCTION pg_temp.decide (mode TEXT, decisions JSONB) RETURNS JSONB LANGUAGE sql AS $$
+    SELECT pg_temp.run(mode, decisions, pg_temp.rehearse(mode, decisions) ->> 'report_hash');
+$$;
+SELECT set_config('test.map_tho', jsonb_build_object(
+    'customer:' || current_setting('test.tho'), '{"action": "map", "target_id": "00000000-0000-4000-8000-000000042021"}'::JSONB
+)::TEXT, TRUE);
+
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+
+-- 41. A project code taken in the target.
+SELECT ok(
+    pg_temp.rehearse('copy') -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
+        'key', 'project:' || current_setting('test.pilot'), 'kind', 'code',
+        'label', (SELECT code FROM public.project WHERE id = current_setting('test.pilot')::UUID),
+        'actions', '["new_code", "skip"]'::JSONB
+    )),
+    'the pilot''s code is taken in Europe: new code or skip'
+);
+
+-- 42. Under the mapped THO, Europe already has contract v1.
+SELECT ok(
+    pg_temp.rehearse('copy', current_setting('test.map_tho')::JSONB) -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
+        'key', 'document:00000000-0000-4000-8000-000000042014', 'kind', 'document_version', 'label', 'contract v1',
+        'existing_id', '00000000-0000-4000-8000-000000042024'
+    )),
+    'the contract meets Europe''s contract v1 under the mapped customer'
+);
+
+-- 43. A map onto another tenant's customer (ZZZ, in MOESA).
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', jsonb_build_object('customer:' || current_setting('test.tho'),
+           '{"action": "map", "target_id": "00000000-0000-4000-8000-000000042001"}'::JSONB)) $$,
+    '%transfer_decision_invalid%',
+    'a customer is mapped onto a customer of the target'
+);
+
+-- 44. A map of the contract onto another row than the version found.
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', current_setting('test.map_tho')::JSONB || jsonb_build_object(
+           'document:00000000-0000-4000-8000-000000042014',
+           '{"action": "map", "target_id": "00000000-0000-4000-8000-000000042021"}'::JSONB)) $$,
+    '%transfer_decision_invalid%',
+    'a document is mapped onto the version found'
+);
+
+-- 45. A key that names no conflict.
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', '{"project:00000000-0000-4000-8000-000000042099": {"action": "skip"}}'::JSONB) $$,
+    '%transfer_decision_invalid%',
+    'a decision names a conflict'
+);
+
+-- 46. clear_gtin on a customer code.
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', jsonb_build_object('customer:' || current_setting('test.tho'), '{"action": "clear_gtin"}'::JSONB)) $$,
+    '%transfer_decision_invalid%',
+    'clear_gtin fits a GTIN conflict only'
+);
+
+-- 47. A new customer code that Europe already has.
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', jsonb_build_object('customer:' || current_setting('test.tho'),
+           '{"action": "new_code", "code": "THO"}'::JSONB)) $$,
+    '%transfer_code_invalid%',
+    'a new code is free in the target'
+);
+
+-- 48. TR1 and CN1 both recoded XY1.
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', jsonb_build_object(
+           'supplier:' || current_setting('test.tr1'), '{"action": "new_code", "code": "XY1"}'::JSONB,
+           'supplier:' || current_setting('test.cn1'), '{"action": "new_code", "code": "XY1"}'::JSONB)) $$,
+    '%transfer_code_invalid%',
+    'two suppliers are not recoded alike'
+);
+
+-- 49. TR1 recoded ID1, the code of another package supplier that is copied as it is.
+SELECT throws_like(
+    $$ SELECT pg_temp.decide('copy', jsonb_build_object(
+           'supplier:' || current_setting('test.tr1'), '{"action": "new_code", "code": "ID1"}'::JSONB)) $$,
+    '%transfer_code_invalid%',
+    'a new code is not the code of another supplier copied along'
+);
+RESET ROLE;
+
+-- 50. The pilot without its last gate (L_G2), which gates_for still gives; put back afterwards.
+CREATE TEMP TABLE saved_gate AS
+SELECT * FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'L_G2';
+DELETE FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'L_G2';
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_like($$ SELECT pg_temp.rehearse('copy') $$, '%transfer_gate_invalid%', 'the gate set matches the project');
+RESET ROLE;
+INSERT INTO public.project_gate SELECT * FROM pg_temp.saved_gate;
+
+-- 51. G2 passed while G1 is pending, past the guard. The last case: the final ROLLBACK undoes it (a
 -- savepoint rolled back after the assertion would drop pgTAP's record of it).
 ALTER TABLE public.project_gate DISABLE TRIGGER project_gate_guard;
 UPDATE public.project_gate SET status = 'passed', passed_at = now()
