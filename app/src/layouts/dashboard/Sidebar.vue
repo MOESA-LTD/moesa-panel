@@ -1,6 +1,7 @@
 <script setup>
 import { useSidebar } from '@/composables/useSidebar';
 import { useNavigationMenu } from '@/router/menu';
+import ScopeControls from './ScopeControls.vue';
 
 const { mode, active, expandedKeys, close } = useSidebar();
 const { menu } = useNavigationMenu();
@@ -55,6 +56,8 @@ onUnmounted(() => {
 </script>
 
 <template>
+   <ScopeControls layout="column" class="md:hidden p-2" />
+   <Divider class="md:!hidden !my-2" />
    <PanelMenu class="layout-menu" v-model:expandedKeys="expandedKeys" :model="menu" multiple>
       <template #item="{ item, active, hasSubmenu }">
          <span
