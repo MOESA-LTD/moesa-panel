@@ -137,6 +137,7 @@
    "errors": {
       "audit_already_reverted": "Bu değişiklik zaten geri alınmış.",
       "audit_conflict": "Bu değişiklik geri alınamıyor: kayıt sonradan değiştirildi. Önce sonraki değişiklikleri geri alın.",
+      "audit_transfer_not_revertable": "Aktarım kayıttan geri alınamaz. Kayıtları geri aktarın.",
       "avatar_type": "Fotoğraf PNG, JPEG ya da WebP olmalı.",
       "avatar_size": "Fotoğraf en fazla 1 MB olmalı.",
       "access_denied": "Erişim reddedildi",
@@ -674,7 +675,8 @@
       "incident_log": "Olay günlüğü",
       "incident_deadline": "Olay süre sınırı",
       "change_request": "Değişiklik talebi",
-      "change_request_product": "Değişiklik talebi ürünü"
+      "change_request_product": "Değişiklik talebi ürünü",
+      "transfer": "Aktarım"
    },
    "dashboard": {
       "notifications": {

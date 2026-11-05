@@ -172,7 +172,8 @@
       "incident_log": "Incident log",
       "incident_deadline": "Incident deadline",
       "change_request": "Change request",
-      "change_request_product": "Change request product"
+      "change_request_product": "Change request product",
+      "transfer": "Transfer"
    },
    "input": {
       "select_or_write": "選択または入力してください"
@@ -518,7 +519,8 @@
       "cr_project_customer": "The project belongs to another customer.",
       "cr_product_customer": "A product belongs to another customer.",
       "change_request_kinds_required": "Choose at least one change kind.",
-      "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again."
+      "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again.",
+      "audit_transfer_not_revertable": "A transfer cannot be undone from the log. Transfer the records back instead."
    },
    "account": {
       "profile": {

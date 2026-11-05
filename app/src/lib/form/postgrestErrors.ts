@@ -430,7 +430,13 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'change_request_customer_approval_required',
       'change_request_decision_note_required',
       'change_request_new_version_required'
-   ].map((name) => ({ code: '23514', name, message: `errors.${name}` }))
+   ].map((name) => ({ code: '23514', name, message: `errors.${name}` })),
+   // Raised by public.revert_audit_transaction (040_transfer_core.sql): shown as a toast.
+   {
+      code: 'P0001',
+      name: 'audit_transfer_not_revertable',
+      message: 'errors.audit_transfer_not_revertable'
+   }
 ];
 
 /**

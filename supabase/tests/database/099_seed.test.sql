@@ -20,8 +20,9 @@ SELECT is(
     (SELECT string_agg(u.email || ':' || coalesce(r.display_name, 'owner'), ',' ORDER BY u.email)
      FROM public.tenant_user tu
      JOIN public.user u ON u.id = tu.user_id
-     LEFT JOIN public.user_role ur ON ur.user_id = tu.user_id
-     LEFT JOIN public.role r ON r.id = ur.role_id AND r.tenant_id = tu.tenant_id
+     -- The role in this tenant only: akif is management in MOESA Europe too.
+     LEFT JOIN (public.user_role ur JOIN public.role r ON r.id = ur.role_id)
+         ON ur.user_id = tu.user_id AND r.tenant_id = tu.tenant_id
      WHERE tu.tenant_id = current_setting('test.tenant_id')::UUID),
     'akif@moesa-panel.test:management,baris@moesa-panel.test:owner,koordinator@moesa-panel.test:coordinator',
     'MOESA LTD has its owner, a management member and a coordinator'

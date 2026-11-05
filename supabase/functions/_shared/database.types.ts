@@ -3596,6 +3596,101 @@ export type Database = {
           },
         ]
       }
+      transfer: {
+        Row: {
+          audit_transaction_ids: string[]
+          created_at: string
+          customer_id: string
+          decisions: Json
+          files: Json
+          files_status: string
+          id: string
+          id_map: Json
+          missing_files: string[]
+          mode: string
+          path: string
+          product_ids: string[] | null
+          report: Json
+          source_tenant_id: string
+          started_by: string
+          target_customer_id: string | null
+          tenant_id: string
+          updated_at: string
+          xact_id: unknown
+        }
+        Insert: {
+          audit_transaction_ids?: string[]
+          created_at?: string
+          customer_id: string
+          decisions?: Json
+          files?: Json
+          files_status?: string
+          id?: string
+          id_map?: Json
+          missing_files?: string[]
+          mode: string
+          path: string
+          product_ids?: string[] | null
+          report: Json
+          source_tenant_id: string
+          started_by: string
+          target_customer_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          xact_id?: unknown
+        }
+        Update: {
+          audit_transaction_ids?: string[]
+          created_at?: string
+          customer_id?: string
+          decisions?: Json
+          files?: Json
+          files_status?: string
+          id?: string
+          id_map?: Json
+          missing_files?: string[]
+          mode?: string
+          path?: string
+          product_ids?: string[] | null
+          report?: Json
+          source_tenant_id?: string
+          started_by?: string
+          target_customer_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          xact_id?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_source_tenant_id_fkey"
+            columns: ["source_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_source_tenant_id_fkey"
+            columns: ["source_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user: {
         Row: {
           created_at: string | null
@@ -4624,6 +4719,12 @@ export type Database = {
           days: number
         }
         Returns: string
+      }
+      audit_transfer_locked: {
+        Args: {
+          transaction_id: string
+        }
+        Returns: boolean
       }
       create_branch: {
         Args: {

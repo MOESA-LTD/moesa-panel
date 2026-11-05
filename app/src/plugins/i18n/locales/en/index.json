@@ -172,7 +172,8 @@
       "incident_log": "Incident log",
       "incident_deadline": "Incident deadline",
       "change_request": "Change request",
-      "change_request_product": "Change request product"
+      "change_request_product": "Change request product",
+      "transfer": "Transfer"
    },
    "input": {
       "select_or_write": "Select or Write"
@@ -268,6 +269,7 @@
    "errors": {
       "audit_already_reverted": "This change has already been reverted.",
       "audit_conflict": "This change cannot be reverted: the record was changed afterwards. Revert the later changes first.",
+      "audit_transfer_not_revertable": "A transfer cannot be undone from the log. Transfer the records back instead.",
       "avatar_type": "The photo must be a PNG, JPEG or WebP image.",
       "avatar_size": "The photo must be at most 1 MB.",
       "access_denied": "Access denied",
