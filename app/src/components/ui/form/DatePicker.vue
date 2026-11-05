@@ -2,7 +2,10 @@
 import PrimeDatePicker from 'primevue/datepicker';
 import { defineComponent, type ComponentOptions } from 'vue';
 
-/** The PrimeVue DatePicker internals the override reads. */
+/**
+ * The PrimeVue DatePicker internals the override reads. Verified against primevue 4.5.1; on an
+ * upgrade re-run tests/components/DatePicker.test.ts (its typing cases fail on stock PrimeVue).
+ */
 interface DatePickerInternals {
    focused: boolean;
    input: HTMLInputElement | null;
