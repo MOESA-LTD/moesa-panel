@@ -1,3 +1,4 @@
+import { forTenant } from '@/api/formTenant';
 import { MEDIA_BUCKET } from '@/api/media';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
@@ -172,6 +173,8 @@ export async function runTransfer(args: TransferArgs, reportHash: string): Promi
    return data as unknown as TransferRow;
 }
 
+const REMOVE_BATCH = 1000;
+
 /** Storage's answer when the target object is there already (409 Duplicate). */
 const alreadyExists = (error: { message?: string; statusCode?: string | number }) =>
    /already exists/i.test(error.message ?? '') || String(error.statusCode) === '409';
@@ -211,9 +214,10 @@ export async function copyTransferFiles(transfer: TransferRow): Promise<Transfer
       const sources = files
          .filter(({ keep_source, from, to }) => !keep_source && from !== to)
          .map(({ from }) => from);
-      if (sources.length) {
+      // Storage deletes at most 1000 objects per request.
+      for (let start = 0; start < sources.length; start += REMOVE_BATCH) {
          try {
-            const { error } = await bucket.remove(sources);
+            const { error } = await bucket.remove(sources.slice(start, start + REMOVE_BATCH));
             if (error) console.warn('Transfer source files left in storage', transfer.id, error);
          } catch (error) {
             console.warn('Transfer source files left in storage', transfer.id, error);
@@ -302,23 +306,27 @@ export function useRetryTransferFiles() {
    });
 }
 
-/** One transfer row. */
-export function useTransfer(id: MaybeRefOrGetter<string | null>) {
-   const tenantKey = useTenantKey();
-
+/**
+ * One transfer row. The row belongs to the target tenant (its tenant_id), which the tenants read
+ * now (the source, where a transfer starts) usually leave out: it is read, and keyed, as the
+ * target alone.
+ */
+export function useTransfer(
+   id: MaybeRefOrGetter<string | null>,
+   targetTenant: MaybeRefOrGetter<string | null>
+) {
    return useQuery({
-      queryKey: computed(() => queryKeys.detail(tenantKey.value, 'transfer', toValue(id))),
+      queryKey: computed(() => queryKeys.detail(toValue(targetTenant), 'transfer', toValue(id))),
       queryFn: async ({ signal }) => {
-         const { data } = await supabase
-            .from('transfer')
-            .select('*')
-            .eq('id', toValue(id)!)
-            .abortSignal(signal)
+         const { data } = await forTenant(
+            supabase.from('transfer').select('*').eq('id', toValue(id)!).abortSignal(signal),
+            toValue(targetTenant)
+         )
             .maybeSingle()
             .throwOnError();
          return data;
       },
-      enabled: computed(() => !!toValue(id))
+      enabled: computed(() => !!toValue(id) && !!toValue(targetTenant))
    });
 }
 

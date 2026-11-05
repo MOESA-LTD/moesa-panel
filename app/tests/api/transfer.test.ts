@@ -6,20 +6,26 @@ import {
    idMapCsv,
    rehearseTransfer,
    runTransfer,
+   usePendingTransfers,
    useRunTransfer,
+   useTransfer,
    type TransferArgs,
    type TransferRow
 } from '@/api/transfer';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { computed, defineComponent, h } from 'vue';
 import { ZodError } from 'zod';
 
 // The RPCs and the media bucket, recording what the API asks of them.
 const mock = vi.hoisted(() => ({
    rpc: vi.fn(),
    rpcResults: {} as Record<string, unknown>,
+   rpcErrors: {} as Record<string, Error>,
+   // The table reads, as the builder calls each makes: [method, ...args].
+   calls: [] as unknown[][],
+   tableResult: null as unknown,
    copy: vi.fn(),
    remove: vi.fn(),
    bucket: vi.fn()
@@ -29,7 +35,33 @@ vi.mock('@/lib/supabase', () => ({
    supabase: {
       rpc: (name: string, args: unknown) => {
          mock.rpc(name, args);
-         return { throwOnError: () => Promise.resolve({ data: mock.rpcResults[name] }) };
+         return {
+            throwOnError: () =>
+               mock.rpcErrors[name]
+                  ? Promise.reject(mock.rpcErrors[name])
+                  : Promise.resolve({ data: mock.rpcResults[name] })
+         };
+      },
+      from: (table: string) => {
+         mock.calls.push(['from', table]);
+         const builder: Record<string, unknown> = new Proxy(
+            {},
+            {
+               get: (_target, method: string) =>
+                  method === 'throwOnError'
+                     ? () => Promise.resolve({ data: mock.tableResult })
+                     : method === 'then'
+                       ? undefined
+                       : (...rest: unknown[]) => {
+                            mock.calls.push([
+                               method,
+                               ...rest.filter((a) => !(a instanceof AbortSignal))
+                            ]);
+                            return builder;
+                         }
+            }
+         );
+         return builder;
       },
       storage: {
          from: (bucket: string) => {
@@ -39,6 +71,8 @@ vi.mock('@/lib/supabase', () => ({
       }
    }
 }));
+
+vi.mock('@/api/useTenantKey', () => ({ useTenantKey: () => computed(() => 's') }));
 
 const args: TransferArgs = {
    source_tenant: 's',
@@ -123,6 +157,9 @@ const row = (overrides: Partial<TransferRow> = {}): TransferRow => ({
 beforeEach(() => {
    mock.rpc.mockReset();
    mock.rpcResults = {};
+   mock.rpcErrors = {};
+   mock.calls = [];
+   mock.tableResult = null;
    mock.copy.mockReset().mockResolvedValue({ data: {}, error: null });
    mock.remove.mockReset().mockResolvedValue({ data: [], error: null });
    mock.bucket.mockReset();
@@ -217,6 +254,20 @@ describe('copyTransferFiles', () => {
       expect(mock.remove).toHaveBeenCalledWith(['s/a', 's/c']);
    });
 
+   it('removes the sources in batches of 1000', async () => {
+      const files = Array.from({ length: 1001 }, (_, i) => ({
+         media_id: `m${i}`,
+         from: `s/${i}`,
+         to: `t/${i}`,
+         keep_source: false
+      }));
+      mock.rpcResults.transfer_check_files = row({ files, files_status: 'done' });
+
+      await copyTransferFiles(row({ files, files_status: 'done' }));
+
+      expect(mock.remove.mock.calls.map(([paths]) => paths.length)).toEqual([1000, 1]);
+   });
+
    it('never removes the sources of a copy', async () => {
       mock.rpcResults.transfer_check_files = row({ mode: 'copy', files_status: 'done' });
 
@@ -255,6 +306,20 @@ describe('copyTransferFiles', () => {
    });
 });
 
+const mountHook = <T>(hook: () => T, queryClient = new QueryClient()): T => {
+   let result!: T;
+   mount(
+      defineComponent({
+         setup() {
+            result = hook();
+            return () => h('div');
+         }
+      }),
+      { global: { plugins: [[VueQueryPlugin, { queryClient }]] } }
+   );
+   return result;
+};
+
 describe('useRunTransfer', () => {
    it('runs, copies, and marks both tenants stale', async () => {
       const queryClient = new QueryClient();
@@ -283,6 +348,64 @@ describe('useRunTransfer', () => {
       expect(stale(['tenant', 's', 'customer'])).toBe(true);
       expect(stale(['tenant', 'x,t', 'product'])).toBe(true);
       expect(stale(['tenant', 'x', 'product'])).toBe(false);
+   });
+
+   it('returns the committed run row when the file check fails', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const ran = row({ mode: 'copy' });
+      mock.rpcResults.transfer_customer = ran;
+      mock.rpcErrors.transfer_check_files = new Error('check down');
+
+      await expect(
+         mountHook(useRunTransfer).mutateAsync({ args, reportHash: 'h' })
+      ).resolves.toEqual(ran);
+      expect(warn).toHaveBeenCalledWith(
+         'Transfer files not checked',
+         'tr',
+         new Error('check down')
+      );
+      warn.mockRestore();
+   });
+});
+
+describe('transfer reads', () => {
+   it('reads a transfer as its target tenant alone, keyed by it', async () => {
+      const queryClient = new QueryClient();
+      mock.tableResult = row();
+      const query = mountHook(() => useTransfer('tr', 't'), queryClient);
+
+      await vi.waitFor(() => expect(query.data.value).toEqual(row()));
+      expect(mock.calls).toEqual([
+         ['from', 'transfer'],
+         ['select', '*'],
+         ['eq', 'id', 'tr'],
+         ['abortSignal'],
+         ['setHeader', 'x-tenant-id', 't'],
+         ['setHeader', 'x-tenant-ids', 't'],
+         ['maybeSingle']
+      ]);
+      expect(queryClient.getQueryData(['tenant', 't', 'transfer', 'detail', 'tr'])).toEqual(row());
+   });
+
+   it('waits for the target tenant', () => {
+      const query = mountHook(() => useTransfer('tr', null));
+      expect(query.isFetching.value).toBe(false);
+      expect(mock.calls).toEqual([]);
+   });
+
+   it('lists the transfers into a customer whose files are not done, newest first', async () => {
+      mock.tableResult = [row()];
+      const query = mountHook(() => usePendingTransfers('c2'));
+
+      await vi.waitFor(() => expect(query.data.value).toEqual([row()]));
+      expect(mock.calls).toEqual([
+         ['from', 'transfer'],
+         ['select', '*'],
+         ['eq', 'target_customer_id', 'c2'],
+         ['neq', 'files_status', 'done'],
+         ['order', 'created_at', { ascending: false }],
+         ['abortSignal']
+      ]);
    });
 });
 
