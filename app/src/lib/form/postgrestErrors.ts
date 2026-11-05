@@ -447,7 +447,14 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'transfer_forbidden',
       'transfer_source_read_only',
       'transfer_customer_missing',
-      'transfer_products_invalid'
+      'transfer_products_invalid',
+      'transfer_gate_invalid',
+      'transfer_report_required',
+      'transfer_report_stale',
+      'transfer_decision_required',
+      'transfer_decision_invalid',
+      'transfer_code_invalid',
+      'transfer_product_in_use'
    ].map((name) => ({ code: 'P0001', name, message: `errors.${name}` }))
 ];
 

@@ -676,7 +676,14 @@
       "transfer_forbidden": "You need the right to transfer in both places: to read the records in the source and to create them in the target.",
       "transfer_source_read_only": "The source is read-only: its records can be copied, not moved.",
       "transfer_customer_missing": "This customer is not in the source.",
-      "transfer_products_invalid": "Pick products of one customer of the source."
+      "transfer_products_invalid": "Pick products of one customer of the source.",
+      "transfer_gate_invalid": "A project's gates are out of order (a gate is passed before an earlier one, or the gate set does not match the project). Fix the project first.",
+      "transfer_report_required": "Rehearse the transfer first.",
+      "transfer_report_stale": "The records changed since the rehearsal. Rehearse again and check the report.",
+      "transfer_decision_required": "Every conflict needs a decision.",
+      "transfer_decision_invalid": "A decision does not fit its conflict: check the action and the record it links to.",
+      "transfer_code_invalid": "The new code has the wrong format or is taken in the target.",
+      "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer."
    },
    "account": {
       "profile": {

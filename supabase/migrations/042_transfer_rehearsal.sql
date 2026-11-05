@@ -27,12 +27,57 @@
 --                              selected variant, with what hangs from them (market cells, documents,
 --                              media links); the media they use, copy_only (another product left
 --                              behind may use it too). A row of another table that refers to a
---                              package product stays behind as a link (later tasks).
+--                              package product stays behind as a link (left_behind below).
+-- private.transfer_check_gates  For every package project: the gate codes, by position 1..n, are
+--                            public.gates_for(type, path, packages), and no gate is passed while
+--                            an earlier one is not. Otherwise transfer_gate_invalid (409), on the
+--                            rehearsal and on the run: under the transfer flag the guard is off.
+-- private.transfer_report    The rehearsal's report, {customer, path, mode, counts, conflicts,
+--                            users, left_behind, settings_gaps, files, unresolved, report_hash}:
+--                            - conflicts, keyed <table>:<source_id>, ordered by registry position
+--                              and label; a decided conflict stays listed. customer_code and
+--                              supplier_code (map, new_code); code, a project or prefixed code taken
+--                              in the target (new_code, and skip in a copy); sku, under the mapped
+--                              customer (map, and skip in a copy); gtin, an active GTIN in a copy
+--                              (clear_gtin, skip), not for a product with a sku conflict (it is
+--                              mapped or skipped, so never written: one decision per key);
+--                              document_version, under a mapped customer or product (map, skip
+--                              in a copy). A move never offers skip.
+--                            - users: the users of a registry user column who are neither in the
+--                              target's tenant_user nor owners of its company (Call 7).
+--                            - left_behind, {table, source_id, column, label, refers_to}, through
+--                              every FK between registry tables (its first column) and every array
+--                              of ids: a row that stays (outside the package; in a move also a
+--                              copy_only row) referring to a package row that is not copy_only;
+--                              and a package row referring to a row outside the package (a
+--                              nullable reference, cleared on the copy: market_cell.project_id, a
+--                              document FK column naming a document outside the package, ...).
+--                              source_id is NULL for the three tables without id.
+--                            - settings_gaps: the source products the target company's
+--                              spec_sheet_required_from would hold back, without a signed spec
+--                              sheet in the package (Call 10).
+--                            - files: the media rows and their thumbnails.
+--                            - unresolved: the conflicts without a valid decision.
+--                            - path: cheap for a whole-customer move within one company out of a
+--                              writable source with no conflict but suppliers; else copy.
+--                            - report_hash: sha256 of the report without it (every array ordered).
+-- private.transfer_decision_error  Why a decision does not settle its conflict, or NULL: the
+--                            action is one the conflict offers; a map names a target customer or
+--                            supplier, or the one SKU or document version found; a typed new code
+--                            (customer ^[A-Z]{3}$, supplier ^[A-Z]{2}[0-9]{1,3}$) is free in the
+--                            target (transfer_code_invalid).
+-- private.transfer_check_decisions  Every decision first (400 transfer_decision_invalid or
+--                            transfer_code_invalid; a key without a conflict is valid only as a
+--                            map of a package supplier), then 409 transfer_decision_required
+--                            while a conflict is unresolved.
 -- public.transfer_customer   The entry point (SECURITY DEFINER: a transfer reads and writes past
---                            the caller's RLS once the checks above have passed). Here it refuses,
---                            locks the customer, checks the products and returns the dry run's
---                            counts per table; the later migrations of M21 add the report, the
---                            decisions and the writes.
+--                            the caller's RLS once the checks above have passed). It refuses,
+--                            locks the customer, checks the products, collects, checks the gates
+--                            and builds the report; a dry run returns it. A real run refuses
+--                            without a hash (transfer_report_required), with another hash
+--                            (transfer_report_stale), a move leaving links behind
+--                            (transfer_product_in_use) and the decisions above; the writes come
+--                            with 043, and until then a real run fails (feature_not_supported).
 
 -- The first refusal, or NULL (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_refusal (source_tenant UUID, target_tenant UUID, mode TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER
@@ -241,6 +286,531 @@ $$;
 
 REVOKE ALL ON FUNCTION private.transfer_collect (UUID, UUID, UUID[]) FROM PUBLIC, anon, authenticated;
 
+-- A refusal in the next_code pattern.
+CREATE OR REPLACE FUNCTION private.transfer_raise (code TEXT, status INT) RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+BEGIN
+    RAISE SQLSTATE 'PGRST' USING
+        MESSAGE = json_build_object('code', 'P0001', 'message', code)::TEXT,
+        DETAIL = json_build_object('status', status, 'headers', json_build_object())::TEXT;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_raise (TEXT, INT) FROM PUBLIC, anon, authenticated;
+
+-- A UUID from text, or NULL when the text is not one (decisions are user input).
+CREATE OR REPLACE FUNCTION private.transfer_uuid (value TEXT) RETURNS UUID LANGUAGE plpgsql IMMUTABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN value::UUID;
+EXCEPTION WHEN invalid_text_representation THEN
+    RETURN NULL;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_uuid (TEXT) FROM PUBLIC, anon, authenticated;
+
+-- The gates of every package project (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_check_gates () RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    project RECORD;
+    codes TEXT[];
+    positions INT[];
+    statuses TEXT[];
+    expected TEXT[];
+    first_open INT;
+BEGIN
+    FOR project IN SELECT r.source_id, r.row FROM pg_temp.transfer_rows r WHERE r.table_name = 'project' LOOP
+        SELECT
+            coalesce(array_agg(g.row ->> 'code' ORDER BY (g.row ->> 'position')::INT), '{}'),
+            coalesce(array_agg((g.row ->> 'position')::INT ORDER BY (g.row ->> 'position')::INT), '{}'),
+            coalesce(array_agg(g.row ->> 'status' ORDER BY (g.row ->> 'position')::INT), '{}')
+        INTO codes, positions, statuses
+        FROM pg_temp.transfer_rows g
+        WHERE g.table_name = 'project_gate' AND g.row ->> 'project_id' = project.source_id::TEXT;
+
+        expected := ARRAY(
+            SELECT x.code::TEXT
+            FROM unnest(public.gates_for(
+                (project.row ->> 'type')::public.project_type,
+                (project.row ->> 'path')::public.project_path,
+                ARRAY(SELECT jsonb_array_elements_text(project.row -> 'packages'))
+            )) WITH ORDINALITY AS x (code, n)
+            ORDER BY x.n
+        );
+
+        -- The first gate that is not passed: no later gate may be passed.
+        first_open := array_position(ARRAY(SELECT s = 'passed' FROM unnest(statuses) AS s), FALSE);
+
+        IF codes IS DISTINCT FROM expected
+           OR positions IS DISTINCT FROM ARRAY(SELECT generate_series(1, cardinality(positions)))
+           OR (first_open IS NOT NULL AND 'passed' = ANY (statuses[first_open + 1:])) THEN
+            PERFORM private.transfer_raise('transfer_gate_invalid', 409);
+        END IF;
+    END LOOP;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_check_gates () FROM PUBLIC, anon, authenticated;
+
+-- A short label of a row for the report: its code, SKU, file name, ...
+CREATE OR REPLACE FUNCTION private.transfer_label (tbl TEXT, data JSONB) RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    label TEXT;
+BEGIN
+    label := CASE tbl
+        WHEN 'product' THEN data ->> 'sku'
+        WHEN 'document' THEN (data ->> 'type') || ' v' || (data ->> 'version')
+        WHEN 'media' THEN data ->> 'file_name'
+        WHEN 'market_cell' THEN (data ->> 'platform_id') || ' ' || (data ->> 'country')
+        WHEN 'project_product' THEN (
+            SELECT coalesce(p.code, p.display_name) FROM public.project p WHERE p.id = (data ->> 'project_id')::UUID
+        )
+        WHEN 'project_gate' THEN (
+            SELECT coalesce(p.code, p.display_name) FROM public.project p WHERE p.id = (data ->> 'project_id')::UUID
+        ) || ' ' || (data ->> 'code')
+        WHEN 'change_request_product' THEN (
+            SELECT coalesce(c.code, c.title) FROM public.change_request c WHERE c.id = (data ->> 'change_request_id')::UUID
+        )
+        WHEN 'shipment_purchase_order' THEN (
+            SELECT s.code FROM public.shipment s WHERE s.id = (data ->> 'shipment_id')::UUID
+        )
+        WHEN 'purchase_order_line' THEN (
+            SELECT o.code FROM public.purchase_order o WHERE o.id = (data ->> 'purchase_order_id')::UUID
+        ) || ' #' || (data ->> 'position')
+        ELSE NULL
+    END;
+
+    RETURN coalesce(label, data ->> 'code', data ->> 'display_name', data ->> 'title', data ->> 'name', data ->> 'id');
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_label (TEXT, JSONB) FROM PUBLIC, anon, authenticated;
+
+-- Why a decision does not settle its conflict, or NULL when it does (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_decision_error (conflict JSONB, decision JSONB, target_tenant UUID) RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    kind TEXT := conflict ->> 'kind';
+    action TEXT;
+    target UUID;
+    typed TEXT;
+BEGIN
+    IF decision IS NULL THEN
+        RETURN 'transfer_decision_required';
+    END IF;
+
+    IF jsonb_typeof(decision) <> 'object' THEN
+        RETURN 'transfer_decision_invalid';
+    END IF;
+
+    action := decision ->> 'action';
+
+    IF action IS NULL OR NOT (conflict -> 'actions') ? action THEN
+        RETURN 'transfer_decision_invalid';
+    END IF;
+
+    IF action = 'map' THEN
+        target := private.transfer_uuid(decision ->> 'target_id');
+        IF target IS NULL OR NOT (CASE kind
+            WHEN 'customer_code' THEN EXISTS (
+                SELECT 1 FROM public.customer c WHERE c.id = target AND c.tenant_id = target_tenant
+            )
+            WHEN 'supplier_code' THEN EXISTS (
+                SELECT 1 FROM public.supplier s WHERE s.id = target AND s.tenant_id = target_tenant
+            )
+            -- sku, document_version: the unique keys leave one row, the one found.
+            ELSE target = private.transfer_uuid(conflict ->> 'existing_id')
+        END) THEN
+            RETURN 'transfer_decision_invalid';
+        END IF;
+    ELSIF action = 'new_code' AND kind IN ('customer_code', 'supplier_code') THEN
+        typed := decision ->> 'code';
+        IF typed IS NULL
+           OR typed !~ (CASE kind WHEN 'customer_code' THEN '^[A-Z]{3}$' ELSE '^[A-Z]{2}[0-9]{1,3}$' END)
+           OR (kind = 'customer_code' AND EXISTS (
+               SELECT 1 FROM public.customer c WHERE c.tenant_id = target_tenant AND c.code::TEXT = typed
+           ))
+           OR (kind = 'supplier_code' AND EXISTS (
+               SELECT 1 FROM public.supplier s WHERE s.tenant_id = target_tenant AND s.code = typed
+           )) THEN
+            RETURN 'transfer_code_invalid';
+        END IF;
+    END IF;
+
+    RETURN NULL;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_decision_error (JSONB, JSONB, UUID) FROM PUBLIC, anon, authenticated;
+
+-- The report of the collected package (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_report (
+   source_tenant UUID,
+   target_tenant UUID,
+   mode TEXT,
+   decisions JSONB,
+   product_ids UUID[]
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    picks JSONB := CASE WHEN jsonb_typeof(decisions) = 'object' THEN decisions ELSE '{}'::JSONB END;
+    -- What a SKU or a document version conflict offers.
+    map_or_skip JSONB := CASE mode WHEN 'copy' THEN '["map", "skip"]'::JSONB ELSE '["map"]'::JSONB END;
+    source_customer UUID;
+    customer_row JSONB;
+    target_customer UUID;
+    conflicts JSONB := '[]';
+    sku_conflicts JSONB;
+    mapped_products JSONB;
+    part JSONB;
+    reg RECORD;
+    ref RECORD;
+    member_expr TEXT;
+    users JSONB;
+    left_behind JSONB := '[]';
+    required_from DATE;
+    gaps JSONB;
+    files BIGINT;
+    counts JSONB;
+    unresolved BIGINT;
+    path TEXT;
+    report JSONB;
+BEGIN
+    SELECT r.source_id, r.row INTO source_customer, customer_row
+    FROM pg_temp.transfer_rows r WHERE r.table_name = 'customer';
+
+    -- The customer's code.
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'customer:' || source_customer, 'kind', 'customer_code', 'table', 'customer', 'source_id', source_customer,
+            'label', customer_row ->> 'code', 'existing_id', c.id, 'actions', '["map", "new_code"]'::JSONB
+        ))
+        FROM public.customer c
+        WHERE c.tenant_id = target_tenant AND c.code::TEXT = customer_row ->> 'code'
+    ), '[]');
+
+    -- The customer the products land under: the mapped one, or the copy (which has no products).
+    IF picks -> ('customer:' || source_customer) ->> 'action' = 'map' THEN
+        SELECT c.id INTO target_customer FROM public.customer c
+        WHERE c.tenant_id = target_tenant
+          AND c.id = private.transfer_uuid(picks -> ('customer:' || source_customer) ->> 'target_id');
+    END IF;
+
+    -- The suppliers' codes.
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'supplier:' || r.source_id, 'kind', 'supplier_code', 'table', 'supplier', 'source_id', r.source_id,
+            'label', r.row ->> 'code', 'existing_id', s.id, 'actions', '["map", "new_code"]'::JSONB
+        ))
+        FROM pg_temp.transfer_rows r
+        JOIN public.supplier s ON s.tenant_id = target_tenant AND s.code = r.row ->> 'code'
+        WHERE r.table_name = 'supplier'
+    ), '[]');
+
+    -- The SKUs the target customer already has.
+    sku_conflicts := coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'product:' || r.source_id, 'kind', 'sku', 'table', 'product', 'source_id', r.source_id,
+            'label', r.row ->> 'sku', 'existing_id', p.id, 'actions', map_or_skip
+        ))
+        FROM pg_temp.transfer_rows r
+        JOIN public.product p ON p.tenant_id = target_tenant AND p.customer_id = target_customer AND p.sku = r.row ->> 'sku'
+        WHERE r.table_name = 'product'
+    ), '[]');
+    conflicts := conflicts || sku_conflicts;
+
+    -- An active GTIN is unique across tenants, so a copy cannot keep it. A product with a SKU
+    -- conflict is mapped or skipped, never written, so its GTIN does not conflict.
+    IF mode = 'copy' THEN
+        conflicts := conflicts || coalesce((
+            SELECT jsonb_agg(jsonb_build_object(
+                'key', 'product:' || r.source_id, 'kind', 'gtin', 'table', 'product', 'source_id', r.source_id,
+                'label', r.row ->> 'gtin', 'existing_id', NULL, 'actions', '["clear_gtin", "skip"]'::JSONB
+            ))
+            FROM pg_temp.transfer_rows r
+            WHERE r.table_name = 'product' AND r.row ->> 'gtin' IS NOT NULL AND r.row ->> 'status' <> 'archived'
+              AND NOT EXISTS (
+                  SELECT 1 FROM jsonb_array_elements(sku_conflicts) k WHERE k ->> 'source_id' = r.source_id::TEXT
+              )
+        ), '[]');
+    END IF;
+
+    -- Project and prefixed codes taken in the target.
+    FOR reg IN
+        SELECT r.table_name FROM private.transfer_registry r
+        WHERE r.code_kind IN ('project', 'prefixed') ORDER BY r.position
+    LOOP
+        EXECUTE format(
+            'SELECT coalesce(jsonb_agg(jsonb_build_object('
+            '''key'', %1$L || '':'' || r.source_id, ''kind'', ''code'', ''table'', %1$L, ''source_id'', r.source_id, '
+            '''label'', r.row ->> ''code'', ''existing_id'', t.id, ''actions'', $2)), ''[]'') '
+            'FROM pg_temp.transfer_rows r JOIN public.%1$I t ON t.tenant_id = $1 AND t.code = r.row ->> ''code'' '
+            'WHERE r.table_name = %1$L',
+            reg.table_name
+        )
+        INTO part
+        USING target_tenant, CASE mode WHEN 'copy' THEN '["new_code", "skip"]'::JSONB ELSE '["new_code"]'::JSONB END;
+        conflicts := conflicts || part;
+    END LOOP;
+
+    -- Document versions under a mapped customer or a mapped product.
+    mapped_products := coalesce((
+        SELECT jsonb_object_agg(k ->> 'source_id', k ->> 'existing_id')
+        FROM jsonb_array_elements(sku_conflicts) k
+        WHERE picks -> (k ->> 'key') ->> 'action' = 'map'
+          AND private.transfer_decision_error(k, picks -> (k ->> 'key'), target_tenant) IS NULL
+    ), '{}');
+
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'document:' || r.source_id, 'kind', 'document_version', 'table', 'document', 'source_id', r.source_id,
+            'label', (r.row ->> 'type') || ' v' || (r.row ->> 'version'), 'existing_id', d.id, 'actions', map_or_skip
+        ))
+        FROM pg_temp.transfer_rows r
+        CROSS JOIN LATERAL (
+            SELECT CASE r.row ->> 'entity_type'
+                WHEN 'customer' THEN CASE WHEN r.row ->> 'entity_id' = source_customer::TEXT THEN target_customer END
+                WHEN 'product' THEN (mapped_products ->> (r.row ->> 'entity_id'))::UUID
+            END AS entity_id
+        ) m
+        JOIN public.document d
+          ON d.tenant_id = target_tenant AND d.entity_type::TEXT = r.row ->> 'entity_type' AND d.entity_id = m.entity_id
+         AND d.type::TEXT = r.row ->> 'type' AND d.version = (r.row ->> 'version')::INT
+        WHERE r.table_name = 'document'
+    ), '[]');
+
+    conflicts := coalesce((
+        SELECT jsonb_agg(c ORDER BY g.position, c ->> 'label' COLLATE "C", c ->> 'source_id', c ->> 'kind')
+        FROM jsonb_array_elements(conflicts) c
+        JOIN private.transfer_registry g ON g.table_name = c ->> 'table'
+    ), '[]');
+
+    SELECT count(*) INTO unresolved
+    FROM jsonb_array_elements(conflicts) c
+    WHERE private.transfer_decision_error(c, picks -> (c ->> 'key'), target_tenant) IS NOT NULL;
+
+    -- The users named in a user column who are not members of the target (Call 7).
+    SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'user_id', u.user_id, 'display_name', u.display_name, 'columns', u.columns, 'rows', u.rows
+    ) ORDER BY u.display_name COLLATE "C", u.user_id), '[]')
+    INTO users
+    FROM (
+        SELECT x.user_id,
+               coalesce(pu.user_metadata ->> 'display_name', pu.email) AS display_name,
+               to_jsonb(array_agg(DISTINCT x.col ORDER BY x.col)) AS columns,
+               count(DISTINCT x.seq) AS rows
+        FROM (
+            SELECT private.transfer_uuid(r.row ->> uc.col) AS user_id, uc.col, r.seq
+            FROM pg_temp.transfer_rows r
+            JOIN private.transfer_registry g ON g.table_name = r.table_name
+            CROSS JOIN LATERAL jsonb_object_keys(g.user_columns) AS uc (col)
+            WHERE r.row ->> uc.col IS NOT NULL
+        ) x
+        LEFT JOIN public.user pu ON pu.id = x.user_id
+        WHERE x.user_id IS NOT NULL
+        GROUP BY x.user_id, pu.user_metadata, pu.email
+    ) u
+    WHERE NOT EXISTS (SELECT 1 FROM public.tenant_user tu WHERE tu.user_id = u.user_id AND tu.tenant_id = target_tenant)
+      AND NOT private.owns_company(u.user_id, target_tenant);
+
+    -- The links left behind, through every FK between registry tables (its first column) and
+    -- every array of ids: a row that stays (outside the package, or copied only in a move) and
+    -- refers to a package row; a package row that refers to a row outside the package.
+    FOR ref IN
+        SELECT DISTINCT rel.relname::TEXT AS from_table, a.attname::TEXT AS col, frel.relname::TEXT AS to_table,
+               FALSE AS is_array, fr.key_columns
+        FROM pg_catalog.pg_constraint c
+        JOIN pg_catalog.pg_class rel ON rel.oid = c.conrelid
+        JOIN pg_catalog.pg_namespace n ON n.oid = rel.relnamespace AND n.nspname = 'public'
+        JOIN pg_catalog.pg_class frel ON frel.oid = c.confrelid
+        JOIN pg_catalog.pg_namespace fn ON fn.oid = frel.relnamespace AND fn.nspname = 'public'
+        JOIN private.transfer_registry fr ON fr.table_name = rel.relname
+        JOIN private.transfer_registry tr ON tr.table_name = frel.relname
+        JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+        WHERE c.contype = 'f'
+        UNION
+        SELECT g.table_name, ac.key, ac.value, TRUE, g.key_columns
+        FROM private.transfer_registry g
+        CROSS JOIN LATERAL jsonb_each_text(g.array_columns) AS ac
+        ORDER BY 1, 2, 3
+    LOOP
+        IF ref.key_columns IS NULL THEN
+            member_expr := 'p.source_id = x.id';
+        ELSE
+            member_expr := format(
+                'p.key = (SELECT jsonb_object_agg(k, to_jsonb(x) -> k) FROM unnest(%L::TEXT[]) AS k)', ref.key_columns
+            );
+        END IF;
+
+        EXECUTE format(
+            'SELECT coalesce(jsonb_agg(jsonb_build_object(''table'', %1$L, ''source_id'', %2$s, ''column'', %3$L, '
+            '''label'', private.transfer_label(%1$L, to_jsonb(x)), ''refers_to'', %4$L || '':'' || v.id)), ''[]'') '
+            'FROM public.%1$I x CROSS JOIN LATERAL %5$s AS v (id) '
+            'JOIN pg_temp.transfer_rows t ON t.table_name = %4$L AND t.source_id = v.id AND NOT t.copy_only '
+            'LEFT JOIN pg_temp.transfer_rows p ON p.table_name = %1$L AND %6$s '
+            'WHERE x.tenant_id = $1 AND (p.seq IS NULL OR (p.copy_only AND $2 = ''move''))',
+            ref.from_table,
+            CASE WHEN ref.key_columns IS NULL THEN 'x.id' ELSE 'NULL::UUID' END,
+            ref.col,
+            ref.to_table,
+            CASE WHEN ref.is_array THEN format('unnest(x.%I)', ref.col) ELSE format('(VALUES (x.%I))', ref.col) END,
+            member_expr
+        )
+        INTO part
+        USING source_tenant, mode;
+        left_behind := left_behind || part;
+
+        left_behind := left_behind || coalesce((
+            SELECT jsonb_agg(jsonb_build_object(
+                'table', p.table_name, 'source_id', p.source_id, 'column', ref.col,
+                'label', private.transfer_label(p.table_name, p.row), 'refers_to', ref.to_table || ':' || v.id
+            ))
+            FROM pg_temp.transfer_rows p
+            CROSS JOIN LATERAL (
+                SELECT e.id FROM jsonb_array_elements_text(CASE WHEN ref.is_array THEN p.row -> ref.col END) AS e (id)
+                UNION ALL
+                SELECT p.row ->> ref.col WHERE NOT ref.is_array AND p.row ->> ref.col IS NOT NULL
+            ) v (id)
+            WHERE p.table_name = ref.from_table
+              AND NOT EXISTS (
+                  SELECT 1 FROM pg_temp.transfer_rows q WHERE q.table_name = ref.to_table AND q.source_id = v.id::UUID
+              )
+        ), '[]');
+    END LOOP;
+
+    left_behind := coalesce((
+        SELECT jsonb_agg(
+            e ORDER BY g.position, e ->> 'label' COLLATE "C", e ->> 'source_id', e ->> 'column', e ->> 'refers_to'
+        )
+        FROM jsonb_array_elements(left_behind) e
+        JOIN private.transfer_registry g ON g.table_name = e ->> 'table'
+    ), '[]');
+
+    -- The products the target's settings would hold back for a spec sheet (Call 10).
+    BEGIN
+        required_from := (private.company_setting(target_tenant, 'spec_sheet_required_from') #>> '{}')::DATE;
+    EXCEPTION WHEN data_exception THEN
+        required_from := NULL;
+    END;
+
+    SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'rule', 'spec_sheet_required', 'table', 'product', 'source_id', r.source_id, 'label', r.row ->> 'sku'
+    ) ORDER BY r.row ->> 'sku' COLLATE "C", r.source_id), '[]')
+    INTO gaps
+    FROM pg_temp.transfer_rows r
+    WHERE r.table_name = 'product'
+      AND (required_from IS NULL OR current_date >= required_from
+           OR r.row ->> 'status' IN ('concept', 'development', 'approved'))
+      AND NOT EXISTS (
+          SELECT 1 FROM pg_temp.transfer_rows d
+          WHERE d.table_name = 'document' AND d.row ->> 'entity_type' = 'product'
+            AND d.row ->> 'entity_id' = r.source_id::TEXT
+            AND d.row ->> 'type' = 'spec_sheet' AND d.row ->> 'status' = 'signed'
+      );
+
+    SELECT count(*) + count(r.row ->> 'thumbnail_path') INTO files
+    FROM pg_temp.transfer_rows r WHERE r.table_name = 'media';
+
+    SELECT coalesce(jsonb_object_agg(t.table_name, t.n), '{}') INTO counts
+    FROM (SELECT r.table_name, count(*) AS n FROM pg_temp.transfer_rows r GROUP BY r.table_name) t;
+
+    path := CASE
+        WHEN mode = 'move'
+         AND product_ids IS NULL
+         AND (SELECT e.company_id FROM private.entitlements(ARRAY[source_tenant]) e)
+             = (SELECT e.company_id FROM private.entitlements(ARRAY[target_tenant]) e)
+         AND coalesce((SELECT e.writable FROM private.entitlements(ARRAY[source_tenant]) e), FALSE)
+         AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(conflicts) c WHERE c ->> 'table' <> 'supplier')
+        THEN 'cheap'
+        ELSE 'copy'
+    END;
+
+    report := jsonb_build_object(
+        'customer', jsonb_build_object(
+            'id', source_customer, 'code', customer_row ->> 'code', 'display_name', customer_row ->> 'display_name'
+        ),
+        'path', path,
+        'mode', mode,
+        'counts', counts,
+        'conflicts', conflicts,
+        'users', users,
+        'left_behind', left_behind,
+        'settings_gaps', gaps,
+        'files', files,
+        'unresolved', unresolved
+    );
+
+    RETURN report || jsonb_build_object('report_hash', encode(sha256(convert_to(report::TEXT, 'UTF8')), 'hex'));
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_report (UUID, UUID, TEXT, JSONB, UUID[]) FROM PUBLIC, anon, authenticated;
+
+-- The decisions of a real run against its report (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_check_decisions (report JSONB, decisions JSONB, target_tenant UUID, mode TEXT) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    pick RECORD;
+    conflict JSONB;
+    failure TEXT;
+BEGIN
+    IF decisions IS NOT NULL AND jsonb_typeof(decisions) <> 'object' THEN
+        PERFORM private.transfer_raise('transfer_decision_invalid', 400);
+    END IF;
+
+    FOR pick IN SELECT d.key, d.value FROM jsonb_each(coalesce(decisions, '{}'::JSONB)) d ORDER BY d.key LOOP
+        SELECT c INTO conflict FROM jsonb_array_elements(report -> 'conflicts') c WHERE c ->> 'key' = pick.key;
+
+        IF conflict IS NULL THEN
+            -- A package supplier may be mapped without a conflict.
+            IF pick.key LIKE 'supplier:%'
+               AND jsonb_typeof(pick.value) = 'object'
+               AND pick.value ->> 'action' = 'map'
+               AND EXISTS (
+                   SELECT 1 FROM pg_temp.transfer_rows r
+                   WHERE r.table_name = 'supplier' AND r.source_id = private.transfer_uuid(substr(pick.key, 10))
+               )
+               AND EXISTS (
+                   SELECT 1 FROM public.supplier s
+                   WHERE s.tenant_id = target_tenant AND s.id = private.transfer_uuid(pick.value ->> 'target_id')
+               ) THEN
+                failure := NULL;
+            ELSE
+                failure := 'transfer_decision_invalid';
+            END IF;
+        ELSIF mode = 'move' AND jsonb_typeof(pick.value) = 'object' AND pick.value ->> 'action' = 'skip' THEN
+            failure := 'transfer_decision_invalid';
+        ELSE
+            -- A JSON null is a decision that does not fit, not a missing one.
+            failure := coalesce(
+                nullif(private.transfer_decision_error(conflict, pick.value, target_tenant), 'transfer_decision_required'),
+                CASE WHEN jsonb_typeof(pick.value) = 'null' THEN 'transfer_decision_invalid' END
+            );
+        END IF;
+
+        IF failure IS NOT NULL THEN
+            PERFORM private.transfer_raise(failure, 400);
+        END IF;
+    END LOOP;
+
+    IF (report ->> 'unresolved')::INT > 0 THEN
+        PERFORM private.transfer_raise('transfer_decision_required', 409);
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_check_decisions (JSONB, JSONB, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+
 -- The entry point (see the header).
 CREATE OR REPLACE FUNCTION public.transfer_customer (
    source_tenant UUID,
@@ -256,15 +826,12 @@ SET
    search_path = '' AS $$
 DECLARE
     refusal TEXT := private.transfer_refusal(source_tenant, target_tenant, transfer_customer.mode);
-    counts JSONB;
+    report JSONB;
 BEGIN
     IF refusal IS NOT NULL THEN
-        RAISE SQLSTATE 'PGRST' USING
-            MESSAGE = json_build_object('code', 'P0001', 'message', refusal)::TEXT,
-            DETAIL = json_build_object(
-                'status', CASE WHEN refusal IN ('transfer_invalid_mode', 'transfer_same_tenant') THEN 400 ELSE 403 END,
-                'headers', json_build_object()
-            )::TEXT;
+        PERFORM private.transfer_raise(
+            refusal, CASE WHEN refusal IN ('transfer_invalid_mode', 'transfer_same_tenant') THEN 400 ELSE 403 END
+        );
     END IF;
 
     PERFORM 1 FROM public.customer c
@@ -272,9 +839,7 @@ BEGIN
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RAISE SQLSTATE 'PGRST' USING
-            MESSAGE = json_build_object('code', 'P0001', 'message', 'transfer_customer_missing')::TEXT,
-            DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
+        PERFORM private.transfer_raise('transfer_customer_missing', 404);
     END IF;
 
     IF transfer_customer.product_ids IS NOT NULL AND (
@@ -287,17 +852,36 @@ BEGIN
             )
         )
     ) THEN
-        RAISE SQLSTATE 'PGRST' USING
-            MESSAGE = json_build_object('code', 'P0001', 'message', 'transfer_products_invalid')::TEXT,
-            DETAIL = json_build_object('status', 400, 'headers', json_build_object())::TEXT;
+        PERFORM private.transfer_raise('transfer_products_invalid', 400);
     END IF;
 
     PERFORM private.transfer_collect(source_tenant, transfer_customer.customer_id, transfer_customer.product_ids);
+    PERFORM private.transfer_check_gates();
 
-    SELECT coalesce(jsonb_object_agg(t.table_name, t.n), '{}') INTO counts
-    FROM (SELECT r.table_name, count(*) AS n FROM pg_temp.transfer_rows r GROUP BY r.table_name) t;
+    report := private.transfer_report(
+        source_tenant, target_tenant, transfer_customer.mode, transfer_customer.decisions, transfer_customer.product_ids
+    );
 
-    RETURN jsonb_build_object('mode', transfer_customer.mode, 'counts', counts);
+    IF coalesce(transfer_customer.dry_run, TRUE) THEN
+        RETURN report;
+    END IF;
+
+    IF transfer_customer.report_hash IS NULL THEN
+        PERFORM private.transfer_raise('transfer_report_required', 400);
+    END IF;
+
+    IF transfer_customer.report_hash IS DISTINCT FROM report ->> 'report_hash' THEN
+        PERFORM private.transfer_raise('transfer_report_stale', 409);
+    END IF;
+
+    IF transfer_customer.mode = 'move' AND jsonb_array_length(report -> 'left_behind') > 0 THEN
+        PERFORM private.transfer_raise('transfer_product_in_use', 409);
+    END IF;
+
+    PERFORM private.transfer_check_decisions(report, transfer_customer.decisions, target_tenant, transfer_customer.mode);
+
+    -- The writes come with 043 (private.transfer_apply); until then a real run writes nothing.
+    RAISE EXCEPTION 'A real transfer run is not available before migration 043.' USING ERRCODE = 'feature_not_supported';
 END;
 $$;
 
