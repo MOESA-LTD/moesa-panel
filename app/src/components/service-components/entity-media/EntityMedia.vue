@@ -190,7 +190,18 @@ const download = (row: EntityMediaLink) =>
                class="absolute left-3 top-3 z-10"
                :aria-label="$t('ops.media.select', { name: row.media.file_name })"
             />
+            <!-- An image opens in a lightbox on the page; a PDF or video in a tab. -->
+            <MediaThumb
+               v-if="isImage(row)"
+               class="self-center"
+               :path="thumbPath(row.media)"
+               :mimeType="row.media.mime_type"
+               :alt="row.media.alt_text || row.media.file_name"
+               :size="112"
+               preview
+            />
             <button
+               v-else
                type="button"
                data-action="open"
                class="flex justify-center"
@@ -200,7 +211,7 @@ const download = (row: EntityMediaLink) =>
                <MediaThumb
                   :path="thumbPath(row.media)"
                   :mimeType="row.media.mime_type"
-                  :alt="row.media.alt_text"
+                  :alt="row.media.alt_text || row.media.file_name"
                   :size="112"
                />
             </button>

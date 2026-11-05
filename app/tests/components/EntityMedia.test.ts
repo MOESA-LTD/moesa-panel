@@ -1,3 +1,4 @@
+import '../setup/mockMain';
 import type { EntityMediaLink, MediaRole, MediaRow } from '@/api/media';
 import EntityMedia from '@/components/service-components/entity-media/EntityMedia.vue';
 import MediaPickerDialog from '@/components/service-components/media/MediaPickerDialog.vue';
@@ -7,6 +8,7 @@ import i18n, { i18NPlugin } from '@plugins/i18n';
 import { flushPromises, mount } from '@vue/test-utils';
 import PrimeVue from 'primevue/config';
 import FileUpload from 'primevue/fileupload';
+import Image from 'primevue/image';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref, toValue, type MaybeRefOrGetter } from 'vue';
 
@@ -204,7 +206,7 @@ describe('EntityMedia', () => {
       );
    });
 
-   it('opens a file from its card, or downloads it under its name', async () => {
+   it('opens a PDF from its card in a tab, or downloads it under its name', async () => {
       const file = media('sheet', 'application/pdf');
       api.links = [link('l-pdf', 'attachment', file)];
       const card = cards(mountMedia())[0];
@@ -212,6 +214,25 @@ describe('EntityMedia', () => {
       await card.get('[data-action="open"]').trigger('click');
       expect(api.open).toHaveBeenCalledWith(file.storage_path);
       expect(api.download).not.toHaveBeenCalled();
+
+      await card.get('[data-action="download"]').trigger('click');
+      expect(api.download).toHaveBeenCalledWith(file.storage_path, file.file_name);
+   });
+
+   it('previews an image in a lightbox, not a tab, and still downloads it', async () => {
+      const file = media('photo');
+      api.links = [link('l-img', 'gallery', file)];
+      const card = cards(mountMedia())[0];
+
+      const image = card.getComponent(Image);
+      expect(image.props('preview')).toBe(true);
+      expect(image.get('img').attributes()).toMatchObject({
+         src: `signed:${file.storage_path}`,
+         alt: file.file_name
+      });
+      expect(card.find('[data-action="open"]').exists()).toBe(false);
+      await card.get('img').trigger('click');
+      expect(api.open).not.toHaveBeenCalled();
 
       await card.get('[data-action="download"]').trigger('click');
       expect(api.download).toHaveBeenCalledWith(file.storage_path, file.file_name);

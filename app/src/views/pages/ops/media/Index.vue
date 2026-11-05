@@ -2,6 +2,7 @@
 import { DOCUMENT_ENTITIES, type DocumentEntity } from '@/api/document';
 import {
    MEDIA_KINDS,
+   mediaKind,
    thumbPath,
    useDeleteMedia,
    type MediaKind,
@@ -71,6 +72,7 @@ const rows = computed(() => (library.data.value?.pages ?? []).flat().filter(({ i
 
 const report = (promise: Promise<unknown>) => promise.catch(appErrorHandler);
 
+const isImage = (row: MediaLibraryRow) => !!row.mime_type && mediaKind(row.mime_type) === 'image';
 /** Shows the file in a tab; the tab opens in the click itself, so no pop-up blocker stops it. */
 const open = (row: MediaLibraryRow) => void report(openMediaFile(row.storage_path!));
 const download = (row: MediaLibraryRow) =>
@@ -143,7 +145,18 @@ const remove = async (row: MediaLibraryRow) => {
             :data-media-id="row.id"
             class="flex flex-col gap-2 rounded border border-surface-200 p-2 dark:border-surface-700"
          >
+            <!-- An image opens in a lightbox on the page; a PDF or video in a tab. -->
+            <MediaThumb
+               v-if="isImage(row)"
+               class="self-center"
+               :path="thumbPath(row as MediaRow)"
+               :mimeType="row.mime_type"
+               :alt="row.alt_text || row.file_name"
+               :size="112"
+               preview
+            />
             <button
+               v-else
                type="button"
                data-action="open"
                class="flex justify-center"
@@ -153,7 +166,7 @@ const remove = async (row: MediaLibraryRow) => {
                <MediaThumb
                   :path="thumbPath(row as MediaRow)"
                   :mimeType="row.mime_type"
-                  :alt="row.alt_text"
+                  :alt="row.alt_text || row.file_name"
                   :size="112"
                />
             </button>
