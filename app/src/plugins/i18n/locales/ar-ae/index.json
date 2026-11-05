@@ -255,6 +255,9 @@
          "incidents_open": "Open incidents",
          "change_requests_open": "Open change requests",
          "market_summary": "Market matrix: live"
+      },
+      "layout": {
+         "open_all": "Open all"
       }
    },
    "input": {

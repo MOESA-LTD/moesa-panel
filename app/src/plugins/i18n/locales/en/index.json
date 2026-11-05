@@ -778,6 +778,9 @@
             "decision_due": "decision {date}",
             "market": "{live} live · {preparing} preparing · {suppressed} suppressed"
          }
+      },
+      "layout": {
+         "open_all": "Open all"
       }
    },
    "audit_log": {

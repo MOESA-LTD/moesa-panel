@@ -724,6 +724,9 @@
             "decision_due": "karar {date}",
             "market": "{live} yayında · {preparing} hazırlanıyor · {suppressed} askıda"
          }
+      },
+      "layout": {
+         "open_all": "Tümünü aç"
       }
    },
    "audit_log": {
