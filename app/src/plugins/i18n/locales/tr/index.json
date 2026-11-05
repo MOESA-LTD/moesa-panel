@@ -730,6 +730,10 @@
          "hide": "Gizle",
          "drag": "Sıralamak için sürükleyin",
          "menu": "Kutu seçenekleri",
+         "hide_box": "Gizle: {box}",
+         "drag_box": "Sıralamak için sürükleyin: {box}",
+         "menu_box": "Kutu seçenekleri: {box}",
+         "size_box": "Kutu boyutu: {box}",
          "move_left": "Sola taşı",
          "move_right": "Sağa taşı",
          "not_persisted": "Yalnızca bu ziyaret için kaydedildi: tarayıcı kaydetmeye izin vermiyor."

@@ -784,6 +784,10 @@
          "hide": "Hide",
          "drag": "Drag to reorder",
          "menu": "Box options",
+         "hide_box": "Hide {box}",
+         "drag_box": "Drag {box} to reorder",
+         "menu_box": "Options for {box}",
+         "size_box": "Size of {box}",
          "move_left": "Move left",
          "move_right": "Move right",
          "not_persisted": "Saved for this visit only: this browser does not allow saving."

@@ -263,7 +263,11 @@
          "menu": "Box options",
          "move_left": "Move left",
          "move_right": "Move right",
-         "not_persisted": "Saved for this visit only: this browser does not allow saving."
+         "not_persisted": "Saved for this visit only: this browser does not allow saving.",
+         "hide_box": "Hide {box}",
+         "drag_box": "Drag {box} to reorder",
+         "menu_box": "Options for {box}",
+         "size_box": "Size of {box}"
       }
    },
    "input": {

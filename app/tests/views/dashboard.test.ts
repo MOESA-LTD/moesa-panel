@@ -1,12 +1,15 @@
 import '../setup/mockMain';
+import StatisticCard from '@/components/ui/charts/StatisticCard.vue';
+import { boxById, type DashboardBoxId } from '@/constants/dashboard';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import { useDashboardLayout } from '@/store/dashboardLayout';
 import DashboardBoxEditBar from '@/views/pages/dashboard/DashboardBoxEditBar.vue';
 import Index from '@/views/pages/dashboard/Index.vue';
+import draggable from 'vuedraggable';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { reactive, ref, type Ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
@@ -42,7 +45,8 @@ vi.mock('@/constants/dashboard', async (importOriginal) => {
 
 const allow = (...subjects: string[]) =>
    ability.update(subjects.map((subject) => ({ action: 'select', subject })));
-const mountDashboard = async () => {
+// Test utils stub transitions; the Menu says it opened or closed from its transition hooks.
+const mountDashboard = async ({ transitions = false } = {}) => {
    document.body.innerHTML = '<span id="page-toolbar"></span>';
    const w = mount(Index, {
       attachTo: document.body,
@@ -52,7 +56,8 @@ const mountDashboard = async () => {
             PrimeVue,
             ToastService,
             [abilitiesPlugin, ability, { useGlobalProperties: true }]
-         ]
+         ],
+         stubs: transitions ? { transition: false } : {}
       }
    });
    await flushPromises();
@@ -72,6 +77,9 @@ const store = (userId: string, layout: unknown) =>
    stored.set(`dashboard.layout.${userId}`, JSON.stringify(layout));
 
 beforeAll(() => i18n.setLocaleMessage('en', en));
+// A wrapper left mounted would react to the next test's permissions and teleport its toolbar into
+// that test's page.
+enableAutoUnmount(afterEach);
 beforeEach(() => {
    ui.wideScreen = ref(true);
    ui.toast.mockClear();
@@ -103,7 +111,8 @@ it('no longer shows the branch, user and role statistics', async () => {
    allow('tenant', 'user', 'role');
    const w = await mountDashboard();
    expect(boxIds(w)).toEqual([]);
-   expect(w.text()).not.toContain('Branches');
+   expect(w.findComponent(StatisticCard).exists()).toBe(false);
+   expect(w.text()).toBe(i18n.t('dashboard.layout.no_boxes'));
 });
 
 it('shows the stored order, without hidden boxes, wide ones across two columns', async () => {
@@ -160,8 +169,11 @@ const click = async (el: Element | undefined) => {
    await flushPromises();
 };
 const inBox = (w: VueWrapper, id: string) => w.get(`[data-box-id="${id}"]`);
-const byLabel = (w: VueWrapper, id: string, label: string) =>
-   inBox(w, id).get(`button[aria-label="${label}"]`).element;
+// The edit controls are named with their box's title.
+const named = (key: string, id: string) =>
+   i18n.t(key, { box: t(boxById(id as DashboardBoxId).title) });
+const byLabel = (w: VueWrapper, id: string, key: string) =>
+   inBox(w, id).get(`button[aria-label="${named(key, id)}"]`).element;
 const menuItem = (w: VueWrapper, id: string, label: string) =>
    inBox(w, id)
       .findAll('[role="menuitem"]')
@@ -200,7 +212,7 @@ it('tells the boxes they are being edited, so their links are inert', async () =
 });
 it('hides a box into the strip and brings it back at the end', async () => {
    const w = await startEditing();
-   await click(byLabel(w, 'gates_team', t('dashboard.layout.hide')));
+   await click(byLabel(w, 'gates_team', 'dashboard.layout.hide_box'));
    expect(boxIds(w)).not.toContain('gates_team');
    await click(button(t('dashboard.ops.gates_team')));
    expect(boxIds(w).at(-1)).toBe('gates_team');
@@ -217,21 +229,21 @@ it('switches a box to wide', async () => {
 });
 it('moves a box with the menu, Move left disabled on the first box', async () => {
    const w = await startEditing();
-   await click(byLabel(w, 'gates_management', t('dashboard.layout.menu')));
+   await click(byLabel(w, 'gates_management', 'dashboard.layout.menu_box'));
    await click(
       menuItem(w, 'gates_management', t('dashboard.layout.move_left')).get(
          'a, .p-menu-item-content'
       ).element
    );
    expect(boxIds(w).slice(0, 2)).toEqual(['gates_management', 'gates_team']);
-   await click(byLabel(w, 'gates_management', t('dashboard.layout.menu')));
+   await click(byLabel(w, 'gates_management', 'dashboard.layout.menu_box'));
    expect(
       menuItem(w, 'gates_management', t('dashboard.layout.move_left')).attributes('aria-disabled')
    ).toBe('true');
 });
 it('saves the layout and keeps it after a remount', async () => {
    const w = await startEditing();
-   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(byLabel(w, 'po_action', 'dashboard.layout.hide_box'));
    await click(button(t('dashboard.layout.save')));
    expect(JSON.parse(stored.get('dashboard.layout.u1')!).hidden).toEqual(['po_action']);
    expect(button(t('dashboard.layout.save'))).toBeUndefined();
@@ -242,7 +254,7 @@ it('saves the layout and keeps it after a remount', async () => {
 it('discard reverts to the saved layout', async () => {
    const w = await startEditing();
    const before = boxIds(w);
-   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(byLabel(w, 'po_action', 'dashboard.layout.hide_box'));
    await click(button(t('dashboard.layout.discard')));
    expect(boxIds(w)).toEqual(before);
    expect(stored.size).toBe(0);
@@ -262,7 +274,7 @@ it('warns when the browser refuses to save', async () => {
       },
       removeItem: vi.fn()
    });
-   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(byLabel(w, 'po_action', 'dashboard.layout.hide_box'));
    await click(button(t('dashboard.layout.save')));
    expect(ui.toast).toHaveBeenCalledWith(
       expect.objectContaining({ severity: 'warn', summary: t('dashboard.layout.not_persisted') })
@@ -271,17 +283,111 @@ it('warns when the browser refuses to save', async () => {
 });
 it('drops an unsaved draft when the dashboard is left or the screen gets narrow', async () => {
    let w = await startEditing();
-   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(byLabel(w, 'po_action', 'dashboard.layout.hide_box'));
    w.unmount();
    expect(useDashboardLayout().editing).toBe(false);
    expect(useDashboardLayout().layout.order).toContain('po_action');
    w = await mountDashboard();
    await click(button(t('dashboard.layout.edit')));
-   await click(byLabel(w, 'po_action', t('dashboard.layout.hide')));
+   await click(byLabel(w, 'po_action', 'dashboard.layout.hide_box'));
    ui.wideScreen.value = false;
    await flushPromises();
    ui.wideScreen.value = true;
    await flushPromises();
    expect(boxIds(w)).toContain('po_action');
    expect(stored.size).toBe(0);
+});
+it('names every edit control after its box and ties the menu trigger to its menu', async () => {
+   allow('purchase_order');
+   const w = await mountDashboard({ transitions: true });
+   await click(button(t('dashboard.layout.edit')));
+   const bar = inBox(w, 'po_action');
+   expect(
+      bar.find(`[aria-label="${named('dashboard.layout.drag_box', 'po_action')}"]`).exists()
+   ).toBe(true);
+   expect(
+      bar.find(`[aria-label="${named('dashboard.layout.size_box', 'po_action')}"]`).exists()
+   ).toBe(true);
+   const trigger = byLabel(w, 'po_action', 'dashboard.layout.menu_box');
+   expect(trigger.getAttribute('aria-expanded')).toBe('false');
+   await click(trigger);
+   expect(trigger.getAttribute('aria-expanded')).toBe('true');
+   const menu = document.getElementById(trigger.getAttribute('aria-controls')!);
+   expect(menu?.querySelector('[role="menuitem"]')).not.toBeNull();
+   await click(trigger);
+   expect(trigger.getAttribute('aria-expanded')).toBe('false');
+});
+it('does not offer Edit when the role has no box', async () => {
+   allow('tenant');
+   await mountDashboard();
+   expect(button(t('dashboard.layout.edit'))).toBeUndefined();
+});
+it('leaves the hint to the strip when every box is hidden while editing', async () => {
+   allow('project_gate');
+   const w = await mountDashboard();
+   await click(button(t('dashboard.layout.edit')));
+   for (const id of ['gates_team', 'gates_management', 'gates_customer'])
+      await click(byLabel(w, id, 'dashboard.layout.hide_box'));
+   expect(boxIds(w)).toEqual([]);
+   expect(w.text()).not.toContain(t('dashboard.layout.all_hidden'));
+   expect(w.text()).toContain(t('dashboard.layout.hidden_title'));
+   await click(button(t('dashboard.layout.save')));
+   expect(w.text()).toContain(t('dashboard.layout.all_hidden'));
+});
+it('reset brings back the default order and sizes', async () => {
+   const w = await startEditing();
+   const before = boxIds(w);
+   await click(byLabel(w, 'gates_team', 'dashboard.layout.hide_box'));
+   await click(
+      inBox(w, 'po_action')
+         .findAll('button')
+         .find((b) => b.text() === t('dashboard.layout.size_wide'))!.element
+   );
+   await click(button(t('dashboard.layout.reset')));
+   expect(boxIds(w)).toEqual(before);
+   expect(w.findAll('[data-box-id]').some((b) => b.classes().includes('md:col-span-2'))).toBe(
+      false
+   );
+});
+it('moves a box right with the menu, Move right disabled on the last box', async () => {
+   const w = await startEditing();
+   await click(byLabel(w, 'gates_team', 'dashboard.layout.menu_box'));
+   await click(
+      menuItem(w, 'gates_team', t('dashboard.layout.move_right')).get('a, .p-menu-item-content')
+         .element
+   );
+   expect(boxIds(w).slice(0, 2)).toEqual(['gates_management', 'gates_team']);
+   const last = boxIds(w).at(-1)!;
+   await click(byLabel(w, last, 'dashboard.layout.menu_box'));
+   expect(menuItem(w, last, t('dashboard.layout.move_right')).attributes('aria-disabled')).toBe(
+      'true'
+   );
+});
+it('puts the boxes in the order a drag leaves them', async () => {
+   const w = await startEditing();
+   const reversed = [...boxIds(w)].reverse();
+   w.findComponent(draggable).vm.$emit('update:modelValue', reversed);
+   await flushPromises();
+   expect(boxIds(w)).toEqual(reversed);
+});
+it('keeps a layout the browser refused to store when the dashboard is opened again', async () => {
+   vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => {
+         throw new Error('blocked');
+      },
+      removeItem: vi.fn()
+   });
+   const w = await startEditing();
+   await click(byLabel(w, 'gates_management', 'dashboard.layout.menu_box'));
+   await click(
+      menuItem(w, 'gates_management', t('dashboard.layout.move_left')).get(
+         'a, .p-menu-item-content'
+      ).element
+   );
+   const saved = boxIds(w);
+   expect(saved[0]).toBe('gates_management');
+   await click(button(t('dashboard.layout.save')));
+   w.unmount();
+   expect(boxIds(await mountDashboard())).toEqual(saved);
 });

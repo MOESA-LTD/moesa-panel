@@ -10,6 +10,10 @@ const emit = defineEmits<{ hide: []; 'update:size': [BoxSize]; move: [-1 | 1] }>
 
 const { t } = useI18n();
 const menu = ref<{ toggle: (event: Event) => void } | null>(null);
+const menuId = useId();
+const menuOpen = ref(false);
+// Each control names its box, so a screen reader tabbing through the boxes can tell them apart.
+const label = (key: string) => t(key, { box: t(props.box.title) });
 
 const sizes = computed(() => [
    { value: 'narrow', label: t('dashboard.layout.size_narrow') },
@@ -37,7 +41,7 @@ const model = computed<MenuItem[]>(() => [
       <button
          type="button"
          class="dashboard-drag-handle cursor-grab p-2 rounded-lg text-muted-color hover:bg-surface-100 dark:hover:bg-surface-800"
-         :aria-label="$t('dashboard.layout.drag')"
+         :aria-label="label('dashboard.layout.drag_box')"
          :title="$t('dashboard.layout.drag')"
       >
          <i :class="PrimeIcons.BARS" />
@@ -49,6 +53,7 @@ const model = computed<MenuItem[]>(() => [
          option-label="label"
          option-value="value"
          :allow-empty="false"
+         :aria-label="label('dashboard.layout.size_box')"
          @update:model-value="(s: BoxSize) => emit('update:size', s)"
       />
       <span class="ms-auto flex items-center gap-1">
@@ -58,7 +63,7 @@ const model = computed<MenuItem[]>(() => [
             rounded
             severity="secondary"
             size="small"
-            :aria-label="$t('dashboard.layout.hide')"
+            :aria-label="label('dashboard.layout.hide_box')"
             :title="$t('dashboard.layout.hide')"
             @click="emit('hide')"
          />
@@ -69,10 +74,20 @@ const model = computed<MenuItem[]>(() => [
             severity="secondary"
             size="small"
             aria-haspopup="true"
-            :aria-label="$t('dashboard.layout.menu')"
+            :aria-expanded="menuOpen"
+            :aria-controls="menuId"
+            :aria-label="label('dashboard.layout.menu_box')"
             @click="(event: Event) => menu?.toggle(event)"
          />
-         <Menu ref="menu" popup append-to="self" :model="model" />
+         <Menu
+            :id="menuId"
+            ref="menu"
+            popup
+            append-to="self"
+            :model="model"
+            @show="menuOpen = true"
+            @hide="menuOpen = false"
+         />
       </span>
    </div>
 </template>

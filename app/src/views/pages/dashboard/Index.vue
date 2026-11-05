@@ -27,8 +27,8 @@ const { t } = useI18n();
 
 const canSee: CanSee = (id) => ability.can('read', boxById(id).permission);
 
-// The layout is loaded when the account changes, not on every render: a reload after a failed
-// storage write would drop the in-memory layout.
+// Runs on every mount; the store reads storage only when the account changed, so a layout kept in
+// memory after a refused write survives leaving and reopening the dashboard.
 watch(
    () => auth.user?.id ?? null,
    (id) => layout.load(id),
@@ -43,6 +43,12 @@ void auth.accessReady().then(() => {
 
 const shown = computed(() => layout.visibleBoxes(canSee).shown);
 const anyPermitted = computed(() => DASHBOARD_BOXES.some((box) => canSee(box.id)));
+// While editing, the hidden strip below already says how to bring boxes back.
+const emptyText = computed(() => {
+   if (shown.value.length) return null;
+   if (!anyPermitted.value) return 'dashboard.layout.no_boxes';
+   return layout.editing ? null : 'dashboard.layout.all_hidden';
+});
 
 // Arranging needs a grid of two columns or more; below md, and when the dashboard is left, an
 // unsaved draft is dropped so a half-made layout never looks saved later.
@@ -70,7 +76,11 @@ const save = () => {
          'p-4': !!dialogRef
       }"
    >
-      <Teleport v-if="canEdit && accessLoaded" to="#page-toolbar" :disabled="!!dialogRef">
+      <Teleport
+         v-if="canEdit && accessLoaded && anyPermitted"
+         to="#page-toolbar"
+         :disabled="!!dialogRef"
+      >
          <span class="flex-1 flex justify-end gap-2 flex-wrap-reverse">
             <Button
                v-if="!layout.editing"
@@ -96,8 +106,8 @@ const save = () => {
          </span>
       </Teleport>
       <template v-if="accessLoaded">
-         <p v-if="!shown.length" class="text-muted-color">
-            {{ $t(anyPermitted ? 'dashboard.layout.all_hidden' : 'dashboard.layout.no_boxes') }}
+         <p v-if="emptyText" class="text-muted-color">
+            {{ $t(emptyText) }}
          </p>
          <draggable
             v-else
@@ -115,7 +125,7 @@ const save = () => {
                   :data-box-id="id"
                   :class="{
                      'md:col-span-2': layout.sizeOf(id) === 'wide',
-                     'outline-dashed outline-2 outline-offset-2 outline-surface-300 rounded-xl':
+                     'outline-dashed outline-2 outline-offset-2 outline-surface-300 dark:outline-surface-600 rounded-xl':
                         layout.editing
                   }"
                >
