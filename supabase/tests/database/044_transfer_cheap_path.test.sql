@@ -7,10 +7,11 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- THO document citing it follows the copy, the source gets a "transferred out" entry and the
 -- target's audit transaction is the transfer's. A Europe THO would send the same move down the
 -- copy path. A shipment line on its order link moves too; a supplier mapped onto Europe's TR1
--- keeps the cheap path; a copied supplier takes its document. What it writes is rolled back.
+-- keeps the cheap path; a copied supplier takes its document; a file above the target's size cap
+-- (lowered after the upload) is refused in place as in a copy. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(17);
+SELECT plan(18);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -154,6 +155,36 @@ END;
 $$;
 SELECT set_config('test.mapped_tr1', pg_temp.move_with_mapped_tr1()::TEXT, TRUE);
 
+-- 18 (run before the move, checked last). In an exception block, the company's size cap lowered to
+-- 1 MB below the THO file of 2 MB uploaded before: the in-place move refuses it, as a copy would.
+CREATE FUNCTION pg_temp.move_over_cap () RETURNS TEXT LANGUAGE plpgsql AS $$
+DECLARE
+    failure TEXT;
+BEGIN
+    BEGIN
+        ALTER TABLE public.media DISABLE TRIGGER media_check_file;
+        UPDATE public.media SET size_bytes = 2097152 WHERE id = '00000000-0000-4000-8000-000000044011';
+        ALTER TABLE public.media ENABLE TRIGGER media_check_file;
+        DELETE FROM public.setting WHERE tenant_id = current_setting('test.moesa')::UUID AND key = 'media_max_mb';
+        INSERT INTO public.setting (tenant_id, key, value) VALUES (current_setting('test.moesa')::UUID, 'media_max_mb', '1');
+        PERFORM private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+        BEGIN
+            PERFORM set_config('audit.transaction_id', '', TRUE);
+            PERFORM pg_temp.move('{}', pg_temp.move() ->> 'report_hash');
+            failure := 'moved';
+        EXCEPTION WHEN check_violation THEN
+            failure := SQLERRM;
+        END;
+        RAISE EXCEPTION 'rolled back' USING ERRCODE = 'T0001';
+    EXCEPTION WHEN SQLSTATE 'T0001' THEN
+        NULL;
+    END;
+    RETURN failure;
+END;
+$$;
+RESET ROLE;
+SELECT set_config('test.over_cap', pg_temp.move_over_cap(), TRUE);
+
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.h', pg_temp.move() ->> 'report_hash', TRUE);
 SELECT set_config('audit.transaction_id', '', TRUE);
@@ -278,6 +309,9 @@ SELECT is(
         (current_setting('test.r')::JSONB -> 'id_map' -> 'supplier' ->> current_setting('test.tr1'))::UUID),
     'a copied supplier''s document is copied with it, the original stays'
 );
+
+-- 18. (Run above, before the move.)
+SELECT is(current_setting('test.over_cap'), 'media_too_large', 'a file above the target''s size cap is not moved in place');
 
 SELECT * FROM finish();
 

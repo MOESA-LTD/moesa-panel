@@ -25,7 +25,8 @@
 --      already starts with that exit, so its tenant rule needs no change. media_check_file skips
 --      the Storage lookups (the files are copied after the rows) and the immutability check on
 --      UPDATE, and keeps the mime_type and size_bytes it is given; the type allowlist and the
---      target tenant's size cap hold for them, and the CHECK media_path_in_folder still applies.
+--      target tenant's size cap hold for them (on an INSERT and on an UPDATE that changes the
+--      tenant, the cheap path's move in place), and the CHECK media_path_in_folder still applies.
 --      media_link_check skips only the RAISE of its media_link_identity_immutable branch and goes
 --      on to its permission, customer and image checks.
 -- 3. Integrity stays on: the entity, media and tenant checks that keep a row consistent with the
@@ -1452,13 +1453,14 @@ DECLARE
     transfer BOOLEAN := FALSE;
 BEGIN
     -- A running transfer (041): no Storage lookups (its files are copied after the rows) and no
-    -- immutability; the type and the target tenant's size cap hold for the values it gives.
+    -- immutability; the type and the target tenant's size cap hold for the values it gives, on a
+    -- copy (INSERT) and on a move in place (an UPDATE of tenant_id) alike.
     IF current_setting('moesa.transfer_id', TRUE) <> '' THEN
         transfer := private.transferring();
     END IF;
 
     IF transfer THEN
-        IF TG_OP = 'INSERT' THEN
+        IF TG_OP = 'INSERT' OR NEW.tenant_id IS DISTINCT FROM OLD.tenant_id THEN
             IF NEW.mime_type IS NULL
                OR NEW.mime_type NOT IN ('image/png', 'image/jpeg', 'image/webp', 'application/pdf', 'video/mp4') THEN
                 RAISE EXCEPTION 'media_type_not_allowed' USING ERRCODE = 'check_violation';
