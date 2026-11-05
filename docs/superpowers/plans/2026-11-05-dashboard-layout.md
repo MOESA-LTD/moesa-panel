@@ -461,7 +461,7 @@ it('previews the first items of the feed, grouped by period', () => {
 ```ts
 import '../setup/mockMain';
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
-vi.mock('@/composables/useDialogRef', async () => ({ useDialogRef: () => (await import('vue')).ref(null) }));
+vi.mock('@/composables/useDialogRef', async () => { const { ref } = await import('vue'); return { useDialogRef: () => ref(null) }; });
 vi.mock('@/constants/dashboard', async (importOriginal) => {
    const actual = await importOriginal<typeof import('@/constants/dashboard')>();
    const { defineComponent, inject, ref } = await import('vue');
@@ -552,6 +552,8 @@ Behaviour:
 - `visibleBoxes(canSee)`: `shown = layout.order.filter(canSee)`, `hidden = layout.hidden.filter(canSee)`.
 - `save()`: `saved = normalizeLayout(draft)`, `draft = null`, writes `JSON.stringify(saved)` (the whole object, no merge) under the user's key; returns `false` when there is no user or `setItem` throws (layout still applied in memory), else `true`.
 - `discard()`: `draft = null`.
+
+- `edit()` starts a draft: `draft = structuredClone(saved)` and `editing = true`; a second call while editing is a no-op (the draft is kept).
 
 - [ ] **Step 1: Write the failing tests** in `app/tests/store/dashboardLayout.test.ts`
 
