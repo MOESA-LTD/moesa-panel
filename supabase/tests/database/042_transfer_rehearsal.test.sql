@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- are refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(52);
+SELECT plan(53);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -488,6 +488,19 @@ SELECT throws_like(
            'supplier:' || current_setting('test.tr1'), '{"action": "new_code", "code": "ID1"}'::JSONB)) $$,
     '%transfer_code_invalid%',
     'a new code is not the code of another supplier copied along'
+);
+
+-- 49b. The rehearsal says so already: TR1's conflict names the code taken and stays unresolved.
+SELECT ok(
+    (SELECT c ->> 'taken_code' = 'ID1'
+     FROM jsonb_array_elements(pg_temp.rehearse('copy', jsonb_build_object(
+         'supplier:' || current_setting('test.tr1'), '{"action": "new_code", "code": "ID1"}'::JSONB)) -> 'conflicts') c
+     WHERE c ->> 'key' = 'supplier:' || current_setting('test.tr1'))
+    AND (pg_temp.rehearse('copy', jsonb_build_object(
+         'supplier:' || current_setting('test.tr1'), '{"action": "new_code", "code": "ID1"}'::JSONB)) ->> 'unresolved')::INT
+      = (pg_temp.rehearse('copy', jsonb_build_object(
+         'supplier:' || current_setting('test.tr1'), '{"action": "new_code", "code": "XY9"}'::JSONB)) ->> 'unresolved')::INT + 1,
+    'the rehearsal leaves a code another package supplier keeps unresolved'
 );
 RESET ROLE;
 

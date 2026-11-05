@@ -53,7 +53,10 @@ const conflictSchema = z.object({
    // An action the app does not know is dropped: it cannot be offered.
    actions: z.array(z.string()).transform((actions) => actions.filter(isTransferAction)),
    // Only on a conflict that offers skip: what the skip drops with the row, {table: count}.
-   skip_drops: z.record(z.string(), z.number()).optional()
+   skip_drops: z.record(z.string(), z.number()).optional(),
+   // On a customer or supplier code conflict: the typed new code, which another package row of the
+   // table keeps (the run refuses it, so the conflict is unresolved).
+   taken_code: z.string().optional()
 });
 export type TransferConflict = z.infer<typeof conflictSchema>;
 

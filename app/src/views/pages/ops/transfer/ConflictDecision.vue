@@ -100,11 +100,15 @@ const code = computed({
       emit('decide', { action: 'new_code', ...(value ? { code: value.toUpperCase() } : {}) })
 });
 // Why a typed code cannot be used: the rehearsal leaves such a conflict unresolved (format,
-// taken), or the run refuses it (the same code twice in one table).
+// taken in the target or kept by another package row), or the run refuses it (the same code twice
+// in one table).
 const codeReason = computed(() => {
    if (!code.value) return null;
    if (!codePattern.value.test(code.value)) return t('ops.transfer.conflict.code_format');
-   if ((rows.value ?? []).some((row) => row.code === code.value))
+   if (
+      props.conflict.taken_code === code.value ||
+      (rows.value ?? []).some((row) => row.code === code.value)
+   )
       return t('ops.transfer.conflict.code_taken');
    if (props.duplicate) return t('ops.transfer.conflict.duplicate_code');
    return null;

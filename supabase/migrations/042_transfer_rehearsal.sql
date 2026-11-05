@@ -102,7 +102,11 @@
 --                            - files: the media rows and their thumbnails, copy_only ones included:
 --                              the files to copy, not the files to move; without the files no
 --                              written row uses (transfer_unused_media).
---                            - unresolved: the conflicts without a valid decision.
+--                            - taken_code, on a customer or supplier code conflict whose typed
+--                              new code another package row of the table keeps (neither mapped
+--                              nor recoded): the run refuses it, so the conflict is unresolved.
+--                            - unresolved: the conflicts without a valid decision, taken_code
+--                              included.
 --                            - path: cheap for a whole-customer move within one company out of a
 --                              writable source with no conflict but suppliers; else copy.
 --                            - report_hash: sha256 of {report (without the hash), target_tenant,
@@ -945,9 +949,29 @@ BEGIN
         JOIN private.transfer_registry g ON g.table_name = c ->> 'table'
     ), '[]');
 
+    -- A typed code another package row of the table keeps (neither mapped nor recoded): the run
+    -- refuses it (transfer_check_decisions), so the conflict names it and stays unresolved.
+    conflicts := coalesce((
+        SELECT jsonb_agg(CASE WHEN taken.code IS NOT NULL THEN c || jsonb_build_object('taken_code', taken.code) ELSE c END
+                         ORDER BY c.n)
+        FROM jsonb_array_elements(conflicts) WITH ORDINALITY AS c (c, n)
+        LEFT JOIN LATERAL (
+            SELECT picks -> (c.c ->> 'key') ->> 'code' AS code
+            WHERE c.c ->> 'kind' IN ('customer_code', 'supplier_code')
+              AND picks -> (c.c ->> 'key') ->> 'action' = 'new_code'
+              AND EXISTS (
+                  SELECT 1 FROM pg_temp.transfer_rows r
+                  WHERE r.table_name = c.c ->> 'table' AND r.source_id::TEXT <> c.c ->> 'source_id'
+                    AND r.row ->> 'code' = picks -> (c.c ->> 'key') ->> 'code'
+                    AND coalesce(picks -> (r.table_name || ':' || r.source_id) ->> 'action', '') NOT IN ('map', 'new_code')
+              )
+        ) taken ON TRUE
+    ), '[]');
+
     SELECT count(*) INTO unresolved
     FROM jsonb_array_elements(conflicts) c
-    WHERE private.transfer_decision_error(c, picks -> (c ->> 'key'), target_tenant) IS NOT NULL;
+    WHERE private.transfer_decision_error(c, picks -> (c ->> 'key'), target_tenant) IS NOT NULL
+       OR c ? 'taken_code';
 
     -- The users named in a user column who are not members of the target (Call 7).
     SELECT coalesce(jsonb_agg(jsonb_build_object(

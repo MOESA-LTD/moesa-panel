@@ -436,6 +436,32 @@ describe('transfer wizard', () => {
       expect(row.find('[data-code-reason]').exists()).toBe(false);
    });
 
+   it('says why a typed code another package row keeps stays unresolved', async () => {
+      const wrapper = await mountWizard();
+      wizard.target.value = 'branch';
+      const supplier = {
+         ...customerCode,
+         key: 'supplier:s1',
+         kind: 'supplier_code' as const,
+         table: 'supplier',
+         source_id: 's1',
+         label: 'TR1',
+         existing_id: null
+      };
+      wizard.decide('supplier:s1', { action: 'new_code', code: 'ID1' });
+      // ID1 is free in the target (the stand-in lookup holds ABC only), but a supplier copied
+      // along keeps it: the rehearsal names it.
+      await rehearseTo(report({ conflicts: [{ ...supplier, taken_code: 'ID1' }], unresolved: 1 }));
+
+      const row = wrapper.find('[data-conflict="supplier:s1"]');
+      expect(row.find('[data-code]').attributes('aria-invalid')).toBe('true');
+      expect(row.find('[data-code-reason]').text()).toBe(en.ops.transfer.conflict.code_taken);
+
+      wizard.decide('supplier:s1', { action: 'new_code', code: 'ID2' });
+      await flushPromises();
+      expect(row.find('[data-code-reason]').exists()).toBe(false);
+   });
+
    it('shows a failed rehearsal or run in the dialog', async () => {
       const wrapper = await mountWizard();
       wizard.target.value = 'branch';
