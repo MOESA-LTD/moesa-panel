@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { useDialogRef } from '@/composables/useDialogRef';
-import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import type {
+   ResourceTableProps,
+   TableRow
+} from '@/components/service-components/resource-table/ResourceTable.vue';
 import {
    createFilters,
    equalsFilter
@@ -173,6 +176,24 @@ const exportCsv = async () => {
    }
 };
 
+// Transfer: the selected products, when they are all one customer's (a transfer moves or copies
+// products of one customer).
+const selected = ref<TableRow<'product_with_evidence'>[]>([]);
+const transferCustomer = computed(() => {
+   const customers = new Set(selected.value.map(({ customer_id }) => customer_id));
+   return customers.size === 1 ? [...customers][0] : null;
+});
+const openTransfer = () =>
+   transferCustomer.value &&
+   router.push({
+      name: 'ops-transfer',
+      query: {
+         customer_id: transferCustomer.value,
+         product_ids: selected.value.map(({ id }) => id).join(','),
+         showDialog: DIALOG_POSITIONS.CENTER
+      }
+   });
+
 const dialogRef = useDialogRef();
 </script>
 <template>
@@ -184,11 +205,28 @@ const dialogRef = useDialogRef();
       :columns
       :rowActions
       :enableExpansion="false"
+      selectionMode="multiple"
+      v-model:selection="selected"
       v-model:filters="filters"
    >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
+               <span
+                  v-if="$can('create', 'transfer')"
+                  v-tooltip.bottom="
+                     transferCustomer ? null : $t('ops.transfer.open_disabled_mixed')
+                  "
+                  data-transfer
+               >
+                  <Button
+                     variant="outlined"
+                     :icon="PrimeIcons.ARROW_RIGHT_ARROW_LEFT"
+                     :label="$t('ops.transfer.open')"
+                     :disabled="!transferCustomer"
+                     @click="openTransfer"
+                  />
+               </span>
                <Button
                   variant="outlined"
                   :icon="PrimeIcons.DOWNLOAD"

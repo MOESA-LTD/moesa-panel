@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { customerResource } from '@/api/customer';
+import { usePendingTransfers } from '@/api/transfer';
+import { DIALOG_POSITIONS } from '@/constants/router';
+import TransferFilesNotice from '@/components/service-components/transfer/TransferFilesNotice.vue';
 import Brands from './tabs/Brands.vue';
 import Contacts from './tabs/Contacts.vue';
 import Documents from './tabs/Documents.vue';
@@ -53,11 +56,41 @@ const onSaved = (id: string) => (customerId.value = id);
 const title = computed(() =>
    customer.value ? `${customer.value.code} — ${customer.value.display_name}` : null
 );
+
+// Transfers into this customer whose files are not all copied yet, each with its retry.
+const { data: pendingTransfers } = usePendingTransfers(customerId);
 </script>
 
 <template>
    <div class="card p-0">
-      <h2 v-if="title" class="m-4 mb-0 text-xl font-semibold" v-text="title" />
+      <div v-if="title" class="m-4 mb-0 flex flex-wrap items-center justify-between gap-2">
+         <h2 class="text-xl font-semibold" v-text="title" />
+         <CustomLink
+            v-if="customerId && $can('create', 'transfer')"
+            :to="{
+               name: 'ops-transfer',
+               query: { customer_id: customerId, showDialog: DIALOG_POSITIONS.CENTER }
+            }"
+         >
+            <template #default="{ navigate }">
+               <Button
+                  variant="outlined"
+                  size="small"
+                  :icon="PrimeIcons.ARROW_RIGHT_ARROW_LEFT"
+                  :label="$t('ops.transfer.open')"
+                  @click="navigate"
+               />
+            </template>
+         </CustomLink>
+      </div>
+      <div v-if="pendingTransfers?.length" class="m-4 mb-0 flex flex-col gap-2">
+         <TransferFilesNotice
+            v-for="transfer in pendingTransfers"
+            :key="transfer.id"
+            :transfer
+            heading
+         />
+      </div>
       <Tabs v-model:value="activeTab">
          <TabList>
             <Tab v-for="key in TABS" :key :value="key" :disabled="key !== 'general' && !customerId">

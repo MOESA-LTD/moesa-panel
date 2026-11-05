@@ -2204,7 +2204,20 @@
             "copy": "{count} kayıt {target} hedefine kopyalansın mı?",
             "move": "{count} kayıt {target} hedefine taşınsın mı? Kaynaktan silinirler."
          },
-         "run": "Aktar"
+         "run": "Aktar",
+         "open": "Aktar…",
+         "open_disabled_mixed": "Aktarmak için tek müşterinin ürünlerini seçin.",
+         "result": {
+            "done": "Aktarıldı: {count} kayıt.",
+            "id_map": "Kimlik eşlemesini indir (CSV)"
+         },
+         "files": {
+            "pending": "Dosyalar kopyalanıyor.",
+            "done": "Tüm dosyalar kopyalandı.",
+            "partial": "{count} dosya kopyalanamadı.",
+            "retry": "Dosyaları yeniden kopyala",
+            "notice": "Bu müşteriye yapılan bir aktarımın dosyaları eksik."
+         }
       }
    },
    "glossary": {
@@ -2596,6 +2609,14 @@
                      "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
                      "2": "Platformu ve müşterinin sattığı ülkeleri seçin.",
                      "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz ([[K8]])."
+                  }
+               },
+               "transfer_customer": {
+                  "title": "Müşteriyi başka bir şirkete ya da şubeye aktar",
+                  "steps": {
+                     "1": "Müşteriyi açıp Aktar…'ı kullanın; hedefi ve Kopyala ya da Taşı'yı seçin.",
+                     "2": "Prova yapın, sonra her çakışmaya karar verin: bağla, yeni kod, boş [[GTIN]] ya da atla.",
+                     "3": "Onaylayın; kimlik eşlemesini indirin, eksik dosya varsa kopyayı yineleyin."
                   }
                }
             }

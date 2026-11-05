@@ -1,15 +1,27 @@
 import '../setup/mockMain';
-import type { TransferOptions, TransferReport } from '@/api/transfer';
+import {
+   asIdMap,
+   idMapCsv,
+   type TransferOptions,
+   type TransferReport,
+   type TransferRow
+} from '@/api/transfer';
+import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
+import ProductIndex from '@/views/pages/ops/product/Index.vue';
 import ReportStep from '@/views/pages/ops/transfer/ReportStep.vue';
+import ResultStep from '@/views/pages/ops/transfer/ResultStep.vue';
 import TargetStep from '@/views/pages/ops/transfer/TargetStep.vue';
 import {
    useTransferWizard,
    type TransferWizard
 } from '@/views/pages/ops/transfer/useTransferWizard';
 import i18n, { i18NPlugin } from '@plugins/i18n';
+import { abilitiesPlugin } from '@casl/vue';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
+import dayjs from 'dayjs';
+import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
@@ -21,6 +33,8 @@ const api = vi.hoisted(() => ({
    rehearse: vi.fn(),
    run: vi.fn(),
    forTenant: [] as (string | null | undefined)[],
+   transferReads: [] as [unknown, unknown][],
+   push: vi.fn(),
    requests: [] as { table: string; headers: Record<string, string>; in: unknown[] }[]
 }));
 
@@ -31,9 +45,20 @@ vi.mock('@/api/transfer', async (importOriginal) => {
       ...original,
       useTransferOptions: () => ({ data: ref(api.options), isLoading: ref(false) }),
       useRehearseTransfer: () => ({ mutateAsync: api.rehearse, isPending: ref(false) }),
-      useRunTransfer: () => ({ mutateAsync: api.run, isPending: ref(false) })
+      useRunTransfer: () => ({ mutateAsync: api.run, isPending: ref(false) }),
+      // The result reads the transfer again (its file status after a retry): no row yet here.
+      useTransfer: (id: () => unknown, targetTenant: () => unknown) => {
+         api.transferReads.push([id(), targetTenant()]);
+         return { data: ref(undefined) };
+      },
+      useRetryTransferFiles: () => ({ mutateAsync: vi.fn(), isPending: ref(false) })
    };
 });
+vi.mock('vue-router', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('vue-router')>()),
+   useRoute: () => ({ query: {} }),
+   useRouter: () => ({ push: api.push })
+}));
 vi.mock('@/api/formTenant', async (importOriginal) => {
    const original = await importOriginal<typeof import('@/api/formTenant')>();
    return {
@@ -168,6 +193,8 @@ beforeEach(() => {
    api.rehearse.mockReset();
    api.run.mockReset();
    api.forTenant = [];
+   api.transferReads = [];
+   api.push.mockReset();
    api.requests = [];
    document.body.innerHTML = '';
 });
@@ -423,5 +450,95 @@ describe('transfer wizard', () => {
          })
       );
       expect(wrapper.find('[data-users] li').text()).toBe('Ayşe (User, odd_col: 2)');
+   });
+
+   it('downloads the ID map', async () => {
+      const idMap = { customer: { c1: 'tc9' }, product: { p2: 'tp2', p1: 'tp1' } };
+      const transfer = { id: 'tr1', id_map: idMap, files_status: 'done', missing_files: [] };
+      let blob: Blob | undefined;
+      URL.createObjectURL = vi.fn((value: Blob) => {
+         blob = value;
+         return 'blob:id-map';
+      });
+      URL.revokeObjectURL = vi.fn();
+      let download: string | undefined;
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+         this: HTMLAnchorElement
+      ) {
+         download = this.download;
+      });
+
+      const wrapper = mount(ResultStep, {
+         props: {
+            transfer: transfer as unknown as TransferRow,
+            report: report({ customer: { id: 'c1', code: 'THO', display_name: 'Thor' } }),
+            target: 'branch'
+         },
+         global: { plugins: [i18NPlugin, PrimeVue] }
+      });
+      expect(api.transferReads).toEqual([['tr1', 'branch']]);
+      expect(wrapper.find('[data-done]').text()).toBe('Transferred: 3 records.');
+
+      await wrapper.find('[data-id-map]').trigger('click');
+      click.mockRestore();
+
+      const bytes = await blob!.arrayBuffer();
+      expect(new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes)).toBe(
+         '﻿' + idMapCsv(asIdMap(idMap))
+      );
+      expect(download).toBe(`transfer_THO_${dayjs().format('YYYYMMDD')}.csv`);
+   });
+
+   it('the product list offers Transfer only for one customer', async () => {
+      setActivePinia(createPinia());
+      ability.update([{ action: 'manage', subject: 'all' }]);
+      // The table is a stand-in: its toolbar and the selection it reports.
+      const Table = defineComponent({
+         name: 'ResourceTable',
+         props: { selection: { type: Array, default: undefined }, selectionMode: String },
+         emits: ['update:selection'],
+         setup:
+            (_props, { slots }) =>
+            () =>
+               h('div', slots.header?.())
+      });
+      const wrapper = mount(ProductIndex, {
+         global: {
+            plugins: [
+               i18NPlugin,
+               PrimeVue,
+               [VueQueryPlugin, { queryClient: new QueryClient() }],
+               [abilitiesPlugin, ability, { useGlobalProperties: true }]
+            ],
+            directives: { tooltip: {} },
+            stubs: { ResourceTable: Table, CustomLink: true, teleport: true }
+         }
+      });
+      const table = wrapper.findComponent(Table);
+      expect(table.props('selectionMode')).toBe('multiple');
+
+      const transfer = () => wrapper.find('[data-transfer] button');
+      expect(transfer().attributes('disabled')).toBeDefined();
+
+      table.vm.$emit('update:selection', [
+         { id: 'a', customer_id: 'c1' },
+         { id: 'b', customer_id: 'c2' }
+      ]);
+      await nextTick();
+      expect(transfer().attributes('disabled')).toBeDefined();
+
+      table.vm.$emit('update:selection', [
+         { id: 'a', customer_id: 'c1' },
+         { id: 'b', customer_id: 'c1' }
+      ]);
+      await nextTick();
+      expect(transfer().attributes('disabled')).toBeUndefined();
+      await transfer().trigger('click');
+      expect(api.push).toHaveBeenCalledWith(
+         expect.objectContaining({
+            name: 'ops-transfer',
+            query: expect.objectContaining({ customer_id: 'c1', product_ids: 'a,b' })
+         })
+      );
    });
 });

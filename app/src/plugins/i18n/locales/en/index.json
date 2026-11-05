@@ -2204,7 +2204,20 @@
             "copy": "Copy {count} records to {target}?",
             "move": "Move {count} records to {target}? They are deleted from the source."
          },
-         "run": "Transfer"
+         "run": "Transfer",
+         "open": "Transfer…",
+         "open_disabled_mixed": "Pick products of one customer to transfer them.",
+         "result": {
+            "done": "Transferred: {count} records.",
+            "id_map": "Download the ID map (CSV)"
+         },
+         "files": {
+            "pending": "Files are being copied.",
+            "done": "All files copied.",
+            "partial": "{count} file could not be copied. | {count} files could not be copied.",
+            "retry": "Retry file copy",
+            "notice": "Files of a transfer into this customer are missing."
+         }
       }
    },
    "glossary": {
@@ -2596,6 +2609,14 @@
                      "1": "Open the customer, then Platforms.",
                      "2": "Pick the platform and the countries the customer sells in.",
                      "3": "Note our access; account IDs and passwords are never stored ([[K8]])."
+                  }
+               },
+               "transfer_customer": {
+                  "title": "Transfer a customer to another company or branch",
+                  "steps": {
+                     "1": "Open the customer and use Transfer…; pick the target and Copy or Move.",
+                     "2": "Rehearse, then decide each conflict: link, new code, empty [[GTIN]] or skip.",
+                     "3": "Confirm; download the ID map, and retry the file copy if files are missing."
                   }
                }
             }

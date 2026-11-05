@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { customerResource } from '@/api/customer';
 import ReportStep from './ReportStep.vue';
+import ResultStep from './ResultStep.vue';
 import TargetStep from './TargetStep.vue';
 import { useTransferWizard } from './useTransferWizard';
 
@@ -16,7 +17,7 @@ const wizard = useTransferWizard({
    customerId: () => props.customerId,
    productIds: () => props.productIds
 });
-const { step } = wizard;
+const { step, transfer, report, target } = wizard;
 
 const { t } = useI18n();
 const title = computed(() => {
@@ -46,7 +47,12 @@ const STEPS = ['target', 'report', 'result'] as const;
                <ReportStep v-if="step === 'report'" :wizard />
             </StepPanel>
             <StepPanel value="result">
-               <!-- The result (the transfer's row, its files and ID map) is Task 11's ResultStep. -->
+               <ResultStep
+                  v-if="step === 'result' && transfer && report && target"
+                  :transfer
+                  :report
+                  :target
+               />
             </StepPanel>
          </StepPanels>
       </Stepper>

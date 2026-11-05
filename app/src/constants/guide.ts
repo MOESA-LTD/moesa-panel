@@ -78,10 +78,11 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
       tasks: [
          task('add_customer', 'create', 'customer'),
          task('add_warehouse', 'create', 'customer_warehouse'),
-         task('add_platform', 'create', 'customer_platform_account')
+         task('add_platform', 'create', 'customer_platform_account'),
+         task('transfer_customer', 'create', 'transfer')
       ],
       related: ['ops-project', 'ops-product', 'ops-market'],
-      terms: ['S14', 'K8', 'K5'],
+      terms: ['S14', 'K8', 'K5', 'GTIN'],
       glossary: ['customer_status', 'package']
    },
    supplier: {
