@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { setApp } from '@/lib/appRef';
 import App from './App.vue';
 
 import { i18NPlugin } from '@/plugins/i18n';
@@ -24,6 +25,7 @@ import Tooltip from 'primevue/tooltip';
 import router from './router';
 
 export const app = createApp(App);
+setApp(app);
 
 app.config.errorHandler = appErrorHandler;
 

@@ -1,3 +1,4 @@
+import { getApp } from '@/lib/appRef';
 import { useNavigatorLanguage } from '@vueuse/core';
 import dayjs from 'dayjs';
 import { setZodLocale } from '@/lib/form/zod';
@@ -62,7 +63,7 @@ export async function loadLocaleMessages(locale, i18n = i18NPlugin.global) {
 
       try {
          if (loadPrimeLocales) {
-            const primevue = (await import('@/main'))?.app?.config?.globalProperties?.$primevue;
+            const primevue = getApp()?.config?.globalProperties?.$primevue;
             const primeLocale = (await loadPrimeLocales())?.default;
             _merge(primevue?.config?.locale, primeLocale?.[locale]);
          } else {
@@ -122,7 +123,10 @@ if (typeof window !== 'undefined') {
             if (oldLocale != newLocale) {
                writeStorage('app_lang', newLocale);
             }
-            document.querySelector('html').setAttribute('lang', newLocale);
+            // The locale loads asynchronously; in a unit test the DOM may be gone by then.
+            if (typeof document !== 'undefined') {
+               document.documentElement?.setAttribute('lang', newLocale);
+            }
          },
          { immediate: true }
       );
