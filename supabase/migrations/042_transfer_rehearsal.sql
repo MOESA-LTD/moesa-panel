@@ -116,7 +116,11 @@
 -- public.transfer_customer   The entry point (SECURITY DEFINER: a transfer reads and writes past
 --                            the caller's RLS once the checks above have passed). It refuses,
 --                            locks the customer, checks the products, collects, checks the gates
---                            and builds the report; a dry run returns it. A real run refuses
+--                            and builds the report; a dry run returns it. A real run first locks
+--                            every collected row with an id FOR UPDATE (private.transfer_lock_rows,
+--                            held until commit), collects again and locks what that adds: an edit
+--                            or a child row a concurrent writer committed before the lock is in
+--                            the report and the write, and none can follow until commit. A real run refuses
 --                            without a hash (transfer_report_required), with another hash
 --                            (transfer_report_stale), a move leaving links behind
 --                            (transfer_product_in_use) and the decisions above. Then it raises the
@@ -1195,6 +1199,26 @@ $$;
 
 REVOKE ALL ON FUNCTION private.transfer_check_decisions (JSONB, JSONB, UUID, TEXT) FROM PUBLIC, anon, authenticated;
 
+-- A real run's lock on the package (see the header): every collected row with an id, FOR UPDATE,
+-- table by table in registry order and by id, held until commit.
+CREATE OR REPLACE FUNCTION private.transfer_lock_rows () RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    reg RECORD;
+BEGIN
+    FOR reg IN SELECT r.table_name FROM private.transfer_registry r WHERE r.key_columns IS NULL ORDER BY r.position LOOP
+        EXECUTE format(
+            'SELECT count(*) FROM (SELECT 1 FROM public.%1$I x WHERE x.id IN ('
+            'SELECT r.source_id FROM pg_temp.transfer_rows r WHERE r.table_name = %1$L) ORDER BY x.id FOR UPDATE) l',
+            reg.table_name
+        );
+    END LOOP;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_lock_rows () FROM PUBLIC, anon, authenticated;
+
 -- The entry point (see the header).
 CREATE OR REPLACE FUNCTION public.transfer_customer (
    source_tenant UUID,
@@ -1242,6 +1266,15 @@ BEGIN
     END IF;
 
     PERFORM private.transfer_collect(source_tenant, transfer_customer.customer_id, transfer_customer.product_ids);
+
+    -- A real run locks the package, then reads it again: what a concurrent writer committed before
+    -- the lock is in it, and nothing below a locked row changes until commit.
+    IF NOT coalesce(transfer_customer.dry_run, TRUE) THEN
+        PERFORM private.transfer_lock_rows();
+        PERFORM private.transfer_collect(source_tenant, transfer_customer.customer_id, transfer_customer.product_ids);
+        PERFORM private.transfer_lock_rows();
+    END IF;
+
     PERFORM private.transfer_check_gates();
 
     report := private.transfer_report(
