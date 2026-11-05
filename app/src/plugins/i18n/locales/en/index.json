@@ -199,6 +199,9 @@
                "resource": "Resource"
             }
          },
+         "groups": {
+            "other": "Other"
+         },
          "state": {
             "all": "All selected",
             "some": "Some selected",

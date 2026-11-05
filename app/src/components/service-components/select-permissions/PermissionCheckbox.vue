@@ -5,7 +5,7 @@ defineOptions({ inheritAttrs: false });
 
 defineProps<{
    /** Names the permissions the box covers, e.g. `all`, `kind:read`, `group:product:read`. */
-   scope: string;
+   scope?: string;
    state: PermissionState;
    readonly?: boolean;
 }>();

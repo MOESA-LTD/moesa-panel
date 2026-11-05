@@ -9,16 +9,22 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref, Suspense } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 
-type Permission = { id: string; resource_name: string; group_name: string; kind: string };
+type Permission = { id: string; resource_name: string; group_name: string | null; kind: string };
 
-const p = (id: string, group_name: string, resource_name: string, kind: string): Permission => ({
+const p = (
+   id: string,
+   group_name: string | null,
+   resource_name: string,
+   kind: string
+): Permission => ({
    id,
    group_name,
    resource_name,
    kind
 });
 
-// Two groups of three resources each; not every resource has every kind.
+// Two groups of three resources each; not every resource has every kind. customer_contact has two
+// `modify` permissions (update and delete), and tenant_user has no group.
 const PERMISSIONS: Permission[] = [
    p('pr-r', 'product', 'product', 'read'),
    p('pr-c', 'product', 'product', 'create'),
@@ -31,7 +37,10 @@ const PERMISSIONS: Permission[] = [
    p('cu-m', 'customer', 'customer', 'modify'),
    p('cc-r', 'customer', 'customer_contact', 'read'),
    p('cc-c', 'customer', 'customer_contact', 'create'),
-   p('cn-r', 'customer', 'customer_note', 'read')
+   p('cc-u', 'customer', 'customer_contact', 'modify'),
+   p('cc-d', 'customer', 'customer_contact', 'modify'),
+   p('cn-r', 'customer', 'customer_note', 'read'),
+   p('tu-r', null, 'tenant_user', 'read')
 ];
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
@@ -155,6 +164,29 @@ describe('SelectPermissions', () => {
       expect(ids(model)).toEqual(['cu-r']);
    });
 
+   it('toggles every permission of a resource kind together', async () => {
+      const { wrapper, model } = await mountPicker(byId('cc-d'));
+      await expandGroup(wrapper, 'customer');
+      expect(stateOf(wrapper, 'resource:customer_contact:modify')).toBe('some');
+
+      await click(wrapper, 'resource:customer_contact:modify');
+      expect(ids(model)).toEqual(['cc-d', 'cc-u']);
+      expect(stateOf(wrapper, 'resource:customer_contact:modify')).toBe('all');
+
+      await click(wrapper, 'resource:customer_contact:modify');
+      expect(ids(model)).toEqual([]);
+      expect(stateOf(wrapper, 'resource:customer_contact:modify')).toBe('none');
+   });
+
+   it('lists permissions without a group under Other', async () => {
+      const { wrapper } = await mountPicker();
+      const row = wrapper
+         .findAll('tbody tr')
+         .find((tr) => tr.find('[data-permission-cell="group::read"]').exists())!;
+      expect(row.text()).toContain(i18n.t('component.select_permission.groups.other'));
+      expect(wrapper.text()).not.toContain('null');
+   });
+
    it('keeps the column and all toggles tri-state', async () => {
       const { wrapper, model } = await mountPicker(byId('pr-r'));
       expect(stateOf(wrapper, 'kind:read')).toBe('some');
@@ -162,7 +194,7 @@ describe('SelectPermissions', () => {
       expect(stateOf(wrapper, 'all')).toBe('some');
 
       await click(wrapper, 'kind:read');
-      expect(ids(model)).toEqual(['cc-r', 'cn-r', 'cu-r', 'pm-r', 'pp-r', 'pr-r']);
+      expect(ids(model)).toEqual(['cc-r', 'cn-r', 'cu-r', 'pm-r', 'pp-r', 'pr-r', 'tu-r']);
       expect(stateOf(wrapper, 'kind:read')).toBe('all');
 
       await click(wrapper, 'kind:read');

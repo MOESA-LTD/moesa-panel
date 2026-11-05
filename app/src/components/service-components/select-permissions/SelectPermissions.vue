@@ -47,16 +47,20 @@ const allPermissions = computed(() => permissionRows.value ?? []);
 
 const permissionByKind = computed(() => _groupBy(allPermissions.value, 'kind'));
 
-const permissionByGroup = computed(() => _groupBy(allPermissions.value, 'group_name'));
+// Permissions without a group are listed together under "Other" (key '').
+const permissionByGroup = computed(() =>
+   _groupBy(allPermissions.value, ({ group_name }) => group_name ?? '')
+);
 
-// One row per group; its resources (one permission per kind each) show when the row is expanded.
+// One row per group; its resources show when the row is expanded. A resource can have more than
+// one permission of a kind (update and delete are both `modify`), so each kind holds a list.
 const permissions = computed(() =>
    Object.entries(permissionByGroup.value).map(([group, items]) => ({
       display_name: group,
       items: _groupBy(items, 'kind'),
       resources: Object.entries(_groupBy(items, 'resource_name')).map(([resource, own]) => ({
          resource_name: resource,
-         items: _keyBy(own, 'kind')
+         items: _groupBy(own, 'kind')
       }))
    }))
 );
@@ -79,6 +83,9 @@ const toggle = (items = []) => {
 };
 
 const label = (key) => (te(`fields.${key}`) ? t(`fields.${key}`) : key);
+
+const groupLabel = (group) =>
+   group ? label(group) : t('component.select_permission.groups.other');
 
 const tableProps = computed(() => ({
    stateKey: 'permission',
@@ -111,9 +118,9 @@ const tableProps = computed(() => ({
       </template>
       <template #display_name_body="{ data, field }">
          <span class="inline-flex items-center gap-2">
-            {{ label(_get(data, field)) }}
+            {{ groupLabel(_get(data, field)) }}
             <i
-               v-if="isLocked(_get(data, field))"
+               v-if="_get(data, field) && isLocked(_get(data, field))"
                class="pi pi-lock text-muted-color"
                v-tooltip="$t('subscription.locked.permission')"
             />
@@ -144,7 +151,7 @@ const tableProps = computed(() => ({
          <PermissionCheckbox
             v-if="data?.items[field]?.length"
             :scope="`group:${data.display_name}:${field}`"
-            :aria-label="`${label(data.display_name)}: ${header}`"
+            :aria-label="`${groupLabel(data.display_name)}: ${header}`"
             :state="stateOf(data.items[field])"
             :readonly="$attrs.readonly"
             @toggle="toggle(data.items[field])"
@@ -154,10 +161,11 @@ const tableProps = computed(() => ({
          <table class="w-full">
             <thead>
                <tr class="text-left text-muted-color">
-                  <th class="font-medium py-1 px-2">
+                  <th scope="col" class="font-medium py-1 px-2">
                      {{ $t('component.select_permission.table.headers.resource') }}
                   </th>
                   <th
+                     scope="col"
                      v-for="kind in permissionKinds"
                      :key="kind"
                      class="font-medium py-1 px-2 w-32"
@@ -179,15 +187,14 @@ const tableProps = computed(() => ({
                      class="py-1 px-2"
                      :data-permission-cell="`resource:${resource.resource_name}:${kind}`"
                   >
-                     <Checkbox
-                        v-if="resource.items[kind]"
-                        binary
-                        :model-value="selectedIds.has(resource.items[kind].id)"
+                     <PermissionCheckbox
+                        v-if="resource.items[kind]?.length"
+                        :state="stateOf(resource.items[kind])"
                         :readonly="$attrs.readonly"
                         :aria-label="`${label(resource.resource_name)}: ${$t(
                            `component.select_permission.table.headers.${kind}`
                         )}`"
-                        @update:model-value="toggle([resource.items[kind]])"
+                        @toggle="toggle(resource.items[kind])"
                      />
                   </td>
                </tr>

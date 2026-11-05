@@ -68,6 +68,9 @@
                "resource": "Kaynak"
             }
          },
+         "groups": {
+            "other": "Diğer"
+         },
          "state": {
             "all": "Tümü seçili",
             "some": "Bazıları seçili",
