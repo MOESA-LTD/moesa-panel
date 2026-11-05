@@ -27,26 +27,29 @@ const title = computed(() => {
       : t('ops.transfer.title_customer', { code });
 });
 
+// PrimeVue's Step shows its value in the badge, so the steps are numbered 1..3 there; the wizard
+// keeps its named steps.
 const STEPS = ['target', 'report', 'result'] as const;
+const stepNumber = computed(() => STEPS.indexOf(step.value) + 1);
 </script>
 
 <template>
    <div class="card flex flex-col gap-4">
       <h3 class="text-lg font-semibold">{{ title }}</h3>
-      <Stepper :value="step" linear>
+      <Stepper :value="stepNumber" linear>
          <StepList>
-            <Step v-for="value in STEPS" :key="value" :value>
-               {{ $t(`ops.transfer.steps.${value}`) }}
+            <Step v-for="(name, index) in STEPS" :key="name" :value="index + 1">
+               {{ $t(`ops.transfer.steps.${name}`) }}
             </Step>
          </StepList>
          <StepPanels>
-            <StepPanel value="target">
+            <StepPanel :value="1">
                <TargetStep :wizard />
             </StepPanel>
-            <StepPanel value="report">
+            <StepPanel :value="2">
                <ReportStep v-if="step === 'report'" :wizard />
             </StepPanel>
-            <StepPanel value="result">
+            <StepPanel :value="3">
                <ResultStep
                   v-if="step === 'result' && transfer && report && target"
                   :transfer
