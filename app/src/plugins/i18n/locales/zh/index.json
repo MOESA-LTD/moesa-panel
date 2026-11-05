@@ -845,7 +845,8 @@
       "added": "已添加",
       "updated": "已更新",
       "deleted": "已删除",
-      "readed": "已查看"
+      "readed": "已查看",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "user": {
       "table": {

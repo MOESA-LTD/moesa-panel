@@ -788,6 +788,7 @@
       },
       "already_reverted": "Zaten iptal edildi",
       "attempt_to_revert": "İptal işlemi denendi",
+      "revert_transfer_locked": "Aktarım kayıtları geri alınamaz. Bunun yerine kayıtları geri aktarın.",
       "added": "Eklendi",
       "updated": "Güncellendi",
       "deleted": "Silindi",

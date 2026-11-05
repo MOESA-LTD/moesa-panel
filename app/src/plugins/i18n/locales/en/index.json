@@ -842,6 +842,7 @@
       },
       "already_reverted": "Already Reverted",
       "attempt_to_revert": "Attempt to Revert",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead.",
       "added": "Added",
       "updated": "Updated",
       "deleted": "Deleted",

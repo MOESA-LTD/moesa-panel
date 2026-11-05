@@ -845,7 +845,8 @@
       "added": "Hinzugefügt",
       "updated": "Aktualisiert",
       "deleted": "Gelöscht",
-      "readed": "Eingeschaut"
+      "readed": "Eingeschaut",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "user": {
       "table": {

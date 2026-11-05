@@ -197,7 +197,8 @@
       "added": "Aggiunto",
       "updated": "Aggiornato",
       "deleted": "Eliminato",
-      "readed": "Letto"
+      "readed": "Letto",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "dashboard": {
       "notifications": {

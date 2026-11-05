@@ -845,7 +845,8 @@
       "added": "追加されました",
       "updated": "更新されました",
       "deleted": "削除されました",
-      "readed": "読み込まれました"
+      "readed": "読み込まれました",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "user": {
       "table": {

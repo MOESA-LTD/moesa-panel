@@ -197,7 +197,8 @@
       "added": "تم الإضافة",
       "updated": "تم التحديث",
       "deleted": "تم الحذف",
-      "readed": "تم القراءة"
+      "readed": "تم القراءة",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "dashboard": {
       "notifications": {

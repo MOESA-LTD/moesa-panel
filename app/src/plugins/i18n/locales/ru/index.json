@@ -845,7 +845,8 @@
       "added": "Добавлено",
       "updated": "Обновлено",
       "deleted": "Удалено",
-      "readed": "Прочитано"
+      "readed": "Прочитано",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "user": {
       "table": {

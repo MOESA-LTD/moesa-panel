@@ -845,7 +845,8 @@
       "added": "Ajouté",
       "updated": "Mis à jour",
       "deleted": "Supprimé",
-      "readed": "Lu"
+      "readed": "Lu",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "user": {
       "table": {
