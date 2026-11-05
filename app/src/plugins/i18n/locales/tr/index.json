@@ -677,17 +677,6 @@
       "change_request_product": "Değişiklik talebi ürünü"
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "Geçen Hafta",
-         "last_month": "Geçen Ay",
-         "last_quarter": "Geçen Üç Ay",
-         "last_half": "Geçen Yarı Yıl",
-         "last_year": "Geçen Yıl",
-         "total": "Toplam",
-         "branches": "Şubeler",
-         "users": "Kullanıcılar",
-         "roles": "Roller"
-      },
       "notifications": {
          "today": "Bugün",
          "yesterday": "Dün",
@@ -733,6 +722,30 @@
             "decision_due": "karar {date}",
             "market": "{live} yayında · {preparing} hazırlanıyor · {suppressed} askıda"
          }
+      },
+      "layout": {
+         "open_all": "Tümünü aç",
+         "all_hidden": "Tüm kutular gizli. Yeniden göstermek için Düzenle'yi kullanın.",
+         "no_boxes": "Rolünüzün görebileceği bir dashboard kutusu yok.",
+         "edit": "Düzenle",
+         "save": "Kaydet",
+         "discard": "Vazgeç",
+         "reset": "Varsayılana dön",
+         "hidden_title": "Gizli kutular",
+         "hidden_hint": "Sona eklemek için bir kutuya tıklayın.",
+         "hidden_empty": "Gizli kutu yok",
+         "size_narrow": "Dar",
+         "size_wide": "Geniş",
+         "hide": "Gizle",
+         "drag": "Sıralamak için sürükleyin",
+         "menu": "Kutu seçenekleri",
+         "hide_box": "Gizle: {box}",
+         "drag_box": "Sıralamak için sürükleyin: {box}",
+         "menu_box": "Kutu seçenekleri: {box}",
+         "size_box": "Kutu boyutu: {box}",
+         "move_left": "Sola taşı",
+         "move_right": "Sağa taşı",
+         "not_persisted": "Yalnızca bu ziyaret için kaydedildi: tarayıcı kaydetmeye izin vermiyor."
       }
    },
    "audit_log": {
@@ -2414,6 +2427,14 @@
                      "1": "Müşteri satırını açın; pazar matrisi o müşteri için açılır.",
                      "2": "Hücreyi açın ve yayının istediklerini doldurun: platform kimliği, platform [[SKU]], fiyat, para birimi, stok kaynağı.",
                      "3": "İçerik onaylıyken ([[L-G1]]) hücreyi yayına alın."
+                  }
+               },
+               "edit_dashboard": {
+                  "title": "Dashboard'unuzu düzenleyin",
+                  "steps": {
+                     "1": "Tablet ya da bilgisayarda sağ üstteki Düzenle'ye tıklayın; her kutuda bir tutamaç, bir göz simgesi ve dar/geniş seçimi çıkar.",
+                     "2": "Kutuyu tutamacından sürükleyin ya da menüsündeki Sola taşı ve Sağa taşı ile taşıyın; göz simgesi kutuyu Gizli kutular şeridine alır, oradan bir tıklama sona ekler.",
+                     "3": "Düzeni bu tarayıcıda hesabınız için saklamak için Kaydet'e tıklayın; Vazgeç son kaydedilen düzene döner, Varsayılana dön tüm kutuları varsayılan sırayla gösterir."
                   }
                }
             }

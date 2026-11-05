@@ -10,12 +10,7 @@ import {
    type DashboardTaskRow
 } from '@/api/dashboard';
 import { affectedTables } from '@/api/queryKeys';
-import CountListCard from '@/components/service-components/dashboard/CountListCard.vue';
-import en from '@/plugins/i18n/locales/en/index.json';
-import i18n, { i18NPlugin } from '@plugins/i18n';
-import { mount } from '@vue/test-utils';
-import PrimeVue from 'primevue/config';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const gate = (
    gate_id: string,
@@ -121,61 +116,5 @@ describe('dashboard query invalidation', () => {
       expect(affectedTables(['document'])).toContain('product_with_evidence');
       expect(affectedTables(['purchase_order_line'])).toContain('dashboard_purchase_order');
       expect(affectedTables(['shipment'])).toContain('dashboard_shipment');
-   });
-});
-
-describe('CountListCard', () => {
-   beforeAll(() => i18n.setLocaleMessage('en', en));
-
-   const navigate = vi.fn();
-
-   const mountCard = (
-      count: number,
-      items: { label: string; meta?: string; onSelect?: () => void }[] = []
-   ) =>
-      mount(CountListCard, {
-         props: {
-            title: 'Overdue tasks',
-            count,
-            icon: 'pi pi-clock',
-            items: items.map((item) => ({ ...item, to: { name: 'dashboard' } }))
-         },
-         global: {
-            plugins: [i18NPlugin, PrimeVue],
-            stubs: {
-               CustomLink: {
-                  setup: () => ({ navigate }),
-                  template: '<a><slot :navigate="navigate" /></a>'
-               }
-            }
-         }
-      });
-
-   it('says there is none when the count is zero', () => {
-      const wrapper = mountCard(0);
-      expect(wrapper.text()).toContain(i18n.t('dashboard.ops.none'));
-      expect(wrapper.findAll('li')).toHaveLength(0);
-   });
-
-   it('lists at most eight rows, each with its meta', () => {
-      const items = Array.from({ length: 10 }, (_, index) => ({
-         label: `Row ${index}`,
-         meta: `${index} days`
-      }));
-      const wrapper = mountCard(10, items);
-      const rows = wrapper.findAll('li');
-      expect(rows).toHaveLength(8);
-      expect(rows[0].text()).toContain('Row 0');
-      expect(rows[0].text()).toContain('0 days');
-      expect(wrapper.text()).toContain('10');
-      expect(wrapper.text()).not.toContain(i18n.t('dashboard.ops.none'));
-   });
-
-   it("runs the row's onSelect before navigating", async () => {
-      const calls: string[] = [];
-      navigate.mockImplementation(() => calls.push('navigate'));
-      const wrapper = mountCard(1, [{ label: 'THO', onSelect: () => calls.push('select') }]);
-      await wrapper.find('li button').trigger('click');
-      expect(calls).toEqual(['select', 'navigate']);
    });
 });

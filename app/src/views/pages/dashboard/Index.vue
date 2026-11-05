@@ -1,315 +1,72 @@
 <script setup lang="ts">
-import {
-   evidenceTarget,
-   groupGates,
-   groupPurchaseOrders,
-   groupShipments,
-   marketSummary,
-   splitTasks,
-   useDashboardChangeRequests,
-   useDashboardEvidence,
-   useDashboardGates,
-   useDashboardIncidents,
-   useDashboardMarket,
-   useDashboardPurchaseOrders,
-   useDashboardShipments,
-   useDashboardTasks,
-   type DashboardChangeRequestRow,
-   type DashboardEvidenceRow,
-   type DashboardGateRow,
-   type DashboardIncidentRow,
-   type DashboardMarketRow,
-   type DashboardPurchaseOrderRow,
-   type DashboardShipmentRow,
-   type DashboardTaskRow
-} from '@/api/dashboard';
-import CountListCard, {
-   type CountListItem
-} from '@/components/service-components/dashboard/CountListCard.vue';
 import { useDialogRef } from '@/composables/useDialogRef';
-import { fieldRoutes } from '@/constants/form/field';
-import { DIALOG_POSITIONS } from '@/constants/router';
-import { appErrorHandler } from '@/lib/appErrorHandler';
-import { useCustomerFilter } from '@/store/customerFilter';
-import dayjs from 'dayjs';
-import { RouteLocationAsRelativeGeneric } from 'vue-router';
+import {
+   boxById,
+   DASHBOARD_BOXES,
+   DASHBOARD_EDITING,
+   type DashboardBoxId
+} from '@/constants/dashboard';
+import { useAuthStore } from '@/store/auth';
+import { useDashboardLayout, type CanSee } from '@/store/dashboardLayout';
+import DashboardBoxEditBar from '@/views/pages/dashboard/DashboardBoxEditBar.vue';
+import DashboardHiddenStrip from '@/views/pages/dashboard/DashboardHiddenStrip.vue';
+import { useAbility } from '@casl/vue';
+import { PrimeIcons } from '@primevue/core/api';
+import { useMediaQuery } from '@vueuse/core';
+import { useToast } from 'primevue/usetoast';
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import draggable from 'vuedraggable';
 
 const dialogRef = useDialogRef();
+const auth = useAuthStore();
+const layout = useDashboardLayout();
+const ability = useAbility();
+const toast = useToast();
+const { t } = useI18n();
 
-// --- weekly rhythm (M6): gates, tasks and product evidence ---
+const canSee: CanSee = (id) => ability.can('read', boxById(id).permission);
 
-const projectTab = (projectId: string | null, tab: 'overview' | 'tasks') => ({
-   name: 'ops-project-manage',
-   params: { id: projectId ?? '', tab },
-   query: { showDialog: DIALOG_POSITIONS.CENTER }
-});
-
-const gateItem = (row: DashboardGateRow): CountListItem => ({
-   label: [row.project_code, i18n.t(`ops.project.gate.${row.gate_code}`), row.customer_code]
-      .filter(Boolean)
-      .join(' · '),
-   meta: i18n.t('dashboard.ops.waiting_days', { days: row.waiting_days ?? 0 }),
-   to: projectTab(row.project_id, 'overview')
-});
-
-const taskMeta = ({ days_left }: DashboardTaskRow) => {
-   const days = days_left ?? 0;
-   if (days < 0) return i18n.t('dashboard.ops.days_overdue', { days: -days });
-   if (days === 0) return i18n.t('dashboard.ops.due_today');
-   return i18n.t('dashboard.ops.days_left', { days });
-};
-
-const taskItem = (row: DashboardTaskRow): CountListItem => ({
-   label: [row.project_code, row.display_name].filter(Boolean).join(' · '),
-   meta: taskMeta(row),
-   to: projectTab(row.project_id, 'tasks')
-});
-
-const { data: gateRows } = useDashboardGates();
-const { data: taskRows } = useDashboardTasks();
-const { data: evidenceRows } = useDashboardEvidence();
-
-const gates = computed(() => groupGates(gateRows.value ?? []));
-const tasks = computed(() => splitTasks(taskRows.value ?? []));
-
-const customerFilter = useCustomerFilter();
-
-/**
- * Per customer, how many SKUs `count` finds, as rows opening the product list narrowed to that
- * customer (through the global customer filter) and to what the card counts (see evidenceTarget).
- */
-const evidenceBox = (
-   count: (row: DashboardEvidenceRow) => number,
-   card: Parameters<typeof evidenceTarget>[1]
-) => {
-   const rows = (evidenceRows.value ?? [])
-      .map((row) => ({ row, n: count(row) }))
-      .filter(({ n }) => n > 0)
-      .sort((a, b) => b.n - a.n);
-   return {
-      count: _sumBy(rows, 'n'),
-      items: rows.map(({ row, n }): CountListItem => {
-         const { customerId, route } = evidenceTarget(row, card);
-         return {
-            label: row.customer_code ?? '',
-            meta: String(n),
-            to: route,
-            onSelect: () => customerFilter.set(customerId)
-         };
-      })
-   };
-};
-
-const unsignedSkus = computed(() =>
-   evidenceBox((row) => row.unsigned_sku_count ?? 0, 'unsigned_spec')
-);
-const incompleteCompliance = computed(() =>
-   evidenceBox(
-      (row) => (row.active_sku_count ?? 0) - (row.compliance_complete_count ?? 0),
-      'compliance'
-   )
+// Runs on every mount; the store reads storage only when the account changed, so a layout kept in
+// memory after a refused write survives leaving and reopening the dashboard.
+watch(
+   () => auth.user?.id ?? null,
+   (id) => layout.load(id),
+   { immediate: true }
 );
 
-// --- orders and shipments (M6): waiting for action, in production, on the way and late ---
+// The permitted set is only known once the access is loaded; until then nothing is said.
+const accessLoaded = ref(false);
+void auth.accessReady().then(() => {
+   accessLoaded.value = true;
+});
 
-/** A dashboard date, day and month only (DD.MM). */
-const dayMonth = (date: string) => dayjs(date).format('DD.MM');
+const shown = computed(() => layout.visibleBoxes(canSee).shown);
+const anyPermitted = computed(() => DASHBOARD_BOXES.some((box) => canSee(box.id)));
+// While editing, the hidden strip below already says how to bring boxes back.
+const emptyText = computed(() => {
+   if (shown.value.length) return null;
+   if (!anyPermitted.value) return 'dashboard.layout.no_boxes';
+   return layout.editing ? null : 'dashboard.layout.all_hidden';
+});
 
-const orderItem = (row: DashboardPurchaseOrderRow, meta: string): CountListItem => ({
-   label: [row.code, row.supplier_code, row.customer_code].filter(Boolean).join(' · '),
-   meta,
-   to: {
-      name: 'ops-purchase-order-manage',
-      params: { id: row.purchase_order_id ?? '' },
-      query: { showDialog: DIALOG_POSITIONS.CENTER }
+// Arranging needs a grid of two columns or more; below md, and when the dashboard is left, an
+// unsaved draft is dropped so a half-made layout never looks saved later.
+const canEdit = useMediaQuery('(min-width: 768px)');
+watch(canEdit, (wide) => {
+   if (!wide) layout.discard();
+});
+onBeforeUnmount(() => layout.discard());
+provide(
+   DASHBOARD_EDITING,
+   computed(() => layout.editing)
+);
+
+const save = () => {
+   if (!layout.save()) {
+      toast.add({ severity: 'warn', summary: t('dashboard.layout.not_persisted'), life: 5000 });
    }
-});
-
-/** An order waiting for action, with its status. */
-const actionOrderItem = (row: DashboardPurchaseOrderRow) =>
-   orderItem(row, row.status ? i18n.t(`ops.purchase_order.status.${row.status}`) : '');
-
-/** An order in production, with its ready date and its planned balance date when they are set. */
-const productionOrderItem = (row: DashboardPurchaseOrderRow) =>
-   orderItem(
-      row,
-      [
-         row.ready_on && i18n.t('dashboard.ops.meta.ready', { date: dayMonth(row.ready_on) }),
-         row.balance_planned_on &&
-            i18n.t('dashboard.ops.meta.balance', { date: dayMonth(row.balance_planned_on) })
-      ]
-         .filter(Boolean)
-         .join(' · ')
-   );
-
-const shipmentItem = (row: DashboardShipmentRow, meta: string): CountListItem => ({
-   label: [row.code, row.customer_code].filter(Boolean).join(' · '),
-   meta,
-   to: {
-      name: 'ops-shipment-manage',
-      params: { id: row.shipment_id ?? '' },
-      query: { showDialog: DIALOG_POSITIONS.CENTER }
-   }
-});
-
-/** A shipment on the way, with its ETA. */
-const inTransitShipmentItem = (row: DashboardShipmentRow) =>
-   shipmentItem(row, row.eta ? i18n.t('dashboard.ops.meta.eta', { date: dayMonth(row.eta) }) : '');
-
-/** A late shipment, with the days since its ETA. */
-const lateShipmentItem = (row: DashboardShipmentRow) =>
-   shipmentItem(row, i18n.t('dashboard.ops.meta.late', { n: -(row.days_to_eta ?? 0) }));
-
-const { data: orderRows } = useDashboardPurchaseOrders();
-const { data: shipmentRows } = useDashboardShipments();
-
-const orders = computed(() => groupPurchaseOrders(orderRows.value ?? []));
-const shipments = computed(() => groupShipments(shipmentRows.value ?? []));
-
-// --- incidents, change requests and the market matrix (M6) ---
-
-/**
- * An open incident, with its severity, then whether management was not told yet, else its next
- * deadline.
- */
-const incidentItem = (row: DashboardIncidentRow): CountListItem => ({
-   label: [row.code, row.title, row.customer_code].filter(Boolean).join(' · '),
-   meta: [
-      row.severity && i18n.t(`ops.incident.severity.${row.severity}`),
-      row.management_notice_missing
-         ? i18n.t('dashboard.ops.meta.notice_missing')
-         : row.next_deadline_at &&
-           i18n.t('dashboard.ops.meta.deadline', { date: dayMonth(row.next_deadline_at) })
-   ]
-      .filter(Boolean)
-      .join(' · '),
-   to: {
-      name: 'ops-incident-manage',
-      params: { id: row.incident_id ?? '' },
-      query: { showDialog: DIALOG_POSITIONS.CENTER }
-   }
-});
-
-/** An open or approved change request, with its status and its decision date. */
-const changeRequestItem = (row: DashboardChangeRequestRow): CountListItem => ({
-   label: [row.code, row.title, row.customer_code].filter(Boolean).join(' · '),
-   meta: [
-      row.status && i18n.t(`ops.change_request.status.${row.status}`),
-      row.decision_due_on &&
-         i18n.t('dashboard.ops.meta.decision_due', { date: dayMonth(row.decision_due_on) })
-   ]
-      .filter(Boolean)
-      .join(' · '),
-   to: {
-      name: 'ops-change-request-manage',
-      params: { id: row.change_request_id ?? '' },
-      query: { showDialog: DIALOG_POSITIONS.CENTER }
-   }
-});
-
-/** A customer's market cells, opening the matrix narrowed to that customer (the customer filter). */
-const marketItem = (row: DashboardMarketRow): CountListItem => ({
-   label: row.customer_code ?? '',
-   meta: i18n.t('dashboard.ops.meta.market', {
-      live: row.live_count ?? 0,
-      preparing: row.preparing_count ?? 0,
-      suppressed: row.suppressed_count ?? 0
-   }),
-   to: { name: 'ops-market-list' },
-   onSelect: () => customerFilter.set(row.customer_id ?? null)
-});
-
-const { data: incidentRows } = useDashboardIncidents();
-const { data: changeRequestRows } = useDashboardChangeRequests();
-const { data: marketRows } = useDashboardMarket();
-
-const market = computed(() => marketSummary(marketRows.value ?? []));
-
-const useDashboardNotifications = () => {
-   const getTagProps = (item: Views['dashboard_notification_feed']['Row']) => {
-      switch (_toLower(item?.activity ?? undefined)) {
-         case 'updated':
-            return { icon: PrimeIcons.SYNC, severity: 'info' };
-         case 'deleted':
-            return { icon: PrimeIcons.MINUS, severity: 'danger' };
-         case 'created':
-            return { icon: PrimeIcons.PLUS, severity: 'success' };
-         case 'unknown':
-            return { icon: PrimeIcons.PLUS, severity: 'warn' };
-      }
-   };
-
-   const getNotificationResourceRoute = (
-      notification: Views['dashboard_notification_feed']['Row']
-   ): Partial<RouteLocationAsRelativeGeneric> => {
-      const { old_data, new_data, resource_id, table_name } = notification;
-      const name = fieldRoutes[table_name ?? '']?.name;
-      const field = fieldRoutes[table_name ?? '']?.field;
-      const id = (
-         field ? _get(new_data, field, _get(old_data, field, resource_id)) : resource_id
-      ) as string;
-      const params = {
-         id
-      };
-      return {
-         name,
-         params,
-         query: { showDialog: 'center' }
-      };
-   };
-
-   /** The user's name, else "user"; writes made outside the app (no user) read as the system. */
-   const getUserLabel = (notification: Views['dashboard_notification_feed']['Row']) =>
-      notification.user_name ||
-      i18n.t(notification.user_id ? 'fields.user' : 'dashboard.notifications.system');
-
-   const title = computed(() => ({
-      today: i18n.t('dashboard.notifications.today'),
-      yesterday: i18n.t('dashboard.notifications.yesterday'),
-      last_week: i18n.t('dashboard.notifications.last_week'),
-      older: i18n.t('dashboard.notifications.older')
-   }));
-
-   // Replaced as a whole; shallowRef also avoids unwrapping the nested Json types.
-   const data = shallowRef<Views['dashboard_notification_feed']['Row'][]>([]);
-   const loading = ref(false);
-   const SINCE = ['today', 'yesterday', 'last_week', 'older'];
-   const load = async () => {
-      try {
-         // The latest five of each period, fetched in parallel.
-         const groups = await Promise.all(
-            SINCE.map((since) =>
-               supabase
-                  .from('dashboard_notification_feed')
-                  .select('*')
-                  .eq('since', since)
-                  .order('created_at', { ascending: false })
-                  .limit(5)
-                  .throwOnError()
-                  .then((res) => res.data ?? [])
-            )
-         );
-         data.value = groups.flat();
-      } catch (error) {
-         console.error('Error fetching dashboard notifications:', error);
-         appErrorHandler(error);
-      } finally {
-         loading.value = false;
-      }
-   };
-   return {
-      load,
-      getTagProps,
-      getNotificationResourceRoute,
-      getUserLabel,
-      data,
-      loading,
-      title
-   };
 };
-
-const dashboardNotifications = useDashboardNotifications();
-dashboardNotifications.load();
 </script>
 
 <template>
@@ -319,258 +76,82 @@ dashboardNotifications.load();
          'p-4': !!dialogRef
       }"
    >
-      <div class="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[inherit] items-start">
-         <CountListCard
-            v-if="$can('read', 'project_gate')"
-            :title="$t('dashboard.ops.gates_team')"
-            guide-task="close_gates"
-            :count="gates.team.length"
-            :items="gates.team.map(gateItem)"
-            :icon="PrimeIcons.FLAG"
-            severity="info"
-         />
-         <CountListCard
-            v-if="$can('read', 'project_gate')"
-            :title="$t('dashboard.ops.gates_management')"
-            guide-task="close_gates"
-            :count="gates.management.length"
-            :items="gates.management.map(gateItem)"
-            :icon="PrimeIcons.BRIEFCASE"
-            severity="warn"
-         />
-         <CountListCard
-            v-if="$can('read', 'project_gate')"
-            :title="$t('dashboard.ops.gates_customer')"
-            guide-task="close_gates"
-            :count="gates.customer.length"
-            :items="gates.customer.map(gateItem)"
-            :icon="PrimeIcons.USER"
-            severity="secondary"
-         />
-         <CountListCard
-            v-if="$can('read', 'project_task')"
-            :title="$t('dashboard.ops.tasks_overdue')"
-            guide-task="close_tasks"
-            :count="tasks.overdue.length"
-            :items="tasks.overdue.map(taskItem)"
-            :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
-            severity="danger"
-         />
-         <CountListCard
-            v-if="$can('read', 'project_task')"
-            :title="$t('dashboard.ops.tasks_due_soon')"
-            guide-task="close_tasks"
-            :count="tasks.dueSoon.length"
-            :items="tasks.dueSoon.map(taskItem)"
-            :icon="PrimeIcons.CLOCK"
-            severity="warn"
-         />
-         <CountListCard
-            v-if="$can('read', 'product')"
-            :title="$t('dashboard.ops.unsigned_skus')"
-            guide-task="sign_spec"
-            :count="unsignedSkus.count"
-            :items="unsignedSkus.items"
-            :icon="PrimeIcons.FILE_EDIT"
-            severity="danger"
-         />
-         <CountListCard
-            v-if="$can('read', 'product')"
-            :title="$t('dashboard.ops.incomplete_compliance')"
-            guide-task="complete_compliance"
-            :count="incompleteCompliance.count"
-            :items="incompleteCompliance.items"
-            :icon="PrimeIcons.SHIELD"
-            severity="warn"
-         />
-         <CountListCard
-            v-if="$can('read', 'purchase_order')"
-            :title="$t('dashboard.ops.po_action')"
-            guide-task="advance_po"
-            :count="orders.action.length"
-            :items="orders.action.map(actionOrderItem)"
-            :icon="PrimeIcons.SHOPPING_CART"
-            severity="warn"
-         />
-         <CountListCard
-            v-if="$can('read', 'purchase_order')"
-            :title="$t('dashboard.ops.po_production')"
-            guide-task="advance_po"
-            :count="orders.production.length"
-            :items="orders.production.map(productionOrderItem)"
-            :icon="PrimeIcons.COG"
-            severity="info"
-         />
-         <CountListCard
-            v-if="$can('read', 'shipment')"
-            :title="$t('dashboard.ops.shipments_in_transit')"
-            guide-task="track_shipment"
-            :count="shipments.inTransit.length"
-            :items="shipments.inTransit.map(inTransitShipmentItem)"
-            :icon="PrimeIcons.SEND"
-            severity="info"
-         />
-         <CountListCard
-            v-if="$can('read', 'shipment')"
-            :title="$t('dashboard.ops.shipments_late')"
-            guide-task="track_shipment"
-            :count="shipments.late.length"
-            :items="shipments.late.map(lateShipmentItem)"
-            :icon="PrimeIcons.EXCLAMATION_TRIANGLE"
-            severity="danger"
-         />
-         <CountListCard
-            v-if="$can('read', 'incident')"
-            :title="$t('dashboard.ops.incidents_open')"
-            guide-task="close_incident"
-            :count="incidentRows?.length ?? 0"
-            :items="(incidentRows ?? []).map(incidentItem)"
-            :icon="PrimeIcons.EXCLAMATION_CIRCLE"
-            severity="danger"
-         />
-         <CountListCard
-            v-if="$can('read', 'change_request')"
-            :title="$t('dashboard.ops.change_requests_open')"
-            guide-task="decide_cr"
-            :count="changeRequestRows?.length ?? 0"
-            :items="(changeRequestRows ?? []).map(changeRequestItem)"
-            :icon="PrimeIcons.SYNC"
-            severity="warn"
-         />
-         <CountListCard
-            v-if="$can('read', 'market_cell')"
-            :title="$t('dashboard.ops.market_summary')"
-            guide-task="update_market"
-            :count="market.live"
-            :empty="market.items.length === 0"
-            :items="market.items.map(marketItem)"
-            :icon="PrimeIcons.TABLE"
-            severity="success"
-         />
-      </div>
-      <div class="w-full flex flex-wrap gap-[inherit]">
-         <TotalRowCountCard
-            v-if="$can('read', 'tenant')"
-            class="flex-[1_20%] lg:flex-[1_15%]"
-            :title="$t('dashboard.statistics.branches')"
-            from="tenant"
-            :icon="PrimeIcons.SITEMAP"
-         />
-         <TotalRowCountCard
-            v-if="$can('read', 'user')"
-            class="flex-[1_20%] lg:flex-[1_15%]"
-            :title="$t('dashboard.statistics.users')"
-            from="user"
-            :icon="PrimeIcons.USERS"
-         />
-         <TotalRowCountCard
-            v-if="$can('read', 'role')"
-            class="flex-[1_20%] lg:flex-[1_15%]"
-            :title="$t('dashboard.statistics.roles')"
-            from="role"
-            :icon="PrimeIcons.SHIELD"
-         />
-      </div>
-      <div class="flex-1 flex flex-wrap gap-[inherit] items-start">
-         <Card
-            v-if="$can('read', 'audit_log') && !_isEmpty(dashboardNotifications.data.value)"
-            class="flex-[1_49%]"
+      <Teleport
+         v-if="canEdit && accessLoaded && anyPermitted"
+         to="#page-toolbar"
+         :disabled="!!dialogRef"
+      >
+         <span class="flex-1 flex justify-end gap-2 flex-wrap-reverse">
+            <Button
+               v-if="!layout.editing"
+               variant="outlined"
+               :icon="PrimeIcons.PENCIL"
+               :label="$t('dashboard.layout.edit')"
+               @click="layout.edit()"
+            />
+            <template v-else>
+               <Button
+                  text
+                  :label="$t('dashboard.layout.reset')"
+                  @click="layout.resetToDefault()"
+               />
+               <Button
+                  variant="outlined"
+                  severity="secondary"
+                  :label="$t('dashboard.layout.discard')"
+                  @click="layout.discard()"
+               />
+               <Button :label="$t('dashboard.layout.save')" @click="save" />
+            </template>
+         </span>
+      </Teleport>
+      <template v-if="accessLoaded">
+         <p v-if="emptyText" class="text-muted-color">
+            {{ $t(emptyText) }}
+         </p>
+         <draggable
+            v-else
+            tag="div"
+            class="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start"
+            :model-value="shown"
+            :item-key="(id: DashboardBoxId) => id"
+            handle=".dashboard-drag-handle"
+            :disabled="!layout.editing"
+            :animation="150"
+            @update:model-value="(ids: DashboardBoxId[]) => layout.reorder(ids, canSee)"
          >
-            <template #title>
-               <div class="flex items-center justify-between gap-4 mb-4">
-                  {{ $t('dashboard.notifications.title') }}
+            <template #item="{ element: id, index }">
+               <div
+                  :data-box-id="id"
+                  :class="{
+                     'md:col-span-2': layout.sizeOf(id) === 'wide',
+                     'outline-dashed outline-2 outline-offset-2 outline-surface-300 dark:outline-surface-600 rounded-xl':
+                        layout.editing
+                  }"
+               >
+                  <DashboardBoxEditBar
+                     v-if="layout.editing"
+                     :box="boxById(id)"
+                     :size="layout.sizeOf(id)"
+                     :first="index === 0"
+                     :last="index === shown.length - 1"
+                     @hide="layout.hide(id)"
+                     @update:size="(s) => layout.setSize(id, s)"
+                     @move="(step) => layout.move(id, step, canSee)"
+                  />
+                  <component
+                     :is="boxById(id).component"
+                     :box="boxById(id)"
+                     :size="layout.sizeOf(id)"
+                  />
                </div>
             </template>
-            <template #content>
-               <template
-                  v-for="(notifications, since) in _groupBy(
-                     dashboardNotifications.data.value,
-                     (n) => n.since
-                  )"
-                  :key="since"
-               >
-                  <span
-                     class="block text-muted-color font-medium my-2"
-                     v-text="_get(dashboardNotifications.title.value, since)"
-                  />
-                  <div
-                     class="flex flex-col gap-4"
-                     v-for="(notification, index) in notifications"
-                     :key="notification.id ?? index"
-                  >
-                     <ul class="p-0 mx-0 mt-0 mb-6 list-none">
-                        <li class="flex items-center gap-4 py-2">
-                           <Tag
-                              class="w-12 aspect-square !rounded-full"
-                              v-bind="dashboardNotifications.getTagProps(notification)"
-                              :pt="{
-                                 icon: {
-                                    class: '!text-2xl !w-[unset] !h-[unset]'
-                                 }
-                              }"
-                           />
-                           <i18n-t
-                              :keypath="`dashboard.notifications.activity.${notification.activity as unknown as any}`"
-                              tag="span"
-                              class="lowercase first-letter:!capitalize [&>a]:inline-flex"
-                           >
-                              <template #resource_name>
-                                 <CustomLink
-                                    v-if="
-                                       $can('read', notification.table_name ?? '') &&
-                                       !_isEqual(notification.operation, 'DELETE') &&
-                                       !!_get(notification, 'resource_id') &&
-                                       !!fieldRoutes[notification.table_name ?? '']
-                                    "
-                                    :to="
-                                       dashboardNotifications.getNotificationResourceRoute(
-                                          notification
-                                       )
-                                    "
-                                    v-slot="{ navigate }"
-                                 >
-                                    <Button
-                                       variant="link"
-                                       size="small"
-                                       fluid
-                                       class="!px-0"
-                                       :label="$t(`fields.${notification.table_name}`)"
-                                       @click="navigate"
-                                    />
-                                 </CustomLink>
-                                 <span v-else> {{ $t(`fields.${notification.table_name}`) }}</span>
-                              </template>
-                              <template #user_name>
-                                 <CustomLink
-                                    v-if="$can('read', `user`) && _get(notification, `user_id`)"
-                                    :to="{
-                                       name: 'branch-user-manage',
-                                       params: { id: _get(notification, `user_id`) },
-                                       query: { showDialog: 'center' }
-                                    }"
-                                    v-slot="{ navigate }"
-                                 >
-                                    <Button
-                                       variant="link"
-                                       size="small"
-                                       fluid
-                                       class="!px-0 !text-primary-emphasis-alt"
-                                       :label="dashboardNotifications.getUserLabel(notification)"
-                                       @click="navigate"
-                                    />
-                                 </CustomLink>
-                                 <span
-                                    v-else
-                                    v-text="dashboardNotifications.getUserLabel(notification)"
-                                 />
-                              </template>
-                           </i18n-t>
-                        </li>
-                     </ul>
-                  </div>
-               </template>
-            </template>
-         </Card>
-      </div>
+         </draggable>
+         <DashboardHiddenStrip
+            v-if="layout.editing"
+            :ids="layout.visibleBoxes(canSee).hidden"
+            @unhide="layout.unhide"
+         />
+      </template>
    </div>
 </template>

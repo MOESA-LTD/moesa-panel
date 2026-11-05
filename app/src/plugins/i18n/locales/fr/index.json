@@ -731,17 +731,6 @@
       }
    },
    "dashboard": {
-      "statistics": {
-         "last_week": "La semaine dernière",
-         "last_month": "Le mois dernier",
-         "last_quarter": "Le trimestre dernier",
-         "last_half": "La moitié de l'année dernière",
-         "last_year": "L'année dernière",
-         "total": "Total",
-         "branches": "Agences",
-         "users": "Utilisateurs",
-         "roles": "Rôles"
-      },
       "notifications": {
          "today": "Aujourd'hui",
          "yesterday": "Hier",
@@ -787,6 +776,30 @@
          "incidents_open": "Open incidents",
          "change_requests_open": "Open change requests",
          "market_summary": "Market matrix: live"
+      },
+      "layout": {
+         "open_all": "Open all",
+         "all_hidden": "All boxes are hidden. Use Edit to show them again.",
+         "no_boxes": "Your role has no dashboard box.",
+         "edit": "Edit",
+         "save": "Save",
+         "discard": "Discard",
+         "reset": "Reset to default",
+         "hidden_title": "Hidden boxes",
+         "hidden_hint": "Click a box to add it at the end.",
+         "hidden_empty": "No hidden boxes",
+         "size_narrow": "Narrow",
+         "size_wide": "Wide",
+         "hide": "Hide",
+         "drag": "Drag to reorder",
+         "menu": "Box options",
+         "move_left": "Move left",
+         "move_right": "Move right",
+         "not_persisted": "Saved for this visit only: this browser does not allow saving.",
+         "hide_box": "Hide {box}",
+         "drag_box": "Drag {box} to reorder",
+         "menu_box": "Options for {box}",
+         "size_box": "Size of {box}"
       }
    },
    "audit_log": {
@@ -2414,6 +2427,14 @@
                      "1": "Open the customer's row; the market matrix opens for that customer.",
                      "2": "Open a cell and fill what live needs: platform ID, platform SKU, price, currency, stock source.",
                      "3": "With the content approved (L-G1), move the cell to live."
+                  }
+               },
+               "edit_dashboard": {
+                  "title": "Arrange your dashboard",
+                  "steps": {
+                     "1": "On a tablet or computer, click Edit at the top right; each box gets a handle, an eye and a narrow or wide switch.",
+                     "2": "Drag a box by its handle, or use Move left and Move right in its menu; the eye moves it to Hidden boxes, where a click adds it back at the end.",
+                     "3": "Click Save to keep the layout in this browser for your account; Discard returns to the last saved layout, Reset to default shows every box in the default order."
                   }
                }
             }
