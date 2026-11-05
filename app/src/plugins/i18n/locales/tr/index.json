@@ -154,6 +154,7 @@
       "transfer_decision_invalid": "Bir karar çakışmasına uymuyor: işlemi ve bağlandığı kaydı kontrol edin.",
       "transfer_code_invalid": "Yeni kodun biçimi hatalı ya da hedefte kullanılıyor.",
       "transfer_product_in_use": "Geride kalan kayıtlar bu ürünleri kullanıyor (proje, sipariş, pazar hücresi ya da değişiklik talebi). Kopyalayın ya da müşterinin tamamını aktarın.",
+      "transfer_not_found": "Aktarım bulunamadı.",
       "avatar_type": "Fotoğraf PNG, JPEG ya da WebP olmalı.",
       "avatar_size": "Fotoğraf en fazla 1 MB olmalı.",
       "access_denied": "Erişim reddedildi",

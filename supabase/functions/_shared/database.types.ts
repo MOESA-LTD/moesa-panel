@@ -4976,6 +4976,32 @@ export type Database = {
         }
         Returns: boolean
       }
+      transfer_check_files: {
+        Args: {
+          transfer_id: string
+        }
+        Returns: {
+          audit_transaction_ids: string[]
+          created_at: string
+          customer_id: string
+          decisions: Json
+          files: Json
+          files_status: string
+          id: string
+          id_map: Json
+          missing_files: string[]
+          mode: string
+          path: string
+          product_ids: string[] | null
+          report: Json
+          source_tenant_id: string
+          started_by: string
+          target_customer_id: string | null
+          tenant_id: string
+          updated_at: string
+          xact_id: unknown
+        }
+      }
       transfer_customer: {
         Args: {
           source_tenant: string
@@ -4986,6 +5012,12 @@ export type Database = {
           dry_run?: boolean
           report_hash?: string
           product_ids?: string[]
+        }
+        Returns: Json
+      }
+      transfer_options: {
+        Args: {
+          source_tenant: string
         }
         Returns: Json
       }

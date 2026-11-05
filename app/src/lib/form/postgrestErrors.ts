@@ -455,7 +455,9 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       'transfer_decision_invalid',
       'transfer_code_invalid',
       'transfer_product_in_use'
-   ].map((name) => ({ code: 'P0001', name, message: `errors.${name}` }))
+   ].map((name) => ({ code: 'P0001', name, message: `errors.${name}` })),
+   // Raised by public.transfer_check_files (045_transfer_files.sql): shown as a toast.
+   { code: 'P0001', name: 'transfer_not_found', message: 'errors.transfer_not_found' }
 ];
 
 /**
