@@ -2,6 +2,7 @@
 import { useDialogRef } from '@/composables/useDialogRef';
 import { emailSchema, loginSchema } from '@/api/auth';
 import { useForm } from '@/lib/form/useForm';
+import { readStorage, removeStorage, writeStorage } from '@/lib/storage';
 import { useConfirm, useToast } from 'primevue';
 
 const authStore = useAuthStore();
@@ -11,13 +12,13 @@ const confirm = useConfirm();
 const toast = useToast();
 const router = useRouter();
 
-const rememberMe = ref(!!localStorage.getItem('remember-me'));
+const rememberMe = ref(!!readStorage('remember-me'));
 
 const dialogRef = useDialogRef();
 
 const login = useForm({
    schema: loginSchema,
-   initialValues: { email: localStorage.getItem('remember-me') ?? '', password: '' }
+   initialValues: { email: readStorage('remember-me') ?? '', password: '' }
 });
 
 const forgotPasswordForm = useForm({ schema: emailSchema, initialValues: { email: '' } });
@@ -56,10 +57,8 @@ const forgotPassword = () =>
 const submit = login.handleSubmit(async (credentials) => {
    await loginWithPassword({ email: credentials.email, password: credentials.password });
 
-   localStorage.removeItem('remember-me');
-   if (rememberMe.value) {
-      localStorage.setItem('remember-me', credentials.email);
-   }
+   removeStorage('remember-me');
+   if (rememberMe.value) writeStorage('remember-me', credentials.email);
 });
 
 watch(

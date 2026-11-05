@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { BoxSize, DashboardBoxDef } from '@/constants/dashboard';
+import { boxMoves, type BoxSize, type DashboardBoxDef } from '@/constants/dashboard';
+import { isRtlLocale } from '@/lib/theme/direction';
 import { PrimeIcons } from '@primevue/core/api';
 import type { MenuItem } from 'primevue/menuitem';
 import { useI18n } from 'vue-i18n';
@@ -8,7 +9,7 @@ import { useI18n } from 'vue-i18n';
 const props = defineProps<{ box: DashboardBoxDef; size: BoxSize; first: boolean; last: boolean }>();
 const emit = defineEmits<{ hide: []; 'update:size': [BoxSize]; move: [-1 | 1] }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const menu = ref<{ toggle: (event: Event) => void } | null>(null);
 const menuId = useId();
 const menuOpen = ref(false);
@@ -20,20 +21,15 @@ const sizes = computed(() => [
    { value: 'wide', label: t('dashboard.layout.size_wide') }
 ]);
 
-const model = computed<MenuItem[]>(() => [
-   {
-      label: t('dashboard.layout.move_left'),
-      icon: PrimeIcons.ARROW_LEFT,
-      disabled: props.first,
-      command: () => emit('move', -1)
-   },
-   {
-      label: t('dashboard.layout.move_right'),
-      icon: PrimeIcons.ARROW_RIGHT,
-      disabled: props.last,
-      command: () => emit('move', 1)
-   }
-]);
+// "Left" moves toward the visual left: earlier in the order, later in a right-to-left locale.
+const model = computed<MenuItem[]>(() =>
+   boxMoves(isRtlLocale(locale.value)).map(({ label, icon, step }) => ({
+      label: t(label),
+      icon,
+      disabled: step === -1 ? props.first : props.last,
+      command: () => emit('move', step)
+   }))
+);
 </script>
 
 <template>

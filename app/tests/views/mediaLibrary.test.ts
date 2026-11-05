@@ -7,6 +7,7 @@ import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import PrimeVue from 'primevue/config';
+import Image from 'primevue/image';
 import Select from 'primevue/select';
 import Tooltip from 'primevue/tooltip';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -160,16 +161,41 @@ describe('media library', () => {
       expect(lastFilters()).toMatchObject({ linkedType: 'none', entityId: null });
    });
 
-   it('shows one card per file, opening it inline or downloading it under its name', async () => {
+   it('shows one card per file, an image previewed in a lightbox, or downloaded under its name', async () => {
       api.rows = [row('a'), row('b')];
       const wrapper = mountIndex();
 
       expect(wrapper.findAll('[data-media-card]')).toHaveLength(2);
-      expect(card(wrapper, 'a').get('img').attributes('src')).toBe('signed:t1/a/thumb/thumb.webp');
-      await card(wrapper, 'a').get('[data-action="open"]').trigger('click');
-      expect(api.open).toHaveBeenCalledWith('t1/a/a.png');
+      const image = card(wrapper, 'a').getComponent(Image);
+      expect(image.props('preview')).toBe(true);
+      expect(image.get('img').attributes()).toMatchObject({
+         src: 'signed:t1/a/thumb/thumb.webp',
+         alt: 'a.png'
+      });
+      // No tab: the image is not inside an open-in-tab button.
+      expect(card(wrapper, 'a').find('[data-action="open"]').exists()).toBe(false);
+      // The preview mask opens the lightbox, which shows the signed original, not the thumbnail.
+      await image.get('button').trigger('click');
+      await vi.waitFor(() =>
+         expect(document.body.querySelector('img.p-image-original')?.getAttribute('src')).toBe(
+            'signed:t1/a/a.png'
+         )
+      );
+      expect(api.open).not.toHaveBeenCalled();
       await card(wrapper, 'a').get('[data-action="download"]').trigger('click');
       expect(api.download).toHaveBeenCalledWith('t1/a/a.png', 'a.png');
+      wrapper.unmount();
+   });
+
+   it('opens a PDF in a tab, without a lightbox', async () => {
+      api.rows = [
+         { ...row('p'), mime_type: 'application/pdf', storage_path: 't1/p/p.pdf', kind: 'pdf' }
+      ];
+      const wrapper = mountIndex();
+
+      expect(card(wrapper, 'p').findComponent(Image).exists()).toBe(false);
+      await card(wrapper, 'p').get('[data-action="open"]').trigger('click');
+      expect(api.open).toHaveBeenCalledWith('t1/p/p.pdf');
    });
 
    it('opens the edit dialog for a file', async () => {

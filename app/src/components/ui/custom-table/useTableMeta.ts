@@ -1,4 +1,5 @@
-import { useLocalStorage, useSessionStorage, type RemovableRef } from '@vueuse/core';
+import { removeStorage, storageOrMemory } from '@/lib/storage';
+import { useStorage, type RemovableRef } from '@vueuse/core';
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
 import type { ColumnProps, DataTableSortMeta, DataTableStateEvent } from 'primevue';
 import { computed, onUnmounted, watch, type Ref } from 'vue';
@@ -106,11 +107,14 @@ export function useTableMeta(options: UseTableMetaOptions) {
    };
 
    // _uniqueId restarts on every page load, so drop a leftover entry from a previous load.
-   if (stateStorage === 'session') sessionStorage.removeItem(metaStateKey);
+   if (stateStorage === 'session') removeStorage(metaStateKey, 'session');
 
-   const meta: RemovableRef<TableMetaState> = (
-      stateStorage === 'local' ? useLocalStorage : useSessionStorage
-   )(metaStateKey, initialValue, { mergeDefaults: true, writeDefaults: true });
+   const meta: RemovableRef<TableMetaState> = useStorage(
+      metaStateKey,
+      initialValue,
+      storageOrMemory(stateStorage),
+      { mergeDefaults: true, writeDefaults: true }
+   );
 
    // Pruned before merging: the merge writes into the parent's filters.
    pruneStaleState(meta.value, options.filters, options.columns);
@@ -144,7 +148,7 @@ export function useTableMeta(options: UseTableMetaOptions) {
    watch(options.rows, (rows) => _set(meta.value, 'rows', rows));
 
    onUnmounted(() => {
-      if (stateStorage === 'session') sessionStorage.removeItem(metaStateKey);
+      if (stateStorage === 'session') removeStorage(metaStateKey, 'session');
    });
 
    return { stateStorage, metaStateKey, meta, onMeta };

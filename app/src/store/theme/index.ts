@@ -5,6 +5,7 @@ import {
    SETTINGS_KEY,
    type ThemeProfile
 } from '@/lib/theme/settings';
+import { storageOrMemory } from '@/lib/storage';
 import { useDark, useStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
 import { computed, nextTick } from 'vue';
@@ -16,7 +17,8 @@ import { computed, nextTick } from 'vue';
 export const useThemeStore = defineStore('theme', () => {
    migrateLegacySettings();
 
-   const settings = useStorage(SETTINGS_KEY, defaultSettings(), localStorage, {
+   // With storage blocked the settings live in memory for this page load.
+   const settings = useStorage(SETTINGS_KEY, defaultSettings(), storageOrMemory(), {
       serializer: { read: parseSettings, write: (value) => JSON.stringify(value) }
    });
 
@@ -25,7 +27,8 @@ export const useThemeStore = defineStore('theme', () => {
       selector: ':root',
       valueDark: 'dark',
       valueLight: '',
-      storageKey: 'color-scheme'
+      storageKey: 'color-scheme',
+      storage: storageOrMemory()
    });
 
    /** The profile in use: the dark one only while dark mode is on and the two are not linked. */

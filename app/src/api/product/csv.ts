@@ -349,7 +349,7 @@ export const productImportRowSchema = z.object({
    landed_cost_eur: decimal(),
    landed_cost_on: date(),
    target_price_eur: decimal(),
-   moesa_price_eur: decimal(),
+   company_price_eur: decimal(),
    price_list_version: text(),
    status: list(STATUS),
    notes: text()
@@ -397,7 +397,7 @@ export const S10_TO_PRODUCT: Record<string, ImportField> = {
    landed_cost_eur: 'landed_cost_eur',
    landed_cost_tarihi: 'landed_cost_on',
    satis_fiyati_hedef_eur: 'target_price_eur',
-   moesa_fiyat_eur: 'moesa_price_eur',
+   moesa_fiyat_eur: 'company_price_eur',
    fiyat_listesi_surumu: 'price_list_version',
    durum: 'status',
    not: 'notes'

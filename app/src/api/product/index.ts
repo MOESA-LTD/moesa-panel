@@ -86,7 +86,7 @@ const NUMBER_COLUMNS = [
    'purchase_price',
    'landed_cost_eur',
    'target_price_eur',
-   'moesa_price_eur'
+   'company_price_eur'
 ] as const;
 
 export const productSchema = z.object({
@@ -140,7 +140,7 @@ export const productSchema = z.object({
    landed_cost_eur: amount(),
    landed_cost_on: optional(dateOnly()),
    target_price_eur: amount(),
-   moesa_price_eur: amount(),
+   company_price_eur: amount(),
    price_list_version: text(),
    notes: text()
 });

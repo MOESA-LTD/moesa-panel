@@ -3,6 +3,7 @@
 import { fetchAccess, type Access, type SubscriptionSummary, type Tenant } from '@/api/access';
 import { clearDialogs } from '@/components/layout/route-dialog/session';
 import { clearDrafts } from '@/lib/form/drafts';
+import { storageOrMemory } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { ability, createAbility, toAbilityRules } from '@plugins/casl';
 import { queryKeys } from '@/api/queryKeys';
@@ -65,7 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
    const currentLogoPath = computed(() => currentTenant.value?.logo_path ?? null);
 
    // The tenants read together (x-tenant-ids), kept per user in this browser.
-   const savedScopes = useStorage<Record<string, string[]>>('tenant-scope', {}, localStorage);
+   const savedScopes = useStorage<Record<string, string[]>>('tenant-scope', {}, storageOrMemory());
    const selectedTenantIds = computed<string[]>({
       get: () => savedScopes.value[user.value?.id ?? ''] ?? [],
       set: (ids) => {

@@ -1,5 +1,4 @@
 import '../setup/mockMain';
-import StatisticCard from '@/components/ui/charts/StatisticCard.vue';
 import { boxById, type DashboardBoxId } from '@/constants/dashboard';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
@@ -111,7 +110,6 @@ it('no longer shows the branch, user and role statistics', async () => {
    allow('tenant', 'user', 'role');
    const w = await mountDashboard();
    expect(boxIds(w)).toEqual([]);
-   expect(w.findComponent(StatisticCard).exists()).toBe(false);
    expect(w.text()).toBe(i18n.t('dashboard.layout.no_boxes'));
 });
 

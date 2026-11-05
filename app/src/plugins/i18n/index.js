@@ -1,6 +1,8 @@
+import { getApp } from '@/lib/appRef';
 import { useNavigatorLanguage } from '@vueuse/core';
 import dayjs from 'dayjs';
 import { setZodLocale } from '@/lib/form/zod';
+import { readStorage, writeStorage } from '@/lib/storage';
 import { computed, nextTick, watch } from 'vue';
 import { createI18n } from 'vue-i18n';
 
@@ -61,7 +63,7 @@ export async function loadLocaleMessages(locale, i18n = i18NPlugin.global) {
 
       try {
          if (loadPrimeLocales) {
-            const primevue = (await import('@/main'))?.app?.config?.globalProperties?.$primevue;
+            const primevue = getApp()?.config?.globalProperties?.$primevue;
             const primeLocale = (await loadPrimeLocales())?.default;
             _merge(primevue?.config?.locale, primeLocale?.[locale]);
          } else {
@@ -81,7 +83,7 @@ export async function loadLocaleMessages(locale, i18n = i18NPlugin.global) {
 
 export const guessUserLocale = computed(() => {
    if (typeof window !== 'undefined')
-      return localStorage?.getItem?.('app_lang') || navigatorLanguage.value.slice(0, 2) || 'en';
+      return readStorage('app_lang') || navigatorLanguage.value.slice(0, 2) || 'en';
    return 'en';
 });
 
@@ -119,9 +121,12 @@ if (typeof window !== 'undefined') {
          locale,
          async (newLocale, oldLocale) => {
             if (oldLocale != newLocale) {
-               localStorage?.setItem?.('app_lang', newLocale);
+               writeStorage('app_lang', newLocale);
             }
-            document.querySelector('html').setAttribute('lang', newLocale);
+            // The locale loads asynchronously; in a unit test the DOM may be gone by then.
+            if (typeof document !== 'undefined') {
+               document.documentElement?.setAttribute('lang', newLocale);
+            }
          },
          { immediate: true }
       );

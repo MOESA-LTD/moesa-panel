@@ -1258,7 +1258,7 @@
             "landed_cost_eur": "Landed cost (EUR)",
             "landed_cost_on": "Landed cost date",
             "target_price_eur": "Target price (EUR)",
-            "moesa_price_eur": "Moesa price (EUR)",
+            "company_price_eur": "Company price (EUR)",
             "price_list_version": "Price list version",
             "notes": "Notes",
             "customer": "Customer",

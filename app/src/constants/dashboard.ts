@@ -301,3 +301,19 @@ export const DASHBOARD_BOXES: readonly DashboardBoxDef[] = [
 /** The registry entry of a box. */
 export const boxById = (id: DashboardBoxId): DashboardBoxDef =>
    DASHBOARD_BOXES.find((box) => box.id === id)!;
+
+/** A "move" entry of a box's edit menu: its label key, arrow and step in the layout order. */
+export type BoxMove = {
+   label: 'dashboard.layout.move_left' | 'dashboard.layout.move_right';
+   icon: string;
+   step: -1 | 1;
+};
+
+/**
+ * The box's "move left / right" entries, so that "left" moves it toward the visual left. The grid
+ * flows with the text, so in a right-to-left locale the visual left is later in the order (+1).
+ */
+export const boxMoves = (rtl: boolean): readonly BoxMove[] => [
+   { label: 'dashboard.layout.move_left', icon: PrimeIcons.ARROW_LEFT, step: rtl ? 1 : -1 },
+   { label: 'dashboard.layout.move_right', icon: PrimeIcons.ARROW_RIGHT, step: rtl ? -1 : 1 }
+];

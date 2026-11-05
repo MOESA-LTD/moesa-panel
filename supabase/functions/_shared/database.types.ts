@@ -1688,6 +1688,7 @@ export type Database = {
           carton_net_kg: number | null
           carton_pack_qty: number | null
           category: string | null
+          company_price_eur: number | null
           compliance_status: Database["public"]["Enums"]["compliance_status"]
           created_at: string
           customer_id: string
@@ -1704,7 +1705,6 @@ export type Database = {
           landed_cost_on: string | null
           lot_rule: string | null
           manufacturer_art_no: string | null
-          moesa_price_eur: number | null
           notes: string | null
           origin_country: string | null
           pack_dims_mm: string | null
@@ -1735,6 +1735,7 @@ export type Database = {
           carton_net_kg?: number | null
           carton_pack_qty?: number | null
           category?: string | null
+          company_price_eur?: number | null
           compliance_status?: Database["public"]["Enums"]["compliance_status"]
           created_at?: string
           customer_id: string
@@ -1751,7 +1752,6 @@ export type Database = {
           landed_cost_on?: string | null
           lot_rule?: string | null
           manufacturer_art_no?: string | null
-          moesa_price_eur?: number | null
           notes?: string | null
           origin_country?: string | null
           pack_dims_mm?: string | null
@@ -1782,6 +1782,7 @@ export type Database = {
           carton_net_kg?: number | null
           carton_pack_qty?: number | null
           category?: string | null
+          company_price_eur?: number | null
           compliance_status?: Database["public"]["Enums"]["compliance_status"]
           created_at?: string
           customer_id?: string
@@ -1798,7 +1799,6 @@ export type Database = {
           landed_cost_on?: string | null
           lot_rule?: string | null
           manufacturer_art_no?: string | null
-          moesa_price_eur?: number | null
           notes?: string | null
           origin_country?: string | null
           pack_dims_mm?: string | null
@@ -4294,6 +4294,7 @@ export type Database = {
           carton_net_kg: number | null
           carton_pack_qty: number | null
           category: string | null
+          company_price_eur: number | null
           compliance_complete: boolean | null
           compliance_status:
             | Database["public"]["Enums"]["compliance_status"]
@@ -4314,7 +4315,6 @@ export type Database = {
           landed_cost_on: string | null
           lot_rule: string | null
           manufacturer_art_no: string | null
-          moesa_price_eur: number | null
           notes: string | null
           origin_country: string | null
           pack_dims_mm: string | null
