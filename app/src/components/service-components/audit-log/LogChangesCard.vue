@@ -117,10 +117,8 @@ function formatValue(value: any, indentSize = 0): any {
    if (_isObject(value) && !_isNil(value)) {
       const indent = '\t'.repeat(indentSize);
       if (_isArray(value)) {
-         return (
-            value.map((item) => indent + formatValue(item, indentSize + 1)).join('\n') +
-            '\t'.repeat(indentSize - 1)
-         );
+         // No trailing indent: at the top level it would be '\t'.repeat(-1), a RangeError.
+         return value.map((item) => indent + formatValue(item, indentSize + 1)).join('\n');
       }
 
       const entries = _keys(value).map((key) => {
