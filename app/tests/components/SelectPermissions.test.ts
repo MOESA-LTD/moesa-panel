@@ -182,7 +182,7 @@ describe('SelectPermissions', () => {
       const { wrapper } = await mountPicker();
       const row = wrapper
          .findAll('tbody tr')
-         .find((tr) => tr.find('[data-permission-cell="group::read"]').exists())!;
+         .find((tr) => tr.find('[data-permission-cell="group:__other__:read"]').exists())!;
       expect(row.text()).toContain(i18n.t('component.select_permission.groups.other'));
       expect(wrapper.text()).not.toContain('null');
    });
