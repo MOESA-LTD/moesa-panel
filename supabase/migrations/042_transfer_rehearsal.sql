@@ -9,7 +9,7 @@
 --                            on every registry table in the source, insert on every registry table
 --                            in the target that has an insert permission); a move out of a
 --                            read-only source (a read-only source may still be copied from).
--- private.transfer_collect   Fills pg_temp.transfer_rows (dropped at commit) with the package: the
+-- private.transfer_collect   Fills pg_temp.transfer_rows and transfer_edges (dropped at commit) with the package: the
 --                            rows of the source a transfer carries, walked in registry order.
 --                            source_id is the row's id; the three tables without one keep their
 --                            key_columns in key instead. copy_only rows are copied, never moved.
@@ -37,7 +37,11 @@
 -- private.transfer_omission_closure  The package rows (pg_temp.transfer_rows seq) that go with the
 --                            seed rows, seeds included: a row whose NOT NULL reference (the parent
 --                            columns are) names one of them, a document or media link whose entity
---                            is one of them, and so on. The rows a skip drops.
+--                            is one of them, and so on. The rows a skip drops. It walks
+--                            pg_temp.transfer_edges, which transfer_collect fills once from those
+--                            references; transfer_omission_closures walks every seed on its own in
+--                            the same single pass (the report's skip_drops: one walk, not one per
+--                            conflict, so a copy of a large catalogue stays inside the timeout).
 -- private.transfer_omitted   The closure of what the decisions leave out: the skipped rows, and the
 --                            contacts, documents and media links of a mapped supplier (only the
 --                            supplier's id is mapped). The run omits these rows (043).
@@ -216,6 +220,10 @@ DECLARE
         'JOIN pg_temp.transfer_rows p ON p.table_name = e.table_name AND p.source_id = %1$s.entity_id '
         'WHERE e.entity = %1$s.entity_type AND NOT (p.copy_only AND e.root = ''customer'') LIMIT 1';
 BEGIN
+    IF to_regclass('pg_temp.transfer_edges') IS NOT NULL THEN
+        DROP TABLE pg_temp.transfer_edges;
+    END IF;
+
     IF to_regclass('pg_temp.transfer_rows') IS NOT NULL THEN
         DROP TABLE pg_temp.transfer_rows;
     END IF;
@@ -324,6 +332,32 @@ BEGIN
         )
         USING source_tenant, transfer_collect.customer_id, products, suppliers, only_products, contract_document;
     END LOOP;
+
+    -- The edges of transfer_omission_closure, found once: a row (child) whose NOT NULL reference
+    -- names a package row (parent), and a document or media link whose entity is one.
+    CREATE TEMP TABLE transfer_edges (
+        parent BIGINT NOT NULL,
+        child BIGINT NOT NULL,
+        PRIMARY KEY (parent, child)
+    ) ON COMMIT DROP;
+
+    INSERT INTO pg_temp.transfer_edges (parent, child)
+    SELECT o.seq, r.seq
+    FROM private.transfer_references() f
+    JOIN pg_temp.transfer_rows r ON r.table_name = f.table_name
+    JOIN pg_temp.transfer_rows o ON o.table_name = f.ref_table AND o.source_id IS NOT NULL
+     AND o.source_id::TEXT = r.row ->> f.column_name
+    WHERE f.not_null
+    UNION
+    SELECT o.seq, r.seq
+    FROM pg_temp.transfer_rows r
+    JOIN private.transfer_registry e ON e.entity IS NOT NULL AND e.entity::TEXT = r.row ->> 'entity_type'
+    JOIN pg_temp.transfer_rows o ON o.table_name = e.table_name AND o.source_id IS NOT NULL
+     AND o.source_id::TEXT = r.row ->> 'entity_id'
+    WHERE r.table_name IN ('document', 'media_link');
+
+    ANALYZE pg_temp.transfer_rows;
+    ANALYZE pg_temp.transfer_edges;
 END;
 $$;
 
@@ -363,41 +397,41 @@ $$;
 
 REVOKE ALL ON FUNCTION private.transfer_references () FROM PUBLIC, anon, authenticated;
 
--- The rows that go with the seed rows of pg_temp.transfer_rows (see the header), seeds included.
+-- The rows that go with the seed rows of pg_temp.transfer_rows (see the header), seeds included:
+-- a walk down pg_temp.transfer_edges.
 CREATE OR REPLACE FUNCTION private.transfer_omission_closure (seeds BIGINT[]) RETURNS TABLE (seq BIGINT) LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
 BEGIN
     RETURN QUERY
-    WITH RECURSIVE refs AS (
-        SELECT f.table_name, f.column_name, f.ref_table FROM private.transfer_references() f WHERE f.not_null
-    ),
-    entities AS (
-        SELECT e.table_name, e.entity::TEXT AS entity FROM private.transfer_registry e WHERE e.entity IS NOT NULL
-    ),
-    omitted (seq, table_name, source_id) AS (
-        SELECT r.seq, r.table_name, r.source_id FROM pg_temp.transfer_rows r WHERE r.seq = ANY (transfer_omission_closure.seeds)
+    WITH RECURSIVE omitted (seq) AS (
+        SELECT r.seq FROM pg_temp.transfer_rows r WHERE r.seq = ANY (transfer_omission_closure.seeds)
         UNION
-        -- A NOT NULL reference (the parent columns are one) or the entity of a document or link.
-        SELECT r.seq, r.table_name, r.source_id
-        FROM omitted o
-        JOIN pg_temp.transfer_rows r ON o.source_id IS NOT NULL
-        WHERE EXISTS (
-                  SELECT 1 FROM refs f
-                  WHERE f.table_name = r.table_name AND f.ref_table = o.table_name
-                    AND r.row ->> f.column_name = o.source_id::TEXT
-              )
-           OR (r.table_name IN ('document', 'media_link')
-               AND r.row ->> 'entity_id' = o.source_id::TEXT
-               AND EXISTS (
-                   SELECT 1 FROM entities e WHERE e.table_name = o.table_name AND e.entity = r.row ->> 'entity_type'
-               ))
+        SELECT e.child FROM omitted o JOIN pg_temp.transfer_edges e ON e.parent = o.seq
     )
     SELECT o.seq FROM omitted o;
 END;
 $$;
 
 REVOKE ALL ON FUNCTION private.transfer_omission_closure (BIGINT[]) FROM PUBLIC, anon, authenticated;
+
+-- The closure of each seed on its own, in one walk: (seed, seq) for every row that goes with the
+-- seed, the seed included.
+CREATE OR REPLACE FUNCTION private.transfer_omission_closures (seeds BIGINT[]) RETURNS TABLE (seed BIGINT, seq BIGINT) LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN QUERY
+    WITH RECURSIVE omitted (seed, seq) AS (
+        SELECT r.seq, r.seq FROM pg_temp.transfer_rows r WHERE r.seq = ANY (transfer_omission_closures.seeds)
+        UNION
+        SELECT o.seed, e.child FROM omitted o JOIN pg_temp.transfer_edges e ON e.parent = o.seq
+    )
+    SELECT o.seed, o.seq FROM omitted o;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_omission_closures (BIGINT[]) FROM PUBLIC, anon, authenticated;
 
 -- The rows the decisions leave out (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_omitted (decisions JSONB) RETURNS TABLE (seq BIGINT) LANGUAGE plpgsql STABLE SECURITY DEFINER
@@ -850,23 +884,31 @@ BEGIN
         WHERE r.table_name = 'media_link' AND r.row ->> 'role' = 'primary_image'
     ), '[]');
 
-    -- What a skip drops with the row.
-    conflicts := coalesce((
-        SELECT jsonb_agg(CASE WHEN c -> 'actions' ? 'skip' THEN c || jsonb_build_object('skip_drops', coalesce((
-            SELECT jsonb_object_agg(d.table_name, d.n)
-            FROM (
-                SELECT r.table_name, count(*) AS n
-                FROM private.transfer_omission_closure(ARRAY(
-                    SELECT s.seq FROM pg_temp.transfer_rows s
-                    WHERE s.table_name = c ->> 'table' AND s.source_id::TEXT = c ->> 'source_id'
-                )) o
-                JOIN pg_temp.transfer_rows r ON r.seq = o.seq
-                WHERE NOT (r.table_name = c ->> 'table' AND r.source_id::TEXT = c ->> 'source_id')
-                GROUP BY r.table_name
-            ) d
-        ), '{}'::JSONB)) ELSE c END)
+    -- What a skip drops with the row: the closures of every skippable conflict's row, in one walk.
+    WITH seeded AS (
+        SELECT c ->> 'key' AS key, s.seq
         FROM jsonb_array_elements(conflicts) c
-    ), '[]');
+        JOIN pg_temp.transfer_rows s ON s.table_name = c ->> 'table' AND s.source_id::TEXT = c ->> 'source_id'
+        WHERE c -> 'actions' ? 'skip'
+    ),
+    drops AS (
+        SELECT k.key, jsonb_object_agg(k.table_name, k.n) AS skip_drops
+        FROM (
+            SELECT d.key, r.table_name, count(*) AS n
+            FROM seeded d
+            JOIN private.transfer_omission_closures(ARRAY(SELECT x.seq FROM seeded x)) o ON o.seed = d.seq
+            JOIN pg_temp.transfer_rows r ON r.seq = o.seq
+            WHERE o.seq <> o.seed
+            GROUP BY d.key, r.table_name
+        ) k
+        GROUP BY k.key
+    )
+    SELECT coalesce(jsonb_agg(CASE WHEN c -> 'actions' ? 'skip'
+                                   THEN c || jsonb_build_object('skip_drops', coalesce(d.skip_drops, '{}'::JSONB))
+                                   ELSE c END), '[]')
+    INTO conflicts
+    FROM jsonb_array_elements(conflicts) c
+    LEFT JOIN drops d ON d.key = c ->> 'key';
 
     conflicts := coalesce((
         SELECT jsonb_agg(c ORDER BY g.position, c ->> 'label' COLLATE "C", c ->> 'source_id', c ->> 'kind')
