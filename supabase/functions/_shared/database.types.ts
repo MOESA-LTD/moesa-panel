@@ -4976,6 +4976,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      transfer_customer: {
+        Args: {
+          source_tenant: string
+          target_tenant: string
+          customer_id: string
+          mode: string
+          decisions?: Json
+          dry_run?: boolean
+          report_hash?: string
+          product_ids?: string[]
+        }
+        Returns: Json
+      }
     }
     Enums: {
       change_kind:

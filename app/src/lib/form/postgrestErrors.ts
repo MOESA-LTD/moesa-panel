@@ -436,7 +436,19 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       code: 'P0001',
       name: 'audit_transfer_not_revertable',
       message: 'errors.audit_transfer_not_revertable'
-   }
+   },
+   // Raised by public.transfer_customer (042_transfer_rehearsal.sql): shown as a toast.
+   ...[
+      'transfer_invalid_mode',
+      'transfer_same_tenant',
+      'transfer_owner_required',
+      'transfer_target_read_only',
+      'transfer_target_plan',
+      'transfer_forbidden',
+      'transfer_source_read_only',
+      'transfer_customer_missing',
+      'transfer_products_invalid'
+   ].map((name) => ({ code: 'P0001', name, message: `errors.${name}` }))
 ];
 
 /**
