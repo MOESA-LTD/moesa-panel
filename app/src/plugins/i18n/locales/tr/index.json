@@ -716,8 +716,8 @@
       },
       "layout": {
          "open_all": "Tümünü aç",
-         "all_hidden": "Tüm kutular gizli.",
-         "no_boxes": "Rolünüz için henüz gösterilecek bir şey yok.",
+         "all_hidden": "Tüm kutular gizli. Yeniden göstermek için Düzenle'yi kullanın.",
+         "no_boxes": "Rolünüzün görebileceği bir dashboard kutusu yok.",
          "edit": "Düzenle",
          "save": "Kaydet",
          "discard": "Vazgeç",

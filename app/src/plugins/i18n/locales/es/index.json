@@ -48,8 +48,8 @@
       },
       "layout": {
          "open_all": "Open all",
-         "all_hidden": "Every box is hidden.",
-         "no_boxes": "There is nothing to show for your role yet.",
+         "all_hidden": "All boxes are hidden. Use Edit to show them again.",
+         "no_boxes": "Your role has no dashboard box.",
          "edit": "Edit",
          "save": "Save",
          "discard": "Discard",
