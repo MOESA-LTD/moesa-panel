@@ -2,6 +2,7 @@ import { useThemeStore } from '@/store/theme';
 import { locale } from '@plugins/i18n';
 import { $t, updatePreset, updateSurfacePalette } from '@primeuix/themes';
 import { effectScope, watch, watchEffect } from 'vue';
+import { isRtlLocale } from './direction';
 import { findPalette, presetExtension, SURFACES } from './palettes';
 import { loadPreset } from './presets';
 
@@ -40,7 +41,7 @@ export function setupTheme() {
          (surface) => updateSurfacePalette(findPalette(SURFACES, surface))
       );
       watchEffect(() => root.style.setProperty('--ui-scale', String(theme.profile.uiScale)));
-      watchEffect(() => root.setAttribute('dir', locale.value.startsWith('ar-') ? 'rtl' : 'ltr'));
+      watchEffect(() => root.setAttribute('dir', isRtlLocale(locale.value) ? 'rtl' : 'ltr'));
    });
 
    return applyPreset();

@@ -1,4 +1,5 @@
-import { boxById, DASHBOARD_AREA_CLASSES, DASHBOARD_BOXES } from '@/constants/dashboard';
+import { boxById, boxMoves, DASHBOARD_AREA_CLASSES, DASHBOARD_BOXES } from '@/constants/dashboard';
+import { isRtlLocale } from '@/lib/theme/direction';
 import { PAGE_GUIDES } from '@/constants/guide';
 import en from '@/plugins/i18n/locales/en/index.json';
 import branchRoutes from '@/router/routes/branch';
@@ -62,4 +63,18 @@ it('the dashboard guide explains the edit mode to every role', () => {
       steps: 3,
       permission: { action: 'read', subject: 'tenant' }
    });
+});
+
+it('moves a box toward the visual left with "Move left", in either text direction', () => {
+   const steps = (rtl: boolean) =>
+      Object.fromEntries(boxMoves(rtl).map(({ label, step }) => [label.split('.').at(-1), step]));
+   expect(steps(false)).toEqual({ move_left: -1, move_right: 1 });
+   // Right to left the grid flows from the right, so the visual left is later in the order.
+   expect(steps(true)).toEqual({ move_left: 1, move_right: -1 });
+   expect(boxMoves(true).map(({ icon }) => icon)).toEqual(boxMoves(false).map(({ icon }) => icon));
+});
+
+it('reads the Arabic locales right to left, the others left to right', () => {
+   expect(isRtlLocale('ar-SA')).toBe(true);
+   expect(['en-US', 'tr-TR', 'de-DE'].map(isRtlLocale)).toEqual([false, false, false]);
 });
