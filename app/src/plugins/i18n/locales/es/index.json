@@ -330,8 +330,17 @@
                "read": "Leer",
                "create": "Crear",
                "modify": "Modificar",
-               "all": "Todo"
+               "all": "Todo",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
+         },
+         "groups": {
+            "other": "Other"
          }
       },
       "table": {

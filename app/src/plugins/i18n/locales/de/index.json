@@ -195,8 +195,17 @@
                "read": "Lesen",
                "create": "Erstellen",
                "modify": "Ändern",
-               "all": "Alle"
+               "all": "Alle",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
+         },
+         "groups": {
+            "other": "Other"
          }
       },
       "table": {

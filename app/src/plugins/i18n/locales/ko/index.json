@@ -195,8 +195,17 @@
                "read": "읽기",
                "create": "생성",
                "modify": "수정",
-               "all": "모두"
+               "all": "모두",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
+         },
+         "groups": {
+            "other": "Other"
          }
       },
       "table": {

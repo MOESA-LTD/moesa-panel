@@ -195,8 +195,17 @@
                "read": "Чтение",
                "create": "Создание",
                "modify": "Изменение",
-               "all": "Все"
+               "all": "Все",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
+         },
+         "groups": {
+            "other": "Other"
          }
       },
       "table": {

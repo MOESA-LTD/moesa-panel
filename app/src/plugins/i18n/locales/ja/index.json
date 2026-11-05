@@ -195,8 +195,17 @@
                "read": "読み取り",
                "create": "作成",
                "modify": "編集",
-               "all": "すべて"
+               "all": "すべて",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
+         },
+         "groups": {
+            "other": "Other"
          }
       },
       "table": {

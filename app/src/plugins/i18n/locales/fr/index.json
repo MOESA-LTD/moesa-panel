@@ -195,8 +195,17 @@
                "read": "Lecture",
                "create": "Création",
                "modify": "Modification",
-               "all": "Tous"
+               "all": "Tous",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
+         },
+         "groups": {
+            "other": "Other"
          }
       },
       "table": {
