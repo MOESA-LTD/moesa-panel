@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- are refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(53);
+SELECT plan(54);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -317,6 +317,22 @@ SELECT ok(
     )),
     'the coordinator is reported as a non-member'
 );
+
+-- 31b. Without a display name the report names the user by a short id, never by e-mail (K8).
+RESET ROLE;
+UPDATE public.user SET user_metadata = user_metadata - 'display_name' WHERE id = current_setting('test.koordinator')::UUID;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT set_config('test.r_nameless', pg_temp.rehearse('copy')::TEXT, TRUE);
+SELECT ok(
+    current_setting('test.r_nameless')::JSONB -> 'users' @> jsonb_build_array(jsonb_build_object(
+        'user_id', current_setting('test.koordinator')::UUID, 'display_name', left(current_setting('test.koordinator'), 8)
+    ))
+    AND strpos(current_setting('test.r_nameless'), 'koordinator@') = 0,
+    'a user without a display name is named by a short id, not by e-mail'
+);
+RESET ROLE;
+UPDATE public.user SET user_metadata = user_metadata || '{"display_name": "Koordinatör"}' WHERE id = current_setting('test.koordinator')::UUID;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
 -- 32. The mop has a signed spec sheet in the package; the others would be held back.
 SELECT is(

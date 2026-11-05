@@ -87,7 +87,8 @@
 --                              skip_drops, {table: count}, from transfer_omission_closure seeded
 --                              with that row alone.
 --                            - users: the users of a registry user column who are neither in the
---                              target's tenant_user nor owners of its company (Call 7).
+--                              target's tenant_user nor owners of its company (Call 7), by display
+--                              name, else the first 8 characters of the id: never the e-mail (K8).
 --                            - left_behind, {table, source_id, column, label, refers_to,
 --                              refers_to_id, refers_to_label}, through
 --                              every FK between registry tables (its first column; a table without
@@ -984,7 +985,8 @@ BEGIN
     INTO users
     FROM (
         SELECT x.user_id,
-               coalesce(pu.user_metadata ->> 'display_name', pu.email) AS display_name,
+               -- Never the e-mail (K8): the report is stored with the transfer.
+               coalesce(nullif(pu.user_metadata ->> 'display_name', ''), left(x.user_id::TEXT, 8)) AS display_name,
                to_jsonb(array_agg(DISTINCT x.col ORDER BY x.col)) AS columns,
                count(DISTINCT x.seq) AS rows
         FROM (
@@ -996,7 +998,7 @@ BEGIN
         ) x
         LEFT JOIN public.user pu ON pu.id = x.user_id
         WHERE x.user_id IS NOT NULL
-        GROUP BY x.user_id, pu.user_metadata, pu.email
+        GROUP BY x.user_id, pu.user_metadata
     ) u
     WHERE NOT EXISTS (SELECT 1 FROM public.tenant_user tu WHERE tu.user_id = u.user_id AND tu.tenant_id = target_tenant)
       AND NOT private.owns_company(u.user_id, target_tenant);
