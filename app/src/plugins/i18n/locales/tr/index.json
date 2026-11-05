@@ -614,7 +614,8 @@
          "ops_change_request_impact": "Etki",
          "ops_change_request_decision": "Karar",
          "ops_change_request_documents": "Belgeler",
-         "guide": "Sistem rehberi"
+         "guide": "Sistem rehberi",
+         "ops_transfer": "Aktarım"
       }
    },
    "fields": {
@@ -2113,6 +2114,94 @@
          "customer_approval_hint": "Geçmiş bir [[(M)]] kapıyı etkiliyor: müşterinin yazılı onayı şart ([[S08]]).",
          "overdue": "Karar gecikti",
          "no_rows": "Değişiklik talebi yok."
+      },
+      "transfer": {
+         "title_customer": "{code} müşterisini aktar",
+         "title_products": "{code} müşterisinin {count} ürününü aktar",
+         "steps": {
+            "target": "Hedef",
+            "report": "Prova",
+            "result": "Sonuç"
+         },
+         "target": {
+            "label": "Hedef şirket ya da şube",
+            "same_company": "Aynı şirket",
+            "other_company": "Başka şirket"
+         },
+         "mode": {
+            "label": "Mod",
+            "copy_label": "Kopyala",
+            "move_label": "Taşı",
+            "copy": "Kopyala: kaynak olduğu gibi kalır.",
+            "move": "Taşı: hedefe yazılır, sonra kaynaktan silinir. Tedarikçiler kaynakta kalır.",
+            "move_read_only": "Kaynak salt okunur; yalnız Kopyala mümkün."
+         },
+         "rehearse": "Prova yap",
+         "rehearse_again": "Provayı yinele",
+         "report": {
+            "path_cheap": "Yerinde taşınır: kayıtlar kimliklerini korur.",
+            "path_copy": "Yeni kimliklerle yeni kayıt olarak yazılır.",
+            "counts": "Tablo başına kayıt",
+            "conflicts": "Çakışmalar",
+            "no_conflicts": "Çakışma yok.",
+            "users": "Hedefte üye olmayan kullanıcılar",
+            "users_hint": "Kayıtları size yazılır, atamaları boşaltılır.",
+            "left_behind": "Kaynakta kalan bağlantılar",
+            "left_behind_item": "{table} {label}: {column} alanı aktarım dışındaki bir {refers_to} kaydına bağlı",
+            "settings_gaps": "Hedefin ayarlarına göre eksik kalacaklar",
+            "spec_sheet_required": "{label}: hedef spec sheet istiyor",
+            "files": "Kopyalanacak dosya: {count}"
+         },
+         "conflict_kind": {
+            "customer_code": "Müşteri kodu",
+            "supplier_code": "Tedarikçi kodu",
+            "code": "Kod",
+            "sku": "SKU",
+            "gtin": "GTIN",
+            "customer_contact": "Müşteri kişisi",
+            "customer_warehouse": "Müşteri deposu",
+            "customer_brand": "Müşteri markası",
+            "platform_account": "Platform hesabı",
+            "market_cell": "Pazar hücresi",
+            "document_version": "Belge sürümü",
+            "media_link": "Ana görsel",
+            "unknown": "Diğer çakışma"
+         },
+         "conflict": {
+            "customer_code": "{code} müşteri kodu hedefte var",
+            "supplier_code": "{code} tedarikçi kodu hedefte var",
+            "code": "{code} kodu hedefte var",
+            "sku": "{code} SKU'su hedefte bu müşteride var",
+            "gtin": "{code} GTIN'i aktif",
+            "document_version": "Bu belgenin {code} sürümü hedefte var",
+            "customer_contact": "Hedefteki müşteride {code} kişisi zaten var",
+            "customer_warehouse": "Hedefteki müşteride {code} deposu zaten var",
+            "customer_brand": "Hedefteki müşteride {code} markası zaten var",
+            "platform_account": "Hedefteki müşterinin {code} üzerinde zaten hesabı var",
+            "market_cell": "Hedefteki üründe {code} pazar hücresi zaten var",
+            "media_link": "{code} hedefte zaten bir ana görsele sahip",
+            "unknown": "{code} hedefteki bir kayıtla çakışıyor"
+         },
+         "action": {
+            "map": "Hedefteki kayda bağla",
+            "new_code": "Yeni kod ver",
+            "clear_gtin": "GTIN'i boş bırak",
+            "skip": "Atla",
+            "demote": "Galeri görseli olarak tut"
+         },
+         "skip_drops": "Bununla birlikte atlananlar: {list}",
+         "skip_drops_item": "{table} ({count})",
+         "decision": {
+            "target": "Hedefteki kayıt",
+            "code": "Yeni kod"
+         },
+         "unresolved": "{count} çakışma karar bekliyor.",
+         "move_blocked": "Taşıma kaynakta bağlantı bırakamaz. Bu kayıtları da aktarın ya da kopyalayın.",
+         "confirm": {
+            "copy": "{count} kayıt {target} hedefine kopyalansın mı?",
+            "move": "{count} kayıt {target} hedefine taşınsın mı? Kaynaktan silinirler."
+         },
+         "run": "Aktar"
       }
    },
    "glossary": {

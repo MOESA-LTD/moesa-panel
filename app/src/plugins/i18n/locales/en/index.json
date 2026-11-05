@@ -746,7 +746,8 @@
          "ops_change_request_impact": "Impact",
          "ops_change_request_decision": "Decision",
          "ops_change_request_documents": "Documents",
-         "guide": "System guide"
+         "guide": "System guide",
+         "ops_transfer": "Transfer"
       }
    },
    "dashboard": {
@@ -2113,6 +2114,94 @@
          "customer_approval_hint": "It touches a passed [[(M)]] gate: the customer's written approval is required ([[S08]]).",
          "overdue": "Decision overdue",
          "no_rows": "No change requests."
+      },
+      "transfer": {
+         "title_customer": "Transfer {code}",
+         "title_products": "Transfer {count} products of {code}",
+         "steps": {
+            "target": "Target",
+            "report": "Rehearsal",
+            "result": "Result"
+         },
+         "target": {
+            "label": "Target company or branch",
+            "same_company": "Same company",
+            "other_company": "Another company"
+         },
+         "mode": {
+            "label": "Mode",
+            "copy_label": "Copy",
+            "move_label": "Move",
+            "copy": "Copy: the source stays as it is.",
+            "move": "Move: written to the target, then deleted from the source. Suppliers stay in the source.",
+            "move_read_only": "The source is read-only, so only Copy is possible."
+         },
+         "rehearse": "Rehearse",
+         "rehearse_again": "Rehearse again",
+         "report": {
+            "path_cheap": "Moved in place: the records keep their IDs.",
+            "path_copy": "Written as new records with new IDs.",
+            "counts": "Records per table",
+            "conflicts": "Conflicts",
+            "no_conflicts": "No conflicts.",
+            "users": "Users who are not members of the target",
+            "users_hint": "Their records are credited to you and their assignments are cleared.",
+            "left_behind": "Links that stay in the source",
+            "left_behind_item": "{table} {label}: its {column} refers to a {refers_to} outside the transfer",
+            "settings_gaps": "Missing under the target's settings",
+            "spec_sheet_required": "{label}: the target requires a spec sheet",
+            "files": "Files to copy: {count}"
+         },
+         "conflict_kind": {
+            "customer_code": "Customer code",
+            "supplier_code": "Supplier code",
+            "code": "Code",
+            "sku": "SKU",
+            "gtin": "GTIN",
+            "customer_contact": "Customer contact",
+            "customer_warehouse": "Customer warehouse",
+            "customer_brand": "Customer brand",
+            "platform_account": "Platform account",
+            "market_cell": "Market cell",
+            "document_version": "Document version",
+            "media_link": "Primary image",
+            "unknown": "Other conflict"
+         },
+         "conflict": {
+            "customer_code": "Customer code {code} exists in the target",
+            "supplier_code": "Supplier code {code} exists in the target",
+            "code": "Code {code} exists in the target",
+            "sku": "SKU {code} exists for this customer in the target",
+            "gtin": "GTIN {code} is active",
+            "document_version": "Version {code} of this document exists in the target",
+            "customer_contact": "The customer in the target already has the contact {code}",
+            "customer_warehouse": "The customer in the target already has the warehouse {code}",
+            "customer_brand": "The customer in the target already has the brand {code}",
+            "platform_account": "The customer in the target already has an account on {code}",
+            "market_cell": "The product in the target already has the market cell {code}",
+            "media_link": "{code} already has a primary image in the target",
+            "unknown": "{code} conflicts with a record in the target"
+         },
+         "action": {
+            "map": "Link to the target's record",
+            "new_code": "Give a new code",
+            "clear_gtin": "Leave the GTIN empty",
+            "skip": "Skip",
+            "demote": "Keep as gallery image"
+         },
+         "skip_drops": "Also drops: {list}",
+         "skip_drops_item": "{table} ({count})",
+         "decision": {
+            "target": "Record in the target",
+            "code": "New code"
+         },
+         "unresolved": "{count} conflicts need a decision.",
+         "move_blocked": "A move cannot leave links in the source. Transfer these records too, or copy instead.",
+         "confirm": {
+            "copy": "Copy {count} records to {target}?",
+            "move": "Move {count} records to {target}? They are deleted from the source."
+         },
+         "run": "Transfer"
       }
    },
    "glossary": {
