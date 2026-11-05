@@ -47,7 +47,9 @@
          "market_summary": "Market matrix: live"
       },
       "layout": {
-         "open_all": "Open all"
+         "open_all": "Open all",
+         "all_hidden": "Every box is hidden.",
+         "no_boxes": "There is nothing to show for your role yet."
       }
    },
    "app_config": {

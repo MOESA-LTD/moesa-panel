@@ -715,7 +715,9 @@
          }
       },
       "layout": {
-         "open_all": "Tümünü aç"
+         "open_all": "Tümünü aç",
+         "all_hidden": "Tüm kutular gizli.",
+         "no_boxes": "Rolünüz için henüz gösterilecek bir şey yok."
       }
    },
    "audit_log": {

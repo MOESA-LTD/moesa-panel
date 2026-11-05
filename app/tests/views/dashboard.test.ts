@@ -5,6 +5,7 @@ import Index from '@/views/pages/dashboard/Index.vue';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { reactive } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
@@ -51,8 +52,28 @@ const mountDashboard = async () => {
 };
 const boxIds = (w: VueWrapper) => w.findAll('[data-test="box"]').map((b) => b.text().split(':')[0]);
 
+const auth = vi.hoisted(() => ({
+   value: null as unknown as { user: { id: string } | null; accessReady: () => Promise<void> }
+}));
+vi.mock('@/store/auth', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@/store/auth')>()),
+   useAuthStore: () => auth.value
+}));
+const stored = new Map<string, string>();
+const store = (userId: string, layout: unknown) =>
+   stored.set(`dashboard.layout.${userId}`, JSON.stringify(layout));
+
 beforeAll(() => i18n.setLocaleMessage('en', en));
-beforeEach(() => setActivePinia(createPinia()));
+beforeEach(() => {
+   setActivePinia(createPinia());
+   auth.value = reactive({ user: { id: 'u1' }, accessReady: () => Promise.resolve() });
+   stored.clear();
+   vi.stubGlobal('localStorage', {
+      getItem: (k: string) => stored.get(k) ?? null,
+      setItem: vi.fn((k: string, v: string) => void stored.set(k, v)),
+      removeItem: vi.fn()
+   });
+});
 afterEach(() => {
    ability.update([]);
    vi.unstubAllGlobals();
@@ -73,4 +94,47 @@ it('no longer shows the branch, user and role statistics', async () => {
    const w = await mountDashboard();
    expect(boxIds(w)).toEqual([]);
    expect(w.text()).not.toContain('Branches');
+});
+
+it('shows the stored order, without hidden boxes, wide ones across two columns', async () => {
+   allow('project_gate', 'shipment');
+   store('u1', {
+      order: ['shipments_late', 'gates_team'],
+      hidden: ['gates_customer'],
+      sizes: { shipments_late: 'wide' }
+   });
+   const w = await mountDashboard();
+   expect(boxIds(w)).toEqual([
+      'shipments_late',
+      'gates_team',
+      'gates_management',
+      'shipments_in_transit'
+   ]);
+   expect(w.get('[data-box-id="shipments_late"]').classes()).toContain('md:col-span-2');
+   expect(w.get('[data-box-id="gates_team"]').classes()).not.toContain('md:col-span-2');
+   expect(w.get('[data-box-id="shipments_late"]').text()).toBe('shipments_late:wide');
+});
+it("loads the new user's layout when the account changes", async () => {
+   allow('project_gate');
+   store('u2', { order: ['gates_customer'] });
+   const w = await mountDashboard();
+   expect(boxIds(w)[0]).toBe('gates_team');
+   auth.value.user = { id: 'u2' };
+   await flushPromises();
+   expect(boxIds(w)[0]).toBe('gates_customer');
+});
+it('says when every box is hidden', async () => {
+   allow('project_gate');
+   store('u1', { order: [], hidden: ['gates_team', 'gates_management', 'gates_customer'] });
+   expect((await mountDashboard()).text()).toContain(i18n.t('dashboard.layout.all_hidden'));
+});
+it('says the role has no box only once the access is loaded', async () => {
+   let resolve!: () => void;
+   auth.value.accessReady = () => new Promise<void>((r) => (resolve = r));
+   const w = await mountDashboard();
+   expect(w.text()).not.toContain(i18n.t('dashboard.layout.no_boxes'));
+   expect(boxIds(w)).toEqual([]);
+   resolve();
+   await flushPromises();
+   expect(w.text()).toContain(i18n.t('dashboard.layout.no_boxes'));
 });
