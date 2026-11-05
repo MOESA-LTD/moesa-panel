@@ -26,12 +26,16 @@ NOTIFY pgrst,
 --   akif@moesa-panel.test     management, MOESA LTD
 --   koordinator@moesa-panel.test  coordinator, MOESA LTD
 --
+-- Transfer demo tenants (M21): MOESA Europe, a branch of MOESA LTD with the Phase 1 roles (akif
+-- is management there), and MOESA Trading GmbH, a second company (Enterprise) owned by baris with
+-- the same roles: a transfer between them crosses companies, so the caller must own both.
+--
 -- MOESA LTD has the two Phase 1 roles (spec §7), built by private.seed_ops_roles:
 --   management   every permission of the business modules (ops_setting, document, supplier,
 --                customer, product, project, purchase_order, shipment, market_matrix, incident,
---                change_request, media) and of branch, user, role and audit_log
+--                change_request, media, transfer) and of branch, user, role and audit_log
 --   coordinator  the same, but the settings, the users, the roles and the company and its branches
---                read-only, and no deleting media (spec M19: management only)
+--                read-only, no deleting media (spec M19: management only) and no transfers
 -- and the THOMETZKI customer (THO) with its warehouse, Amazon account, brand and a contact; five
 -- approved suppliers; three products on sale (THO-MOP40-2P with a signed spec sheet); and the
 -- "Mop ailesi çok ülke pilotu" project, its gates all pending (it waits on G1).
@@ -122,12 +126,13 @@ BEGIN
     JOIN public.permission p
         ON p.group_name IN ('ops_setting', 'document', 'supplier', 'customer', 'product', 'project',
                             'purchase_order', 'shipment', 'market_matrix', 'incident',
-                            'change_request', 'media', 'branch', 'user', 'role', 'audit_log')
+                            'change_request', 'media', 'transfer', 'branch', 'user', 'role', 'audit_log')
        AND (r.display_name = 'management'
             OR NOT (p.group_name = 'ops_setting' AND p.command = 'update'
                     OR p.group_name IN ('role', 'user') AND p.command <> 'select'
                     OR p.resource_name = 'public.tenant' AND p.command <> 'select'
-                    OR p.resource_name = 'public.media' AND p.command = 'delete'))
+                    OR p.resource_name = 'public.media' AND p.command = 'delete'
+                    OR p.group_name = 'transfer'))
     WHERE r.tenant_id = seed_ops_roles.tenant_id AND r.display_name IN ('management', 'coordinator');
 END;
 $$;
@@ -178,6 +183,8 @@ DECLARE
     ankara UUID;
     eski UUID;
     moesa UUID;
+    europe UUID;
+    trading UUID;
 BEGIN
     -- Atlas Danışmanlık: Pro, every branch the plan allows.
     atlas := private.seed_tenant('Atlas Danışmanlık', NULL, 'info@atlas.test');
@@ -212,6 +219,15 @@ BEGIN
     PERFORM private.seed_member(moesa, akif, 'management');
     PERFORM private.seed_member(moesa, koordinator, 'coordinator');
 
+    -- MOESA Europe (a branch of MOESA LTD) and MOESA Trading GmbH (a company of baris): the
+    -- transfer demo.
+    europe := private.seed_tenant('MOESA Europe', moesa);
+    PERFORM private.seed_ops_roles(europe);
+    PERFORM private.seed_member(europe, akif, 'management');
+    trading := private.seed_tenant('MOESA Trading GmbH', NULL, 'info@moesatrading.test');
+    PERFORM private.seed_ops_roles(trading);
+    PERFORM private.seed_owner(trading, baris);
+
     UPDATE public.subscription s
     SET
         plan_id = p.id,
@@ -226,7 +242,8 @@ BEGIN
             (nova, 'Basic', TRUE, INTERVAL '-9 days', INTERVAL '5 days'),
             (kuzey, 'Enterprise', FALSE, INTERVAL '-2 months', INTERVAL '10 months'),
             (eski, 'Pro', FALSE, INTERVAL '-13 months', INTERVAL '-10 days'),
-            (moesa, 'Enterprise', FALSE, INTERVAL '-1 month', INTERVAL '11 months')
+            (moesa, 'Enterprise', FALSE, INTERVAL '-1 month', INTERVAL '11 months'),
+            (trading, 'Enterprise', FALSE, INTERVAL '-1 month', INTERVAL '11 months')
     ) AS setting (tenant_id, plan_name, is_trial, starts, ends)
     JOIN public.plan p ON p.display_name = setting.plan_name
     WHERE s.tenant_id = setting.tenant_id;

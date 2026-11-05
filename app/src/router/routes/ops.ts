@@ -53,6 +53,19 @@ export const changeRequestProps = (route: RouteLocationNormalized) => ({
    project_id: route.query.project_id ?? null
 });
 
+// A transfer names its customer, and the products when only some of them go, in the query
+// (`product_ids` comma-separated); a route dialog renders the page outside the router.
+export const transferProps = (route: RouteLocationNormalized) => {
+   const productIds =
+      typeof route.query.product_ids === 'string'
+         ? route.query.product_ids.split(',').filter(Boolean)
+         : [];
+   return {
+      customerId: String(route.query.customer_id ?? ''),
+      productIds: productIds.length ? productIds : null
+   };
+};
+
 const routes: RouteRecordRaw[] = [
    {
       path: 'ops',
@@ -1803,6 +1816,22 @@ const routes: RouteRecordRaw[] = [
             components: {
                default: () => import('@/views/pages/ops/product/Import.vue'),
                skeleton: () => import('@/views/pages/ops/product/Import.vue')
+            }
+         },
+         {
+            // A customer, or some of its products, to another company or branch (M21).
+            path: 'transfer',
+            name: 'ops-transfer',
+            props: { default: transferProps, skeleton: transferProps },
+            meta: {
+               label: 'route.label.ops_transfer',
+               icon: PrimeIcons.ARROW_RIGHT_ARROW_LEFT,
+               visible: false,
+               requiredPermissions: [{ action: 'create', subject: 'transfer' }]
+            },
+            components: {
+               default: () => import('@/views/pages/ops/transfer/Transfer.vue'),
+               skeleton: () => import('@/views/pages/ops/transfer/Transfer.vue')
             }
          },
          {

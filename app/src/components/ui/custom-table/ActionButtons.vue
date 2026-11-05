@@ -25,6 +25,7 @@ type RowButton = {
    label?: string;
    icon?: string;
    disabled?: boolean;
+   tooltip?: string;
    [key: string]: unknown;
 };
 
@@ -56,16 +57,30 @@ const buttons = computed<RowButton[]>(() => {
 
 <template>
    <div class="custom_table__action_buttons">
-      <Button
-         v-for="(item, index) in buttons"
+      <template
+         v-for="({ tooltip, ...item }, index) in buttons"
          :key="_uniqueId('actionButton' + index)"
-         size="small"
-         @click="item.command"
-         v-tooltip.left="item.label"
-         :severity="getSeverity(item)"
-         v-bind="item"
-         label=""
-      />
+      >
+         <span v-if="tooltip" v-tooltip.left="tooltip" class="inline-flex" data-row-action-tooltip>
+            <Button
+               size="small"
+               @click="item.command"
+               :severity="getSeverity(item)"
+               v-bind="item"
+               :aria-label="tooltip"
+               label=""
+            />
+         </span>
+         <Button
+            v-else
+            size="small"
+            @click="item.command"
+            v-tooltip.left="item.label"
+            :severity="getSeverity(item)"
+            v-bind="item"
+            label=""
+         />
+      </template>
    </div>
 </template>
 

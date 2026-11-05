@@ -45,6 +45,11 @@ export type CustomTableRowAction<T = any> = Omit<
    visible?: RowActionValue<boolean, T>;
    command?: (body: CustomTableBodySlotProps<T>) => () => unknown;
    /**
+    * A tooltip over the button that shows while it is disabled too (on a wrapper: a disabled
+    * button gets no pointer events), e.g. why the action is unavailable. Without it, the label.
+    */
+   tooltip?: RowActionValue<string | undefined, T>;
+   /**
     * The permission it needs, checked in the row's own tenant (`data.tenant_id`), which may be
     * another of the branches shown; without it the button is disabled.
     */

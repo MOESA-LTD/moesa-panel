@@ -172,7 +172,8 @@
       "incident_log": "Incident log",
       "incident_deadline": "Incident deadline",
       "change_request": "Change request",
-      "change_request_product": "Change request product"
+      "change_request_product": "Change request product",
+      "transfer": "Transfer"
    },
    "input": {
       "select_or_write": "Auswählen oder eingeben"
@@ -518,7 +519,26 @@
       "cr_project_customer": "The project belongs to another customer.",
       "cr_product_customer": "A product belongs to another customer.",
       "change_request_kinds_required": "Choose at least one change kind.",
-      "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again."
+      "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again.",
+      "audit_transfer_not_revertable": "A transfer cannot be undone from the log. Transfer the records back instead.",
+      "transfer_invalid_mode": "Choose Copy or Move.",
+      "transfer_same_tenant": "The target must differ from the source.",
+      "transfer_owner_required": "Between two separate companies only an owner of both can transfer.",
+      "transfer_target_read_only": "The target is read-only (its subscription has ended); nothing can be transferred into it.",
+      "transfer_target_plan": "The target's plan does not include the business modules.",
+      "transfer_forbidden": "You need the right to transfer in both places: to read the records in the source and to create them in the target.",
+      "transfer_source_read_only": "The source is read-only: its records can be copied, not moved.",
+      "transfer_customer_missing": "This customer is not in the source.",
+      "transfer_products_invalid": "Pick products of one customer of the source.",
+      "transfer_gate_invalid": "A project's gates are out of order (a gate is passed before an earlier one, or the gate set does not match the project). Fix the project first.",
+      "transfer_report_required": "Rehearse the transfer first.",
+      "transfer_report_stale": "The records changed since the rehearsal. Rehearse again and check the report.",
+      "transfer_decision_required": "Every conflict needs a decision.",
+      "transfer_decision_invalid": "A decision does not fit its conflict: check the action and the record it links to.",
+      "transfer_code_invalid": "The new code has the wrong format or is taken in the target.",
+      "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer.",
+      "transfer_not_found": "Transfer not found.",
+      "transfer_files_pending": "The files of an earlier transfer into this customer are not all copied yet. Finish that transfer first: \"Retry file copy\" on the customer's page."
    },
    "account": {
       "profile": {
@@ -727,7 +747,8 @@
          "ops_change_request_impact": "Impact",
          "ops_change_request_decision": "Decision",
          "ops_change_request_documents": "Documents",
-         "guide": "System guide"
+         "guide": "System guide",
+         "ops_transfer": "Transfer"
       }
    },
    "dashboard": {
@@ -824,7 +845,8 @@
       "added": "Hinzugefügt",
       "updated": "Aktualisiert",
       "deleted": "Gelöscht",
-      "readed": "Eingeschaut"
+      "readed": "Eingeschaut",
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
    },
    "user": {
       "table": {
@@ -2094,6 +2116,113 @@
          "customer_approval_hint": "It touches a passed (M) gate: the customer's written approval is required (S08).",
          "overdue": "Decision overdue",
          "no_rows": "No change requests."
+      },
+      "transfer": {
+         "title_customer": "Transfer {code}",
+         "title_products": "Transfer {count} products of {code}",
+         "steps": {
+            "target": "Target",
+            "report": "Rehearsal",
+            "result": "Result"
+         },
+         "target": {
+            "label": "Target company or branch",
+            "same_company": "Same company",
+            "other_company": "Another company"
+         },
+         "mode": {
+            "label": "Mode",
+            "copy_label": "Copy",
+            "move_label": "Move",
+            "copy": "Copy: the source stays as it is.",
+            "move": "Move: written to the target, then deleted from the source. Suppliers stay in the source.",
+            "move_read_only": "The source is read-only, so only Copy is possible."
+         },
+         "rehearse": "Rehearse",
+         "rehearse_again": "Rehearse again",
+         "report": {
+            "path_cheap": "Moved in place: the records keep their IDs.",
+            "path_copy": "Written as new records with new IDs.",
+            "counts": "Records per table",
+            "conflicts": "Conflicts",
+            "no_conflicts": "No conflicts.",
+            "users": "Users who are not members of the target",
+            "users_hint": "Their records are credited to you and their assignments are cleared.",
+            "left_behind": "Links that stay in the source",
+            "left_behind_item": "{table} {label}: its {column} refers to {refers_to} {ref}, outside the transfer",
+            "settings_gaps": "Missing under the target's settings",
+            "spec_sheet_required": "{label}: the target requires a spec sheet",
+            "files": "Files to copy: {count}"
+         },
+         "conflict_kind": {
+            "customer_code": "Customer code",
+            "supplier_code": "Supplier code",
+            "code": "Code",
+            "sku": "SKU",
+            "gtin": "GTIN",
+            "customer_contact": "Customer contact",
+            "customer_warehouse": "Customer warehouse",
+            "customer_brand": "Customer brand",
+            "platform_account": "Platform account",
+            "market_cell": "Market cell",
+            "document_version": "Document version",
+            "media_link": "Primary image",
+            "unknown": "Other conflict"
+         },
+         "conflict": {
+            "customer_code": "Customer code {code} exists in the target",
+            "supplier_code": "Supplier code {code} exists in the target",
+            "code": "Code {code} exists in the target",
+            "sku": "SKU {code} exists for this customer in the target",
+            "gtin": "GTIN {code} is active",
+            "document_version": "Version {code} of this document exists in the target",
+            "customer_contact": "The customer in the target already has the contact {code}",
+            "customer_warehouse": "The customer in the target already has the warehouse {code}",
+            "customer_brand": "The customer in the target already has the brand {code}",
+            "platform_account": "The customer in the target already has an account on {code}",
+            "market_cell": "The product in the target already has the market cell {code}",
+            "media_link": "{code} already has a primary image in the target",
+            "unknown": "{code} conflicts with a record in the target",
+            "duplicate_code": "Another conflict of this table is given the same code.",
+            "code_taken": "This code is taken in the target.",
+            "code_format": "The code has the wrong format."
+         },
+         "action": {
+            "map": "Link to the target's record",
+            "new_code": "Give a new code",
+            "clear_gtin": "Leave the GTIN empty",
+            "skip": "Skip",
+            "demote": "Keep as gallery image"
+         },
+         "skip_drops": "Also drops: {list}",
+         "skip_drops_item": "{table} ({count})",
+         "decision": {
+            "target": "Record in the target",
+            "code": "New code"
+         },
+         "unresolved": "{count} conflicts need a decision.",
+         "move_blocked": "A move cannot leave links in the source. Transfer these records too, or copy instead.",
+         "confirm": {
+            "copy": "Copy {count} records to {target}?",
+            "move_copy": "Move {count} records to {target}? They are copied there and deleted from the source.",
+            "move_in_place": "Move {count} records to {target}? They keep their IDs and leave the source."
+         },
+         "run": "Transfer",
+         "open": "Transfer…",
+         "open_disabled_mixed": "Pick products of one customer to transfer them.",
+         "result": {
+            "done": "Transferred: {count} records.",
+            "id_map": "Download the ID map (CSV)"
+         },
+         "files": {
+            "pending": "Files are being copied.",
+            "done": "All files copied.",
+            "partial": "{count} file could not be copied. | {count} files could not be copied.",
+            "retry": "Retry file copy",
+            "notice": "Files of a transfer into this customer are missing."
+         },
+         "open_count": "Transfer {count}…",
+         "open_disabled_empty": "Select products first."
       }
    },
    "glossary": {
@@ -2485,6 +2614,14 @@
                      "1": "Open the customer, then Platforms.",
                      "2": "Pick the platform and the countries the customer sells in.",
                      "3": "Note our access; account IDs and passwords are never stored (K8)."
+                  }
+               },
+               "transfer_customer": {
+                  "title": "Transfer a customer to another company or branch",
+                  "steps": {
+                     "1": "Open the customer and use Transfer…; pick the target and Copy or Move.",
+                     "2": "Rehearse, then decide each conflict: link, new code, empty [[GTIN]] or skip.",
+                     "3": "Confirm; download the ID map, and retry the file copy if files are missing."
                   }
                }
             }

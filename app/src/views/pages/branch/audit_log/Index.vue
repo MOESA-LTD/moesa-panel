@@ -7,6 +7,7 @@ import type { ResourceTableProps } from '@/components/service-components/resourc
 import { useI18n } from 'vue-i18n';
 import AuditUser from './AuditUser.vue';
 import CorrelatedAuditLogs from './CorrelatedAuditLogs.vue';
+import { revertDisabledReason } from './revertReason';
 
 type Props = ResourceTableProps<'audit_transaction', AuditTransactionModel>;
 
@@ -68,11 +69,17 @@ const rowActions: Props['rowActions'] = [
          ({ data }) =>
          async () =>
             await revertTransaction(data.id),
-      // In the tenant of the change, which may be another of the branches shown.
+      // In the tenant of the change, which may be another of the branches shown. A transfer's
+      // transaction is never reverted (the server refuses it), so its button says why.
       disabled: ({ data }) =>
          data.reverted ||
-         !authStore.canIn(data.tenant_id, 'create', data.table_name) ||
-         !authStore.canIn(data.tenant_id, 'modify', data.table_name),
+         !!revertDisabledReason(data, (action, subject) =>
+            authStore.canIn(data.tenant_id, action, subject)
+         ),
+      tooltip: ({ data }) =>
+         revertDisabledReason(data, (action, subject) =>
+            authStore.canIn(data.tenant_id, action, subject)
+         ) ?? undefined,
       icon: PrimeIcons.REFRESH
    }
 ];

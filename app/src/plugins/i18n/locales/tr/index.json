@@ -137,6 +137,25 @@
    "errors": {
       "audit_already_reverted": "Bu değişiklik zaten geri alınmış.",
       "audit_conflict": "Bu değişiklik geri alınamıyor: kayıt sonradan değiştirildi. Önce sonraki değişiklikleri geri alın.",
+      "audit_transfer_not_revertable": "Aktarım kayıttan geri alınamaz. Kayıtları geri aktarın.",
+      "transfer_invalid_mode": "Kopyala ya da Taşı'yı seçin.",
+      "transfer_same_tenant": "Hedef, kaynaktan farklı olmalı.",
+      "transfer_owner_required": "İki ayrı şirket arasında yalnız ikisinin de sahibi aktarabilir.",
+      "transfer_target_read_only": "Hedef salt okunur (aboneliği sona ermiş); içine aktarım yapılamaz.",
+      "transfer_target_plan": "Hedefin planı iş modüllerini içermiyor.",
+      "transfer_forbidden": "Her iki yerde de aktarma yetkisi gerekir: kaynakta kayıtları okuma, hedefte oluşturma.",
+      "transfer_source_read_only": "Kaynak salt okunur: kayıtları kopyalanabilir, taşınamaz.",
+      "transfer_customer_missing": "Bu müşteri kaynakta yok.",
+      "transfer_products_invalid": "Kaynaktaki tek bir müşterinin ürünlerini seçin.",
+      "transfer_gate_invalid": "Bir projenin kapıları sırasız (bir kapı öncekinden önce geçilmiş ya da kapı seti projeye uymuyor). Önce projeyi düzeltin.",
+      "transfer_report_required": "Önce aktarımın provasını yapın.",
+      "transfer_report_stale": "Provadan bu yana kayıtlar değişti. Provayı yineleyip raporu kontrol edin.",
+      "transfer_decision_required": "Her çakışma için bir karar gerekir.",
+      "transfer_decision_invalid": "Bir karar çakışmasına uymuyor: işlemi ve bağlandığı kaydı kontrol edin.",
+      "transfer_code_invalid": "Yeni kodun biçimi hatalı ya da hedefte kullanılıyor.",
+      "transfer_product_in_use": "Geride kalan kayıtlar bu ürünleri kullanıyor (proje, sipariş, pazar hücresi ya da değişiklik talebi). Kopyalayın ya da müşterinin tamamını aktarın.",
+      "transfer_not_found": "Aktarım bulunamadı.",
+      "transfer_files_pending": "Bu müşteriye yapılan önceki bir aktarımın dosyaları henüz tamamen kopyalanmadı. Önce o aktarımı tamamlayın: müşteri sayfasında \"Dosyaları yeniden kopyala\".",
       "avatar_type": "Fotoğraf PNG, JPEG ya da WebP olmalı.",
       "avatar_size": "Fotoğraf en fazla 1 MB olmalı.",
       "access_denied": "Erişim reddedildi",
@@ -596,7 +615,8 @@
          "ops_change_request_impact": "Etki",
          "ops_change_request_decision": "Karar",
          "ops_change_request_documents": "Belgeler",
-         "guide": "Sistem rehberi"
+         "guide": "Sistem rehberi",
+         "ops_transfer": "Aktarım"
       }
    },
    "fields": {
@@ -674,7 +694,8 @@
       "incident_log": "Olay günlüğü",
       "incident_deadline": "Olay süre sınırı",
       "change_request": "Değişiklik talebi",
-      "change_request_product": "Değişiklik talebi ürünü"
+      "change_request_product": "Değişiklik talebi ürünü",
+      "transfer": "Aktarım"
    },
    "dashboard": {
       "notifications": {
@@ -767,6 +788,7 @@
       },
       "already_reverted": "Zaten iptal edildi",
       "attempt_to_revert": "İptal işlemi denendi",
+      "revert_transfer_locked": "Aktarım kayıtları geri alınamaz. Bunun yerine kayıtları geri aktarın.",
       "added": "Eklendi",
       "updated": "Güncellendi",
       "deleted": "Silindi",
@@ -2094,6 +2116,113 @@
          "customer_approval_hint": "Geçmiş bir [[(M)]] kapıyı etkiliyor: müşterinin yazılı onayı şart ([[S08]]).",
          "overdue": "Karar gecikti",
          "no_rows": "Değişiklik talebi yok."
+      },
+      "transfer": {
+         "title_customer": "{code} müşterisini aktar",
+         "title_products": "{code} müşterisinin {count} ürününü aktar",
+         "steps": {
+            "target": "Hedef",
+            "report": "Prova",
+            "result": "Sonuç"
+         },
+         "target": {
+            "label": "Hedef şirket ya da şube",
+            "same_company": "Aynı şirket",
+            "other_company": "Başka şirket"
+         },
+         "mode": {
+            "label": "Mod",
+            "copy_label": "Kopyala",
+            "move_label": "Taşı",
+            "copy": "Kopyala: kaynak olduğu gibi kalır.",
+            "move": "Taşı: hedefe yazılır, sonra kaynaktan silinir. Tedarikçiler kaynakta kalır.",
+            "move_read_only": "Kaynak salt okunur; yalnız Kopyala mümkün."
+         },
+         "rehearse": "Prova yap",
+         "rehearse_again": "Provayı yinele",
+         "report": {
+            "path_cheap": "Yerinde taşınır: kayıtlar kimliklerini korur.",
+            "path_copy": "Yeni kimliklerle yeni kayıt olarak yazılır.",
+            "counts": "Tablo başına kayıt",
+            "conflicts": "Çakışmalar",
+            "no_conflicts": "Çakışma yok.",
+            "users": "Hedefte üye olmayan kullanıcılar",
+            "users_hint": "Kayıtları size yazılır, atamaları boşaltılır.",
+            "left_behind": "Kaynakta kalan bağlantılar",
+            "left_behind_item": "{table} {label}: {column} alanı aktarım dışındaki {refers_to} {ref} kaydına bağlı",
+            "settings_gaps": "Hedefin ayarlarına göre eksik kalacaklar",
+            "spec_sheet_required": "{label}: hedef spec sheet istiyor",
+            "files": "Kopyalanacak dosya: {count}"
+         },
+         "conflict_kind": {
+            "customer_code": "Müşteri kodu",
+            "supplier_code": "Tedarikçi kodu",
+            "code": "Kod",
+            "sku": "SKU",
+            "gtin": "GTIN",
+            "customer_contact": "Müşteri kişisi",
+            "customer_warehouse": "Müşteri deposu",
+            "customer_brand": "Müşteri markası",
+            "platform_account": "Platform hesabı",
+            "market_cell": "Pazar hücresi",
+            "document_version": "Belge sürümü",
+            "media_link": "Ana görsel",
+            "unknown": "Diğer çakışma"
+         },
+         "conflict": {
+            "customer_code": "{code} müşteri kodu hedefte var",
+            "supplier_code": "{code} tedarikçi kodu hedefte var",
+            "code": "{code} kodu hedefte var",
+            "sku": "{code} SKU'su hedefte bu müşteride var",
+            "gtin": "{code} GTIN'i aktif",
+            "document_version": "Bu belgenin {code} sürümü hedefte var",
+            "customer_contact": "Hedefteki müşteride {code} kişisi zaten var",
+            "customer_warehouse": "Hedefteki müşteride {code} deposu zaten var",
+            "customer_brand": "Hedefteki müşteride {code} markası zaten var",
+            "platform_account": "Hedefteki müşterinin {code} üzerinde zaten hesabı var",
+            "market_cell": "Hedefteki üründe {code} pazar hücresi zaten var",
+            "media_link": "{code} hedefte zaten bir ana görsele sahip",
+            "unknown": "{code} hedefteki bir kayıtla çakışıyor",
+            "duplicate_code": "Bu tablodaki başka bir çakışmaya da aynı kod verildi.",
+            "code_taken": "Bu kod hedefte kullanılıyor.",
+            "code_format": "Kodun biçimi hatalı."
+         },
+         "action": {
+            "map": "Hedefteki kayda bağla",
+            "new_code": "Yeni kod ver",
+            "clear_gtin": "GTIN'i boş bırak",
+            "skip": "Atla",
+            "demote": "Galeri görseli olarak tut"
+         },
+         "skip_drops": "Bununla birlikte atlananlar: {list}",
+         "skip_drops_item": "{table} ({count})",
+         "decision": {
+            "target": "Hedefteki kayıt",
+            "code": "Yeni kod"
+         },
+         "unresolved": "{count} çakışma karar bekliyor.",
+         "move_blocked": "Taşıma kaynakta bağlantı bırakamaz. Bu kayıtları da aktarın ya da kopyalayın.",
+         "confirm": {
+            "copy": "{count} kayıt {target} hedefine kopyalansın mı?",
+            "move_copy": "{count} kayıt {target} hedefine taşınsın mı? Oraya kopyalanır ve kaynaktan silinirler.",
+            "move_in_place": "{count} kayıt {target} hedefine taşınsın mı? Kimliklerini korurlar ve kaynaktan çıkarlar."
+         },
+         "run": "Aktar",
+         "open": "Aktar…",
+         "open_count": "{count} ürünü aktar…",
+         "open_disabled_empty": "Önce ürün seçin.",
+         "open_disabled_mixed": "Aktarmak için tek müşterinin ürünlerini seçin.",
+         "result": {
+            "done": "Aktarıldı: {count} kayıt.",
+            "id_map": "Kimlik eşlemesini indir (CSV)"
+         },
+         "files": {
+            "pending": "Dosyalar kopyalanıyor.",
+            "done": "Tüm dosyalar kopyalandı.",
+            "partial": "{count} dosya kopyalanamadı.",
+            "retry": "Dosyaları yeniden kopyala",
+            "notice": "Bu müşteriye yapılan bir aktarımın dosyaları eksik."
+         }
       }
    },
    "glossary": {
@@ -2485,6 +2614,14 @@
                      "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
                      "2": "Platformu ve müşterinin sattığı ülkeleri seçin.",
                      "3": "Erişimimizi not edin; hesap kimliği ve şifre saklanmaz ([[K8]])."
+                  }
+               },
+               "transfer_customer": {
+                  "title": "Müşteriyi başka bir şirkete ya da şubeye aktar",
+                  "steps": {
+                     "1": "Müşteriyi açıp Aktar…'ı kullanın; hedefi ve Kopyala ya da Taşı'yı seçin.",
+                     "2": "Prova yapın, sonra her çakışmaya karar verin: bağla, yeni kod, boş [[GTIN]] ya da atla.",
+                     "3": "Onaylayın; kimlik eşlemesini indirin, eksik dosya varsa kopyayı yineleyin."
                   }
                }
             }

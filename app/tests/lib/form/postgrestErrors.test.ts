@@ -510,4 +510,38 @@ describe('mapPostgrestError', () => {
          ).toBeNull();
       }
    });
+   it('never maps a transfer error to a field', () => {
+      // The codes the transfer migrations raise (040, 042, 045).
+      const names = [
+         'audit_transfer_not_revertable',
+         'transfer_invalid_mode',
+         'transfer_same_tenant',
+         'transfer_owner_required',
+         'transfer_target_read_only',
+         'transfer_target_plan',
+         'transfer_forbidden',
+         'transfer_source_read_only',
+         'transfer_customer_missing',
+         'transfer_products_invalid',
+         'transfer_gate_invalid',
+         'transfer_report_required',
+         'transfer_report_stale',
+         'transfer_decision_required',
+         'transfer_decision_invalid',
+         'transfer_code_invalid',
+         'transfer_product_in_use',
+         'transfer_files_pending',
+         'transfer_not_found'
+      ];
+      expect(names).toHaveLength(19);
+      expect(
+         NAMED_ERRORS.filter(({ name }) => /^(audit_)?transfer_/.test(name)).map(({ name }) => name)
+      ).toEqual(names);
+      for (const code of names) {
+         expect(NAMED_ERRORS.filter((entry) => entry.name === code)).toEqual([
+            { code: 'P0001', name: code, message: `errors.${code}` }
+         ]);
+         expect(mapPostgrestError({ code: 'P0001', message: code }, ['customer_id'])).toBeNull();
+      }
+   });
 });

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { useDialogRef } from '@/composables/useDialogRef';
-import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
+import type {
+   ResourceTableProps,
+   TableRow
+} from '@/components/service-components/resource-table/ResourceTable.vue';
 import {
    createFilters,
    equalsFilter
@@ -173,6 +176,36 @@ const exportCsv = async () => {
    }
 };
 
+// Transfer: the selected products, when they are all one customer's (a transfer moves or copies
+// products of one customer). The selection is cleared once the dialog opens and whenever the
+// filters change (rows it holds may no longer be listed).
+const selected = ref<TableRow<'product_with_evidence'>[]>([]);
+const transferCustomer = computed(() => {
+   const customers = new Set(selected.value.map(({ customer_id }) => customer_id));
+   return customers.size === 1 ? [...customers][0] : null;
+});
+const transferHint = computed(() => {
+   if (!selected.value.length) return t('ops.transfer.open_disabled_empty');
+   return transferCustomer.value ? null : t('ops.transfer.open_disabled_mixed');
+});
+// By value: the customer filter is written again on mount with the same constraints.
+watch(
+   () => JSON.stringify(filters.value),
+   () => (selected.value = [])
+);
+const openTransfer = async () => {
+   if (!transferCustomer.value) return;
+   await router.push({
+      name: 'ops-transfer',
+      query: {
+         customer_id: transferCustomer.value,
+         product_ids: selected.value.map(({ id }) => id).join(','),
+         showDialog: DIALOG_POSITIONS.CENTER
+      }
+   });
+   selected.value = [];
+};
+
 const dialogRef = useDialogRef();
 </script>
 <template>
@@ -184,11 +217,30 @@ const dialogRef = useDialogRef();
       :columns
       :rowActions
       :enableExpansion="false"
+      selectionMode="multiple"
+      v-model:selection="selected"
       v-model:filters="filters"
    >
       <template #header>
          <Teleport to="#page-toolbar" :disabled="!!dialogRef">
             <span class="flex-1 flex justify-end gap-4 flex-wrap-reverse">
+               <span
+                  v-if="$can('create', 'transfer')"
+                  v-tooltip.bottom="transferHint"
+                  data-transfer
+               >
+                  <Button
+                     variant="outlined"
+                     :icon="PrimeIcons.ARROW_RIGHT_ARROW_LEFT"
+                     :label="
+                        selected.length
+                           ? $t('ops.transfer.open_count', { count: selected.length })
+                           : $t('ops.transfer.open')
+                     "
+                     :disabled="!transferCustomer"
+                     @click="openTransfer"
+                  />
+               </span>
                <Button
                   variant="outlined"
                   :icon="PrimeIcons.DOWNLOAD"
