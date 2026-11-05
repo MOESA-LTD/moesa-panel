@@ -1606,7 +1606,7 @@
                "other": "Other"
             },
             "payer": {
-               "moesa": "MOESA",
+               "moesa": "Your company",
                "customer": "Customer"
             },
             "fields": {
@@ -1869,7 +1869,7 @@
             "OL-08": "Held at customs, inspection, HS code dispute, extra duty",
             "OL-09": "Shipment delay",
             "OL-10": "Finished goods not collected in time",
-            "OL-11": "Broken communication: forwarder, broker and warehouse don't call each other, everyone calls MOESA",
+            "OL-11": "Broken communication: forwarder, broker and warehouse don't call each other, everyone calls your company",
             "OL-12": "FBA shipment refused or wrong shipment plan",
             "OA-01": "Listing removed: policy violation",
             "OA-02": "Document request: GPSR safety information, SDS, product safety images",
@@ -1933,7 +1933,7 @@
             "other": "Other"
          },
          "cost_payer": {
-            "moesa": "MOESA",
+            "moesa": "Your company",
             "customer": "Customer",
             "supplier": "Supplier",
             "carrier_insurance": "Carrier or insurance"
@@ -2023,7 +2023,7 @@
          "source": {
             "customer": "Customer",
             "supplier": "Supplier",
-            "moesa": "MOESA",
+            "moesa": "Your company",
             "regulation": "Regulation or platform"
          },
          "urgency": {
@@ -2063,7 +2063,7 @@
             "quality_impact": "Quality / compliance impact",
             "listing_impact": "Stock / listing impact",
             "decision_note": "Decision note",
-            "moesa_approved": "MOESA approval",
+            "moesa_approved": "Your company's approval",
             "customer_approved_on": "Customer approved on",
             "customer_approval_document": "Customer approval document",
             "result_document": "New version",
@@ -2276,21 +2276,21 @@
          "other": "Any other deadline; enter its date."
       },
       "cost_payer": {
-         "moesa": "MOESA bears the cost.",
+         "moesa": "Your company bears the cost.",
          "customer": "Charged to the customer; needs the customer's written approval.",
          "supplier": "Charged to the supplier.",
          "carrier_insurance": "Claimed from the carrier or the insurance."
       },
       "change_request_status": {
          "open": "Recorded; impact and decision pending.",
-         "approved": "Approved by MOESA (and by the customer when a passed [[(M)]] gate is touched); not applied yet.",
+         "approved": "Approved by your company (and by the customer when a passed [[(M)]] gate is touched); not applied yet.",
          "rejected": "Rejected; the decision note says why.",
          "applied": "Applied: the affected document has its new version."
       },
       "change_request_source": {
          "customer": "The customer asked for it.",
          "supplier": "The supplier asked for it or caused it.",
-         "moesa": "MOESA proposes it.",
+         "moesa": "Your company proposes it.",
          "regulation": "A regulation or a platform rule requires it."
       },
       "change_request_urgency": {
@@ -2431,7 +2431,7 @@
             }
          },
          "customer": {
-            "purpose": "Every customer of MOESA with its contract terms, warehouses, marketplace accounts and brands. Choosing a customer in the top filter narrows every operations list to it.",
+            "purpose": "Every customer of your company with its contract terms, warehouses, marketplace accounts and brands. Choosing a customer in the top filter narrows every operations list to it.",
             "tasks": {
                "add_customer": {
                   "title": "Add a customer",
@@ -2460,7 +2460,7 @@
             }
          },
          "supplier": {
-            "purpose": "The suppliers MOESA buys from, with their terms (Incoterm, deposit, damage notice) and contacts. Purchase orders take their defaults from here.",
+            "purpose": "The suppliers your company buys from, with their terms (Incoterm, deposit, damage notice) and contacts. Purchase orders take their defaults from here.",
             "tasks": {
                "add_supplier": {
                   "title": "Add a supplier",
@@ -2762,7 +2762,7 @@
          },
          "process": {
             "title": "Process documents",
-            "intro": "The guideline (Y) and template (S) documents of the MOESA workflow that the panel follows."
+            "intro": "The guideline (Y) and template (S) documents of the workflow the panel follows."
          },
          "rules": {
             "title": "Panel rules",
@@ -2770,7 +2770,7 @@
          },
          "packages": {
             "title": "Service packages",
-            "intro": "What MOESA sells; a project's gates come from its packages."
+            "intro": "What your company sells; a project's gates come from its packages."
          },
          "gates": {
             "title": "Gate set",
@@ -2815,7 +2815,7 @@
       },
       "S07": {
          "short": "The spec sheet: the manufacturer's signed technical sheet of the product it will make.",
-         "long": "The manufacturer fills it, not MOESA; unless it comes from the official e-mail, signed, stamped, versioned and dated, it is only a draft. [[G2]] is not passed, and no order or shipment goes ahead, without a signed spec sheet. Every change needs a new version through [[S08]]; the old one is kept as superseded."
+         "long": "The manufacturer fills it, not your company; unless it comes from the official e-mail, signed, stamped, versioned and dated, it is only a draft. [[G2]] is not passed, and no order or shipment goes ahead, without a signed spec sheet. Every change needs a new version through [[S08]]; the old one is kept as superseded."
       },
       "S08": {
          "short": "The change request: nothing approved changes without one.",
