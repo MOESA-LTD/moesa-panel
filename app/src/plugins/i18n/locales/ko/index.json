@@ -2283,7 +2283,7 @@
       },
       "change_request_status": {
          "open": "Recorded; impact and decision pending.",
-         "approved": "Approved by MOESA (and by the customer when a passed (M) gate is touched); not applied yet.",
+         "approved": "Approved by your company (and by the customer when a passed [[(M)]] gate is touched); not applied yet.",
          "rejected": "Rejected; the decision note says why.",
          "applied": "Applied: the affected document has its new version."
       },

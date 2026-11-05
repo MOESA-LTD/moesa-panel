@@ -7,7 +7,7 @@ import { injectChangeRequestForm, useChangeRequestGates } from '../useChangeRequ
 // S08 E in the card's shared form. the company's approval is the database's (who moved the request to
 // approved, and when). A request that touches a passed (M) gate also needs the customer's written
 // approval (S08 §4): its date and a signed or approved document of this request. It may be entered
-// after MOESA approves, but once entered on an approved request it no longer changes (037). Then
+// after the company approves, but once entered on an approved request it no longer changes (037). Then
 // the decision note (why, above all when rejected), the new version of the affected document that
 // applying needs, and the closing date (the database's).
 const form = injectChangeRequestForm();
