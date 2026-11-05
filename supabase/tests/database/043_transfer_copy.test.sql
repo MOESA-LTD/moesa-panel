@@ -15,10 +15,12 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- reports what it drops; a mapped customer's contact cannot be skipped. Last, baris moves THO to
 -- MOESA Trading GmbH: the cyclic references are cleared, the source package is deleted under its own
 -- audit transaction in MOESA (the suppliers and the shared file stay), and the copy keeps its GTIN,
--- passed gates, closed incident and late references. What it writes is rolled back.
+-- passed gates, closed incident and late references. Then two products of a customer are moved
+-- alone (a variant goes with its parent; the customer, its contract and its file are copied and
+-- stay), and a product on an order line that stays is refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(62);
+SELECT plan(69);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -616,6 +618,137 @@ SELECT is(
      WHERE id = pg_temp.moved('change_request', '00000000-0000-4000-8000-000000043024')),
     row(pg_temp.moved('document', current_setting('test.spec_mop')), pg_temp.moved('document', '00000000-0000-4000-8000-000000043025')),
     'the change request cites the Trading spec sheet and the Trading result'
+);
+
+-- 63. The shared file stays in MOESA; its links to THO's rows went with them.
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.media WHERE id = '00000000-0000-4000-8000-000000043012' AND tenant_id = current_setting('test.moesa')::UUID),
+        (SELECT count(*) FROM public.media_link WHERE media_id = '00000000-0000-4000-8000-000000043012'))),
+    row(1::BIGINT, 0::BIGINT),
+    'the shared file stays in MOESA without its links to the moved rows'
+);
+
+-- 64–70. A product-only move through the copy path. In MOESA a customer ZPM (…040) with its contract
+-- (…046), a product P1 (…041) with a variant (…042), its spec sheet (…047) and a ZPM file as its
+-- primary image (…045), and two more products P2 (…043) and P3 (…044). baris moves P1 and P2 to
+-- Trading: the variant goes with P1; the customer, its contract and its file are copied and stay.
+-- Then P3, on an order line of ZPM, is refused.
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+VALUES ('00000000-0000-4000-8000-000000043040', current_setting('test.moesa')::UUID, 'ZPM', 'Zed Products', 'trading_partner');
+INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name, parent_id)
+VALUES ('00000000-0000-4000-8000-000000043041', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-1', 'Zed lamp', NULL),
+       ('00000000-0000-4000-8000-000000043043', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-2', 'Zed shade', NULL),
+       ('00000000-0000-4000-8000-000000043044', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-3', 'Zed bulb', NULL);
+INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name, parent_id)
+VALUES ('00000000-0000-4000-8000-000000043042', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-1-RED',
+        'Zed lamp red', '00000000-0000-4000-8000-000000043041');
+RESET ROLE;
+
+INSERT INTO storage.objects (bucket_id, name, metadata)
+VALUES ('media', current_setting('test.moesa') || '/00000000-0000-4000-8000-000000043045/lamp.png', '{"mimetype": "image/png", "size": 1000}');
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+VALUES ('00000000-0000-4000-8000-000000043046', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'customer',
+        '00000000-0000-4000-8000-000000043040', 'contract', 'draft', 'https://example.test/zpm-contract.pdf'),
+       ('00000000-0000-4000-8000-000000043047', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'product',
+        '00000000-0000-4000-8000-000000043041', 'spec_sheet', 'draft', 'https://example.test/zpm-1-spec.pdf');
+UPDATE public.customer SET contract_document_id = '00000000-0000-4000-8000-000000043046' WHERE id = '00000000-0000-4000-8000-000000043040';
+INSERT INTO public.media (id, tenant_id, customer_id, storage_path, thumbnail_path, file_name, mime_type, size_bytes)
+VALUES ('00000000-0000-4000-8000-000000043045', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040',
+        current_setting('test.moesa') || '/00000000-0000-4000-8000-000000043045/lamp.png', NULL, 'lamp.png', 'image/png', 1000);
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043045', 'product', '00000000-0000-4000-8000-000000043041',
+        'primary_image');
+
+CREATE FUNCTION pg_temp.move_products (products UUID[], report_hash TEXT DEFAULT NULL) RETURNS JSONB LANGUAGE sql AS $$
+    SELECT public.transfer_customer(
+        current_setting('test.moesa')::UUID, current_setting('test.trading')::UUID, '00000000-0000-4000-8000-000000043040'::UUID, 'move',
+        dry_run => report_hash IS NULL, report_hash => report_hash, product_ids => products
+    );
+$$;
+SELECT set_config('test.p12', ARRAY['00000000-0000-4000-8000-000000043041', '00000000-0000-4000-8000-000000043043']::UUID[]::TEXT, TRUE);
+SELECT set_config('test.h5', pg_temp.move_products(current_setting('test.p12')::UUID[]) ->> 'report_hash', TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT set_config('test.r5', pg_temp.move_products(current_setting('test.p12')::UUID[], current_setting('test.h5'))::TEXT, TRUE);
+RESET ROLE;
+
+CREATE FUNCTION pg_temp.moved5 (tbl TEXT, source_id TEXT) RETURNS UUID LANGUAGE sql AS $$
+    SELECT (current_setting('test.r5')::JSONB -> 'id_map' -> tbl ->> source_id)::UUID;
+$$;
+
+-- 64. P1, its variant and P2 leave MOESA and are in Trading, the variant under the moved P1.
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.product WHERE id IN ('00000000-0000-4000-8000-000000043041', '00000000-0000-4000-8000-000000043042',
+                                                          '00000000-0000-4000-8000-000000043043')),
+        (SELECT count(*) FROM public.product WHERE tenant_id = current_setting('test.trading')::UUID
+           AND id IN (pg_temp.moved5('product', '00000000-0000-4000-8000-000000043041'),
+                      pg_temp.moved5('product', '00000000-0000-4000-8000-000000043043'))),
+        (SELECT parent_id FROM public.product WHERE id = pg_temp.moved5('product', '00000000-0000-4000-8000-000000043042')))),
+    row(0::BIGINT, 2::BIGINT, pg_temp.moved5('product', '00000000-0000-4000-8000-000000043041')),
+    'the moved products and the variant leave MOESA and are in Trading'
+);
+
+-- 65. P1 keeps its spec sheet and its primary image, on Trading's copy of the file.
+SELECT ok(
+    EXISTS (SELECT 1 FROM public.document
+            WHERE id = pg_temp.moved5('document', '00000000-0000-4000-8000-000000043047')
+              AND tenant_id = current_setting('test.trading')::UUID
+              AND entity_id = pg_temp.moved5('product', '00000000-0000-4000-8000-000000043041'))
+    AND EXISTS (SELECT 1 FROM public.media_link l JOIN public.media m ON m.id = l.media_id
+                WHERE l.entity_id = pg_temp.moved5('product', '00000000-0000-4000-8000-000000043041') AND l.role = 'primary_image'
+                  AND m.id = pg_temp.moved5('media', '00000000-0000-4000-8000-000000043045')
+                  AND m.tenant_id = current_setting('test.trading')::UUID),
+    'the moved product keeps its spec sheet and its primary image'
+);
+
+-- 66–67. P3, the customer, its contract and its file stay in MOESA; the spec sheet and the link went.
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.product WHERE id = '00000000-0000-4000-8000-000000043044'
+           AND tenant_id = current_setting('test.moesa')::UUID),
+        (SELECT contract_document_id FROM public.customer WHERE id = '00000000-0000-4000-8000-000000043040'
+           AND tenant_id = current_setting('test.moesa')::UUID),
+        (SELECT count(*) FROM public.document WHERE id = '00000000-0000-4000-8000-000000043046'))),
+    row(1::BIGINT, '00000000-0000-4000-8000-000000043046'::UUID, 1::BIGINT),
+    'the third product, the customer and its contract stay in MOESA'
+);
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.media WHERE id = '00000000-0000-4000-8000-000000043045'),
+        (SELECT count(*) FROM public.media_link WHERE media_id = '00000000-0000-4000-8000-000000043045'),
+        (SELECT count(*) FROM public.document WHERE id = '00000000-0000-4000-8000-000000043047'))),
+    row(1::BIGINT, 0::BIGINT, 0::BIGINT),
+    'the customer''s file stays, its link and the spec sheet moved'
+);
+
+-- 68–69. A product on an order line of the customer is not moved, and nothing is deleted.
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+VALUES ('00000000-0000-4000-8000-000000043048', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040',
+        current_setting('test.tr1')::UUID, 'USD');
+INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+VALUES ('00000000-0000-4000-8000-000000043049', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043048',
+        '00000000-0000-4000-8000-000000043044', 1, 1);
+SELECT set_config('test.h6', pg_temp.move_products(ARRAY['00000000-0000-4000-8000-000000043044'::UUID]) ->> 'report_hash', TRUE);
+SELECT throws_like(
+    $$ SELECT pg_temp.move_products(ARRAY['00000000-0000-4000-8000-000000043044'::UUID], current_setting('test.h6')) $$,
+    '%transfer_product_in_use%',
+    'a product on an order line that stays is not moved'
+);
+RESET ROLE;
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.product WHERE id = '00000000-0000-4000-8000-000000043044'
+           AND tenant_id = current_setting('test.moesa')::UUID),
+        (SELECT count(*) FROM public.purchase_order_line WHERE id = '00000000-0000-4000-8000-000000043049'))),
+    row(1::BIGINT, 1::BIGINT),
+    'the refused product and its order line are still in MOESA'
 );
 
 SELECT * FROM finish();

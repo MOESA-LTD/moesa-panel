@@ -413,6 +413,7 @@ DECLARE
     saved_tenant TEXT := current_setting('audit.tenant_id', TRUE);
     saved_depth TEXT := current_setting('audit.depth', TRUE);
     source_transaction UUID;
+    deleted BIGINT;
 BEGIN
     SELECT t.source_tenant_id INTO source FROM public.transfer t WHERE t.id = transfer_delete_source.transfer_id;
 
@@ -444,7 +445,7 @@ BEGIN
     -- 2. The rows deleted, children first.
     FOR reg IN SELECT g.table_name, g.key_columns FROM private.transfer_registry g ORDER BY g.position DESC LOOP
         IF reg.key_columns IS NOT NULL THEN
-            SELECT string_agg(format('x.%I::TEXT', k), ', '), string_agg(format('r.key ->> %L', k), ', ')
+            SELECT string_agg(format('x.%I', k), ', '), string_agg(format('(r.key ->> %L)::UUID', k), ', ')
             INTO sets, keys
             FROM unnest(reg.key_columns) AS k;
 
@@ -456,10 +457,18 @@ BEGIN
             USING source;
         ELSE
             IF reg.table_name = 'product' THEN
-                -- The variants before their parents.
-                EXECUTE format('DELETE FROM public.product x WHERE x.tenant_id = $1 AND x.parent_id IS NOT NULL AND x.id IN (%s)',
-                               format(picked, 'product'))
-                USING source;
+                -- The variants before their parents, level by level: each round deletes the
+                -- package products no product names as its parent any more.
+                LOOP
+                    EXECUTE format(
+                        'DELETE FROM public.product x WHERE x.tenant_id = $1 AND x.id IN (%s) AND NOT EXISTS ('
+                        'SELECT 1 FROM public.product c WHERE c.tenant_id = $1 AND c.parent_id = x.id)',
+                        format(picked, 'product')
+                    )
+                    USING source;
+                    GET DIAGNOSTICS deleted = ROW_COUNT;
+                    EXIT WHEN deleted = 0;
+                END LOOP;
             END IF;
 
             EXECUTE format('DELETE FROM public.%I x WHERE x.tenant_id = $1 AND x.id IN (%s)', reg.table_name, format(picked, reg.table_name))
