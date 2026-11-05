@@ -278,8 +278,14 @@
                "read": "Leggi",
                "create": "Crea",
                "modify": "Modifica",
-               "all": "Tutti"
+               "all": "Tutti",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
          }
       },
       "table": {

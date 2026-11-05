@@ -195,8 +195,14 @@
                "read": "读取",
                "create": "创建",
                "modify": "修改",
-               "all": "全部"
+               "all": "全部",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
          }
       },
       "table": {

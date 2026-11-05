@@ -64,8 +64,14 @@
                "read": "Okuma",
                "create": "Oluşturma",
                "modify": "Değiştirme",
-               "all": "Tümü"
+               "all": "Tümü",
+               "resource": "Kaynak"
             }
+         },
+         "state": {
+            "all": "Tümü seçili",
+            "some": "Bazıları seçili",
+            "none": "Hiçbiri seçili"
          }
       },
       "table": {

@@ -195,8 +195,14 @@
                "read": "Read",
                "create": "Create",
                "modify": "Modify",
-               "all": "All"
+               "all": "All",
+               "resource": "Resource"
             }
+         },
+         "state": {
+            "all": "All selected",
+            "some": "Some selected",
+            "none": "None selected"
          }
       },
       "table": {
