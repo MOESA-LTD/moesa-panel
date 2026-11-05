@@ -49,7 +49,7 @@ const permissionByKind = computed(() => _groupBy(allPermissions.value, 'kind'));
 
 // Permissions without a group are listed together under "Other" (key '').
 const permissionByGroup = computed(() =>
-   _groupBy(allPermissions.value, ({ group_name }) => group_name ?? '')
+   _groupBy(allPermissions.value, ({ group_name }) => group_name ?? OTHER_GROUP)
 );
 
 // One row per group; its resources show when the row is expanded. A resource can have more than
@@ -84,8 +84,10 @@ const toggle = (items = []) => {
 
 const label = (key) => (te(`fields.${key}`) ? t(`fields.${key}`) : key);
 
+// Permissions without a group share one row; a non-empty key keeps the row expandable.
+const OTHER_GROUP = '__other__';
 const groupLabel = (group) =>
-   group ? label(group) : t('component.select_permission.groups.other');
+   group && group !== OTHER_GROUP ? label(group) : t('component.select_permission.groups.other');
 
 const tableProps = computed(() => ({
    stateKey: 'permission',
