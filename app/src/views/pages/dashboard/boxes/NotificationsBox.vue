@@ -114,11 +114,11 @@ dashboardNotifications.load();
                   class="flex items-center gap-4 py-2"
                >
                   <Tag
-                     class="w-12 aspect-square !rounded-full"
+                     class="w-8 aspect-square !rounded-full shrink-0"
                      v-bind="dashboardNotifications.getTagProps(notification)"
                      :pt="{
                         icon: {
-                           class: '!text-2xl !w-[unset] !h-[unset]'
+                           class: '!text-sm !w-[unset] !h-[unset]'
                         }
                      }"
                   />
