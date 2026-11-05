@@ -4,7 +4,7 @@ import { useMemberOptions } from '@/api/project';
 import { useEntityDocumentOptions } from '@/api/purchaseOrder';
 import { injectChangeRequestForm, useChangeRequestGates } from '../useChangeRequestForm';
 
-// S08 E in the card's shared form. MOESA's approval is the database's (who moved the request to
+// S08 E in the card's shared form. the company's approval is the database's (who moved the request to
 // approved, and when). A request that touches a passed (M) gate also needs the customer's written
 // approval (S08 §4): its date and a signed or approved document of this request. It may be entered
 // after MOESA approves, but once entered on an approved request it no longer changes (037). Then
@@ -16,7 +16,7 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } 
 const id = computed(() => values.value.id ?? null);
 const row = computed(() => form.row.value ?? null);
 
-// --- MOESA's approval ---
+// --- the company's approval ---
 
 const memberOptions = useMemberOptions();
 const approver = computed(() => {

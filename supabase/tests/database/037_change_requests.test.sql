@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Change requests (037) on the MOESA demo company of seed.sql: the code from the customer, the
 -- decision due date (five business days, or 24 hours when urgent), at least one kind of change, the
 -- affected document of the same customer, the status flow, the customer's written approval after a
--- passed gate that needs it, MOESA's approval date and approver, the new version an applied request
+-- passed gate that needs it, the company's approval date and approver, the new version an applied request
 -- needs, the reason of a rejection, the products of the same customer, no deleting, and another
 -- tenant that sees none of them. What it writes is rolled back.
 BEGIN;
