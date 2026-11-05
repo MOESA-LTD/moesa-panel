@@ -220,22 +220,30 @@ describe('EntityMedia', () => {
    });
 
    it('previews an image in a lightbox, not a tab, and still downloads it', async () => {
-      const file = media('photo');
+      const file = { ...media('photo'), thumbnail_path: 't-record/photo/thumb.webp' } as MediaRow;
       api.links = [link('l-img', 'gallery', file)];
-      const card = cards(mountMedia())[0];
+      const wrapper = mountMedia();
+      const card = cards(wrapper)[0];
 
       const image = card.getComponent(Image);
       expect(image.props('preview')).toBe(true);
       expect(image.get('img').attributes()).toMatchObject({
-         src: `signed:${file.storage_path}`,
+         src: 'signed:t-record/photo/thumb.webp',
          alt: file.file_name
       });
       expect(card.find('[data-action="open"]').exists()).toBe(false);
-      await card.get('img').trigger('click');
+      // The preview mask opens the lightbox, which shows the signed original, not the thumbnail.
+      await image.get('button').trigger('click');
+      await vi.waitFor(() =>
+         expect(document.body.querySelector('img.p-image-original')?.getAttribute('src')).toBe(
+            `signed:${file.storage_path}`
+         )
+      );
       expect(api.open).not.toHaveBeenCalled();
 
       await card.get('[data-action="download"]').trigger('click');
       expect(api.download).toHaveBeenCalledWith(file.storage_path, file.file_name);
+      wrapper.unmount();
    });
 
    it('is read-only without the right to update the record', () => {

@@ -199,6 +199,7 @@ const download = (row: EntityMediaLink) =>
                :alt="row.media.alt_text || row.media.file_name"
                :size="112"
                preview
+               :previewPath="row.media.storage_path"
             />
             <button
                v-else

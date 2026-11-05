@@ -174,10 +174,17 @@ describe('media library', () => {
       });
       // No tab: the image is not inside an open-in-tab button.
       expect(card(wrapper, 'a').find('[data-action="open"]').exists()).toBe(false);
-      await card(wrapper, 'a').get('img').trigger('click');
+      // The preview mask opens the lightbox, which shows the signed original, not the thumbnail.
+      await image.get('button').trigger('click');
+      await vi.waitFor(() =>
+         expect(document.body.querySelector('img.p-image-original')?.getAttribute('src')).toBe(
+            'signed:t1/a/a.png'
+         )
+      );
       expect(api.open).not.toHaveBeenCalled();
       await card(wrapper, 'a').get('[data-action="download"]').trigger('click');
       expect(api.download).toHaveBeenCalledWith('t1/a/a.png', 'a.png');
+      wrapper.unmount();
    });
 
    it('opens a PDF in a tab, without a lightbox', async () => {

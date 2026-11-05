@@ -154,6 +154,7 @@ const remove = async (row: MediaLibraryRow) => {
                :alt="row.alt_text || row.file_name"
                :size="112"
                preview
+               :previewPath="row.storage_path"
             />
             <button
                v-else
