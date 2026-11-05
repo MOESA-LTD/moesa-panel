@@ -1258,7 +1258,7 @@
             "landed_cost_eur": "Varış maliyeti (EUR)",
             "landed_cost_on": "Varış maliyeti tarihi",
             "target_price_eur": "Hedef fiyat (EUR)",
-            "moesa_price_eur": "Moesa fiyatı (EUR)",
+            "company_price_eur": "Şirket fiyatı (EUR)",
             "price_list_version": "Fiyat listesi sürümü",
             "notes": "Notlar",
             "customer": "Müşteri",

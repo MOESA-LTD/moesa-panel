@@ -44,7 +44,7 @@ const COST_FIELDS = new Set([
    'landed_cost_eur',
    'landed_cost_on',
    'target_price_eur',
-   'moesa_price_eur',
+   'company_price_eur',
    'price_list_version'
 ]);
 

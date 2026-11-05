@@ -9,7 +9,7 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } 
 const PRICES = [
    { field: 'landed_cost_eur', digits: 4 },
    { field: 'target_price_eur', digits: 2 },
-   { field: 'moesa_price_eur', digits: 4 }
+   { field: 'company_price_eur', digits: 4 }
 ] as const;
 const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
 </script>
