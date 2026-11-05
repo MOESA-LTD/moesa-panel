@@ -82,7 +82,10 @@ const toggle = (items = []) => {
    modelValue.value = stateOf(items) === 'all' ? others : [...others, ..._cloneDeep(items)];
 };
 
-const label = (key) => (te(`fields.${key}`) ? t(`fields.${key}`) : key);
+// Resource names carry their schema ("public.customer"); the field labels are keyed by table.
+const fieldKey = (key) => String(key).replace(/^[a-z_]+\./, '');
+const label = (key) =>
+   te(`fields.${fieldKey(key)}`) ? t(`fields.${fieldKey(key)}`) : fieldKey(key);
 
 // Permissions without a group share one row; a non-empty key keeps the row expandable.
 const OTHER_GROUP = '__other__';

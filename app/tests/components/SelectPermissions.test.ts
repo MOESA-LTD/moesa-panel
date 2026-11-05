@@ -208,4 +208,18 @@ describe('SelectPermissions', () => {
       await click(wrapper, 'all');
       expect(ids(model)).toEqual([]);
    });
+
+   it('labels a schema-qualified resource with its field label', async () => {
+      PERMISSIONS.push(p('pc-r', 'customer', 'public.customer', 'read'));
+      try {
+         const { wrapper } = await mountPicker();
+         await expandGroup(wrapper, 'customer');
+         const row = wrapper.find('[data-permission-resource="public.customer"]');
+         expect(row.exists()).toBe(true);
+         expect(row.text()).toContain(i18n.t('fields.customer'));
+         expect(row.text()).not.toContain('public.customer');
+      } finally {
+         PERMISSIONS.pop();
+      }
+   });
 });
