@@ -17,8 +17,10 @@
 --                            4. Every other registry table, in position order: one
 --                               UPDATE public.<t> SET tenant_id = target, ... of its package rows
 --                               (not copy_only). The three tables without id are deleted and
---                               written again from the snapshot (private.transfer_write) instead:
---                               private.audit_statement pairs the rows of an UPDATE by id.
+--                               written again from the snapshot (private.transfer_write) instead,
+--                               after the walk: private.audit_statement pairs the rows of an
+--                               UPDATE by id, and shipment_line's RESTRICT key to the link row is
+--                               checked at once, so the lines must have left the source first.
 --                               The same statement rewrites every reference between registry
 --                               tables (private.transfer_references) and every array column
 --                               through the map: a moved row maps to itself, so this turns
@@ -93,23 +95,7 @@ BEGIN
 
     -- 4. Every other table in place, in registry order.
     FOR reg IN SELECT * FROM private.transfer_registry g WHERE g.root <> 'supplier' ORDER BY g.position LOOP
-        IF reg.key_columns IS NOT NULL THEN
-            -- No id: the audit trigger pairs the old and new rows of an UPDATE by id, so these
-            -- rows are deleted and written again from the snapshot, unchanged but for the tenant.
-            SELECT string_agg(format('x.%I', k), ', '), string_agg(format('(r.key ->> %L)::UUID', k), ', ')
-            INTO picked, keys
-            FROM unnest(reg.key_columns) AS k;
-
-            EXECUTE format(
-                'DELETE FROM public.%1$I x WHERE x.tenant_id = $1 AND (%2$s) IN ('
-                'SELECT %3$s FROM pg_temp.transfer_rows r WHERE r.table_name = %1$L AND NOT r.copy_only)',
-                reg.table_name, picked, keys
-            )
-            USING run.source_tenant_id;
-
-            PERFORM private.transfer_write(run.id, reg.table_name);
-            CONTINUE;
-        END IF;
+        CONTINUE WHEN reg.key_columns IS NOT NULL;
 
         sets := ARRAY['tenant_id = $1'];
 
@@ -176,8 +162,28 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- The three tables without id: the audit trigger pairs the old and new rows of an UPDATE by
+    -- id, so their rows are deleted and written again from the snapshot, unchanged but for the
+    -- tenant. After the walk: a source shipment_line would hold the link row (RESTRICT, checked
+    -- at once), and by now every line is in the target.
+    FOR reg IN SELECT * FROM private.transfer_registry g WHERE g.key_columns IS NOT NULL ORDER BY g.position LOOP
+        SELECT string_agg(format('x.%I', k), ', '), string_agg(format('(r.key ->> %L)::UUID', k), ', ')
+        INTO picked, keys
+        FROM unnest(reg.key_columns) AS k;
+
+        EXECUTE format(
+            'DELETE FROM public.%1$I x WHERE x.tenant_id = $1 AND (%2$s) IN ('
+            'SELECT %3$s FROM pg_temp.transfer_rows r WHERE r.table_name = %1$L AND NOT r.copy_only)',
+            reg.table_name, picked, keys
+        )
+        USING run.source_tenant_id;
+
+        PERFORM private.transfer_write(run.id, reg.table_name);
+    END LOOP;
+
     -- 5. The target's counters past the codes kept, then every key checked.
     PERFORM private.transfer_number_codes(run.id);
+    -- (Also ends a deferral of the caller's own; no constraint is INITIALLY DEFERRED.)
     SET CONSTRAINTS ALL IMMEDIATE;
 
     -- 6. The source's "transferred out" entry.

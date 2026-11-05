@@ -77,8 +77,8 @@
 --                            - users: the users of a registry user column who are neither in the
 --                              target's tenant_user nor owners of its company (Call 7).
 --                            - left_behind, {table, source_id, column, label, refers_to}, through
---                              every FK between registry tables (its first column) and every array
---                              of ids: a row that stays (outside the package; in a move also a
+--                              every FK between registry tables (its first column; a table without
+--                              id is matched on its key columns) and every array of ids: a row that stays (outside the package; in a move also a
 --                              copy_only row) referring to a package row that is not copy_only;
 --                              and a package row referring to a row outside the package (a
 --                              nullable reference, cleared on the copy: market_cell.project_id, a
@@ -646,6 +646,7 @@ DECLARE
     reg RECORD;
     ref RECORD;
     member_expr TEXT;
+    target_expr TEXT;
     users JSONB;
     left_behind JSONB := '[]';
     required_from DATE;
@@ -906,7 +907,18 @@ BEGIN
     -- refers to a package row; a package row that refers to a row outside the package.
     FOR ref IN
         SELECT DISTINCT rel.relname::TEXT AS from_table, a.attname::TEXT AS col, frel.relname::TEXT AS to_table,
-               FALSE AS is_array, fr.key_columns
+               FALSE AS is_array, fr.key_columns,
+               -- A table without id is referred to by its key: the column pairs, tenant_id aside.
+               CASE WHEN tr.key_columns IS NOT NULL THEN ARRAY(
+                   SELECT fa.attname::TEXT FROM unnest(c.conkey, c.confkey) WITH ORDINALITY AS k (f, t, i)
+                   JOIN pg_catalog.pg_attribute fa ON fa.attrelid = c.conrelid AND fa.attnum = k.f
+                   WHERE fa.attname <> 'tenant_id' ORDER BY k.i
+               ) END AS from_columns,
+               CASE WHEN tr.key_columns IS NOT NULL THEN ARRAY(
+                   SELECT ta.attname::TEXT FROM unnest(c.conkey, c.confkey) WITH ORDINALITY AS k (f, t, i)
+                   JOIN pg_catalog.pg_attribute ta ON ta.attrelid = c.confrelid AND ta.attnum = k.t
+                   WHERE ta.attname <> 'tenant_id' ORDER BY k.i
+               ) END AS to_columns
         FROM pg_catalog.pg_constraint c
         JOIN pg_catalog.pg_class rel ON rel.oid = c.conrelid
         JOIN pg_catalog.pg_namespace n ON n.oid = rel.relnamespace AND n.nspname = 'public'
@@ -917,7 +929,7 @@ BEGIN
         JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
         WHERE c.contype = 'f'
         UNION
-        SELECT g.table_name, ac.key, ac.value, TRUE, g.key_columns
+        SELECT g.table_name, ac.key, ac.value, TRUE, g.key_columns, NULL::TEXT[], NULL::TEXT[]
         FROM private.transfer_registry g
         CROSS JOIN LATERAL jsonb_each_text(g.array_columns) AS ac
         ORDER BY 1, 2, 3
@@ -930,11 +942,19 @@ BEGIN
             );
         END IF;
 
+        -- The referred package row: by id, or by the key of a table without id.
+        IF ref.to_columns IS NULL THEN
+            target_expr := 't.source_id = v.id';
+        ELSE
+            SELECT string_agg(format('t.key ->> %L = to_jsonb(x) ->> %L', c.t, c.f), ' AND ') INTO target_expr
+            FROM unnest(ref.from_columns, ref.to_columns) AS c (f, t);
+        END IF;
+
         EXECUTE format(
             'SELECT coalesce(jsonb_agg(jsonb_build_object(''table'', %1$L, ''source_id'', %2$s, ''column'', %3$L, '
             '''label'', private.transfer_label(%1$L, to_jsonb(x)), ''refers_to'', %4$L || '':'' || v.id)), ''[]'') '
             'FROM public.%1$I x CROSS JOIN LATERAL %5$s AS v (id) '
-            'JOIN pg_temp.transfer_rows t ON t.table_name = %4$L AND t.source_id = v.id AND NOT t.copy_only '
+            'JOIN pg_temp.transfer_rows t ON t.table_name = %4$L AND %7$s AND NOT t.copy_only '
             'LEFT JOIN pg_temp.transfer_rows p ON p.table_name = %1$L AND %6$s '
             'WHERE x.tenant_id = $1 AND (p.seq IS NULL OR (p.copy_only AND $2 = ''move''))',
             ref.from_table,
@@ -942,7 +962,8 @@ BEGIN
             ref.col,
             ref.to_table,
             CASE WHEN ref.is_array THEN format('unnest(x.%I)', ref.col) ELSE format('(VALUES (x.%I))', ref.col) END,
-            member_expr
+            member_expr,
+            target_expr
         )
         INTO part
         USING source_tenant, mode;
@@ -961,7 +982,14 @@ BEGIN
             ) v (id)
             WHERE p.table_name = ref.from_table
               AND NOT EXISTS (
-                  SELECT 1 FROM pg_temp.transfer_rows q WHERE q.table_name = ref.to_table AND q.source_id = v.id::UUID
+                  SELECT 1 FROM pg_temp.transfer_rows q
+                  WHERE q.table_name = ref.to_table
+                    AND CASE WHEN ref.to_columns IS NULL THEN q.source_id = v.id::UUID
+                        ELSE NOT EXISTS (
+                            SELECT 1 FROM unnest(ref.from_columns, ref.to_columns) AS c (f, t)
+                            WHERE q.key ->> c.t IS DISTINCT FROM p.row ->> c.f
+                        )
+                    END
               )
         ), '[]');
     END LOOP;

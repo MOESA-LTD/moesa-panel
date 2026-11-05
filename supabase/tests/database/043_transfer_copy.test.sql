@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- stay), and a product on an order line that stays is refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(69);
+SELECT plan(70);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -468,6 +468,7 @@ RESET ROLE;
 -- (…022) and its line's spec sheet (the mop's); a closed incident (…023) that G2 names as its
 -- rollback (G2 is pending, so the guard is off for that one write); a change request (…024) whose
 -- affected document is the mop's spec sheet and whose result is a THO change request document (…025).
+-- Also the order on THO's shipment with a shipment line (…026), checked in case 70.
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000043021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate',
@@ -497,6 +498,13 @@ UPDATE public.purchase_order_line SET spec_document_id = current_setting('test.s
 WHERE id = '00000000-0000-4000-8000-000000043003';
 UPDATE public.incident SET status = 'closed' WHERE id = '00000000-0000-4000-8000-000000043023';
 UPDATE public.change_request SET result_document_id = '00000000-0000-4000-8000-000000043025' WHERE id = '00000000-0000-4000-8000-000000043024';
+-- The order on THO's shipment (…005), with a line of 10 mops (…026): the shipment line names the
+-- link row, which has no id.
+INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id)
+VALUES ('00000000-0000-4000-8000-000000043005', '00000000-0000-4000-8000-000000043002', current_setting('test.moesa')::UUID);
+INSERT INTO public.shipment_line (id, tenant_id, shipment_id, purchase_order_id, purchase_order_line_id, quantity)
+VALUES ('00000000-0000-4000-8000-000000043026', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043005',
+        '00000000-0000-4000-8000-000000043002', '00000000-0000-4000-8000-000000043003', 10);
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 
 ALTER TABLE public.project_gate DISABLE TRIGGER project_gate_guard;
@@ -749,6 +757,16 @@ SELECT is(
         (SELECT count(*) FROM public.purchase_order_line WHERE id = '00000000-0000-4000-8000-000000043049'))),
     row(1::BIGINT, 1::BIGINT),
     'the refused product and its order line are still in MOESA'
+);
+
+-- 70. A shipment line, which names the link row without id, is not left behind: the move runs and
+-- the line arrives in Trading on Trading's link.
+SELECT is(
+    (SELECT row(l.tenant_id, l.quantity, k.tenant_id) FROM public.shipment_line l
+     JOIN public.shipment_purchase_order k ON k.shipment_id = l.shipment_id AND k.purchase_order_id = l.purchase_order_id
+     WHERE l.id = pg_temp.moved('shipment_line', '00000000-0000-4000-8000-000000043026')),
+    row(current_setting('test.trading')::UUID, 10, current_setting('test.trading')::UUID),
+    'the shipment line arrives in Trading with its link'
 );
 
 SELECT * FROM finish();

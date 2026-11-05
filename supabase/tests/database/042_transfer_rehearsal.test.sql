@@ -7,14 +7,14 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- its contract document; the media, supplier contacts and supplier documents are collected with
 -- their copy_only flags. The report: conflicts (customer, supplier, GTINs, a SKU under a mapped
 -- customer, project code, document version), non-member users, settings gaps, a link left behind
--- and a stable hash that names the target. A real run
+-- and a stable hash that names the target; a shipment line on its order link is not left behind. A real run
 -- is refused when stale, without a hash or decisions, with a decision that does not fit or a bad
 -- code (lower case, taken, repeated, another supplier's), a map onto a wrong row, an unknown key,
 -- or with a product in use; gates out of order or missing and a target plan without a business module
 -- are refused. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(51);
+SELECT plan(52);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -491,7 +491,40 @@ SELECT throws_like(
 );
 RESET ROLE;
 
--- 50. The pilot without its last gate (L_G2), which gates_for still gives; put back afterwards.
+-- 50. ZZZ with an order (…003, a line …004 of ZZZ-1), a warehouse (…007), a shipment (…005)
+-- carrying the order (the link row has no id) and a shipment line (…006): a move to Trading leaves
+-- nothing behind.
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+SELECT '00000000-0000-4000-8000-000000042003', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042001', s.id, 'USD'
+FROM public.supplier s WHERE s.tenant_id = current_setting('test.moesa')::UUID AND s.code = 'TR1';
+INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+VALUES ('00000000-0000-4000-8000-000000042004', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042003',
+        '00000000-0000-4000-8000-000000042002', 5, 1);
+INSERT INTO public.customer_warehouse (id, tenant_id, customer_id, display_name)
+VALUES ('00000000-0000-4000-8000-000000042007', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042001', 'ZZZ Lager');
+INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+VALUES ('00000000-0000-4000-8000-000000042005', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042001', 'road',
+        '00000000-0000-4000-8000-000000042007');
+RESET ROLE;
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id)
+VALUES ('00000000-0000-4000-8000-000000042005', '00000000-0000-4000-8000-000000042003', current_setting('test.moesa')::UUID);
+INSERT INTO public.shipment_line (id, tenant_id, shipment_id, purchase_order_id, purchase_order_line_id, quantity)
+VALUES ('00000000-0000-4000-8000-000000042006', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042005',
+        '00000000-0000-4000-8000-000000042003', '00000000-0000-4000-8000-000000042004', 5);
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+SELECT is(
+    public.transfer_customer(
+        current_setting('test.moesa')::UUID, current_setting('test.trading')::UUID, '00000000-0000-4000-8000-000000042001', 'move'
+    ) -> 'left_behind',
+    '[]'::JSONB,
+    'a shipment line on its order link is not left behind'
+);
+RESET ROLE;
+
+-- 51. The pilot without its last gate (L_G2), which gates_for still gives; put back afterwards.
 CREATE TEMP TABLE saved_gate AS
 SELECT * FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'L_G2';
 DELETE FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'L_G2';
@@ -500,7 +533,7 @@ SELECT throws_like($$ SELECT pg_temp.rehearse('copy') $$, '%transfer_gate_invali
 RESET ROLE;
 INSERT INTO public.project_gate SELECT * FROM pg_temp.saved_gate;
 
--- 51. G2 passed while G1 is pending, past the guard. The last case: the final ROLLBACK undoes it (a
+-- 52. G2 passed while G1 is pending, past the guard. The last case: the final ROLLBACK undoes it (a
 -- savepoint rolled back after the assertion would drop pgTAP's record of it).
 ALTER TABLE public.project_gate DISABLE TRIGGER project_gate_guard;
 UPDATE public.project_gate SET status = 'passed', passed_at = now()

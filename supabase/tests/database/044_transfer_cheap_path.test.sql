@@ -6,10 +6,11 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- (TR1 stays in MOESA), the THO file moves into Europe's folder, a shared file is copied and the
 -- THO document citing it follows the copy, the source gets a "transferred out" entry and the
 -- target's audit transaction is the transfer's. A Europe THO would send the same move down the
--- copy path. What it writes is rolled back.
+-- copy path. A shipment line on its order link moves too; a supplier mapped onto Europe's TR1
+-- keeps the cheap path; a copied supplier takes its document. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(17);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -28,7 +29,9 @@ SELECT set_config('test.g1', (
 
 -- Fixtures in MOESA. G1 of the pilot passed by the coordinator with a gate approval (…001); a THO
 -- file with a thumbnail (…011), the mop's primary image; a shared file without a customer (…012)
--- and a THO document citing it (…013); a document of TR1 (…014), which only the copy of TR1 takes.
+-- and a THO document citing it (…013); a document of TR1 (…014), which only the copy of TR1 takes;
+-- an order of THO from TR1 (…021) with a line of 10 mops (…022), on a shipment (…023) through the
+-- link row (no id) with a shipment line (…024).
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000044001', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate',
@@ -56,8 +59,24 @@ VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-0000000440
 INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, media_id)
 VALUES ('00000000-0000-4000-8000-000000044013', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'customer',
         current_setting('test.tho')::UUID, 'other', 'draft', '00000000-0000-4000-8000-000000044012');
+INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+VALUES ('00000000-0000-4000-8000-000000044021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
+        current_setting('test.tr1')::UUID, 'USD');
+INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+VALUES ('00000000-0000-4000-8000-000000044022', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000044021',
+        current_setting('test.mop')::UUID, 10, 2);
+INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+SELECT '00000000-0000-4000-8000-000000044023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road', w.id
+FROM public.customer_warehouse w WHERE w.customer_id = current_setting('test.tho')::UUID AND w.display_name = 'Rosbach';
 
 RESET ROLE;
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id)
+VALUES ('00000000-0000-4000-8000-000000044023', '00000000-0000-4000-8000-000000044021', current_setting('test.moesa')::UUID);
+INSERT INTO public.shipment_line (id, tenant_id, shipment_id, purchase_order_id, purchase_order_line_id, quantity)
+VALUES ('00000000-0000-4000-8000-000000044024', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000044023',
+        '00000000-0000-4000-8000-000000044021', '00000000-0000-4000-8000-000000044022', 10);
+SELECT set_config('moesa.rules_bypass', '', TRUE);
 INSERT INTO public.document (id, tenant_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000044014', current_setting('test.moesa')::UUID, 'supplier', current_setting('test.tr1')::UUID,
         'other', 'draft', 'https://example.test/tr1.pdf');
@@ -93,6 +112,47 @@ END;
 $$;
 RESET ROLE;
 SELECT set_config('test.path_with_tho', pg_temp.path_with_europe_tho(), TRUE);
+
+-- 16 (run before the move, checked after 15). In an exception block, Europe has a TR1 of its own
+-- and akif maps MOESA's TR1 onto it: the move still takes the cheap path, the mop's supplier is
+-- Europe's TR1 and TR1's document is not copied (a mapped supplier's documents stay). Rolled back.
+CREATE FUNCTION pg_temp.move_with_mapped_tr1 () RETURNS JSONB LANGUAGE plpgsql AS $$
+DECLARE
+    europe_tr1 UUID := gen_random_uuid();
+    picks JSONB;
+    r JSONB;
+    seen JSONB;
+BEGIN
+    BEGIN
+        INSERT INTO public.supplier
+        SELECT (jsonb_populate_record(NULL::public.supplier, to_jsonb(s) || jsonb_build_object(
+            'id', europe_tr1, 'tenant_id', current_setting('test.europe')))).*
+        FROM public.supplier s WHERE s.id = current_setting('test.tr1')::UUID;
+
+        PERFORM private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+        SELECT jsonb_object_agg(c ->> 'key', jsonb_build_object('action', 'map', 'target_id', c ->> 'existing_id')) INTO picks
+        FROM jsonb_array_elements(pg_temp.move() -> 'conflicts') c
+        WHERE c ->> 'kind' = 'supplier_code';
+        PERFORM set_config('audit.transaction_id', '', TRUE);
+        r := pg_temp.move(picks, pg_temp.move(picks) ->> 'report_hash');
+        RESET ROLE;
+
+        seen := jsonb_build_object(
+            'path', r ->> 'path',
+            'mop_supplier_is_europe_tr1',
+            (SELECT p.supplier_id = europe_tr1 FROM public.product p WHERE p.id = current_setting('test.mop')::UUID),
+            'tr1_documents_in_europe',
+            (SELECT count(*) FROM public.document d
+             WHERE d.tenant_id = current_setting('test.europe')::UUID AND d.entity_type = 'supplier' AND d.entity_id = europe_tr1)
+        );
+        RAISE EXCEPTION 'rolled back' USING ERRCODE = 'T0001';
+    EXCEPTION WHEN SQLSTATE 'T0001' THEN
+        NULL;
+    END;
+    RETURN seen;
+END;
+$$;
+SELECT set_config('test.mapped_tr1', pg_temp.move_with_mapped_tr1()::TEXT, TRUE);
 
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.h', pg_temp.move() ->> 'report_hash', TRUE);
@@ -186,6 +246,38 @@ SELECT is(
 
 -- 14. (Rehearsed above, before the move.)
 SELECT is(current_setting('test.path_with_tho'), 'copy', 'with a Europe THO the same move takes the copy path');
+
+-- 15. The shipment line, on the link row without id, is in Europe with its link; none stays in MOESA.
+SELECT is(
+    (SELECT row(
+        (SELECT l.tenant_id FROM public.shipment_line l WHERE l.id = '00000000-0000-4000-8000-000000044024'),
+        (SELECT count(*) FROM public.shipment_purchase_order k
+         WHERE k.shipment_id = '00000000-0000-4000-8000-000000044023' AND k.tenant_id = current_setting('test.europe')::UUID),
+        (SELECT count(*) FROM public.shipment_purchase_order k
+         WHERE k.shipment_id = '00000000-0000-4000-8000-000000044023' AND k.tenant_id = current_setting('test.moesa')::UUID))),
+    row(current_setting('test.europe')::UUID, 1::BIGINT, 0::BIGINT),
+    'a shipment line and its order link move in place'
+);
+
+-- 16. (Run above, before the move.)
+SELECT is(
+    current_setting('test.mapped_tr1')::JSONB,
+    '{"path": "cheap", "mop_supplier_is_europe_tr1": true, "tr1_documents_in_europe": 0}'::JSONB,
+    'a supplier mapped onto Europe''s TR1 keeps the cheap path, and its document stays'
+);
+
+-- 17. A copied supplier takes its document: Europe's copy of TR1 has a copy of it, MOESA keeps it.
+SELECT is(
+    (SELECT row(
+        (SELECT d.tenant_id FROM public.document d WHERE d.id = '00000000-0000-4000-8000-000000044014'),
+        (SELECT d.tenant_id FROM public.document d
+         WHERE d.id = (current_setting('test.r')::JSONB -> 'id_map' -> 'document' ->> '00000000-0000-4000-8000-000000044014')::UUID),
+        (SELECT d.entity_id FROM public.document d
+         WHERE d.id = (current_setting('test.r')::JSONB -> 'id_map' -> 'document' ->> '00000000-0000-4000-8000-000000044014')::UUID))),
+    row(current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID,
+        (current_setting('test.r')::JSONB -> 'id_map' -> 'supplier' ->> current_setting('test.tr1'))::UUID),
+    'a copied supplier''s document is copied with it, the original stays'
+);
 
 SELECT * FROM finish();
 
