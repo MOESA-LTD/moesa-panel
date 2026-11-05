@@ -42,7 +42,13 @@
 --                              (clear_gtin, skip), not for a product with a sku conflict (it is
 --                              mapped or skipped, so never written: one decision per key);
 --                              document_version, under a mapped customer or product (map, skip
---                              in a copy). A move never offers skip.
+--                              in a copy); platform_account, a platform the mapped customer already
+--                              has an account on (map, skip in a copy); market_cell, a platform and
+--                              country the mapped product already has a cell for (map, skip in a
+--                              copy); media_link, a primary image of a mapped customer or product
+--                              that already has one (map, demote: copied as a gallery image, and
+--                              skip in a copy). A map names the target row found (existing_id). A
+--                              move never offers skip.
 --                            - users: the users of a registry user column who are neither in the
 --                              target's tenant_user nor owners of its company (Call 7).
 --                            - left_behind, {table, source_id, column, label, refers_to}, through
@@ -84,9 +90,9 @@
 --                            without a hash (transfer_report_required), with another hash
 --                            (transfer_report_stale), a move leaving links behind
 --                            (transfer_product_in_use) and the decisions above. Then it raises the
---                            transfer flag (moesa.transfer_id), writes the transfer row as its first
---                            write (so the target's audit transaction is about transfer: the "came
---                            by transfer" entry), records that audit transaction in
+--                            transfer flag (moesa.transfer_id), starts a new audit transaction and
+--                            writes the transfer row as its first write (so the target's audit
+--                            transaction is about transfer: the "came by transfer" entry), records that audit transaction in
 --                            audit_transaction_ids, calls private.transfer_apply (043), clears the
 --                            flag and returns the transfer row.
 
@@ -380,6 +386,7 @@ BEGIN
         WHEN 'document' THEN (data ->> 'type') || ' v' || (data ->> 'version')
         WHEN 'media' THEN data ->> 'file_name'
         WHEN 'market_cell' THEN (data ->> 'platform_id') || ' ' || (data ->> 'country')
+        WHEN 'customer_platform_account' THEN data ->> 'platform_id'
         WHEN 'project_product' THEN (
             SELECT coalesce(p.code, p.display_name) FROM public.project p WHERE p.id = (data ->> 'project_id')::UUID
         )
@@ -600,6 +607,54 @@ BEGIN
           ON d.tenant_id = target_tenant AND d.entity_type::TEXT = r.row ->> 'entity_type' AND d.entity_id = m.entity_id
          AND d.type::TEXT = r.row ->> 'type' AND d.version = (r.row ->> 'version')::INT
         WHERE r.table_name = 'document'
+    ), '[]');
+
+    -- A platform the mapped customer already has an account on (one account per platform).
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'customer_platform_account:' || r.source_id, 'kind', 'platform_account',
+            'table', 'customer_platform_account', 'source_id', r.source_id,
+            'label', r.row ->> 'platform_id', 'existing_id', a.id, 'actions', map_or_skip
+        ))
+        FROM pg_temp.transfer_rows r
+        JOIN public.customer_platform_account a
+          ON a.tenant_id = target_tenant AND a.customer_id = target_customer AND a.platform_id = r.row ->> 'platform_id'
+        WHERE r.table_name = 'customer_platform_account'
+    ), '[]');
+
+    -- A platform and country the mapped product already has a cell for.
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'market_cell:' || r.source_id, 'kind', 'market_cell', 'table', 'market_cell', 'source_id', r.source_id,
+            'label', (r.row ->> 'platform_id') || ' ' || (r.row ->> 'country'), 'existing_id', m.id, 'actions', map_or_skip
+        ))
+        FROM pg_temp.transfer_rows r
+        JOIN public.market_cell m
+          ON m.tenant_id = target_tenant AND m.product_id = (mapped_products ->> (r.row ->> 'product_id'))::UUID
+         AND m.platform_id = r.row ->> 'platform_id' AND m.country = r.row ->> 'country'
+        WHERE r.table_name = 'market_cell'
+    ), '[]');
+
+    -- A primary image of a mapped customer or product that already has one.
+    conflicts := conflicts || coalesce((
+        SELECT jsonb_agg(jsonb_build_object(
+            'key', 'media_link:' || r.source_id, 'kind', 'media_link', 'table', 'media_link', 'source_id', r.source_id,
+            'label', coalesce(f.row ->> 'file_name', r.row ->> 'media_id') || ' ' || (r.row ->> 'role'),
+            'existing_id', l.id,
+            'actions', CASE mode WHEN 'copy' THEN '["map", "demote", "skip"]'::JSONB ELSE '["map", "demote"]'::JSONB END
+        ))
+        FROM pg_temp.transfer_rows r
+        CROSS JOIN LATERAL (
+            SELECT CASE r.row ->> 'entity_type'
+                WHEN 'customer' THEN CASE WHEN r.row ->> 'entity_id' = source_customer::TEXT THEN target_customer END
+                WHEN 'product' THEN (mapped_products ->> (r.row ->> 'entity_id'))::UUID
+            END AS entity_id
+        ) e
+        JOIN public.media_link l
+          ON l.tenant_id = target_tenant AND l.entity_type::TEXT = r.row ->> 'entity_type' AND l.entity_id = e.entity_id
+         AND l.role = 'primary_image'
+        LEFT JOIN pg_temp.transfer_rows f ON f.table_name = 'media' AND f.source_id::TEXT = r.row ->> 'media_id'
+        WHERE r.table_name = 'media_link' AND r.row ->> 'role' = 'primary_image'
     ), '[]');
 
     conflicts := coalesce((
@@ -928,10 +983,12 @@ BEGIN
 
     PERFORM private.transfer_check_decisions(report, transfer_customer.decisions, target_tenant, transfer_customer.mode);
 
-    -- The run: the flag, then the transfer row as the first write (the target's audit transaction
+    -- The run: the flag, a new audit transaction, then the transfer row as the first write (the target's audit transaction
     -- is about it), its audit transaction, the package (043), and the flag cleared.
     new_id := gen_random_uuid();
     PERFORM set_config('moesa.transfer_id', new_id::TEXT, TRUE);
+    -- Its own audit transaction, even after an earlier write of the caller's transaction.
+    PERFORM set_config('audit.transaction_id', '', TRUE);
 
     INSERT INTO public.transfer (
         id, tenant_id, source_tenant_id, customer_id, product_ids, mode, path, started_by, report, decisions

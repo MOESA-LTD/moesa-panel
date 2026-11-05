@@ -31,7 +31,8 @@
 --                            users rule (Call 7: a non-member author becomes the caller, a
 --                            non-member assignee NULL, a decision record stays); codes kept, or a
 --                            new_code decision's typed code (customer, supplier) or
---                            private.next_code_in(target, kind, <target customer code>); clear_gtin;
+--                            a numbered one later (transfer_number_codes); clear_gtin; demote (a
+--                            media link copied as a gallery image);
 --                            media paths from transfer_media_paths, each file and thumbnail returned
 --                            as {media_id, from, to, keep_source = copy_only}. Products without a
 --                            parent come first. The column list leaves out GENERATED columns
@@ -44,8 +45,15 @@
 --                            copied with a new id together with its contacts. The suppliers'
 --                            documents are written with the other documents (a document may cite a
 --                            media row, which is written after the suppliers).
+-- private.transfer_number_codes  After the rows are in: the target's code_sequence of every (kind,
+--                            scope, year) of a project or prefixed code kept is raised to the
+--                            highest number kept (greatest(last_no, ...); the source counter is not
+--                            copied), so the next code numbered in the target is free; then each
+--                            row with a new_code decision gets private.next_code_in(target, kind,
+--                            <target customer code>), kind 'project' or the code's prefix.
 -- private.transfer_apply_copy  The copy path: the map, (in a move, the source deletion: 043 part 2),
---                            the suppliers, every other registry table in position order, then the
+--                            the suppliers, every other registry table in position order, the
+--                            codes (transfer_number_codes), then the
 --                            late pass (late and array columns through the map, for the rows
 --                            written), then the transfer row's id_map, files, files_status (pending
 --                            while there are files to copy) and target_customer_id.
@@ -208,7 +216,6 @@ DECLARE
     pick JSONB;
     col TEXT;
     members JSONB := '{}';
-    customer_code TEXT;
     paths RECORD;
     files JSONB := '[]';
 BEGIN
@@ -287,8 +294,17 @@ BEGIN
                 data := data || jsonb_build_object('entity_id', found_id);
             ELSIF transfer_write.tbl = 'incident' THEN
                 data := data || '{"entity_type": null, "entity_id": null}'::JSONB;
-            ELSE
+            ELSIF EXISTS (
+                SELECT 1 FROM private.transfer_registry e
+                JOIN pg_temp.transfer_rows p ON p.table_name = e.table_name AND p.source_id = (r.row ->> 'entity_id')::UUID
+                WHERE e.entity::TEXT = r.row ->> 'entity_type'
+            ) THEN
+                -- An omitted entity: the row goes with it.
                 CONTINUE;
+            ELSE
+                -- The collection only takes a document or link of a package row.
+                RAISE EXCEPTION 'transfer: % % names an entity outside the package', transfer_write.tbl, r.source_id
+                    USING ERRCODE = 'foreign_key_violation';
             END IF;
         END IF;
 
@@ -318,23 +334,13 @@ BEGIN
         pick := CASE WHEN r.source_id IS NOT NULL THEN picks -> (transfer_write.tbl || ':' || r.source_id) END;
 
         IF pick ->> 'action' = 'new_code' THEN
-            IF reg.code_kind = 'typed' THEN
-                data := data || jsonb_build_object('code', pick ->> 'code');
-            ELSE
-                IF customer_code IS NULL THEN
-                    SELECT c.code::TEXT INTO customer_code
-                    FROM pg_temp.transfer_map m
-                    JOIN public.customer c ON c.id = m.target_id AND c.tenant_id = target
-                    WHERE m.table_name = 'customer';
-                END IF;
-                data := data || jsonb_build_object('code', private.next_code_in(
-                    target,
-                    CASE reg.code_kind WHEN 'project' THEN 'project' ELSE lower(split_part(r.row ->> 'code', '-', 1)) END,
-                    customer_code
-                ));
-            END IF;
+            -- A typed code now; a numbered one by private.transfer_number_codes, once the counters
+            -- have passed the codes kept.
+            data := data || jsonb_build_object('code', CASE WHEN reg.code_kind = 'typed' THEN pick ->> 'code' END);
         ELSIF pick ->> 'action' = 'clear_gtin' THEN
             data := data || '{"gtin": null}'::JSONB;
+        ELSIF pick ->> 'action' = 'demote' THEN
+            data := data || '{"role": "gallery"}'::JSONB;
         END IF;
 
         IF transfer_write.tbl = 'media' THEN
@@ -376,6 +382,64 @@ $$;
 
 REVOKE ALL ON FUNCTION private.transfer_suppliers (UUID) FROM PUBLIC, anon, authenticated;
 
+-- The counters and the new numbered codes (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_number_codes (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    target UUID;
+    picks JSONB;
+    customer_code TEXT;
+    r RECORD;
+BEGIN
+    SELECT t.tenant_id, coalesce(t.decisions, '{}') INTO target, picks
+    FROM public.transfer t WHERE t.id = transfer_number_codes.transfer_id;
+
+    -- The codes kept by the rows written: <SCOPE>-<year>-<n> (project), <KIND>-<SCOPE>-<year>-<n>.
+    INSERT INTO public.code_sequence AS cs (tenant_id, kind, scope, year, last_no)
+    SELECT target, c.kind, c.scope, c.year, max(c.n)
+    FROM (
+        SELECT CASE g.code_kind WHEN 'project' THEN 'project' ELSE lower(x[1]) END AS kind,
+               x[2] AS scope, x[3]::INT AS year, x[4]::INT AS n
+        FROM pg_temp.transfer_rows w
+        JOIN private.transfer_registry g ON g.table_name = w.table_name AND g.code_kind IN ('project', 'prefixed')
+        JOIN pg_temp.transfer_map m ON m.table_name = w.table_name AND m.source_id = w.source_id AND NOT m.mapped
+        CROSS JOIN LATERAL regexp_match(
+            CASE g.code_kind WHEN 'project' THEN '-' || (w.row ->> 'code') ELSE w.row ->> 'code' END,
+            '^([A-Za-z]*)-([A-Z0-9]+)-([0-9]{4})-([0-9]+)$'
+        ) AS x
+        WHERE coalesce(picks -> (w.table_name || ':' || w.source_id) ->> 'action', '') <> 'new_code'
+    ) c
+    WHERE c.kind IN ('project', 'po', 'shp', 'cr', 'ol', 'oa', 'ou', 'ot', 'om')
+    GROUP BY c.kind, c.scope, c.year
+    ON CONFLICT ON CONSTRAINT code_sequence_pkey DO UPDATE SET last_no = greatest(cs.last_no, excluded.last_no);
+
+    SELECT c.code::TEXT INTO customer_code
+    FROM pg_temp.transfer_map m
+    JOIN public.customer c ON c.id = m.target_id AND c.tenant_id = target
+    WHERE m.table_name = 'customer';
+
+    FOR r IN
+        SELECT g.table_name, g.code_kind, m.target_id, x.row ->> 'code' AS code
+        FROM pg_temp.transfer_rows x
+        JOIN private.transfer_registry g ON g.table_name = x.table_name AND g.code_kind IN ('project', 'prefixed')
+        JOIN pg_temp.transfer_map m ON m.table_name = x.table_name AND m.source_id = x.source_id AND NOT m.mapped
+        WHERE picks -> (x.table_name || ':' || x.source_id) ->> 'action' = 'new_code'
+        ORDER BY g.position, x.seq
+    LOOP
+        EXECUTE format('UPDATE public.%I SET code = $1 WHERE id = $2 AND tenant_id = $3', r.table_name)
+        USING private.next_code_in(
+                  target,
+                  CASE r.code_kind WHEN 'project' THEN 'project' ELSE lower(split_part(r.code, '-', 1)) END,
+                  customer_code
+              ),
+              r.target_id, target;
+    END LOOP;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_number_codes (UUID) FROM PUBLIC, anon, authenticated;
+
 -- The copy path (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_apply_copy (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
@@ -385,9 +449,13 @@ DECLARE
     reg RECORD;
     col TEXT;
     ref_table TEXT;
+    refs JSONB;
     listed JSONB := '[]';
 BEGIN
     SELECT * INTO run FROM public.transfer t WHERE t.id = transfer_apply_copy.transfer_id;
+
+    SELECT jsonb_object_agg(f.table_name || '.' || f.column_name, f.ref_table) INTO refs
+    FROM private.transfer_references() f;
 
     -- 1. The id map.
     PERFORM private.transfer_build_map(run.id, FALSE);
@@ -405,6 +473,9 @@ BEGIN
         listed := listed || private.transfer_write(run.id, reg.table_name);
     END LOOP;
 
+    -- The target's counters past the codes kept, then the new codes.
+    PERFORM private.transfer_number_codes(run.id);
+
     -- 5. The late pass, for the rows written (not the mapped ones).
     FOR reg IN
         SELECT g.table_name, g.late_columns, g.array_columns FROM private.transfer_registry g
@@ -412,8 +483,7 @@ BEGIN
         ORDER BY g.position
     LOOP
         FOREACH col IN ARRAY reg.late_columns LOOP
-            SELECT f.ref_table INTO ref_table
-            FROM private.transfer_references() f WHERE f.table_name = reg.table_name AND f.column_name = col;
+            ref_table := refs ->> (reg.table_name || '.' || col);
 
             EXECUTE format(
                 'UPDATE public.%1$I x SET %2$I = n.target_id '

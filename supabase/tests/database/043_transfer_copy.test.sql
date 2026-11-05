@@ -2,14 +2,17 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- The copy path (043) on the MOESA demo company of seed.sql: akif copies THO into its branch
 -- MOESA Europe, with the three GTINs cleared. The customer is in both tenants, the codes are kept
--- (no counter moves in Europe), the suppliers are copied with their contact, the references follow
+-- (Europe's counters pass them), the suppliers are copied with their contact, the references follow
 -- the new ids, the users who are not members of Europe are replaced or cleared, the generated line
 -- total is computed again, the files to copy are listed (a shared file kept in the source), the
--- target's audit transaction is the transfer's, and a second identical run is stale. What it writes
--- is rolled back.
+-- target's audit transaction is the transfer's, and a second identical run is stale. Then THO is
+-- copied again onto that Europe THO: its platform account, market cell and primary image meet the
+-- copy's (map, demote), the suppliers are mapped, the mop is skipped with what hangs from it, the
+-- pilot and the order get new codes, and the mapped customer keeps its contract. What it writes is
+-- rolled back.
 BEGIN;
 
-SELECT plan(20);
+SELECT plan(34);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -31,8 +34,10 @@ SELECT set_config('test.task1', (
 
 -- Fixtures in MOESA. A contact of TR1 (…001); a PO of THO from TR1 (…002) with one line for the
 -- mop, 10 at 2 (…003); a THO document written by the coordinator (…004); task 1 of the pilot
--- assigned to the coordinator; a THO file with a thumbnail (…011), the mop's primary image; a
--- shared file without a customer (…012), linked to the cones.
+-- assigned to the coordinator, also THO's contract; G1 of the pilot approved by the mop's spec sheet,
+-- with the spec sheet and the contract as evidence; a THO file with a thumbnail (…011), the mop's
+-- primary image; a shared file without a customer (…012), the cones' primary image; a market cell
+-- of the cones (amazon DE).
 INSERT INTO public.supplier_contact (id, tenant_id, supplier_id, name)
 VALUES ('00000000-0000-4000-8000-000000043001', current_setting('test.moesa')::UUID, current_setting('test.tr1')::UUID, 'Kutlu satış');
 
@@ -51,6 +56,13 @@ VALUES ('00000000-0000-4000-8000-000000043004', current_setting('test.moesa')::U
         current_setting('test.tho')::UUID, 'contract', 'draft', 'https://example.test/tho-contract.pdf',
         current_setting('test.koordinator')::UUID);
 UPDATE public.project_task SET assignee_id = current_setting('test.koordinator')::UUID WHERE id = current_setting('test.task1')::UUID;
+UPDATE public.customer SET contract_document_id = '00000000-0000-4000-8000-000000043004' WHERE id = current_setting('test.tho')::UUID;
+UPDATE public.project_gate
+SET approval_document_id = current_setting('test.spec_mop')::UUID,
+    evidence_document_ids = ARRAY[current_setting('test.spec_mop')::UUID, '00000000-0000-4000-8000-000000043004'::UUID]
+WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1';
+INSERT INTO public.market_cell (tenant_id, customer_id, product_id, platform_id, country)
+VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.cones')::UUID, 'amazon', 'DE');
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 
 INSERT INTO storage.objects (bucket_id, name, metadata)
@@ -69,7 +81,7 @@ VALUES ('00000000-0000-4000-8000-000000043011', current_setting('test.moesa')::U
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043011', 'product', current_setting('test.mop')::UUID, 'primary_image'),
-       (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'product', current_setting('test.cones')::UUID, 'gallery');
+       (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'product', current_setting('test.cones')::UUID, 'primary_image');
 
 -- akif rehearses a copy into Europe, clears the three GTINs, rehearses again and runs it.
 CREATE FUNCTION pg_temp.rehearse (decisions JSONB DEFAULT '{}') RETURNS JSONB LANGUAGE sql AS $$
@@ -113,8 +125,14 @@ SELECT is((SELECT code FROM public.project WHERE id = pg_temp.copy_of('project',
 SELECT is((SELECT count(*) FROM public.project_gate WHERE project_id = pg_temp.copy_of('project', current_setting('test.pilot'))),
           (SELECT count(*) FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID),
           'with as many gates');
-SELECT is((SELECT count(*) FROM public.code_sequence WHERE tenant_id = current_setting('test.europe')::UUID), 0::BIGINT,
-          'no code is numbered in Europe');
+SELECT ok(
+    (SELECT s.last_no >= split_part(p.code, '-', 3)::INT
+     FROM public.project p
+     JOIN public.code_sequence s ON s.tenant_id = current_setting('test.europe')::UUID AND s.kind = 'project'
+      AND s.scope = 'THO' AND s.year = split_part(p.code, '-', 2)::INT
+     WHERE p.id = current_setting('test.pilot')::UUID),
+    'Europe''s THO project counter has passed the copied pilot'
+);
 
 -- 6–7. The suppliers are copied, with TR1's contact.
 SELECT ok(
@@ -196,6 +214,146 @@ SELECT throws_like(
     'a second identical run is stale'
 );
 RESET ROLE;
+
+-- 21. The next THO project made in Europe takes the next number.
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.europe')::UUID);
+INSERT INTO public.project (tenant_id, customer_id, display_name, type, path)
+VALUES (current_setting('test.europe')::UUID, (current_setting('test.r')::JSONB ->> 'target_customer_id')::UUID,
+        'Europa projesi', 'npi', 'a_sourcing');
+RESET ROLE;
+SELECT is(
+    (SELECT code FROM public.project WHERE tenant_id = current_setting('test.europe')::UUID AND display_name = 'Europa projesi'),
+    'THO-' || extract(year FROM now())::INT || '-002',
+    'the next THO project in Europe does not take a copied code'
+);
+
+-- 22–34. THO copied again, onto the Europe THO. Every conflict is decided in rounds (a decision can
+-- bring the next conflicts): the customer, suppliers, SKUs, contract version, platform account and
+-- market cell are mapped onto what Europe has, the mop is skipped, the codes are new and the primary
+-- image is demoted.
+SELECT set_config('test.eu_tho', current_setting('test.r')::JSONB ->> 'target_customer_id', TRUE);
+SELECT set_config('test.eu_contract', (SELECT contract_document_id::TEXT FROM public.customer WHERE id = current_setting('test.eu_tho')::UUID), TRUE);
+SELECT set_config('test.cones_link', (SELECT id::TEXT FROM public.media_link WHERE entity_id = current_setting('test.cones')::UUID), TRUE);
+SELECT set_config('test.eu_amazon', (SELECT id::TEXT FROM public.customer_platform_account WHERE customer_id = current_setting('test.eu_tho')::UUID), TRUE);
+
+CREATE FUNCTION pg_temp.decide_all (d JSONB) RETURNS JSONB LANGUAGE sql AS $$
+    SELECT d || coalesce(jsonb_object_agg(c ->> 'key', CASE
+        WHEN c ->> 'kind' = 'code' THEN '{"action": "new_code"}'::JSONB
+        WHEN c ->> 'kind' = 'media_link' THEN '{"action": "demote"}'::JSONB
+        WHEN c ->> 'kind' = 'gtin' THEN '{"action": "clear_gtin"}'::JSONB
+        WHEN c ->> 'kind' = 'sku' AND c ->> 'source_id' = current_setting('test.mop') THEN '{"action": "skip"}'::JSONB
+        ELSE jsonb_build_object('action', 'map', 'target_id', c -> 'existing_id')
+    END), '{}')
+    FROM jsonb_array_elements(pg_temp.rehearse(d) -> 'conflicts') c
+    WHERE NOT (c -> 'actions') ? coalesce(d -> (c ->> 'key') ->> 'action', '');
+$$;
+
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT set_config('test.d2', pg_temp.decide_all(pg_temp.decide_all(pg_temp.decide_all(jsonb_build_object(
+    'customer:' || current_setting('test.tho'), jsonb_build_object('action', 'map', 'target_id', current_setting('test.eu_tho'))
+))))::TEXT, TRUE);
+SELECT set_config('test.r2', pg_temp.rehearse(current_setting('test.d2')::JSONB)::TEXT, TRUE);
+
+SELECT ok(
+    current_setting('test.r2')::JSONB -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
+        'kind', 'platform_account', 'label', 'amazon', 'actions', '["map", "skip"]'::JSONB,
+        'existing_id', current_setting('test.eu_amazon')
+    )),
+    'the mapped THO has an amazon account already: map or skip'
+);
+SELECT ok(
+    current_setting('test.r2')::JSONB -> 'conflicts' @> '[{"kind": "market_cell", "label": "amazon DE", "actions": ["map", "skip"]}]',
+    'the mapped cones have an amazon DE cell already'
+);
+SELECT ok(
+    current_setting('test.r2')::JSONB -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
+        'key', 'media_link:' || current_setting('test.cones_link'), 'kind', 'media_link',
+        'actions', '["map", "demote", "skip"]'::JSONB
+    )),
+    'the mapped cones have a primary image already: map, demote or skip'
+);
+SELECT is((current_setting('test.r2')::JSONB ->> 'unresolved')::INT, 0, 'every conflict is decided');
+
+-- 26. demote fits a media link only.
+SELECT throws_like(
+    format(
+        $$ SELECT pg_temp.run(%L::JSONB, pg_temp.rehearse(%L::JSONB) ->> 'report_hash') $$,
+        (SELECT current_setting('test.d2')::JSONB || jsonb_build_object(c ->> 'key', '{"action": "demote"}'::JSONB)
+         FROM jsonb_array_elements(current_setting('test.r2')::JSONB -> 'conflicts') c WHERE c ->> 'kind' = 'platform_account'),
+        (SELECT current_setting('test.d2')::JSONB || jsonb_build_object(c ->> 'key', '{"action": "demote"}'::JSONB)
+         FROM jsonb_array_elements(current_setting('test.r2')::JSONB -> 'conflicts') c WHERE c ->> 'kind' = 'platform_account')
+    ),
+    '%transfer_decision_invalid%',
+    'a platform account is not demoted'
+);
+
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT lives_ok(
+    $$ SELECT set_config('test.r3', pg_temp.run(current_setting('test.d2')::JSONB, current_setting('test.r2')::JSONB ->> 'report_hash')::TEXT, TRUE) $$,
+    'the copy onto the mapped THO runs'
+);
+RESET ROLE;
+
+CREATE FUNCTION pg_temp.copy2_of (tbl TEXT, source_id TEXT) RETURNS UUID LANGUAGE sql AS $$
+    SELECT (current_setting('test.r3')::JSONB -> 'id_map' -> tbl ->> source_id)::UUID;
+$$;
+
+-- 28. The mapped customer is not written again and keeps its contract.
+SELECT is(
+    (SELECT row(count(*), min(contract_document_id::TEXT)) FROM public.customer
+     WHERE tenant_id = current_setting('test.europe')::UUID AND code = 'THO'),
+    row(1::BIGINT, current_setting('test.eu_contract')),
+    'Europe has one THO, with its own contract'
+);
+
+-- 29. The mapped TR1 is not copied, nor its contact.
+SELECT is(
+    (SELECT row(
+        (SELECT count(*) FROM public.supplier WHERE tenant_id = current_setting('test.europe')::UUID AND code = 'TR1'),
+        (SELECT count(*) FROM public.supplier_contact WHERE tenant_id = current_setting('test.europe')::UUID))),
+    row(1::BIGINT, 1::BIGINT),
+    'a mapped supplier is only an id'
+);
+
+-- 30–31. New codes from Europe's counters, past the codes kept.
+SELECT is((SELECT code FROM public.project WHERE id = pg_temp.copy2_of('project', current_setting('test.pilot'))),
+          'THO-' || extract(year FROM now())::INT || '-003',
+          'the recoded pilot takes Europe''s next THO number');
+SELECT is((SELECT code FROM public.purchase_order WHERE id = pg_temp.copy2_of('purchase_order', '00000000-0000-4000-8000-000000043002')),
+          'PO-THO-' || extract(year FROM now())::INT || '-002',
+          'the recoded order takes Europe''s next PO number');
+
+-- 32. The skipped mop: no product, spec sheet, order line or project link.
+SELECT ok(
+    NOT (current_setting('test.r3')::JSONB -> 'id_map' -> 'product') ? current_setting('test.mop')
+    AND NOT (current_setting('test.r3')::JSONB -> 'id_map' -> 'document') ? current_setting('test.spec_mop')
+    AND NOT EXISTS (
+        SELECT 1 FROM public.purchase_order_line
+        WHERE purchase_order_id = pg_temp.copy2_of('purchase_order', '00000000-0000-4000-8000-000000043002')
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM public.project_product WHERE project_id = pg_temp.copy2_of('project', current_setting('test.pilot'))
+    ),
+    'the skipped mop takes its spec sheet, order line and project link with it'
+);
+
+-- 33. The gate's references: the skipped spec sheet is cleared, the mapped contract is Europe's.
+SELECT is(
+    (SELECT row(approval_document_id, evidence_document_ids) FROM public.project_gate
+     WHERE project_id = pg_temp.copy2_of('project', current_setting('test.pilot')) AND code = 'G1'),
+    row(NULL::UUID, ARRAY[pg_temp.copy_of('document', '00000000-0000-4000-8000-000000043004')]),
+    'G1 loses the skipped approval and cites Europe''s contract'
+);
+
+-- 34. The primary image is demoted; the platform account and the market cell are not copied.
+SELECT is(
+    (SELECT row(
+        (SELECT role::TEXT FROM public.media_link WHERE id = pg_temp.copy2_of('media_link', current_setting('test.cones_link'))),
+        (SELECT count(*) FROM public.customer_platform_account WHERE customer_id = current_setting('test.eu_tho')::UUID),
+        (SELECT count(*) FROM public.market_cell WHERE tenant_id = current_setting('test.europe')::UUID))),
+    row('gallery'::TEXT, 1::BIGINT, 1::BIGINT),
+    'a demoted primary image, one account and one market cell'
+);
 
 SELECT * FROM finish();
 
