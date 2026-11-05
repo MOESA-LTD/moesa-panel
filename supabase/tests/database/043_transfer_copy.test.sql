@@ -12,11 +12,13 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- warehouse and brand meet Europe's and are mapped (the shipment follows the warehouse, one default
 -- stays), the market cell's document and image are reported under the mapped cell, and the mop's
 -- file, used only by the skipped mop, is not copied (the rehearsal counts the same files); a skip
--- reports what it drops; a mapped customer's contact cannot be skipped. What it writes is rolled
--- back.
+-- reports what it drops; a mapped customer's contact cannot be skipped. Last, baris moves THO to
+-- MOESA Trading GmbH: the cyclic references are cleared, the source package is deleted under its own
+-- audit transaction in MOESA (the suppliers and the shared file stay), and the copy keeps its GTIN,
+-- passed gates, closed incident and late references. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(45);
+SELECT plan(62);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -457,6 +459,164 @@ SELECT throws_like(
     'a contact of the mapped customer is not skipped'
 );
 RESET ROLE;
+
+-- 46–62. baris moves THO from MOESA to MOESA Trading GmbH, another company: the copy path, with
+-- the source package deleted. Fixtures first, one on every column the first pass clears (the
+-- RESTRICT cycle): THO's contract (above); G1 passed with a gate approval (…021); the order's PI
+-- (…022) and its line's spec sheet (the mop's); a closed incident (…023) that G2 names as its
+-- rollback (G2 is pending, so the guard is off for that one write); a change request (…024) whose
+-- affected document is the mop's spec sheet and whose result is a THO change request document (…025).
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+VALUES ('00000000-0000-4000-8000-000000043021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate',
+        (SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'gate_approval',
+        'approved', 'https://example.test/G1.pdf');
+UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'),
+                        'brief ok', current_date, '00000000-0000-4000-8000-000000043021');
+INSERT INTO public.incident (id, tenant_id, customer_id, family, severity, title, what_happened)
+VALUES ('00000000-0000-4000-8000-000000043023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'om', 's3',
+        'Old issue', 'Closed long ago.');
+INSERT INTO public.change_request (id, tenant_id, customer_id, project_id, title, source, change_kinds, current_value, requested_value,
+                                   reason, affected_gate_code, affected_document_id)
+VALUES ('00000000-0000-4000-8000-000000043024', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
+        current_setting('test.pilot')::UUID, 'Tolerance 3 mm', 'supplier', ARRAY['spec']::public.change_kind[], 'Tolerance ± 5 mm',
+        'Tolerance ± 3 mm', 'Sample T02 edge deviation.', 'G1', current_setting('test.spec_mop')::UUID);
+RESET ROLE;
+
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+VALUES ('00000000-0000-4000-8000-000000043022', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'purchase_order',
+        '00000000-0000-4000-8000-000000043002', 'pi', 'approved', 'https://example.test/pi.pdf'),
+       ('00000000-0000-4000-8000-000000043025', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'change_request',
+        '00000000-0000-4000-8000-000000043024', 'change_request', 'approved', 'https://example.test/cr-result.pdf');
+UPDATE public.purchase_order SET pi_document_id = '00000000-0000-4000-8000-000000043022' WHERE id = '00000000-0000-4000-8000-000000043002';
+UPDATE public.purchase_order_line SET spec_document_id = current_setting('test.spec_mop')::UUID
+WHERE id = '00000000-0000-4000-8000-000000043003';
+UPDATE public.incident SET status = 'closed' WHERE id = '00000000-0000-4000-8000-000000043023';
+UPDATE public.change_request SET result_document_id = '00000000-0000-4000-8000-000000043025' WHERE id = '00000000-0000-4000-8000-000000043024';
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+
+ALTER TABLE public.project_gate DISABLE TRIGGER project_gate_guard;
+UPDATE public.project_gate SET rolled_back_incident_id = '00000000-0000-4000-8000-000000043023', rolled_back_reason = 'fixture'
+WHERE code = 'G2' AND project_id = current_setting('test.pilot')::UUID;
+ALTER TABLE public.project_gate ENABLE TRIGGER project_gate_guard;
+
+-- What MOESA has before the move.
+SELECT set_config('test.' || x.k, x.v, TRUE)
+FROM (VALUES
+    ('trading', (SELECT id::TEXT FROM public.tenant WHERE display_name = 'MOESA Trading GmbH')),
+    ('baris', (SELECT id::TEXT FROM public.user WHERE email = 'baris@moesa-panel.test')),
+    ('g1_passed_at', (SELECT passed_at::TEXT FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1')),
+    ('phase', (SELECT current_phase::TEXT FROM public.project WHERE id = current_setting('test.pilot')::UUID)),
+    ('tasks', (SELECT count(*)::TEXT FROM public.project_task WHERE project_id = current_setting('test.pilot')::UUID)),
+    ('counter', (SELECT string_agg(year || ':' || last_no, ',' ORDER BY year) FROM public.code_sequence
+                 WHERE tenant_id = current_setting('test.moesa')::UUID AND kind = 'project' AND scope = 'THO'))
+) AS x (k, v);
+
+CREATE FUNCTION pg_temp.move (decisions JSONB DEFAULT '{}', report_hash TEXT DEFAULT NULL) RETURNS JSONB LANGUAGE sql AS $$
+    SELECT public.transfer_customer(
+        current_setting('test.moesa')::UUID, current_setting('test.trading')::UUID, current_setting('test.tho')::UUID, 'move',
+        decisions => decisions, dry_run => report_hash IS NULL, report_hash => report_hash
+    );
+$$;
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+SELECT set_config('test.h4', pg_temp.move() ->> 'report_hash', TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT set_config('test.r4', pg_temp.move('{}', current_setting('test.h4'))::TEXT, TRUE);
+RESET ROLE;
+
+CREATE FUNCTION pg_temp.moved (tbl TEXT, source_id TEXT) RETURNS UUID LANGUAGE sql AS $$
+    SELECT (current_setting('test.r4')::JSONB -> 'id_map' -> tbl ->> source_id)::UUID;
+$$;
+
+-- 46–49. THO leaves MOESA with its products, projects, documents and files; the suppliers stay;
+-- the GTIN is free for the moved product.
+SELECT is((SELECT count(*) FROM public.customer WHERE tenant_id = current_setting('test.moesa')::UUID AND code = 'THO'), 0::BIGINT,
+          'MOESA has no THO any more');
+SELECT is(
+    (SELECT count(*) FROM public.product WHERE tenant_id = current_setting('test.moesa')::UUID AND customer_id = current_setting('test.tho')::UUID)
+    + (SELECT count(*) FROM public.project WHERE tenant_id = current_setting('test.moesa')::UUID AND customer_id = current_setting('test.tho')::UUID)
+    + (SELECT count(*) FROM public.document WHERE tenant_id = current_setting('test.moesa')::UUID AND customer_id = current_setting('test.tho')::UUID)
+    + (SELECT count(*) FROM public.media WHERE tenant_id = current_setting('test.moesa')::UUID AND customer_id = current_setting('test.tho')::UUID),
+    0::BIGINT,
+    'nor its products, projects, documents or files'
+);
+SELECT is((SELECT count(*) FROM public.supplier WHERE tenant_id = current_setting('test.moesa')::UUID AND code IN ('TR1', 'CN1', 'ID1')),
+          3::BIGINT, 'the suppliers stay in MOESA');
+SELECT is((SELECT tenant_id FROM public.product WHERE gtin = '4260696025800'), current_setting('test.trading')::UUID,
+          'the moved product keeps its GTIN in Trading');
+
+-- 50. The source counter is not touched.
+SELECT is(
+    (SELECT string_agg(year || ':' || last_no, ',' ORDER BY year) FROM public.code_sequence
+     WHERE tenant_id = current_setting('test.moesa')::UUID AND kind = 'project' AND scope = 'THO'),
+    current_setting('test.counter'),
+    'MOESA''s THO project counter keeps its number'
+);
+
+-- 51–54. Passed gates and closed incidents arrive as they were.
+SELECT is(
+    (SELECT row(status::TEXT, passed_at::TEXT) FROM public.project_gate
+     WHERE project_id = pg_temp.moved('project', current_setting('test.pilot')) AND code = 'G1'),
+    row('passed'::TEXT, current_setting('test.g1_passed_at')),
+    'passed gates and closed incidents arrive as they were: G1 is passed, on the same date'
+);
+SELECT is((SELECT current_phase::TEXT FROM public.project WHERE id = pg_temp.moved('project', current_setting('test.pilot'))),
+          current_setting('test.phase'), 'the pilot is in the same phase');
+SELECT is((SELECT status::TEXT FROM public.incident WHERE id = pg_temp.moved('incident', '00000000-0000-4000-8000-000000043023')),
+          'closed', 'the incident is closed in Trading');
+SELECT is((SELECT count(*)::TEXT FROM public.project_task WHERE project_id = pg_temp.moved('project', current_setting('test.pilot'))),
+          current_setting('test.tasks'), 'with as many tasks');
+
+-- 55–57. The late columns name the moved documents.
+SELECT ok(
+    (SELECT d.tenant_id = current_setting('test.trading')::UUID AND d.type = 'contract'
+     FROM public.customer c JOIN public.document d ON d.id = c.contract_document_id
+     WHERE c.tenant_id = current_setting('test.trading')::UUID AND c.code = 'THO'),
+    'Trading''s THO cites a Trading contract'
+);
+SELECT ok(
+    (SELECT d.tenant_id = current_setting('test.trading')::UUID AND d.type = 'gate_approval'
+     FROM public.project_gate g JOIN public.document d ON d.id = g.approval_document_id
+     WHERE g.project_id = pg_temp.moved('project', current_setting('test.pilot')) AND g.code = 'G1'),
+    'Trading''s G1 cites a Trading gate approval'
+);
+SELECT is((SELECT spec_document_id FROM public.purchase_order_line WHERE id = pg_temp.moved('purchase_order_line', '00000000-0000-4000-8000-000000043003')),
+          pg_temp.moved('document', current_setting('test.spec_mop')),
+          'the order line cites the Trading spec sheet');
+
+-- 58–59. The source deletions are their own audit transaction, in MOESA.
+SELECT is(
+    (SELECT row(tenant_id, table_name, operation) FROM public.audit_transaction
+     WHERE id = (current_setting('test.r4')::JSONB -> 'audit_transaction_ids' ->> 1)::UUID),
+    row(current_setting('test.moesa')::UUID, 'customer'::TEXT, 'UPDATE'::TEXT),
+    'the source''s audit transaction is MOESA''s, begun by clearing THO''s contract'
+);
+SELECT ok(
+    EXISTS (
+        SELECT 1 FROM public.audit_log l
+        WHERE l.transaction_id = (current_setting('test.r4')::JSONB -> 'audit_transaction_ids' ->> 1)::UUID
+          AND l.table_name = 'customer' AND l.operation = 'DELETE' AND l.old_data ->> 'code' = 'THO'
+    ),
+    'and holds THO''s deletion'
+);
+
+-- 60. The rows without an id are deleted by their key.
+SELECT is((SELECT count(*) FROM public.project_product WHERE tenant_id = current_setting('test.moesa')::UUID), 0::BIGINT,
+          'the project links are deleted by key');
+
+-- 61–62. The rollback incident and the change request's documents follow.
+SELECT is((SELECT rolled_back_incident_id FROM public.project_gate
+           WHERE project_id = pg_temp.moved('project', current_setting('test.pilot')) AND code = 'G2'),
+          pg_temp.moved('incident', '00000000-0000-4000-8000-000000043023'),
+          'G2 names the Trading copy of the closed incident');
+SELECT is(
+    (SELECT row(affected_document_id, result_document_id) FROM public.change_request
+     WHERE id = pg_temp.moved('change_request', '00000000-0000-4000-8000-000000043024')),
+    row(pg_temp.moved('document', current_setting('test.spec_mop')), pg_temp.moved('document', '00000000-0000-4000-8000-000000043025')),
+    'the change request cites the Trading spec sheet and the Trading result'
+);
 
 SELECT * FROM finish();
 

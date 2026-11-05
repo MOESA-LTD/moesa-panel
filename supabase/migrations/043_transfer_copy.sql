@@ -46,9 +46,28 @@
 --                            copied), so the next code numbered in the target is free; then each
 --                            row with a new_code decision gets private.next_code_in(target, kind,
 --                            <target customer code>), kind 'project' or the code's prefix.
--- private.transfer_apply_copy  The copy path: the map, (in a move, the source deletion: 043 part 2),
---                            the suppliers, every other registry table in position order, the
---                            codes (transfer_number_codes), then the
+-- private.transfer_delete_source  A move through the copy path deletes the source package (every
+--                            package row that is not copy_only: the suppliers, their contacts and
+--                            documents and the shared files stay, the links of a shared file to a
+--                            moved row go) before anything is written, so the moved GTINs and codes
+--                            are free; the rows are written afterwards from the snapshot
+--                            (pg_temp.transfer_rows), and no counter of the source changes. A
+--                            RESTRICT key is checked at once even when DEFERRABLE, so it runs in two
+--                            passes: first the late and array columns of the package rows are
+--                            cleared (NULL, '{}'), in registry order (the customer first), which
+--                            leaves no RESTRICT reference from a table to a later one; then the rows
+--                            are deleted in descending registry position, variants before their
+--                            parents, a row with an id by its id and the three tables without one by
+--                            their key_columns. The flag lets the guards and frozen-row rules pass.
+--                            The deletions are an audit transaction of the source tenant: the
+--                            target's audit.transaction_id, tenant_id and depth are saved and
+--                            cleared, the first write starts the source's (a first pass UPDATE, so
+--                            per 010 its operation is UPDATE), then the three are restored and the
+--                            source's id is appended to the transfer's audit_transaction_ids (an
+--                            UPDATE logged in the target's transaction).
+-- private.transfer_apply_copy  The copy path: the map, in a move the source deletion
+--                            (transfer_delete_source), the suppliers, every other registry table in
+--                            position order, the codes (transfer_number_codes), then the
 --                            late pass (late and array columns through the map, for the rows
 --                            written), then the transfer row's id_map, files, files_status (pending
 --                            while there are files to copy) and target_customer_id.
@@ -378,6 +397,92 @@ $$;
 
 REVOKE ALL ON FUNCTION private.transfer_number_codes (UUID) FROM PUBLIC, anon, authenticated;
 
+-- The source package deleted, in a move (see the header).
+CREATE OR REPLACE FUNCTION private.transfer_delete_source (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    source UUID;
+    reg RECORD;
+    sets TEXT;
+    changed TEXT;
+    keys TEXT;
+    picked CONSTANT TEXT :=
+        'SELECT r.source_id FROM pg_temp.transfer_rows r WHERE r.table_name = %L AND NOT r.copy_only';
+    saved_transaction TEXT := current_setting('audit.transaction_id', TRUE);
+    saved_tenant TEXT := current_setting('audit.tenant_id', TRUE);
+    saved_depth TEXT := current_setting('audit.depth', TRUE);
+    source_transaction UUID;
+BEGIN
+    SELECT t.source_tenant_id INTO source FROM public.transfer t WHERE t.id = transfer_delete_source.transfer_id;
+
+    -- The source's own audit transaction.
+    PERFORM set_config('audit.transaction_id', '', TRUE);
+
+    -- 1. The late and array columns cleared, in registry order.
+    FOR reg IN
+        SELECT g.table_name, g.late_columns, g.array_columns FROM private.transfer_registry g
+        WHERE cardinality(g.late_columns) > 0 OR g.array_columns <> '{}'
+        ORDER BY g.position
+    LOOP
+        SELECT string_agg(format('%I = NULL', c), ', '), string_agg(format('x.%I IS NOT NULL', c), ' OR ')
+        INTO sets, changed
+        FROM unnest(reg.late_columns) AS c;
+
+        SELECT concat_ws(', ', sets, string_agg(format('%I = ''{}''', a.key), ', ')),
+               concat_ws(' OR ', changed, string_agg(format('cardinality(x.%I) > 0', a.key), ' OR '))
+        INTO sets, changed
+        FROM jsonb_object_keys(reg.array_columns) AS a (key);
+
+        EXECUTE format(
+            'UPDATE public.%I x SET %s WHERE x.tenant_id = $1 AND x.id IN (%s) AND (%s)',
+            reg.table_name, sets, format(picked, reg.table_name), changed
+        )
+        USING source;
+    END LOOP;
+
+    -- 2. The rows deleted, children first.
+    FOR reg IN SELECT g.table_name, g.key_columns FROM private.transfer_registry g ORDER BY g.position DESC LOOP
+        IF reg.key_columns IS NOT NULL THEN
+            SELECT string_agg(format('x.%I::TEXT', k), ', '), string_agg(format('r.key ->> %L', k), ', ')
+            INTO sets, keys
+            FROM unnest(reg.key_columns) AS k;
+
+            EXECUTE format(
+                'DELETE FROM public.%1$I x WHERE x.tenant_id = $1 AND (%2$s) IN ('
+                'SELECT %3$s FROM pg_temp.transfer_rows r WHERE r.table_name = %1$L AND NOT r.copy_only)',
+                reg.table_name, sets, keys
+            )
+            USING source;
+        ELSE
+            IF reg.table_name = 'product' THEN
+                -- The variants before their parents.
+                EXECUTE format('DELETE FROM public.product x WHERE x.tenant_id = $1 AND x.parent_id IS NOT NULL AND x.id IN (%s)',
+                               format(picked, 'product'))
+                USING source;
+            END IF;
+
+            EXECUTE format('DELETE FROM public.%I x WHERE x.tenant_id = $1 AND x.id IN (%s)', reg.table_name, format(picked, reg.table_name))
+            USING source;
+        END IF;
+    END LOOP;
+
+    -- 3. The target's audit transaction back, then the source's recorded with it.
+    source_transaction := nullif(current_setting('audit.transaction_id', TRUE), '')::UUID;
+    PERFORM set_config('audit.transaction_id', coalesce(saved_transaction, ''), TRUE);
+    PERFORM set_config('audit.tenant_id', coalesce(saved_tenant, ''), TRUE);
+    PERFORM set_config('audit.depth', coalesce(saved_depth, ''), TRUE);
+
+    IF source_transaction IS NOT NULL THEN
+        UPDATE public.transfer t
+        SET audit_transaction_ids = t.audit_transaction_ids || source_transaction
+        WHERE t.id = transfer_delete_source.transfer_id;
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.transfer_delete_source (UUID) FROM PUBLIC, anon, authenticated;
+
 -- The copy path (see the header).
 CREATE OR REPLACE FUNCTION private.transfer_apply_copy (transfer_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
@@ -398,9 +503,9 @@ BEGIN
     -- 1. The id map.
     PERFORM private.transfer_build_map(run.id, FALSE);
 
-    -- 2. A move deletes the source package first (043 part 2); until then it writes nothing.
+    -- 2. A move deletes the source package first; the rows are written from the snapshot.
     IF run.mode = 'move' THEN
-        RAISE EXCEPTION 'A move through the copy path is not available yet.' USING ERRCODE = 'feature_not_supported';
+        PERFORM private.transfer_delete_source(run.id);
     END IF;
 
     -- 3. The suppliers.
