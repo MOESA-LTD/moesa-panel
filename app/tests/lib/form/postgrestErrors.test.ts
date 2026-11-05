@@ -530,9 +530,10 @@ describe('mapPostgrestError', () => {
          'transfer_decision_invalid',
          'transfer_code_invalid',
          'transfer_product_in_use',
+         'transfer_files_pending',
          'transfer_not_found'
       ];
-      expect(names).toHaveLength(18);
+      expect(names).toHaveLength(19);
       expect(
          NAMED_ERRORS.filter(({ name }) => /^(audit_)?transfer_/.test(name)).map(({ name }) => name)
       ).toEqual(names);
