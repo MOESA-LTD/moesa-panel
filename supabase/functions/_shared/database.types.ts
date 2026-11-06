@@ -5005,6 +5005,31 @@ export type Database = {
           updated_at: string
         }
       }
+      listing_begin_submission: {
+        Args: {
+          p_cell_id: string
+          p_kind: Database["public"]["Enums"]["listing_submission_kind"]
+          p_sku: string
+          p_marketplace_id: string
+          p_payload: Json
+          p_created_by: string
+        }
+        Returns: {
+          amazon_submission_id: string | null
+          cell_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issues: Json
+          kind: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id: string
+          payload: Json
+          sku: string
+          status: Database["public"]["Enums"]["listing_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+      }
       listing_parent_cell: {
         Args: {
           p_cell_id: string
@@ -5016,8 +5041,39 @@ export type Database = {
           p_cell_id: string
           p_listing_state: Database["public"]["Enums"]["listing_state"]
           p_listing_match: Json
+          p_expected_updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          compliance: Database["public"]["Enums"]["market_compliance"]
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at: string
+          currency: string | null
+          customer_id: string
+          fulfillment_channel: string | null
+          id: string
+          last_checked_on: string | null
+          launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number
+          product_id: string
+          project_id: string | null
+          status: Database["public"]["Enums"]["market_cell_status"]
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string
+          updated_at: string
+        }
       }
       managed_in: {
         Args: {

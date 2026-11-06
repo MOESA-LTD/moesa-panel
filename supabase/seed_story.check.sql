@@ -682,6 +682,10 @@ SELECT 'm22.no_token', a.id FROM public.customer_platform_account a WHERE privat
 -- m22.definition: the fixture is in the cache, under the envelope's schema, for every marketplace of THO's amazon cells that has one
 SELECT 'm22.definition', m FROM unnest(ARRAY['A1PA6795UKMFR9', 'A13V1IB3VIYZZH', 'APJ6JRA9NG5V4', 'A1RKKUPIHCS9HS', 'A1805IZSGTT6HS']) m
    WHERE NOT EXISTS (SELECT 1 FROM public.amazon_product_type_definition WHERE product_type = 'LUGGAGE' AND marketplace_id = m AND locale = 'en_GB' AND version = 'UHqSqmb4FNUk=' AND jsonb_typeof(schema -> 'properties') = 'object');
+-- m22.group_order: the cached property groups are an array in Amazon's order (the fixture's order)
+SELECT 'm22.group_order', d.marketplace_id FROM public.amazon_product_type_definition d
+   WHERE d.product_type = 'LUGGAGE' AND (jsonb_typeof(d.property_groups) <> 'array'
+      OR ARRAY(SELECT g ->> 'key' FROM jsonb_array_elements(d.property_groups) g) <> ARRAY['product_identity', 'offer', 'images', 'product_details', 'variations']);
 -- m22.attributes: the mop has its product type, schema version, attributes and the variation theme of its family
 SELECT 'm22.attributes' WHERE NOT EXISTS (SELECT 1 FROM public.product WHERE tenant_id = pg_temp.moesa() AND sku = 'THO-MOP40-2P' AND amazon_product_type = 'LUGGAGE' AND amazon_schema_version = 'UHqSqmb4FNUk='
    AND listing_attributes ? 'item_name' AND listing_attributes ? 'variation_theme');

@@ -1,20 +1,24 @@
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
 -- The Amazon listing core (046) on the demo companies of seed.sql: the new columns and enums; the
--- definition cache is read by every user and written by none; a user's submission starts
--- processing with no issues and is never changed by a user; listing_state and the Amazon
--- connection are server-only; another tenant sees no submission; as the service role, connecting
--- an account stores its token in Vault (one secret per account) and disconnecting with 'none'
--- removes it; listing_apply_submission walks market_cell.status only through the legal
+-- definition cache is read by every user and written by none, and its property groups are an
+-- ordered array; a user never writes a submission (only the service role does); listing_state and
+-- the Amazon connection are server-only, and a connected account cannot move to another customer
+-- (a transfer moves it disconnected); another tenant sees no submission; as the service role,
+-- connecting an account stores its token in Vault (one secret per account) and disconnecting with
+-- 'none' removes it; listing_apply_submission walks market_cell.status only through the legal
 -- transitions (R2: accepted → uploaded, live only with the listing data, issues keep the status
--- and write open_issue) and fills the platform product ID from the ASIN; the parent cell is
--- created on demand and mirrors its worst child (R7); the registry row, the public bucket and the
--- coordinator's publish permission are there; a transferred account starts disconnected. The
--- cells are THO-MOP40-2P's on amazon PL, SE, BE and GB, inserted as postgres and walked with
--- UPDATEs. What it writes is rolled back.
+-- and write open_issue), fills the platform product ID from the ASIN and moves the cell only for
+-- the cell's latest submission; listing_begin_submission records a submission, marks the cell
+-- submitted and refuses a second one while one is in flight; listing_set_state writes only over
+-- the version it was given and clears an Amazon open issue when leaving issues; the parent cell is
+-- created on demand and shows the worst of its own submission and its children (R7); the registry
+-- row, the public bucket and the coordinator's publish permission are there; a transferred account
+-- starts disconnected. The cells are THO-MOP40-2P's on amazon PL, SE, BE, GB and NL, inserted as
+-- postgres and walked with UPDATEs. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(52);
+SELECT plan(65);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -53,7 +57,7 @@ DECLARE
     s RECORD;
     new_id UUID;
 BEGIN
-    FOR s IN SELECT * FROM (VALUES ('preparing', 'pl'), ('planned', 'se'), ('candidate', 'be'), ('complete', 'pl'), ('no_price', 'gb'), ('issues', 'nl')) AS v (k, cell) LOOP
+    FOR s IN SELECT * FROM (VALUES ('preparing', 'pl'), ('planned', 'se'), ('candidate', 'be'), ('no_price', 'gb'), ('issues', 'nl')) AS v (k, cell) LOOP
         INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_' || s.cell)::UUID, 'create', 'THO-MOP40-2P', 'A1C3SOZRARQ6R3', '{}')
         RETURNING id INTO new_id;
@@ -87,28 +91,31 @@ SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('
 SELECT lives_ok($$ SELECT * FROM public.amazon_product_type_definition $$, 'a user reads the definition cache');
 SELECT throws_ok(
     $$ INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, schema, property_groups)
-       VALUES ('X', 'Y', 'en_GB', '1', '{}', '{}') $$,
+       VALUES ('X', 'Y', 'en_GB', '1', '{}', '[]') $$,
     '42501',
     NULL,
     'a user cannot write the definition cache'
 );
 
-WITH s AS (
-    INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload, status, issues, amazon_submission_id)
-    VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_se')::UUID, 'create', 'THO-MOP40-2P', 'A2NODRKZP88ZB9', '{}',
-            'done', '[{"message": "forged"}]', 'forged')
-    RETURNING id, status
-)
-SELECT set_config('test.sub', s.id::TEXT, TRUE), set_config('test.inserted_status', s.status::TEXT, TRUE) FROM s;
-
-SELECT is(current_setting('test.inserted_status'), 'processing', 'a user insert starts processing');
-SELECT is((SELECT issues FROM public.listing_submission WHERE id = current_setting('test.sub')::UUID), '[]'::JSONB, 'a user insert carries no issues');
-
-UPDATE public.listing_submission SET status = 'done';
-SELECT is(
-    (SELECT status::TEXT FROM public.listing_submission WHERE id = current_setting('test.sub')::UUID),
-    'processing',
+SELECT throws_ok(
+    $$ INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload, status, amazon_submission_id)
+       VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_se')::UUID, 'create', 'FORGED-SKU', 'A2NODRKZP88ZB9', '{}',
+               'done', 'forged') $$,
+    '42501',
+    NULL,
+    'a user cannot insert a submission'
+);
+SELECT throws_ok(
+    $$ UPDATE public.listing_submission SET status = 'done' $$,
+    '42501',
+    NULL,
     'a user cannot update a submission'
+);
+SELECT throws_ok(
+    $$ DELETE FROM public.listing_submission $$,
+    '42501',
+    NULL,
+    'a user cannot delete a submission'
 );
 
 SELECT throws_ok(
@@ -153,6 +160,21 @@ SELECT ok(
 
 RESET ROLE;
 SELECT is((SELECT count(*) FROM vault.secrets WHERE name = 'amazon:' || current_setting('test.acct'))::INT, 1, 'one secret per account');
+
+-- C1. A connected account stays with its customer: its token would publish another customer's
+-- products into this seller account.
+INSERT INTO public.customer (tenant_id, code, display_name, commercial_model)
+VALUES (current_setting('test.moesa')::UUID, 'ZZC', 'Zed Charlie', 'trading_partner');
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_ok(
+    $$ UPDATE public.customer_platform_account
+       SET customer_id = (SELECT c.id FROM public.customer c WHERE c.tenant_id = current_setting('test.moesa')::UUID AND c.code = 'ZZC')
+       WHERE id = current_setting('test.acct')::UUID $$,
+    '42501',
+    'platform_account_connected',
+    'a connected account cannot move to another customer'
+);
+RESET ROLE;
 SET LOCAL ROLE service_role;
 
 SELECT lives_ok($$ SELECT public.amazon_account_disconnect(current_setting('test.acct')::UUID, 'none') $$, 'disconnect');
@@ -197,6 +219,15 @@ SELECT is(
     'candidate',
     'a candidate stays a candidate'
 );
+RESET ROLE;
+WITH s AS (
+    INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+    VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_pl')::UUID, 'create', 'THO-MOP40-2P', 'A1C3SOZRARQ6R3', '{}')
+    RETURNING id
+)
+SELECT set_config('test.sub_complete', s.id::TEXT, TRUE) FROM s;
+SET LOCAL ROLE service_role;
+
 SELECT is(
     (public.listing_apply_submission(current_setting('test.sub_complete')::UUID, 'done', NULL, '[]', 'live', 'B07N4M94X4')).status,
     'live',
@@ -222,6 +253,57 @@ SELECT matches(
 SELECT is((SELECT status::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_nl')::UUID), 'planned', 'accepted with issues keeps the status');
 SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_nl')::UUID), 'issues', 'accepted with issues is in issues');
 SELECT is((SELECT platform_product_id FROM public.market_cell WHERE id = current_setting('test.cell_pl')::UUID), 'B07N4M94X4', 'the ASIN fills the platform product id');
+
+-- C2/C13. listing_begin_submission: GB's last submission is done, so a new one starts; BE's is
+-- accepted (in flight), so a second one is refused.
+SELECT set_config('test.sub_begin', (public.listing_begin_submission(
+    current_setting('test.cell_gb')::UUID, 'update', 'THO-MOP40-2P', 'A1F83G8C2ARO7P', '{"productType": "LUGGAGE"}', current_setting('test.akif')::UUID
+)).id::TEXT, TRUE);
+SELECT ok(
+    (SELECT status = 'processing' AND created_by = current_setting('test.akif')::UUID AND issues = '[]'::JSONB
+     FROM public.listing_submission WHERE id = current_setting('test.sub_begin')::UUID),
+    'begin records a processing submission by the caller'
+);
+SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_gb')::UUID), 'submitted', 'begin marks the cell submitted before Amazon is called');
+SELECT throws_ok(
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_be')::UUID, 'create', 'THO-MOP40-2P', 'AMEN7PMS3EDWL', '{}', NULL) $$,
+    'P0001',
+    'listing_in_progress',
+    'begin refuses while the last submission is in flight'
+);
+
+-- C2. An older submission's answer settles that submission only: GB keeps the newer one's state.
+SELECT is(
+    (public.listing_apply_submission(current_setting('test.sub_no_price')::UUID, 'done', NULL,
+        '[{"code":"18027","message":"late","severity":"ERROR"}]', 'issues', NULL)).listing_state::TEXT,
+    'submitted',
+    'a stale submission does not move the cell'
+);
+SELECT is(
+    (SELECT issues -> 0 ->> 'message' FROM public.listing_submission WHERE id = current_setting('test.sub_no_price')::UUID),
+    'late',
+    'a stale submission is still settled'
+);
+
+-- C2. listing_set_state writes only over the version it read.
+SELECT is(
+    (public.listing_set_state(current_setting('test.cell_se')::UUID, 'ready', NULL, '2000-01-01T00:00:00Z')).listing_state::TEXT,
+    'submitted',
+    'set_state over a changed cell keeps the current state'
+);
+SELECT is(
+    (public.listing_set_state(current_setting('test.cell_se')::UUID, 'ready', NULL,
+        (SELECT updated_at FROM public.market_cell WHERE id = current_setting('test.cell_se')::UUID))).listing_state::TEXT,
+    'ready',
+    'set_state over the version it read writes'
+);
+
+-- C18. Leaving issues (a removal) clears the Amazon open issue.
+SELECT is(
+    (public.listing_set_state(current_setting('test.cell_nl')::UUID, 'draft', NULL)).open_issue,
+    NULL,
+    'leaving issues clears the Amazon open issue'
+);
 
 -- The parent case: a parent product with one child, the child's cell on amazon DE.
 RESET ROLE;
@@ -250,8 +332,8 @@ SELECT set_config('test.sub_child', s.id::TEXT, TRUE) FROM s;
 
 SET LOCAL ROLE service_role;
 
--- 46–47.
 SELECT isnt(public.listing_parent_cell(current_setting('test.child_cell')::UUID), NULL, 'the parent cell is created');
+SELECT set_config('test.parent_cell', public.listing_parent_cell(current_setting('test.child_cell')::UUID)::TEXT, TRUE);
 
 SELECT 1 FROM public.listing_apply_submission(
     current_setting('test.sub_child')::UUID, 'done', NULL, '[{"code":"18027","message":"image","severity":"ERROR"}]', 'issues', NULL
@@ -263,6 +345,41 @@ SELECT is(
     'the parent mirrors the worst child'
 );
 
+-- C6. The parent's own submission counts too: its failure is not hidden by a live child, and it
+-- goes live once both are.
+RESET ROLE;
+INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+VALUES (current_setting('test.moesa')::UUID, current_setting('test.parent_cell')::UUID, 'create', 'THO-M22-PARENT', 'A1PA6795UKMFR9', '{}');
+INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+VALUES (current_setting('test.moesa')::UUID, current_setting('test.child_cell')::UUID, 'update', 'THO-M22-CHILD', 'A1PA6795UKMFR9', '{}');
+SET LOCAL ROLE service_role;
+SELECT 1 FROM public.listing_apply_submission(
+    (SELECT id FROM public.listing_submission WHERE cell_id = current_setting('test.parent_cell')::UUID),
+    'failed', NULL, '[{"code":"amazon_poll_timeout","message":"late","severity":"ERROR"}]', 'issues', NULL
+);
+SELECT 1 FROM public.listing_apply_submission(
+    (SELECT id FROM public.listing_submission WHERE cell_id = current_setting('test.child_cell')::UUID AND kind = 'update'),
+    'done', NULL, '[]', 'live', NULL
+);
+SELECT is(
+    (SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.parent_cell')::UUID),
+    'issues',
+    'a live child does not hide the parent''s own failure'
+);
+RESET ROLE;
+INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+VALUES (current_setting('test.moesa')::UUID, current_setting('test.parent_cell')::UUID, 'update', 'THO-M22-PARENT', 'A1PA6795UKMFR9', '{}');
+SET LOCAL ROLE service_role;
+SELECT 1 FROM public.listing_apply_submission(
+    (SELECT id FROM public.listing_submission WHERE cell_id = current_setting('test.parent_cell')::UUID AND kind = 'update'),
+    'done', NULL, '[]', 'live', NULL
+);
+SELECT is(
+    (SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.parent_cell')::UUID),
+    'live',
+    'the parent is live with its own listing and its children live'
+);
+
 RESET ROLE;
 
 -- 48–50. The registry, the bucket, the coordinator.
@@ -271,6 +388,13 @@ SELECT ok(
     'listing_submission is registered'
 );
 SELECT ok((SELECT public FROM storage.buckets WHERE id = 'listing-images'), 'listing-images is public');
+SELECT throws_ok(
+    $$ INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, schema, property_groups)
+       VALUES ('X', 'Y', 'en_GB', '1', '{}', '{"g": {"title": "G", "propertyNames": []}}') $$,
+    '23514',
+    NULL,
+    'the property groups are an ordered array'
+);
 SELECT ok(
     EXISTS (
         SELECT 1
@@ -311,6 +435,29 @@ SELECT set_config('test.transferred_connection', a.api_connection::TEXT, TRUE) F
 SELECT set_config('moesa.transfer_id', '', TRUE);
 
 SELECT is(current_setting('test.transferred_connection'), 'none', 'a transferred account starts disconnected');
+
+-- C1. A running transfer that moves a connected account moves it disconnected, without its token.
+SET LOCAL ROLE service_role;
+SELECT 1 FROM public.amazon_account_connect(
+    (SELECT a.id FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id
+     WHERE c.code = 'ZZA' AND a.platform_id = 'amazon'),
+    'Atzr|moved', 'A3MOVED'
+);
+RESET ROLE;
+INSERT INTO public.customer (tenant_id, code, display_name, commercial_model)
+VALUES (current_setting('test.moesa')::UUID, 'ZZB', 'Zed Bravo', 'trading_partner');
+SELECT set_config('moesa.transfer_id', '00000000-0000-4000-8000-000000046001', TRUE);
+UPDATE public.customer_platform_account a
+SET customer_id = (SELECT id FROM public.customer WHERE code = 'ZZB' AND tenant_id = current_setting('test.moesa')::UUID)
+FROM public.customer c
+WHERE c.id = a.customer_id AND c.code = 'ZZA' AND a.platform_id = 'amazon';
+SELECT set_config('moesa.transfer_id', '', TRUE);
+SELECT ok(
+    (SELECT a.api_connection = 'none' AND a.seller_id IS NULL AND private.amazon_token(a.id) IS NULL
+     FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id
+     WHERE c.code = 'ZZB' AND a.platform_id = 'amazon'),
+    'a transfer moves a connected account disconnected'
+);
 
 SELECT * FROM finish();
 

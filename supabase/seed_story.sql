@@ -1529,6 +1529,12 @@ DO $$
 DECLARE
     v_tenant UUID := private.story_begin('koordinator@moesa-panel.test', 'MOESA LTD');
     v_definition JSONB := current_setting('story.amazon_definition')::JSONB;
+    -- The property groups in Amazon's order: read as json (jsonb would reorder the keys), stored as
+    -- an array of {key, title, description, propertyNames}.
+    v_groups JSONB := (
+        SELECT jsonb_agg(jsonb_build_object('key', g.key) || g.value::JSONB ORDER BY g.n)
+        FROM json_each(current_setting('story.amazon_definition')::JSON -> 'propertyGroups') WITH ORDINALITY AS g (key, value, n)
+    );
     v_attributes JSONB := current_setting('story.amazon_attributes')::JSONB;
     v_seller TEXT := current_setting('story.amazon_seller_id');
     v_account UUID;
@@ -1537,7 +1543,7 @@ DECLARE
 BEGIN
     INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, display_name, schema, property_groups)
     SELECT m, v_definition ->> 'productType', v_definition ->> 'locale', v_definition -> 'productTypeVersion' ->> 'version',
-           v_definition ->> 'displayName', v_definition -> 'schema', v_definition -> 'propertyGroups'
+           v_definition ->> 'displayName', v_definition -> 'schema', v_groups
     FROM unnest(ARRAY['A1PA6795UKMFR9', 'A13V1IB3VIYZZH', 'APJ6JRA9NG5V4', 'A1RKKUPIHCS9HS', 'A1805IZSGTT6HS']) m;
 
     UPDATE public.customer_platform_account a

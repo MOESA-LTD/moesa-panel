@@ -18,23 +18,31 @@
 --                                 business state (R2).
 -- amazon_product_type_definition  Amazon's product type schema per (marketplace, product type,
 --                                 locale), with its version, display name, JSON schema and property
---                                 groups. Tenant-neutral: every user reads it, only the service role
---                                 writes it (no write policy).
+--                                 groups (an array in Amazon's order: [{key, title, description,
+--                                 propertyNames}], since a jsonb object would reorder its keys).
+--                                 Tenant-neutral: every user reads it, only the service role writes
+--                                 it (no write policy).
 -- listing_submission              One submission of a cell's listing to Amazon (create, update or
 --                                 delete), with its SKU, marketplace, payload, Amazon's submission id,
---                                 its status and Amazon's issues verbatim. Users read and insert
---                                 them; only the service role changes them.
+--                                 its status and Amazon's issues verbatim. Users read them; only the
+--                                 service role writes them (INSERT, UPDATE and DELETE are revoked
+--                                 from authenticated), through listing_begin_submission. created_at
+--                                 is clock_timestamp(), so the latest submission of a cell is the
+--                                 one with the greatest created_at even within one transaction.
 --
--- Guards (check_violation, the message is the code):
---   market_cell_listing_server_only   a user (current_user authenticated) sets or changes
---                                     listing_state, listing_checked_at or listing_match
---   platform_account_api_server_only  a user writes a non-default api_connection, authorized_at
---                                     or seller_id (on UPDATE: changes one of them)
--- A user's listing_submission INSERT starts processing with no issues and no Amazon id, whatever
--- the client sends. A customer_platform_account inserted by a transfer (private.transferring())
--- starts disconnected: the Vault token is keyed by the source row's id. The guards are SECURITY
--- INVOKER, so current_user is the writer; the service functions below are SECURITY DEFINER and
--- pass them.
+-- Guards (the message is the code):
+--   market_cell_listing_server_only   check_violation: a user (current_user authenticated) sets or
+--                                     changes listing_state, listing_checked_at or listing_match
+--   platform_account_api_server_only  check_violation: a user writes a non-default api_connection,
+--                                     authorized_at or seller_id (on UPDATE: changes one of them)
+--   platform_account_connected        insufficient_privilege (42501): anyone changes customer_id,
+--                                     tenant_id or platform_id of an account that is not 'none' or
+--                                     has a token in Vault (the token would follow the row to another
+--                                     customer). A running transfer (private.transferring()) moves it
+--                                     disconnected instead and deletes its token.
+-- A customer_platform_account inserted by a transfer (private.transferring()) starts disconnected:
+-- the Vault token is keyed by the source row's id. The first two guards are SECURITY INVOKER, so
+-- current_user is the writer; the service functions below are SECURITY DEFINER and pass them.
 --
 -- Vault  private.amazon_token(p_account_id) reads the secret named 'amazon:<account id>' (NULL
 --        when there is none); private.amazon_token_set(p_account_id, p_refresh_token) creates or
@@ -48,18 +56,32 @@
 --   amazon_account_disconnect  'none' clears the connection and deletes the token; 'revoked'
 --                              (Amazon answered invalid_grant) deletes the token too and keeps
 --                              authorized_at and seller_id: no credential lingers
---   listing_set_state          the cell's listing_state, listing_checked_at = now() and, when
---                              given, listing_match; the parent cell then mirrors its children
---   listing_apply_submission   Amazon's answer for a submission, applied to it and to its cell
+--   listing_begin_submission   under the cell's row lock: refuses a create or update with
+--                              'listing_in_progress' (P0001) while the cell's latest submission is
+--                              accepted or processing (two publishes never overlap); inserts the
+--                              submission (processing, created_by = p_created_by, the tenant of
+--                              the cell) and, for a create or update, sets the cell submitted, so
+--                              a run that dies before Amazon answers leaves a row the poll settles
+--   listing_set_state          under the cell's row lock: the cell's listing_state,
+--                              listing_checked_at = now() and, when given, listing_match; leaving
+--                              issues clears an 'Amazon: ' open issue (unless suppressed). With
+--                              p_expected_updated_at, it writes only when the cell's updated_at is
+--                              still that value (the caller's read), else it changes nothing.
+--                              Returns the cell as it is afterwards; the parent cell is settled
+--   listing_apply_submission   Amazon's answer for a submission, applied to it and, when it is
+--                              the cell's latest submission, to its cell (an older one settles its
+--                              own row only, and the cell is returned unchanged)
 --   listing_parent_cell        the cell of the product's parent in the same platform and country,
 --                              inserted (as a candidate) when missing; NULL without a parent
 -- A missing row raises no_data_found (P0002), a NULL listing state invalid_parameter_value (22023),
 -- with a plain message: these are server errors, never shown to a user. Deleting a platform
 -- account (directly or by cascade) deletes its token (platform_account_forget_token).
 --
--- R2's walk (listing_apply_submission). The cell's status moves only through 034's transitions,
--- one UPDATE per step, each passing market_cell_z_guard (the rules are not bypassed):
---   1. the submission gets the status, the Amazon id (kept when none is given) and the issues;
+-- R2's walk (listing_apply_submission). The cell is locked first. The cell's status moves only
+-- through 034's transitions, one UPDATE per step, each passing market_cell_z_guard (the rules are
+-- not bypassed):
+--   1. the submission gets the status, the Amazon id (kept when none is given) and the issues; when
+--      it is not the cell's latest submission, the walk stops here;
 --   2. the cell gets platform_product_id := its own or the ASIN, platform_sku := its own or the
 --      submission's SKU, listing_state and listing_checked_at; with issues, open_issue := 'Amazon: '
 --      and the first three messages joined with '; '; with any other state, an 'Amazon: ' open
@@ -68,15 +90,22 @@
 --      paused, stopped, removed cell) does not move;
 --   4. live: uploaded or suppressed → live, only with the listing data and approved content (L-G1,
 --      as the guard asks); otherwise the status stays and listing_state is live anyway;
---   5. the parent's cell in the same platform and country, if any, mirrors the worst state of its
---      children's cells: issues < draft < ready < submitted < live (R7).
+--   5. the parent cells are settled (R7, below).
+--
+-- A parent cell (its product has children) shows the worst of its own state and its children's
+-- cells in the same platform and country: issues < draft < ready < submitted < live. Its own
+-- state comes from its latest submission (private.listing_own_state): an ERROR issue, invalid or
+-- failed → issues; accepted or processing → submitted; done → live; a done delete → draft; none,
+-- or an unsettled delete → not counted. Mirroring never overwrites the parent's own outcome.
 --
 -- Transfer: listing_submission is carried with its cell (registry position 215, created_by is the
 -- actor); the new product and cell columns are copied as plain data. Nothing resets listing_state:
 -- the app treats a cell as draft while its customer's account is not connected.
 --
 -- Module listing (core): select and insert on public.listing_submission, for the owner role and
--- every role that may change products. The CASL subject is listing_submission.
+-- every role that may change products. The CASL subject is listing_submission; the insert right
+-- is what amazon-listing checks before it writes a submission with the service role (the table
+-- privilege itself is revoked from users).
 --
 -- Bucket listing-images: public (Amazon fetches the images without credentials, R5), PNG and JPEG
 -- up to 10 MiB, no user storage policy: only the service role writes it.
@@ -120,7 +149,7 @@ CREATE TABLE IF NOT EXISTS public.amazon_product_type_definition (
    version TEXT NOT NULL,
    display_name TEXT,
    schema JSONB NOT NULL,
-   property_groups JSONB NOT NULL,
+   property_groups JSONB NOT NULL CONSTRAINT amazon_product_type_definition_groups_array CHECK (jsonb_typeof(property_groups) = 'array'),
    fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
    PRIMARY KEY (marketplace_id, product_type, locale)
 );
@@ -145,7 +174,8 @@ CREATE TABLE IF NOT EXISTS public.listing_submission (
    -- Amazon's issues, verbatim: [{code, message, severity, attributeNames?}].
    issues JSONB NOT NULL DEFAULT '[]',
    created_by UUID DEFAULT auth.uid (),
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   -- clock_timestamp: two submissions of one transaction keep their order.
+   created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
    -- Deferrable like the other composite keys a transfer carries (041).
    CONSTRAINT listing_submission_cell_fkey FOREIGN KEY (cell_id, tenant_id) REFERENCES public.market_cell (id, tenant_id) ON DELETE CASCADE DEFERRABLE INITIALLY IMMEDIATE
@@ -164,22 +194,6 @@ SELECT
    private.audit_enable ('public.listing_submission'::REGCLASS);
 
 -- Guards (see the header). SECURITY INVOKER: current_user is the writer.
-CREATE OR REPLACE FUNCTION private.listing_submission_user_insert () RETURNS TRIGGER LANGUAGE plpgsql
-SET
-   search_path = '' AS $$
-BEGIN
-    IF current_user = 'authenticated' THEN
-        NEW.status := 'processing';
-        NEW.issues := '[]'::JSONB;
-        NEW.amazon_submission_id := NULL;
-    END IF;
-    RETURN NEW;
-END;
-$$;
-
-CREATE OR REPLACE TRIGGER listing_submission_user_insert BEFORE INSERT ON public.listing_submission FOR EACH ROW
-EXECUTE FUNCTION private.listing_submission_user_insert ();
-
 CREATE OR REPLACE FUNCTION private.market_cell_listing_server_only () RETURNS TRIGGER LANGUAGE plpgsql
 SET
    search_path = '' AS $$
@@ -238,7 +252,37 @@ OR
 UPDATE ON public.customer_platform_account FOR EACH ROW
 EXECUTE FUNCTION private.platform_account_api_server_only ();
 
-REVOKE ALL ON FUNCTION private.listing_submission_user_insert () FROM PUBLIC, anon, authenticated;
+-- A connected account (or one with a token) stays with its customer, tenant and platform. SECURITY
+-- DEFINER: it reads Vault, and it applies to every writer.
+CREATE OR REPLACE FUNCTION private.platform_account_connected () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF NEW.customer_id IS NOT DISTINCT FROM OLD.customer_id
+       AND NEW.tenant_id IS NOT DISTINCT FROM OLD.tenant_id
+       AND NEW.platform_id IS NOT DISTINCT FROM OLD.platform_id THEN
+        RETURN NEW;
+    END IF;
+
+    IF OLD.api_connection = 'none' AND private.amazon_token(OLD.id) IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF private.transferring() THEN
+        NEW.api_connection := 'none';
+        NEW.authorized_at := NULL;
+        NEW.seller_id := NULL;
+        PERFORM private.amazon_token_set(OLD.id, NULL);
+        RETURN NEW;
+    END IF;
+
+    RAISE EXCEPTION 'platform_account_connected' USING ERRCODE = 'insufficient_privilege';
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER platform_account_connected BEFORE
+UPDATE ON public.customer_platform_account FOR EACH ROW
+EXECUTE FUNCTION private.platform_account_connected ();
 
 REVOKE ALL ON FUNCTION private.market_cell_listing_server_only () FROM PUBLIC, anon, authenticated;
 
@@ -274,6 +318,8 @@ REVOKE ALL ON FUNCTION private.amazon_token (UUID) FROM PUBLIC, anon, authentica
 
 REVOKE ALL ON FUNCTION private.amazon_token_set (UUID, TEXT) FROM PUBLIC, anon, authenticated;
 
+REVOKE ALL ON FUNCTION private.platform_account_connected () FROM PUBLIC, anon, authenticated;
+
 -- A deleted account (directly or by its customer's cascade) leaves no token in Vault.
 CREATE OR REPLACE FUNCTION private.platform_account_forget_token () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
@@ -290,32 +336,69 @@ EXECUTE FUNCTION private.platform_account_forget_token ();
 
 REVOKE ALL ON FUNCTION private.platform_account_forget_token () FROM PUBLIC, anon, authenticated;
 
--- The parent's cell mirrors the worst listing state of its children's cells in the same platform
--- and country (R7): issues < draft < ready < submitted < live. Nothing happens without a parent,
--- a parent cell or a child with a state.
-CREATE OR REPLACE FUNCTION private.listing_mirror_parent (p_cell_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+-- The cell's own listing state from its latest submission (see the header); NULL when it has none.
+CREATE OR REPLACE FUNCTION private.listing_own_state (p_cell_id UUID) RETURNS public.listing_state LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
 DECLARE
-    v_cell RECORD;
+    v_submission public.listing_submission;
+BEGIN
+    SELECT * INTO v_submission FROM public.listing_submission s
+    WHERE s.cell_id = p_cell_id
+    ORDER BY s.created_at DESC, s.id DESC
+    LIMIT 1;
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+    IF v_submission.kind = 'delete' THEN
+        RETURN CASE WHEN v_submission.status = 'done' THEN 'draft'::public.listing_state END;
+    END IF;
+    IF v_submission.status IN ('invalid', 'failed') OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(v_submission.issues) = 'array' THEN v_submission.issues ELSE '[]'::JSONB END) e
+        WHERE e ->> 'severity' = 'ERROR'
+    ) THEN
+        RETURN 'issues';
+    END IF;
+    IF v_submission.status IN ('accepted', 'processing') THEN
+        RETURN 'submitted';
+    END IF;
+    RETURN 'live';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.listing_own_state (UUID) FROM PUBLIC, anon, authenticated;
+
+-- A parent cell (its product has children) shows the worst of its own state and its children's
+-- cells in the same platform and country (R7). Nothing changes when neither has a state.
+CREATE OR REPLACE FUNCTION private.listing_settle_parent (p_parent_cell_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    v_parent RECORD;
     v_worst public.listing_state;
 BEGIN
-    SELECT m.tenant_id, m.platform_id, m.country, p.parent_id INTO v_cell
-    FROM public.market_cell m
-    JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
-    WHERE m.id = p_cell_id;
+    SELECT m.id, m.tenant_id, m.product_id, m.platform_id, m.country INTO v_parent
+    FROM public.market_cell m WHERE m.id = p_parent_cell_id;
 
-    IF v_cell.parent_id IS NULL THEN
+    IF NOT FOUND OR NOT EXISTS (
+        SELECT 1 FROM public.product p WHERE p.parent_id = v_parent.product_id AND p.tenant_id = v_parent.tenant_id
+    ) THEN
         RETURN;
     END IF;
 
-    SELECT m.listing_state INTO v_worst
-    FROM public.market_cell m
-    JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
-    WHERE p.parent_id = v_cell.parent_id AND p.tenant_id = v_cell.tenant_id
-      AND m.platform_id = v_cell.platform_id AND m.country = v_cell.country
-      AND m.listing_state IS NOT NULL
-    ORDER BY array_position(ARRAY['issues', 'draft', 'ready', 'submitted', 'live']::public.listing_state[], m.listing_state)
+    SELECT st INTO v_worst
+    FROM (
+        SELECT private.listing_own_state(v_parent.id) AS st
+        UNION ALL
+        SELECT m.listing_state
+        FROM public.market_cell m
+        JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
+        WHERE p.parent_id = v_parent.product_id AND p.tenant_id = v_parent.tenant_id
+          AND m.platform_id = v_parent.platform_id AND m.country = v_parent.country
+    ) states
+    WHERE st IS NOT NULL
+    ORDER BY array_position(ARRAY['issues', 'draft', 'ready', 'submitted', 'live']::public.listing_state[], st)
     LIMIT 1;
 
     IF v_worst IS NULL THEN
@@ -324,9 +407,41 @@ BEGIN
 
     UPDATE public.market_cell m
     SET listing_state = v_worst, listing_checked_at = now()
-    WHERE m.tenant_id = v_cell.tenant_id AND m.product_id = v_cell.parent_id
-      AND m.platform_id = v_cell.platform_id AND m.country = v_cell.country
-      AND m.listing_state IS DISTINCT FROM v_worst;
+    WHERE m.id = v_parent.id AND m.listing_state IS DISTINCT FROM v_worst;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.listing_settle_parent (UUID) FROM PUBLIC, anon, authenticated;
+
+-- After a cell's state changed: its parent's cell in the same platform and country is settled, and
+-- the cell itself when it is a parent.
+CREATE OR REPLACE FUNCTION private.listing_mirror_parent (p_cell_id UUID) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    v_cell RECORD;
+    v_parent_cell UUID;
+BEGIN
+    SELECT m.tenant_id, m.platform_id, m.country, p.parent_id INTO v_cell
+    FROM public.market_cell m
+    JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
+    WHERE m.id = p_cell_id;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    IF v_cell.parent_id IS NOT NULL THEN
+        SELECT m.id INTO v_parent_cell
+        FROM public.market_cell m
+        WHERE m.tenant_id = v_cell.tenant_id AND m.product_id = v_cell.parent_id
+          AND m.platform_id = v_cell.platform_id AND m.country = v_cell.country;
+        IF v_parent_cell IS NOT NULL THEN
+            PERFORM private.listing_settle_parent(v_parent_cell);
+        END IF;
+    END IF;
+
+    PERFORM private.listing_settle_parent(p_cell_id);
 END;
 $$;
 
@@ -386,25 +501,46 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.listing_set_state (p_cell_id UUID, p_listing_state public.listing_state, p_listing_match JSONB) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+CREATE OR REPLACE FUNCTION public.listing_set_state (
+   p_cell_id UUID,
+   p_listing_state public.listing_state,
+   p_listing_match JSONB,
+   p_expected_updated_at TIMESTAMPTZ DEFAULT NULL
+) RETURNS public.market_cell LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
+DECLARE
+    v_cell public.market_cell;
 BEGIN
     IF p_listing_state IS NULL THEN
         RAISE EXCEPTION 'listing state must not be null' USING ERRCODE = 'invalid_parameter_value';
     END IF;
 
-    UPDATE public.market_cell m
-    SET listing_state = p_listing_state,
-        listing_checked_at = now(),
-        listing_match = coalesce(p_listing_match, m.listing_match)
-    WHERE m.id = p_cell_id;
+    SELECT * INTO v_cell FROM public.market_cell m WHERE m.id = p_cell_id FOR UPDATE;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'market cell % not found', p_cell_id USING ERRCODE = 'no_data_found';
     END IF;
 
+    -- Someone wrote the cell since the caller read it: the caller's state is stale.
+    IF p_expected_updated_at IS NOT NULL AND v_cell.updated_at IS DISTINCT FROM p_expected_updated_at THEN
+        RETURN v_cell;
+    END IF;
+
+    UPDATE public.market_cell m
+    SET listing_state = p_listing_state,
+        listing_checked_at = now(),
+        listing_match = coalesce(p_listing_match, m.listing_match),
+        open_issue = CASE
+            WHEN p_listing_state <> 'issues' AND m.open_issue LIKE 'Amazon: %' AND m.status <> 'suppressed' THEN NULL
+            ELSE m.open_issue
+        END
+    WHERE m.id = p_cell_id;
+
     PERFORM private.listing_mirror_parent(p_cell_id);
+
+    SELECT * INTO v_cell FROM public.market_cell m WHERE m.id = p_cell_id;
+    RETURN v_cell;
 END;
 $$;
 
@@ -427,6 +563,17 @@ BEGIN
         RAISE EXCEPTION 'listing state must not be null' USING ERRCODE = 'invalid_parameter_value';
     END IF;
 
+    SELECT * INTO v_submission FROM public.listing_submission s WHERE s.id = p_submission_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'listing submission % not found', p_submission_id USING ERRCODE = 'no_data_found';
+    END IF;
+
+    -- The cell first: a submission begun or applied meanwhile waits for this one.
+    SELECT * INTO v_cell FROM public.market_cell m
+    WHERE m.id = v_submission.cell_id AND m.tenant_id = v_submission.tenant_id
+    FOR UPDATE;
+
     -- 1. The submission.
     UPDATE public.listing_submission s
     SET status = p_status,
@@ -435,13 +582,14 @@ BEGIN
     WHERE s.id = p_submission_id
     RETURNING * INTO v_submission;
 
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'listing submission % not found', p_submission_id USING ERRCODE = 'no_data_found';
+    -- An older submission's answer does not move the cell: a newer one (or a removal) decides it.
+    IF EXISTS (
+        SELECT 1 FROM public.listing_submission s
+        WHERE s.cell_id = v_submission.cell_id
+          AND (s.created_at, s.id) > (v_submission.created_at, v_submission.id)
+    ) THEN
+        RETURN v_cell;
     END IF;
-
-    SELECT * INTO v_cell FROM public.market_cell m
-    WHERE m.id = v_submission.cell_id AND m.tenant_id = v_submission.tenant_id
-    FOR UPDATE;
 
     -- 2. The listing data, the state and the open issue.
     IF p_listing_state = 'issues' THEN
@@ -487,10 +635,59 @@ BEGIN
         UPDATE public.market_cell m SET status = 'live' WHERE m.id = v_cell.id RETURNING * INTO v_cell;
     END IF;
 
-    -- 5. The parent's cell (R7).
+    -- 5. The parent cells (R7); this cell is read again, since it may be a parent.
     PERFORM private.listing_mirror_parent(v_cell.id);
 
+    SELECT * INTO v_cell FROM public.market_cell m WHERE m.id = v_cell.id;
     RETURN v_cell;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.listing_begin_submission (
+   p_cell_id UUID,
+   p_kind public.listing_submission_kind,
+   p_sku TEXT,
+   p_marketplace_id TEXT,
+   p_payload JSONB,
+   p_created_by UUID
+) RETURNS public.listing_submission LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    v_cell public.market_cell;
+    v_latest public.listing_submission;
+    v_submission public.listing_submission;
+BEGIN
+    SELECT * INTO v_cell FROM public.market_cell m WHERE m.id = p_cell_id FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'market cell % not found', p_cell_id USING ERRCODE = 'no_data_found';
+    END IF;
+
+    IF p_kind <> 'delete' THEN
+        SELECT * INTO v_latest FROM public.listing_submission s
+        WHERE s.cell_id = p_cell_id
+        ORDER BY s.created_at DESC, s.id DESC
+        LIMIT 1;
+
+        IF FOUND AND v_latest.kind <> 'delete' AND v_latest.status IN ('accepted', 'processing') THEN
+            RAISE EXCEPTION 'listing_in_progress';
+        END IF;
+    END IF;
+
+    INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload, created_by)
+    VALUES (v_cell.tenant_id, v_cell.id, p_kind, p_sku, p_marketplace_id, coalesce(p_payload, '{}'::JSONB), p_created_by)
+    RETURNING * INTO v_submission;
+
+    IF p_kind <> 'delete' THEN
+        UPDATE public.market_cell m
+        SET listing_state = 'submitted', listing_checked_at = now()
+        WHERE m.id = v_cell.id;
+
+        PERFORM private.listing_mirror_parent(v_cell.id);
+    END IF;
+
+    RETURN v_submission;
 END;
 $$;
 
@@ -548,7 +745,9 @@ REVOKE ALL ON FUNCTION public.amazon_account_connect (UUID, TEXT, TEXT) FROM PUB
 
 REVOKE ALL ON FUNCTION public.amazon_account_disconnect (UUID, public.api_connection) FROM PUBLIC, anon, authenticated;
 
-REVOKE ALL ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB, TIMESTAMPTZ) FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION public.listing_begin_submission (UUID, public.listing_submission_kind, TEXT, TEXT, JSONB, UUID) FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.listing_apply_submission (UUID, public.listing_submission_status, TEXT, JSONB, public.listing_state, TEXT) FROM PUBLIC, anon, authenticated;
 
@@ -560,7 +759,9 @@ GRANT EXECUTE ON FUNCTION public.amazon_account_connect (UUID, TEXT, TEXT) TO se
 
 GRANT EXECUTE ON FUNCTION public.amazon_account_disconnect (UUID, public.api_connection) TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB) TO service_role;
+GRANT EXECUTE ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB, TIMESTAMPTZ) TO service_role;
+
+GRANT EXECUTE ON FUNCTION public.listing_begin_submission (UUID, public.listing_submission_kind, TEXT, TEXT, JSONB, UUID) TO service_role;
 
 GRANT EXECUTE ON FUNCTION public.listing_apply_submission (UUID, public.listing_submission_status, TEXT, JSONB, public.listing_state, TEXT) TO service_role;
 
@@ -623,7 +824,8 @@ VALUES
 ON CONFLICT (table_name) DO NOTHING;
 
 -- Module and permissions. Inserting a permission creates its RLS policies (see
--- private.manage_policies); users never update or delete a submission.
+-- private.manage_policies). The insert permission is the CASL right amazon-listing checks; the
+-- table privilege is revoked below, so only the service role writes a submission.
 INSERT INTO
    public.module (id, is_core, position)
 VALUES
@@ -655,3 +857,6 @@ ON CONFLICT DO NOTHING;
 -- Every permission of the group to each role that may change products (029_purchase_orders.sql).
 SELECT
    private.grant_group_to_product_editors ('listing');
+
+-- Users read submissions; only the service role writes them (amazon-listing, amazon-poll).
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.listing_submission FROM anon, authenticated;
