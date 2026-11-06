@@ -42,6 +42,8 @@ jobs:
               env:
                   VITE_SUPABASE_PROJECT_URL: http://127.0.0.1:54321
                   VITE_SUPABASE_PROJECT_ANON_KEY: ci-placeholder
+            # The dev story seed's node tests (no database needed).
+            - run: pnpm test:scripts
 
     functions:
         runs-on: ubuntu-latest
