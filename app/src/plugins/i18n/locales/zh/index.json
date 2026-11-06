@@ -2313,7 +2313,6 @@
             "not_connected": "The customer has not connected an Amazon account.",
             "completeness": "Completeness",
             "missing_none": "No field is missing.",
-            "missing_link": "Fill in {field}",
             "marketplace": "Marketplace",
             "listing_language": "Listing language",
             "fulfillment_channel": "Fulfilment",
@@ -2358,9 +2357,13 @@
                "missing": "Fill in the missing fields first.",
                "unchecked": "Run Check to mark the listing ready.",
                "submitted": "Amazon is still processing the last submission.",
-               "unsaved": "Save the marketplace fields first."
+               "unsaved": "Save the marketplace fields first.",
+               "unsaved_attributes": "Save the Amazon fields first."
             },
-            "refresh_status": "Refresh status"
+            "refresh_status": "Refresh status",
+            "attributes_save": "Save Amazon fields",
+            "open_all": "Open all fields in the product tab",
+            "issue_fix": "Fix"
          },
          "connect": {
             "button": "Connect Amazon",

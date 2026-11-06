@@ -2,6 +2,8 @@ import '../setup/mockMain';
 import type { Definition, ListingSubmissionRow } from '@/api/amazon';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
+import AmazonAttributeField from '@/components/service-components/amazon-form/AmazonAttributeField.vue';
+import { ROUTE_DIALOG } from '@/components/layout/route-dialog/context';
 import CellAmazonDrawer from '@/views/pages/ops/market/CellAmazonDrawer.vue';
 import { toPropertyGroups, type Attributes } from '@edge-shared/listingCompleteness';
 import i18n, { i18NPlugin } from '@plugins/i18n';
@@ -42,6 +44,8 @@ const api = vi.hoisted(() => ({
    saveCell: vi.fn(),
    refetchCheck: vi.fn(),
    refreshStatus: vi.fn(),
+   saveProduct: vi.fn(),
+   closeGuards: [] as (() => boolean | Promise<boolean>)[],
    toast: vi.fn(),
    confirm: vi.fn(),
    checkTarget: null as null | (() => string | null),
@@ -58,6 +62,22 @@ const checkUpdatedRef = ref(0);
 const checkingRef = ref(false);
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+vi.mock('@/api/media', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@/api/media')>()),
+   mediaResource: { useOne: () => ({ data: ref(null) }) }
+}));
+vi.mock('@/api/media/library', () => ({
+   useMediaLibrary: () => ({
+      data: ref({ pages: [[]] }),
+      hasNextPage: ref(false),
+      isFetching: ref(false),
+      fetchNextPage: vi.fn()
+   })
+}));
+vi.mock('@/api/media/signedUrls', async () => {
+   const { computed } = await import('vue');
+   return { useSignedUrl: () => computed(() => undefined) };
+});
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: api.toast }) }));
 vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: api.confirm }) }));
 vi.mock('@/store/auth', () => ({
@@ -72,7 +92,10 @@ vi.mock('@/api/marketMatrix', async (importOriginal) => ({
 }));
 vi.mock('@/api/product', async (importOriginal) => ({
    ...(await importOriginal<typeof import('@/api/product')>()),
-   productResource: { useOne: () => ({ data: productRef }) }
+   productResource: {
+      useOne: () => ({ data: productRef }),
+      useSave: () => ({ mutateAsync: api.saveProduct, isPending: ref(false) })
+   }
 }));
 vi.mock('@/api/amazon', async (importOriginal) => ({
    ...(await importOriginal<typeof import('@/api/amazon')>()),
@@ -168,7 +191,17 @@ const mountDrawer = async () => {
             [abilitiesPlugin, ability, { useGlobalProperties: true }]
          ],
          directives: { tooltip: Tooltip },
-         stubs: { RouterLink: RouterLinkStub }
+         stubs: { RouterLink: RouterLinkStub },
+         // The cell's route dialog: the drawer guards its close against unsaved Amazon fields.
+         provide: {
+            [ROUTE_DIALOG as symbol]: {
+               addCloseGuard: (guard: () => boolean | Promise<boolean>) => {
+                  api.closeGuards.push(guard);
+                  return () => api.closeGuards.splice(api.closeGuards.indexOf(guard), 1);
+               },
+               close: async () => {}
+            }
+         }
       }
    });
    await flushPromises();
@@ -195,24 +228,31 @@ beforeEach(() => {
    checkUpdatedRef.value = 0;
    checkingRef.value = false;
    api.refreshStatus.mockReset();
+   api.confirm.mockReset();
+   api.saveProduct.mockReset();
+   api.saveProduct.mockImplementation(async (row: object) => ({ ...productRef.value, ...row }));
+   api.closeGuards = [];
 });
 
 describe('CellAmazonDrawer', () => {
-   it('shows the missing required fields for the cell marketplace with a link to the Amazon tab', async () => {
+   it('shows the missing required fields for the cell marketplace as fields of the Amazon form', async () => {
       const attributes: Attributes = { ...story };
       delete attributes.condition_type;
       productRef.value = { ...PRODUCT, listing_attributes: attributes };
       const wrapper = await mountDrawer();
 
       const missing = wrapper.get('[data-missing="condition_type"]');
-      expect(missing.text()).toContain(
-         en.ops.amazon.cell.missing_link.replace('{field}', 'Item Condition')
-      );
-      expect(links(wrapper)).toContainEqual({
-         name: 'ops-product-manage-amazon',
-         params: { id: 'p1' },
-         query: { market: 'DE', lang: 'de_DE', field: 'condition_type' }
+      expect(missing.text()).toContain('Item Condition');
+      const field = missing.getComponent(AmazonAttributeField);
+      expect(field.props()).toMatchObject({
+         name: 'condition_type',
+         languageTag: 'de_DE',
+         badge: 'required',
+         readonly: false
       });
+      // Nothing edited yet: nothing to save.
+      expect(isDisabled(wrapper, 'save-attributes')).toBe(true);
+      expect(isDisabled(wrapper, 'reset-attributes')).toBe(true);
       // The GTIN and the price provide the identifier and the offer: not listed.
       expect(wrapper.find('[data-missing="externally_assigned_product_identifier"]').exists()).toBe(
          false
@@ -421,11 +461,34 @@ describe('CellAmazonDrawer', () => {
       expect(issue.get('[data-issue-field]').text()).toBe('Item Condition');
       expect(issue.text()).toContain(message);
       expect(issue.text()).toContain('90220');
-      expect(links(wrapper)).toContainEqual({
-         name: 'ops-product-manage-amazon',
-         params: { id: 'p1' },
-         query: { market: 'DE', lang: 'de_DE', field: 'condition_type' }
-      });
+      expect(issue.get('[data-action="issue-fix"]').text()).toBe(en.ops.amazon.cell.issue_fix);
+      expect(issue.findComponent(RouterLinkStub).exists()).toBe(false);
+   });
+
+   it('Fix on an issue opens its field inline, also one that is not missing', async () => {
+      submissionsRef.value = [
+         submission({
+            status: 'invalid',
+            issues: [
+               {
+                  code: '90003',
+                  message: 'Colour is not valid.',
+                  severity: 'ERROR',
+                  attributeNames: ['color[marketplace_id=A1PA6795UKMFR9]']
+               }
+            ]
+         })
+      ];
+      cellRef.value = { ...CELL, listing_state: 'issues' };
+      const wrapper = await mountDrawer();
+      expect(wrapper.find('[data-inline-field="color"]').exists()).toBe(false);
+
+      await wrapper.get('[data-action="issue-fix"]').trigger('click');
+      await flushPromises();
+      const field = wrapper.get('[data-inline-field="color"]').getComponent(AmazonAttributeField);
+      expect(field.props()).toMatchObject({ name: 'color', languageTag: 'de_DE' });
+      // Not a missing required field.
+      expect(wrapper.find('[data-missing="color"]').exists()).toBe(false);
    });
 
    it('lists an issue without attributeNames under General', async () => {
@@ -502,17 +565,98 @@ describe('CellAmazonDrawer', () => {
       expect(api.checkTarget!()).toBe('c1');
    });
 
-   it('links the Amazon tab in the cell market and language (B1)', async () => {
+   it('links all fields of the Amazon tab, in the cell market and language, in a new tab (B1)', async () => {
       cellRef.value = { ...CELL, country: 'NL', listing_language: null };
       const attributes: Attributes = { ...story };
       delete attributes.condition_type;
       productRef.value = { ...PRODUCT, listing_attributes: attributes };
       const wrapper = await mountDrawer();
-      expect(links(wrapper)).toContainEqual({
+      const link = wrapper.get('[data-open-all]');
+      expect(link.text()).toBe(en.ops.amazon.cell.open_all);
+      expect(link.attributes('target')).toBe('_blank');
+      expect(link.attributes('rel')).toBe('noopener');
+      expect(link.getComponent(RouterLinkStub).props('to')).toEqual({
          name: 'ops-product-manage-amazon',
          params: { id: 'p1' },
-         query: { market: 'NL', lang: 'nl_NL', field: 'condition_type' }
+         query: { market: 'NL', lang: 'nl_NL' }
       });
+   });
+
+   it('saves the inline fields onto the saved attributes, and the filled field leaves the list', async () => {
+      // An English listing misses the item name (the story's is German).
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      expect(
+         wrapper.get('[data-missing="item_name"]').getComponent(AmazonAttributeField).props()
+      ).toMatchObject({ languageTag: 'en_GB' });
+
+      await wrapper.get('[data-missing="item_name"] input').setValue('Mop');
+      expect(isDisabled(wrapper, 'save-attributes')).toBe(false);
+      // Unsaved Amazon fields hold the publish back.
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+
+      // Saved elsewhere meanwhile: another attribute changed; it is kept.
+      const bullets = [{ value: 'Neu', language_tag: 'de_DE' }];
+      productRef.value = { ...PRODUCT, listing_attributes: { ...story, bullet_point: bullets } };
+      await flushPromises();
+
+      await action(wrapper, 'save-attributes').trigger('click');
+      await flushPromises();
+      expect(api.saveProduct).toHaveBeenCalledTimes(1);
+      expect(api.saveProduct).toHaveBeenCalledWith({
+         id: 'p1',
+         listing_attributes: {
+            ...story,
+            bullet_point: bullets,
+            item_name: [...story.item_name!, { value: 'Mop', language_tag: 'en_GB' }]
+         }
+      });
+      expect(wrapper.find('[data-missing="item_name"]').exists()).toBe(false);
+      expect(isDisabled(wrapper, 'save-attributes')).toBe(true);
+   });
+
+   it('shows the inline fields read-only, without Save, without the right to edit the product', async () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         { action: 'update', subject: 'product', inverted: true }
+      ]);
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      const field = wrapper.get('[data-missing="item_name"]');
+      expect(field.getComponent(AmazonAttributeField).props('readonly')).toBe(true);
+      expect(field.get('input').attributes('disabled')).toBeDefined();
+      expect(action(wrapper, 'save-attributes').exists()).toBe(false);
+      expect(action(wrapper, 'reset-attributes').exists()).toBe(false);
+      expect(wrapper.get('[data-attributes-readonly]').text()).toBe(
+         en.errors.insufficient_permission
+      );
+   });
+
+   it('asks before closing with unsaved inline fields', async () => {
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      const allowClose = (wrapper.vm as unknown as { allowClose: () => Promise<boolean> })
+         .allowClose;
+      // Nothing edited: it closes without asking, the cell dialog too.
+      expect(await allowClose()).toBe(true);
+      expect(await api.closeGuards[0]!()).toBe(true);
+      expect(api.confirm).not.toHaveBeenCalled();
+
+      await wrapper.get('[data-missing="item_name"] input').setValue('Mop');
+      const closing = allowClose();
+      expect(api.confirm).toHaveBeenCalledTimes(1);
+      api.confirm.mock.calls[0]![0].reject();
+      expect(await closing).toBe(false);
+
+      // The cell dialog's close asks as well.
+      const dialog = api.closeGuards[0]!();
+      expect(api.confirm).toHaveBeenCalledTimes(2);
+      api.confirm.mock.calls[1]![0].accept();
+      expect(await dialog).toBe(true);
+
+      // Reset drops the edits: nothing to ask about.
+      await action(wrapper, 'reset-attributes').trigger('click');
+      expect(await allowClose()).toBe(true);
    });
 
    it('shows the check date of the match, and only "not checked" without one (B2)', async () => {

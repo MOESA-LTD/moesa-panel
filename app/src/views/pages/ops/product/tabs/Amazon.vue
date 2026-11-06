@@ -8,15 +8,14 @@ import {
    useProductAmazonCells,
    useProductTypeSearch
 } from '@/api/amazon';
-import { productResource, type ProductRow } from '@/api/product';
-import type { ResourceInput } from '@/api/defineResource';
+import { productResource } from '@/api/product';
 import AmazonAttributeForm from '@/components/service-components/amazon-form/AmazonAttributeForm.vue';
+import { useListingAttributes } from '@/components/service-components/amazon-form/useListingAttributes';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useAuthStore } from '@/store/auth';
 import {
    languageTag as defaultLanguageTag,
-   serverProvided,
-   type Attributes
+   serverProvided
 } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import { ToastSeverity } from '@primevue/core/api';
@@ -91,29 +90,20 @@ const { data: definition, error: definitionError } = useDefinition(() =>
 );
 
 // --- values ---
-const savedAttributes = computed(
-   () => (product.value?.listing_attributes ?? {}) as unknown as Attributes
-);
-const attributes = ref<Attributes>(_cloneDeep(savedAttributes.value));
-/** Bumped whenever the values are replaced from the product, so fields drop unsaved local text. */
-const resetKey = ref(0);
-const loadSaved = (saved: Attributes) => {
-   attributes.value = _cloneDeep(saved);
-   resetKey.value += 1;
-};
+// The product loading after the tab, or refetched after another tab saved it, replaces the values
+// unless they were edited here; a save writes only the attributes edited here (useListingAttributes).
+const {
+   attributes,
+   resetKey,
+   changed: attributesChanged,
+   saving: isSubmitting,
+   reset: resetAttributes,
+   save: saveAttributes
+} = useListingAttributes(product);
 const isDirty = computed(
    () =>
-      !_isEqual(attributes.value, savedAttributes.value) ||
-      productType.value !== (product.value?.amazon_product_type ?? null)
+      attributesChanged.value || productType.value !== (product.value?.amazon_product_type ?? null)
 );
-// The product loading after the tab, or refetched after another tab saved it, replaces the values
-// unless they were edited here (compared with what was saved before).
-// A refetch that brings the same values back (a new but equal object) changes nothing, so local
-// text that does not parse yet (a JSON field) is kept.
-watch(savedAttributes, (saved, before) => {
-   if (_isEqual(saved, before)) return;
-   if (_isEqual(attributes.value, before)) loadSaved(saved);
-});
 
 // The language a link names, else the working cell's language, until the user picks one.
 const linkedLanguage = computed(() => {
@@ -154,10 +144,8 @@ const issues = computed(() => submissions.value?.[0]?.issues ?? []);
 const focusField = computed(() => queryText('field'));
 
 // --- save ---
-const { mutateAsync: saveProduct, isPending: isSubmitting } = productResource.useSave();
-
 const reset = () => {
-   loadSaved(savedAttributes.value);
+   resetAttributes();
    productType.value = product.value?.amazon_product_type ?? null;
    typeInput.value = productType.value;
 };
@@ -165,15 +153,10 @@ const reset = () => {
 const submit = async () => {
    if (!product.value || !canEdit.value || !productType.value || !definition.value) return;
    try {
-      // Only the Amazon columns: saveRow updates by id and sends nothing else.
-      const row = {
-         id: props.id,
+      await saveAttributes({
          amazon_product_type: productType.value,
-         amazon_schema_version: definition.value.version,
-         listing_attributes: attributes.value
-      } as unknown as ResourceInput<'product'>;
-      const saved = (await saveProduct(row)) as ProductRow;
-      loadSaved((saved.listing_attributes ?? {}) as unknown as Attributes);
+         amazon_schema_version: definition.value.version
+      });
       toast.add({
          life: 3000,
          severity: ToastSeverity.SUCCESS,

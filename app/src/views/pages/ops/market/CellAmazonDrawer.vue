@@ -31,12 +31,20 @@ import { marketCellResource, STOCK_SOURCES } from '@/api/marketMatrix';
 import { productResource } from '@/api/product';
 import type { ResourceInput } from '@/api/defineResource';
 import { invalidateTables } from '@/api/queryKeys';
+import AmazonAttributeField from '@/components/service-components/amazon-form/AmazonAttributeField.vue';
+import {
+   badgeFor,
+   baseAttribute,
+   missingInFormOrder
+} from '@/components/service-components/amazon-form/amazonForm';
+import { useListingAttributes } from '@/components/service-components/amazon-form/useListingAttributes';
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import {
    languageTag as defaultLanguageTag,
    missingAttributes,
+   requiredAttributes,
    serverProvided,
-   type Attributes,
    type PropertyGroups
 } from '@edge-shared/listingCompleteness';
 import { useAbility } from '@casl/vue';
@@ -66,6 +74,7 @@ const queryClient = useQueryClient();
 
 const canSubmit = computed(() => ability.can('create', 'listing_submission'));
 const canEditCell = computed(() => ability.can('update', 'market_cell'));
+const canEditProduct = computed(() => ability.can('update', 'product'));
 
 // --- the cell, its product and its customer's account ---
 
@@ -130,27 +139,100 @@ const { data: definition, error: definitionError } = useDefinition(() =>
 );
 const schema = computed(() => (definition.value ? amazonSchemaOf(definition.value) : null));
 
+// The product's Amazon values, edited here in the cell's language; a save writes only the
+// attributes edited here, as the product's Amazon tab does.
+const {
+   attributes,
+   saved: savedAttributes,
+   resetKey,
+   changed: attributesChanged,
+   saving: savingAttributes,
+   reset: resetAttributes,
+   save: saveAttributes
+} = useListingAttributes(product);
+
+/** The attributes the server fills on publish (the GTIN, the price; a parent's, R7). */
+const provided = computed(() =>
+   product.value && cell.value && isParent.value !== undefined
+      ? serverProvided(product.value, cell.value, { isParent: isParent.value })
+      : []
+);
+
 /**
- * The required fields still missing, by the server's rule (the GTIN and the price provide some, and
- * a variation parent has the identifier and the offer provided, R7); null while unknown.
+ * The required fields still missing in what is saved, by the server's rule (the GTIN and the price
+ * provide some, and a variation parent has the identifier and the offer provided, R7), in the
+ * Amazon form's order; null while unknown.
  */
 const missing = computed(() => {
    if (!definition.value || !schema.value || !product.value || !cell.value) return null;
    if (isParent.value === undefined) return null;
    if (!marketplaceId.value || !language.value) return null;
-   return missingAttributes(
-      schema.value,
-      definition.value.property_groups as PropertyGroups,
-      (product.value.listing_attributes ?? {}) as unknown as Attributes,
-      {
+   const groups = definition.value.property_groups as PropertyGroups;
+   return missingInFormOrder(
+      missingAttributes(schema.value, groups, savedAttributes.value, {
          marketplaceId: marketplaceId.value,
          languageTag: language.value,
-         provided: serverProvided(product.value, cell.value, { isParent: isParent.value })
-      }
+         provided: provided.value
+      }),
+      groups
    );
 });
 
-const fieldTitle = (attribute: string) => schema.value?.properties[attribute]?.title ?? attribute;
+/** Fields an issue's Fix opened here besides the missing ones. */
+const opened = ref<string[]>([]);
+/** The fields edited here: the missing ones, then those opened from an issue. */
+const inlineFields = computed(() => {
+   if (!schema.value || !missing.value) return [];
+   const missingNames = missing.value.map(({ attribute }) => attribute);
+   return _uniq([...missingNames, ...opened.value]).flatMap((name) => {
+      const property = schema.value!.properties[name];
+      return property ? [{ name, property, missing: missingNames.includes(name) }] : [];
+   });
+});
+const required = computed(() =>
+   schema.value ? requiredAttributes(schema.value, attributes.value) : []
+);
+
+const completenessSection = ref<HTMLElement | null>(null);
+const FOCUSABLE =
+   'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** The attribute an issue names (it may name a part: `a[...]`, `a.b`), when the schema has it. */
+const issueTarget = (issue: AmazonIssue) => {
+   const name = issue.attributeNames[0];
+   if (!name) return null;
+   const base = baseAttribute(name);
+   return schema.value?.properties[base] ? base : null;
+};
+/** Opens the attribute among the fields here, and scrolls to and focuses it. */
+const fix = async (attribute: string) => {
+   if (!opened.value.includes(attribute)) opened.value.push(attribute);
+   await nextTick();
+   const field = completenessSection.value?.querySelector<HTMLElement>(
+      `[data-inline-field="${CSS.escape(attribute)}"]`
+   );
+   field?.scrollIntoView?.({ block: 'center' });
+   field?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+};
+
+const saveInline = async () => {
+   if (!canEditProduct.value) return;
+   try {
+      await saveAttributes();
+      toast.add({
+         life: 3000,
+         severity: ToastSeverity.SUCCESS,
+         summary: t('toast.success'),
+         detail: t('toast.saved')
+      });
+   } catch (error) {
+      appErrorHandler(error);
+   }
+};
+
+// Closing the drawer (see CellUpsert) or the cell's dialog with unsaved Amazon fields asks first.
+const allowClose = useUnsavedChangesGuard(attributesChanged);
+defineExpose({ allowClose });
 
 /**
  * The product's Amazon tab in this cell's market and language, opened on a field when given (an
@@ -162,7 +244,7 @@ const amazonTab = (field?: string) => ({
    query: {
       market: country.value,
       ...(language.value ? { lang: language.value } : {}),
-      ...(field ? { field: field.split(/[[.]/)[0] } : {})
+      ...(field ? { field: baseAttribute(field) } : {})
    }
 });
 
@@ -291,12 +373,20 @@ const time = (value: string | null | undefined) =>
 
 // --- actions ---
 
-type Blocked = 'not_connected' | 'product_type' | 'missing' | 'unsaved' | 'submitted' | 'unchecked';
+type Blocked =
+   | 'not_connected'
+   | 'product_type'
+   | 'missing'
+   | 'unsaved_attributes'
+   | 'unsaved'
+   | 'submitted'
+   | 'unchecked';
 /** Why Publish is held back, the first reason first; null when it may go. */
 const blocked = computed<Blocked | null>(() => {
    if (notConnected.value) return 'not_connected';
    if (!productType.value) return 'product_type';
    if (missing.value?.length) return 'missing';
+   if (attributesChanged.value) return 'unsaved_attributes';
    if (fieldsDirty.value) return 'unsaved';
    if (state.value === 'submitted') return 'submitted';
    if (!PUBLISHABLE_STATES.includes(state.value as ListingState)) return 'unchecked';
@@ -417,30 +507,75 @@ const askRemove = () =>
       </section>
 
       <!-- 2. completeness -->
-      <section class="flex flex-col gap-2" data-section="completeness">
+      <section ref="completenessSection" class="flex flex-col gap-2" data-section="completeness">
          <h3 class="m-0 text-base font-semibold">
             {{ $t('ops.amazon.cell.completeness') }}
             <small class="font-normal text-muted-color">{{ language }}</small>
          </h3>
+         <!-- The product's tab opens in a new browser tab: it would open under this dialog. -->
          <Message v-if="!productType" severity="warn" class="w-full">
             {{ $t('ops.amazon.cell.product_type_missing') }}
-            <RouterLink :to="amazonTab()">{{ $t('ops.amazon.cell.open_tab') }}</RouterLink>
+            <RouterLink :to="amazonTab()" target="_blank" rel="noopener">
+               {{ $t('ops.amazon.cell.open_tab') }}
+            </RouterLink>
          </Message>
          <Message v-else-if="definitionError" severity="error" class="w-full">
             {{ amazonErrorText(definitionError) }}
          </Message>
-         <template v-else-if="missing">
-            <ul v-if="missing.length" class="m-0 flex flex-col gap-1 pl-5">
-               <li v-for="field in missing" :key="field.attribute" :data-missing="field.attribute">
-                  <RouterLink :to="amazonTab(field.attribute)">
-                     {{
-                        $t('ops.amazon.cell.missing_link', { field: fieldTitle(field.attribute) })
-                     }}
-                  </RouterLink>
-               </li>
-            </ul>
-            <small v-else class="text-muted-color">{{ $t('ops.amazon.cell.missing_none') }}</small>
+         <template v-else-if="missing && language">
+            <small v-if="!missing.length" class="text-muted-color">
+               {{ $t('ops.amazon.cell.missing_none') }}
+            </small>
+            <div
+               v-for="field in inlineFields"
+               :key="field.name"
+               :data-inline-field="field.name"
+               :data-missing="field.missing ? field.name : undefined"
+            >
+               <AmazonAttributeField
+                  :name="field.name"
+                  :property="field.property"
+                  :modelValue="attributes"
+                  :languageTag="language"
+                  :badge="badgeFor(field.name, required)"
+                  :provided="provided.includes(field.name)"
+                  :readonly="!canEditProduct"
+                  :customerId="product?.customer_id"
+                  :tenantId="product?.tenant_id"
+                  :resetKey
+                  @update:modelValue="attributes = $event"
+               />
+            </div>
+            <template v-if="inlineFields.length">
+               <span v-if="canEditProduct" class="flex flex-wrap gap-2">
+                  <Button
+                     data-action="reset-attributes"
+                     size="small"
+                     severity="secondary"
+                     variant="outlined"
+                     :label="$t('action.reset')"
+                     :disabled="!attributesChanged || savingAttributes"
+                     @click="resetAttributes"
+                  />
+                  <Button
+                     data-action="save-attributes"
+                     size="small"
+                     :label="$t('ops.amazon.cell.attributes_save')"
+                     :disabled="!attributesChanged"
+                     :loading="savingAttributes"
+                     @click="saveInline"
+                  />
+               </span>
+               <small v-else data-attributes-readonly class="text-muted-color">
+                  {{ $t('errors.insufficient_permission') }}
+               </small>
+            </template>
          </template>
+         <span v-if="productType">
+            <RouterLink data-open-all :to="amazonTab()" target="_blank" rel="noopener">
+               {{ $t('ops.amazon.cell.open_all') }}
+            </RouterLink>
+         </span>
       </section>
 
       <!-- 3. marketplace fields -->
@@ -587,9 +722,21 @@ const askRemove = () =>
                      <strong data-issue-field>{{
                         issueField(issue, schema) ?? $t('ops.amazon.cell.issue_general')
                      }}</strong>
+                     <Button
+                        v-if="issueTarget(issue)"
+                        data-action="issue-fix"
+                        variant="link"
+                        size="small"
+                        class="!p-0"
+                        :label="$t('ops.amazon.cell.issue_fix')"
+                        @click="fix(issueTarget(issue)!)"
+                     />
+                     <!-- A field the schema does not have: only the product's tab may know it. -->
                      <RouterLink
-                        v-if="issue.attributeNames[0]"
+                        v-else-if="issue.attributeNames[0]"
                         :to="amazonTab(issue.attributeNames[0])"
+                        target="_blank"
+                        rel="noopener"
                      >
                         {{ $t('ops.amazon.cell.open_tab') }}
                      </RouterLink>

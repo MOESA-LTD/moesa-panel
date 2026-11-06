@@ -7,7 +7,8 @@ import { onBeforeRouteLeave } from 'vue-router';
 
 /**
  * Asks before discarding unsaved changes, both when leaving the route and when closing the route
- * dialog the form is shown in (see RouteDialog).
+ * dialog the form is shown in (see RouteDialog). Returns the check, for a close of its own (e.g. a
+ * drawer): it resolves true when nothing is unsaved or the user chose to leave.
  */
 export function useUnsavedChangesGuard(
    isDirty: MaybeRefOrGetter<boolean>,
@@ -44,4 +45,5 @@ export function useUnsavedChangesGuard(
    } else {
       onBeforeRouteLeave(allowLeave);
    }
+   return allowLeave;
 }

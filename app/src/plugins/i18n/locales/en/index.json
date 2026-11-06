@@ -2313,7 +2313,8 @@
             "not_connected": "The customer has not connected an Amazon account.",
             "completeness": "Completeness",
             "missing_none": "No field is missing.",
-            "missing_link": "Fill in {field}",
+            "attributes_save": "Save Amazon fields",
+            "open_all": "Open all fields in the product tab",
             "marketplace": "Marketplace",
             "listing_language": "Listing language",
             "fulfillment_channel": "Fulfilment",
@@ -2333,6 +2334,7 @@
             "history": "Submissions",
             "history_empty": "Nothing has been submitted yet.",
             "issue_general": "General",
+            "issue_fix": "Fix",
             "check": "Check",
             "publish": "Publish on Amazon",
             "update": "Update on Amazon",
@@ -2356,6 +2358,7 @@
                "not_connected": "Connect the customer’s Amazon account first.",
                "product_type": "Choose the product’s Amazon product type first.",
                "missing": "Fill in the missing fields first.",
+               "unsaved_attributes": "Save the Amazon fields first.",
                "unchecked": "Run Check to mark the listing ready.",
                "submitted": "Amazon is still processing the last submission.",
                "unsaved": "Save the marketplace fields first."
@@ -3079,9 +3082,9 @@
                "publish_amazon": {
                   "title": "Publish a cell on Amazon",
                   "steps": {
-                     "1": "Open an Amazon cell and press Check; fix the missing fields it links to.",
+                     "1": "Open an Amazon cell and press Check; fill in the missing fields it lists, right there.",
                      "2": "When the cell is ready, press Publish on Amazon; Amazon answers with a [[submissionId]].",
-                     "3": "Watch the state move to Live, or open the issues and fix each one in the Amazon tab."
+                     "3": "Watch the state move to Live, or press Fix on each issue and correct its field there."
                   }
                }
             }

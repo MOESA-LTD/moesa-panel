@@ -2313,7 +2313,8 @@
             "not_connected": "Müşteri bir Amazon hesabı bağlamamış.",
             "completeness": "Doluluk",
             "missing_none": "Eksik alan yok.",
-            "missing_link": "{field} alanını doldur",
+            "attributes_save": "Amazon alanlarını kaydet",
+            "open_all": "Tüm alanları ürün sekmesinde aç",
             "marketplace": "Pazaryeri",
             "listing_language": "İlan dili",
             "fulfillment_channel": "Gönderim",
@@ -2333,6 +2334,7 @@
             "history": "Gönderimler",
             "history_empty": "Henüz bir şey gönderilmedi.",
             "issue_general": "Genel",
+            "issue_fix": "Düzelt",
             "check": "Kontrol et",
             "publish": "Amazon’da yayınla",
             "update": "Amazon’da güncelle",
@@ -2356,6 +2358,7 @@
                "not_connected": "Önce müşterinin Amazon hesabını bağlayın.",
                "product_type": "Önce ürünün Amazon ürün tipini seçin.",
                "missing": "Önce eksik alanları doldurun.",
+               "unsaved_attributes": "Önce Amazon alanlarını kaydet.",
                "unchecked": "İlanı hazır işaretlemek için Kontrol et’i çalıştırın.",
                "submitted": "Amazon son gönderimi hâlâ işliyor.",
                "unsaved": "Önce pazaryeri alanlarını kaydedin."
@@ -3079,9 +3082,9 @@
                "publish_amazon": {
                   "title": "Hücreyi Amazon'da yayınla",
                   "steps": {
-                     "1": "Bir Amazon hücresini açıp Kontrol et'e basın; bağlantı verilen eksik alanları düzeltin.",
+                     "1": "Bir Amazon hücresini açıp Kontrol et'e basın; listelenen eksik alanları orada doldurun.",
                      "2": "Hücre hazır olunca Amazon'da yayınla'ya basın; Amazon bir [[submissionId]] ile yanıt verir.",
-                     "3": "Durumun Yayında'ya geçmesini izleyin ya da sorunları açıp her birini Amazon sekmesinde düzeltin."
+                     "3": "Durumun Yayında'ya geçmesini izleyin ya da her sorunda Düzelt'e basıp alanını orada düzeltin."
                   }
                }
             }
