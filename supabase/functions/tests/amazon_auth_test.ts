@@ -312,9 +312,73 @@ Deno.test('authConfig reads the env, falls back to the service key in sandbox on
       AmazonError,
       'amazon_unconfigured'
    );
-   const prod = await authConfig(PROD, (n) => ({ ...vars, AMAZON_SPAPI_STATE_SECRET: SECRET })[n]);
+   const urls = {
+      APP_URL: 'https://panel.example.com',
+      PUBLIC_SUPABASE_URL: 'https://ref.supabase.co'
+   };
+   const prod = await authConfig(
+      PROD,
+      (n) => ({ ...vars, ...urls, AMAZON_SPAPI_STATE_SECRET: SECRET })[n]
+   );
    assertEquals(prod.stateSecret, SECRET);
+   assertEquals([prod.appUrl, prod.publicSupabaseUrl], [urls.APP_URL, urls.PUBLIC_SUPABASE_URL]);
 });
+
+Deno.test('authConfig in production has no localhost defaults', async () => {
+   const vars: Record<string, string> = {
+      AMAZON_SPAPI_STATE_SECRET: SECRET,
+      APP_URL: 'https://panel.example.com',
+      PUBLIC_SUPABASE_URL: 'https://ref.supabase.co'
+   };
+   for (const name of ['APP_URL', 'PUBLIC_SUPABASE_URL']) {
+      await assertRejects(
+         () => authConfig(PROD, (n) => (n === name ? undefined : vars[n])),
+         AmazonError,
+         'amazon_unconfigured'
+      );
+   }
+});
+
+Deno.test(
+   'callback without a usable config sends the seller back to the app, not a 500',
+   async () => {
+      const { db, rpcs, queries } = fakeDb();
+      const lwa = fakeFetch();
+      const state = await signState(payload(), SECRET);
+      const { result: response } = await capturingErrors(() =>
+         handler(
+            callback({ state, selling_partner_id: 'A3SELLER', spapi_oauth_code: 'ANcode' }),
+            deps(db, {
+               env: () => PROD,
+               config: () => Promise.reject(new AmazonError('amazon_unconfigured', 500)),
+               appUrl: () => 'https://panel.example.com/',
+               fetch: lwa.fetch
+            })
+         )
+      );
+      assertEquals(response.status, 302);
+      assertEquals(
+         response.headers.get('Location'),
+         'https://panel.example.com/?amazon=error&reason=amazon_unconfigured'
+      );
+      assertEquals([rpcs.length, queries.length, lwa.calls.length], [0, 0, 0]);
+
+      // Without APP_URL there is nowhere to send the browser: the plain error stays.
+      const bare = await capturingErrors(() =>
+         handler(
+            callback({ state, selling_partner_id: 'A3SELLER', spapi_oauth_code: 'ANcode' }),
+            deps(db, {
+               env: () => {
+                  throw new AmazonError('amazon_unconfigured', 500);
+               },
+               appUrl: () => undefined
+            })
+         )
+      );
+      assertEquals(bare.result.status, 500);
+      assertEquals((await bare.result.json()).message, 'amazon_unconfigured');
+   }
+);
 
 // --- callback ------------------------------------------------------------------------------------
 

@@ -1,7 +1,13 @@
 // The OAuth pieces of amazon-auth: its config, the signed state, the Seller Central consent URL
 // and the LWA authorization_code exchange. The client secret and the refresh token stay here:
 // errors carry Amazon's error code and description only.
-import { AmazonError, type AmazonEnv, type Deps, LWA_TOKEN_URL } from '../_shared/amazon.ts';
+import {
+   AmazonError,
+   type AmazonEnv,
+   type Deps,
+   deploymentUrl,
+   LWA_TOKEN_URL
+} from '../_shared/amazon.ts';
 import { decodeBase64Url, encodeBase64Url, encodeHex, z } from '../_shared/deps.ts';
 
 export type StatePayload = {
@@ -134,9 +140,9 @@ export type AuthConfig = {
    appId?: string;
    /** AMAZON_SPAPI_APP_BETA === 'true'. */
    beta: boolean;
-   /** APP_URL, default http://localhost:6161. */
+   /** APP_URL (sandbox default http://localhost:6161; required in production). */
    appUrl: string;
-   /** PUBLIC_SUPABASE_URL, default http://127.0.0.1:54321 (the callback's redirect_uri host). */
+   /** PUBLIC_SUPABASE_URL, the callback's redirect_uri host (sandbox default http://127.0.0.1:54321). */
    publicSupabaseUrl: string;
    stateSecret: string;
 };
@@ -146,14 +152,14 @@ const MIN_SECRET_LENGTH = 32;
 /**
  * Reads the OAuth config. The state secret is AMAZON_SPAPI_STATE_SECRET (at least 32 characters).
  * In sandbox only, a missing one falls back to SHA-256 of the service role key, so local dev
- * works without it; production without it is amazon_unconfigured.
+ * works without it; production without it, or without APP_URL or PUBLIC_SUPABASE_URL, is
+ * amazon_unconfigured (no localhost defaults).
  */
 export async function authConfig(
    env: AmazonEnv,
    get: (name: string) => string | undefined = (name) => Deno.env.get(name)
 ): Promise<AuthConfig> {
    const read = (name: string) => get(name)?.trim() || undefined;
-   const trimSlash = (url: string) => url.replace(/\/+$/, '');
 
    let stateSecret = read('AMAZON_SPAPI_STATE_SECRET');
    if (!stateSecret && env.env === 'sandbox') {
@@ -172,8 +178,8 @@ export async function authConfig(
    return {
       appId: read('AMAZON_SPAPI_APP_ID'),
       beta: read('AMAZON_SPAPI_APP_BETA') === 'true',
-      appUrl: trimSlash(read('APP_URL') ?? 'http://localhost:6161'),
-      publicSupabaseUrl: trimSlash(read('PUBLIC_SUPABASE_URL') ?? 'http://127.0.0.1:54321'),
+      appUrl: deploymentUrl('APP_URL', env, get),
+      publicSupabaseUrl: deploymentUrl('PUBLIC_SUPABASE_URL', env, get),
       stateSecret
    };
 }

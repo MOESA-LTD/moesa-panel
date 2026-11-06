@@ -7,6 +7,8 @@
 //   POST { action: 'disconnect', account_id }           -> { account }
 //   GET  /amazon-auth/callback?state&selling_partner_id&spapi_oauth_code  (Amazon's redirect)
 //        -> 302 APP_URL + return_to + ?amazon=connected | ?amazon=error&reason=<code>
+//        A config that cannot be read (amazon_unconfigured) sends the browser to APP_URL/ with
+//        ?amazon=error&reason=amazon_unconfigured; only without APP_URL is it a plain 500.
 //
 // The callback carries no JWT (verify_jwt = false): the signed state is its only credential. The
 // refresh token goes from LWA straight to Vault through amazon_account_connect (service role); it
@@ -46,6 +48,8 @@ export type HandlerDeps = {
    db: () => Db;
    env: () => AmazonEnv;
    config: (env: AmazonEnv) => Promise<AuthConfig>;
+   /** APP_URL as set (no default): where a callback goes when the config cannot be read. */
+   appUrl: () => string | undefined;
    now: () => number;
    fetch: Deps['fetch'];
    authorize: (
@@ -161,10 +165,26 @@ const redirect = (appUrl: string, path: string, result: Record<string, string>) 
    });
 };
 
+/** The config, or a redirect to the app's root that says it is missing (never a raw 500 to the seller). */
+const callbackConfig = async (
+   d: HandlerDeps
+): Promise<{ env: AmazonEnv; config: AuthConfig } | Response> => {
+   try {
+      const env = d.env();
+      return { env, config: await d.config(env) };
+   } catch (error) {
+      const appUrl = d.appUrl()?.trim().replace(/\/+$/, '');
+      if (!(error instanceof AmazonError) || !appUrl) throw error;
+      console.error(`amazon-auth callback failed: ${error.code}`);
+      return redirect(appUrl, '/', { amazon: 'error', reason: error.code });
+   }
+};
+
 const callback = async (req: Request, d: HandlerDeps) => {
    const params = new URL(req.url).searchParams;
-   const env = d.env();
-   const config = await d.config(env);
+   const loaded = await callbackConfig(d);
+   if (loaded instanceof Response) return loaded;
+   const { env, config } = loaded;
 
    const payload = await verifyState(params.get('state') ?? '', config.stateSecret, d.now());
    // An unverified state's return_to is not trusted: the app's root gets the error.
@@ -234,6 +254,7 @@ export async function handler(req: Request, deps: Partial<HandlerDeps> = {}): Pr
       db: supabaseAdmin,
       env: () => amazonEnv(),
       config: (env) => authConfig(env),
+      appUrl: () => Deno.env.get('APP_URL'),
       now: Date.now,
       fetch: (input, init) => fetch(input, init),
       authorize: withAuthorization,

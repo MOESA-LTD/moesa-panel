@@ -33,7 +33,11 @@ export class AmazonThrottleError extends AmazonError {}
 /** 'amazon_request_invalid' (4xx; details = Amazon's errors[]) | 'amazon_not_found' (404). */
 export class AmazonRequestError extends AmazonError {}
 
-/** Reads AMAZON_SPAPI_* from the environment (or `get`). */
+/**
+ * Reads AMAZON_SPAPI_* from the environment (or `get`). AMAZON_SPAPI_ENV must be set explicitly
+ * to `sandbox` or `production`: unset (or anything else) is amazon_unconfigured, so a production
+ * deploy that forgets it fails closed instead of reaching the sandbox.
+ */
 export function amazonEnv(
    get: (name: string) => string | undefined = (name) => Deno.env.get(name)
 ): AmazonEnv {
@@ -43,7 +47,7 @@ export function amazonEnv(
    const clientSecret = read('AMAZON_SPAPI_LWA_CLIENT_SECRET');
    if (!clientId || !clientSecret) throw new AmazonError('amazon_unconfigured', 500);
 
-   const env = read('AMAZON_SPAPI_ENV') ?? 'sandbox';
+   const env = read('AMAZON_SPAPI_ENV');
    if (env !== 'sandbox' && env !== 'production') throw new AmazonError('amazon_unconfigured', 500);
 
    const region = read('AMAZON_SPAPI_REGION') ?? 'eu';
@@ -57,6 +61,29 @@ export function amazonEnv(
       selfRefreshToken: read('AMAZON_SPAPI_REFRESH_TOKEN'),
       sellerId: read('AMAZON_SPAPI_SELLER_ID')
    };
+}
+
+/** The local defaults of the deployment URLs: the sandbox (local dev) only. */
+const LOCAL_URLS = {
+   APP_URL: 'http://localhost:6161',
+   PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321'
+} as const;
+
+/**
+ * A deployment URL without a trailing slash: APP_URL (the panel, where the OAuth callback sends the
+ * browser back) or PUBLIC_SUPABASE_URL (the project's public URL: the callback's redirect_uri and
+ * the public image links Amazon fetches). The sandbox falls back to the local stack; production
+ * has no default (amazon_unconfigured).
+ */
+export function deploymentUrl(
+   name: keyof typeof LOCAL_URLS,
+   env: Pick<AmazonEnv, 'env'>,
+   get: (name: string) => string | undefined = (key) => Deno.env.get(key)
+): string {
+   const value = get(name)?.trim();
+   if (value) return value.replace(/\/+$/, '');
+   if (env.env === 'sandbox') return LOCAL_URLS[name];
+   throw new AmazonError('amazon_unconfigured', 500);
 }
 
 export const LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';

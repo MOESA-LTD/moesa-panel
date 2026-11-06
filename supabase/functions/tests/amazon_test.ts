@@ -8,6 +8,7 @@ import {
    AmazonThrottleError,
    clearTokenCache,
    type Deps,
+   deploymentUrl,
    LWA_TOKEN_URL,
    lwaToken,
    marketplaceFor,
@@ -100,6 +101,39 @@ Deno.test('amazonEnv reads the environment and refuses a region other than eu', 
       AmazonError
    );
    assertEquals([missing.code, missing.status], ['amazon_unconfigured', 500]);
+});
+
+Deno.test('amazonEnv fails closed without an explicit AMAZON_SPAPI_ENV', () => {
+   const vars: Record<string, string> = {
+      AMAZON_SPAPI_LWA_CLIENT_ID: 'id',
+      AMAZON_SPAPI_LWA_CLIENT_SECRET: 'secret'
+   };
+   for (const value of [undefined, '', '  ', 'staging']) {
+      const error = assertThrows(
+         () => amazonEnv((name) => (name === 'AMAZON_SPAPI_ENV' ? value : vars[name])),
+         AmazonError
+      );
+      assertEquals([error.code, error.status], ['amazon_unconfigured', 500]);
+   }
+   assertEquals(
+      amazonEnv((name) => ({ ...vars, AMAZON_SPAPI_ENV: 'production' })[name]).env,
+      'production'
+   );
+});
+
+Deno.test('deploymentUrl has a local default in sandbox only', () => {
+   const none = () => undefined;
+   assertEquals(deploymentUrl('APP_URL', ENV, none), 'http://localhost:6161');
+   assertEquals(deploymentUrl('PUBLIC_SUPABASE_URL', ENV, none), 'http://127.0.0.1:54321');
+   const prod: AmazonEnv = { ...ENV, env: 'production' };
+   for (const name of ['APP_URL', 'PUBLIC_SUPABASE_URL'] as const) {
+      const error = assertThrows(() => deploymentUrl(name, prod, none), AmazonError);
+      assertEquals([error.code, error.status], ['amazon_unconfigured', 500]);
+   }
+   assertEquals(
+      deploymentUrl('APP_URL', prod, () => ' https://panel.example.com/ '),
+      'https://panel.example.com'
+   );
 });
 
 Deno.test('spapiHost picks the sandbox or production eu host', () => {
