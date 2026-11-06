@@ -88,6 +88,19 @@ export function parseStatus(text) {
    return { apiUrl: status.API_URL, serviceRoleKey: status.SERVICE_ROLE_KEY };
 }
 
+// Defence in depth: the service role key never goes anywhere but the local stack.
+export function assertLocalApiUrl(apiUrl) {
+   let host;
+   try {
+      host = new URL(apiUrl).hostname;
+   } catch {
+      throw new Error(`API URL is not a URL: ${apiUrl}`);
+   }
+   if (host !== '127.0.0.1' && host !== 'localhost') {
+      throw new Error(`refusing to run against ${apiUrl}: the story seed is for the local stack only`);
+   }
+}
+
 export function localKeys() {
    return parseStatus(run('supabase', ['status', '-o', 'json']));
 }
@@ -156,6 +169,7 @@ async function uploadMedia(apiUrl, serviceRoleKey, tenantId) {
 // The steps are injectable so the test can prove the KRN guard stops the run before any upload.
 export async function main({ keys = localKeys, sql = psql, upload = uploadMedia, exit = process.exit } = {}) {
    const { apiUrl, serviceRoleKey } = keys();
+   assertLocalApiUrl(apiUrl);
 
    if (Number(sql(`SELECT count(*) FROM public.customer WHERE code = 'KRN'`).trim()) > 0) {
       console.error('seed-story: already loaded (customer KRN exists). Run "supabase db reset" first.');

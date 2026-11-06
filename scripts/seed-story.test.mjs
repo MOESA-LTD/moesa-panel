@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { bigPdf, countChecks, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
+import { assertLocalApiUrl, bigPdf, countChecks, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
 
 test('bigPdf is sample.pdf padded with comment lines to exactly 12 MiB', () => {
    const sample = readFileSync(path.join(ROOT, 'supabase', 'seed_files', 'sample.pdf'));
@@ -130,4 +130,21 @@ test('the guide.page check lists every business page of GUIDE_PAGES (app/src/con
 
    // A new guide page fails here until the check lists it (and the story gives it rows).
    assert.deepEqual([...checked].sort(), [...pages].sort());
+});
+
+test('a non-local API URL is refused before any query or upload', async () => {
+   let touched = 0;
+   const touch = () => {
+      touched += 1;
+      return '0';
+   };
+   for (const apiUrl of ['https://abc.supabase.co', 'http://127.0.0.1.evil.com:54321', 'nonsense']) {
+      await assert.rejects(
+         main({ keys: () => ({ apiUrl, serviceRoleKey: 'k' }), sql: touch, upload: touch, exit: touch }),
+         /refusing|not a URL/,
+      );
+   }
+   assert.equal(touched, 0);
+   assert.doesNotThrow(() => assertLocalApiUrl('http://127.0.0.1:54321'));
+   assert.doesNotThrow(() => assertLocalApiUrl('http://localhost:54321'));
 });
