@@ -1,5 +1,6 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import { AmazonAuthError, type AmazonEnv, AmazonThrottleError } from '../_shared/amazon.ts';
+import { HttpError } from '../_shared/http.ts';
 import { handler } from '../amazon-poll/index.ts';
 import { POLL_CAP, type RefreshFn } from '../amazon-poll/poll.ts';
 
@@ -154,6 +155,7 @@ Deno.test('selects amazon cells in submitted, oldest check first, capped', async
       polled: 0,
       failed: 0,
       given_up: 0,
+      skipped: 0,
       remaining: 0
    });
    const { ops } = db.queries[0];
@@ -193,6 +195,7 @@ Deno.test(
          polled: 2,
          failed: 0,
          given_up: 0,
+         skipped: 0,
          remaining: 3
       });
       assertEquals(seen, [
@@ -222,6 +225,7 @@ Deno.test(
          polled: 1,
          failed: 1,
          given_up: 0,
+         skipped: 0,
          remaining: 0
       });
       assertEquals(logged.length, 1);
@@ -238,6 +242,7 @@ Deno.test(
          polled: 1,
          failed: 0,
          given_up: 1,
+         skipped: 0,
          remaining: 0
       });
       assertEquals(db.rpcs.length, 1);
@@ -276,6 +281,7 @@ Deno.test('within 24 hours, or once resolved, nothing is given up', async () => 
       polled: 2,
       failed: 0,
       given_up: 0,
+      skipped: 0,
       remaining: 0
    });
    assertEquals(db.rpcs.length, 0);
@@ -285,12 +291,6 @@ Deno.test('a cell that keeps failing is also given up after 24 hours', async () 
    const db = fakeAdmin({
       market_cell: [{ id: 'c1', tenant_id: 't1' }],
       listing_submission: [
-         {
-            id: 'del',
-            kind: 'delete',
-            status: 'processing',
-            created_at: hoursAgo(1)
-         },
          {
             id: 'old',
             kind: 'create',
@@ -308,6 +308,7 @@ Deno.test('a cell that keeps failing is also given up after 24 hours', async () 
       polled: 0,
       failed: 1,
       given_up: 1,
+      skipped: 0,
       remaining: 0
    });
    assertEquals(db.rpcs[0].args.p_submission_id, 'old');
@@ -333,6 +334,7 @@ Deno.test('the time budget stops new cells and leaves them in remaining', async 
       polled: 1,
       failed: 0,
       given_up: 0,
+      skipped: 0,
       remaining: 1
    });
 });
@@ -398,8 +400,86 @@ Deno.test(
             Promise.reject(new AmazonThrottleError('amazon_throttled', 429))
          )
       );
-      assertEquals(await res.json(), { polled: 0, failed: 1, given_up: 0, remaining: 0 });
+      assertEquals(await res.json(), {
+         polled: 0,
+         failed: 1,
+         given_up: 0,
+         skipped: 0,
+         remaining: 0
+      });
       assertEquals(db.rpcs.length, 0);
       assertEquals(db.stamps, ['c1']);
    }
 );
+
+Deno.test('give-up applies only to the latest submission, never past a removal (C6)', async () => {
+   const db = fakeAdmin({
+      market_cell: [{ id: 'c1', tenant_id: 't1' }],
+      listing_submission: [
+         { id: 'del', kind: 'delete', status: 'failed', created_at: hoursAgo(1) },
+         { id: 'old', kind: 'create', status: 'processing', created_at: hoursAgo(30) }
+      ]
+   });
+   const { result: res } = await quiet(() =>
+      run(post(SERVICE_KEY), db, () =>
+         Promise.reject(new AmazonAuthError('amazon_auth_failed', 401))
+      )
+   );
+   assertEquals((await res.json()).given_up, 0);
+   assertEquals(db.rpcs, []);
+});
+
+Deno.test(
+   'a settled (done) cell is not asked again: skipped by refresh and stamped (C6)',
+   async () => {
+      const db = fakeAdmin({ market_cell: [{ id: 'parent', tenant_id: 't1' }] });
+      const options: unknown[] = [];
+      const refresh: RefreshFn = (_deps, _target, opts) => {
+         options.push(opts);
+         // A variation parent mirrored to submitted while its own create is done.
+         return Promise.resolve({
+            cell: { listing_state: 'submitted' },
+            submission: { id: 's-parent', status: 'done', created_at: hoursAgo(48) }
+         });
+      };
+      const res = await run(post(SERVICE_KEY), db, refresh);
+      assertEquals(await res.json(), {
+         polled: 1,
+         failed: 0,
+         given_up: 0,
+         skipped: 0,
+         remaining: 0
+      });
+      assertEquals(options, [{ skipDone: true }]);
+      assertEquals(db.rpcs, []);
+      assertEquals(db.stamps, ['parent']);
+   }
+);
+
+Deno.test('a cell whose account is not connected is skipped and set to draft (C12)', async () => {
+   for (const code of ['amazon_not_connected', 'amazon_connection_revoked']) {
+      const db = fakeAdmin({
+         market_cell: [{ id: 'moved', tenant_id: 't2' }],
+         listing_submission: [
+            { id: 'old', kind: 'create', status: 'processing', created_at: hoursAgo(30) }
+         ]
+      });
+      const { result: res, logged } = await quiet(() =>
+         run(post(SERVICE_KEY), db, () => Promise.reject(new HttpError(409, code)))
+      );
+      assertEquals(await res.json(), {
+         polled: 0,
+         failed: 0,
+         given_up: 0,
+         skipped: 1,
+         remaining: 0
+      });
+      assertEquals(logged, []);
+      assertEquals(db.rpcs, [
+         {
+            fn: 'listing_set_state',
+            args: { p_cell_id: 'moved', p_listing_state: 'draft', p_listing_match: null }
+         }
+      ]);
+   }
+});

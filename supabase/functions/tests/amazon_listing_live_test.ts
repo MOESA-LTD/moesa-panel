@@ -8,8 +8,10 @@ import {
    deriveListingState,
    getListingsItem,
    type ListingBody,
+   listingPatch,
    listingRestrictions,
    parseSubmission,
+   patchListingsItem,
    putListingsItem
 } from '../amazon-listing/listing.ts';
 
@@ -50,6 +52,18 @@ Deno.test({
       );
       assertEquals(parsed.status, 'accepted');
       assertEquals(parsed.submissionId, 'f1dc2914-75dd-11ea-bc55-0242ac130003');
+   }
+});
+
+Deno.test({
+   name: 'sandbox: amazon-listing update (PATCH of the panel attributes) is ACCEPTED',
+   ignore: !live,
+   fn: async () => {
+      const { spapi, sellerId } = sandbox();
+      const parsed = parseSubmission(
+         await patchListingsItem(spapi, sellerId, 'THO-MOP40-2P', DE, listingPatch(body))
+      );
+      assertEquals(parsed.status, 'accepted');
    }
 });
 

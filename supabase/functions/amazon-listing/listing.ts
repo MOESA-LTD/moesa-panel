@@ -1,6 +1,6 @@
 // The pure parts of amazon-listing: the Listings Items body, Amazon's answers, the listing state
 // derived from getListingsItem, the public image URLs and the copy into the listing-images bucket.
-import type { AmazonEnv, SpapiCall } from '../_shared/amazon.ts';
+import { AmazonError, type AmazonEnv, type SpapiCall } from '../_shared/amazon.ts';
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
@@ -129,9 +129,10 @@ export type ListingBody = {
 };
 
 /**
- * The putListingsItem body of a cell. The product's attributes are narrowed to the cell's
- * marketplace and language; the server adds the GTIN, the offer (with a price and a currency),
- * the variation attributes (R7) and the public image URLs. A matched ASIN sends an offer only.
+ * The listing body of a cell. The product's attributes are narrowed to the cell's marketplace and
+ * language; the server adds the GTIN, the offer (with a price and a currency), the variation
+ * attributes (R7) and the public image URLs. A matched ASIN sends an offer only. It carries no
+ * fulfillment_availability: a create adds it (withNewItemAvailability), an update never does.
  */
 export function buildListingBody(
    ctx: CellContext,
@@ -158,20 +159,14 @@ export function buildListingBody(
       ];
    }
 
-   // A variation parent is not buyable: it carries no offer (R7).
+   // A variation parent is not buyable: it carries no offer (R7). The seller's stock
+   // (fulfillment_availability) is never sent here: see withNewItemAvailability.
+   delete attrs.fulfillment_availability;
    if (!isParent && provided.includes('purchasable_offer')) {
       attrs.purchasable_offer = [
          {
             currency: ctx.currency,
             our_price: [{ schedule: [{ value_with_tax: Number(ctx.cell.price) }] }],
-            marketplace_id
-         }
-      ];
-      attrs.fulfillment_availability = [
-         {
-            fulfillment_channel_code:
-               ctx.cell.fulfillment_channel === 'fba' ? 'AMAZON_EU' : 'DEFAULT',
-            quantity: 0, // FBM stock sync is a v1 non-goal
             marketplace_id
          }
       ];
@@ -201,13 +196,52 @@ export function buildListingBody(
       const offerOnly: Record<string, Entry[]> = {
          merchant_suggested_asin: [{ value: matchedAsin, marketplace_id }]
       };
-      for (const name of ['condition_type', 'purchasable_offer', 'fulfillment_availability']) {
+      for (const name of ['condition_type', 'purchasable_offer']) {
          if (attrs[name]) offerOnly[name] = attrs[name];
       }
       return { productType, requirements: 'LISTING_OFFER_ONLY', attributes: offerOnly };
    }
 
    return { productType, requirements: 'LISTING', attributes: withImageUrls(attrs, imageUrls) };
+}
+
+/**
+ * The availability a NEW SKU is created with (a putListingsItem create only): FBM starts at
+ * quantity 0 (stock sync is a v1 non-goal), FBA names Amazon's channel and sends no quantity.
+ * Without an offer (a parent, or no price) nothing is added. An existing SKU never gets it, so the
+ * stock the seller keeps in Seller Central is never overwritten.
+ */
+export function withNewItemAvailability(body: ListingBody, ctx: CellContext): ListingBody {
+   if (!body.attributes.purchasable_offer) return body;
+   const marketplace_id = ctx.marketplaceId;
+   const availability =
+      ctx.cell.fulfillment_channel === 'fba'
+         ? { fulfillment_channel_code: 'AMAZON_EU', marketplace_id }
+         : { fulfillment_channel_code: 'DEFAULT', quantity: 0, marketplace_id };
+   return {
+      ...body,
+      attributes: { ...body.attributes, fulfillment_availability: [availability] }
+   };
+}
+
+/** A patchListingsItem body: the product type and JSON patches. */
+export type ListingPatch = {
+   productType: string;
+   patches: Array<{ op: 'replace'; path: string; value: Entry[] }>;
+};
+
+/**
+ * The patchListingsItem body of an existing SKU: a `replace` of each attribute the panel owns (all
+ * the body carries, never fulfillment_availability), so Amazon keeps everything else, the seller's
+ * stock included.
+ */
+export function listingPatch(body: ListingBody): ListingPatch {
+   return {
+      productType: body.productType,
+      patches: Object.entries(body.attributes)
+         .filter(([name]) => name !== 'fulfillment_availability')
+         .map(([name, value]) => ({ op: 'replace', path: `/attributes/${name}`, value }))
+   };
 }
 
 // --- Amazon's answers ----------------------------------------------------------------------------
@@ -248,6 +282,42 @@ export function putListingsItem(
          : { marketplaceIds: marketplaceId, includedData: ['issues'] },
       body
    });
+}
+
+/** patchListingsItem: replaces the attributes the patch names, nothing else. */
+export function patchListingsItem(
+   call: SpapiCall,
+   sellerId: string,
+   sku: string,
+   marketplaceId: string,
+   body: ListingPatch
+): Promise<SubmissionResponse> {
+   return call<SubmissionResponse>({
+      method: 'PATCH',
+      path: itemPath(sellerId, sku),
+      query: { marketplaceIds: marketplaceId, includedData: ['issues'] },
+      body
+   });
+}
+
+/** Whether Amazon has the SKU in the marketplace (getListingsItem; its 404 means no). */
+export async function listingExists(
+   call: SpapiCall,
+   sellerId: string,
+   sku: string,
+   marketplaceId: string
+): Promise<boolean> {
+   try {
+      await call({
+         method: 'GET',
+         path: itemPath(sellerId, sku),
+         query: { marketplaceIds: marketplaceId, includedData: ['summaries'] }
+      });
+      return true;
+   } catch (error) {
+      if (error instanceof AmazonError && error.code === 'amazon_not_found') return false;
+      throw error;
+   }
 }
 
 export function deleteListingsItem(

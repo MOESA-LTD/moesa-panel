@@ -169,7 +169,10 @@ export async function submissionsOf(
    return data ?? [];
 }
 
-/** 046's listing_apply_submission: the submission's status and issues, the cell's state (R2 walk). */
+/**
+ * 046's listing_apply_submission: the submission's status and issues, and, when it is the cell's
+ * latest submission, the cell's state (R2 walk); an older submission's answer leaves the cell as is.
+ */
 export async function applySubmission(
    db: Db,
    submissionId: string,
@@ -191,6 +194,28 @@ export async function applySubmission(
    return data as MarketCellRow;
 }
 
+/**
+ * 046's listing_set_state: the cell's listing state (and match), written only when the cell is
+ * still at `expectedUpdatedAt` (the version the caller read; null writes unconditionally).
+ * Returns the cell as it is afterwards: the caller's state, or the newer one that won.
+ */
+export async function setListingState(
+   db: Db,
+   cellId: string,
+   state: ListingState,
+   match: Json | null,
+   expectedUpdatedAt: string | null = null
+): Promise<MarketCellRow> {
+   const { data, error } = await db.rpc('listing_set_state', {
+      p_cell_id: cellId,
+      p_listing_state: state,
+      p_listing_match: match as Json,
+      ...(expectedUpdatedAt ? { p_expected_updated_at: expectedUpdatedAt } : {})
+   });
+   if (error) throw error;
+   return data as MarketCellRow;
+}
+
 // --- Refresh -------------------------------------------------------------------------------------
 
 export type ListingStatusDeps = {
@@ -205,17 +230,27 @@ export type ListingStatusTarget =
    | { tenantId: string; cellId: string; submissionId?: undefined }
    | { tenantId: string; submissionId: string; cellId?: undefined };
 
+export type RefreshOptions = {
+   /** The poll: a `done` submission is settled; it is returned unchanged without a call. */
+   skipDone?: boolean;
+};
+
 /**
  * Asks Amazon for a submitted listing and applies the answer: `live` or `issues` make the
  * submission `done`, `submitted` (or Amazon's 404: not known yet) keeps it `processing`.
- * The target is a cell (its latest create/update) or one submission. An `invalid` or `failed`
- * submission was never taken by Amazon: it is returned unchanged without a call.
+ * The target is a cell (its latest submission) or one submission. Returned unchanged without a
+ * call: an `invalid` or `failed` submission (Amazon never took it), a cell whose latest
+ * submission is a delete (a refresh never brings a removed listing back), and with `skipDone` a
+ * `done` one. A `done` submission is never moved back to `processing`: Amazon's 404 for it means
+ * the listing is gone (the cell goes to draft, the submission stays done), and an answer that is
+ * neither live nor issues leaves it as it is.
  * Errors: 404 listing_cell_not_found / listing_submission_not_found, 409 amazon_not_connected /
  * amazon_connection_revoked (the account is marked revoked), the Amazon codes of _shared/amazon.ts.
  */
 export async function refreshListingStatus(
    deps: ListingStatusDeps,
-   target: ListingStatusTarget
+   target: ListingStatusTarget,
+   options: RefreshOptions = {}
 ): Promise<{ cell: MarketCellRow; submission: ListingSubmissionRow }> {
    const { admin, env, tenantId } = { ...deps, tenantId: target.tenantId };
 
@@ -225,15 +260,19 @@ export async function refreshListingStatus(
       if (submission.kind === 'delete') throw new HttpError(404, 'listing_submission_not_found');
    } else {
       await loadListingCell(admin, tenantId, target.cellId);
-      const latest = (await submissionsOf(admin, tenantId, target.cellId)).find(
-         (s) => s.kind !== 'delete'
-      );
+      const latest = (await submissionsOf(admin, tenantId, target.cellId))[0];
       if (!latest) throw new HttpError(404, 'listing_submission_not_found');
       submission = await loadSubmission(admin, tenantId, latest.id);
    }
    const cell = await loadListingCell(admin, tenantId, submission.cell_id);
-   if (submission.status === 'invalid' || submission.status === 'failed')
+   if (
+      submission.kind === 'delete' ||
+      submission.status === 'invalid' ||
+      submission.status === 'failed' ||
+      (options.skipDone && submission.status === 'done')
+   )
       return { cell, submission };
+   const done = submission.status === 'done';
 
    const account = await amazonAccountFor(admin, cell.customer_id, tenantId, env);
    const call = spapiClient(account.refreshToken, env, deps.amazon ?? {});
@@ -245,8 +284,12 @@ export async function refreshListingStatus(
       derived = deriveListingState(item, submission.marketplace_id, env.env === 'sandbox');
    } catch (error) {
       if (!(error instanceof AmazonError && error.code === 'amazon_not_found')) throw error;
+      // A listing Amazon had (done) and no longer knows was removed: the cell is draft again.
+      if (done) return { cell: await setListingState(admin, cell.id, 'draft', null), submission };
       derived = { state: 'submitted', asin: null, issues: [] };
    }
+   // Neither live nor issues for a settled submission: nothing new to say.
+   if (done && derived.state === 'submitted') return { cell, submission };
 
    const updated = await applySubmission(
       admin,

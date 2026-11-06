@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertRejects, assertThrows } from 'jsr:@std/assert@1';
+import { assert, assertEquals, assertFalse, assertRejects, assertThrows } from 'jsr:@std/assert@1';
 import { type AmazonEnv, clearTokenCache, type Deps } from '../_shared/amazon.ts';
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
@@ -13,13 +13,15 @@ import {
    type CellContext,
    copyListingImages,
    deriveListingState,
+   listingPatch,
    type MarketCellRow,
    mediaRefs,
    parseSubmission,
    type ProductRow,
    publicImageUrl,
    requireLanguageTag,
-   skuFor
+   skuFor,
+   withNewItemAvailability
 } from '../amazon-listing/listing.ts';
 
 const fixture: GetDefinitionResponse & { schema: AmazonSchema } = JSON.parse(
@@ -40,6 +42,9 @@ const CUSTOMER = '00000000-0000-4000-8000-0000000000c1';
 const MEDIA = '5eed0009-0000-4000-8000-000000000001';
 const MEDIA_2 = '5eed0009-0000-4000-8000-000000000002';
 const PUBLIC_BASE = 'http://127.0.0.1:54321';
+const PROD_BASE = 'https://ref.supabase.co';
+const VERSION = '2026-11-06T08:00:00.123456+00:00';
+const CELL = '00000000-0000-4000-8000-00000000ce01';
 
 // --- Rows ----------------------------------------------------------------------------------------
 
@@ -74,6 +79,7 @@ const cell = (over: Partial<MarketCellRow> = {}): MarketCellRow =>
       listing_match: null,
       fulfillment_channel: 'fbm',
       open_issue: null,
+      updated_at: VERSION,
       ...over
    }) as MarketCellRow;
 
@@ -131,21 +137,18 @@ Deno.test('buildListingBody adds the GTIN as ean and the offer from the cell', (
    assertEquals(body.attributes.purchasable_offer, [
       { currency: 'EUR', our_price: [{ schedule: [{ value_with_tax: 24.9 }] }], marketplace_id: DE }
    ]);
-   assertEquals(body.attributes.fulfillment_availability, [
-      { fulfillment_channel_code: 'DEFAULT', quantity: 0, marketplace_id: DE }
-   ]);
-
-   const fba = buildListingBody(
-      context({ cell: cell({ fulfillment_channel: 'fba' }) }),
-      structuredClone(storyAttributes),
+   // The seller's stock is never part of the body (C5): only a new SKU gets an availability.
+   assertEquals(body.attributes.fulfillment_availability, undefined);
+   const typed = buildListingBody(
+      context(),
+      {
+         ...structuredClone(storyAttributes),
+         fulfillment_availability: [{ fulfillment_channel_code: 'DEFAULT', quantity: 7 }]
+      },
       urls,
       null
    );
-   assertEquals(fba.attributes.fulfillment_availability[0], {
-      fulfillment_channel_code: 'AMAZON_EU',
-      quantity: 0,
-      marketplace_id: DE
-   });
+   assertEquals(typed.attributes.fulfillment_availability, undefined);
 
    // No price (or no currency): no offer, as serverProvided says (C3).
    const noPrice = buildListingBody(
@@ -157,6 +160,52 @@ Deno.test('buildListingBody adds the GTIN as ean and the offer from the cell', (
    assertEquals(noPrice.attributes.purchasable_offer, undefined);
    assertEquals(noPrice.attributes.fulfillment_availability, undefined);
 });
+
+Deno.test('a new SKU starts with FBM quantity 0, or FBA without a quantity (C5)', () => {
+   const body = buildListingBody(context(), structuredClone(storyAttributes), urls, null);
+   assertEquals(withNewItemAvailability(body, context()).attributes.fulfillment_availability, [
+      { fulfillment_channel_code: 'DEFAULT', quantity: 0, marketplace_id: DE }
+   ]);
+   const fba = context({ cell: cell({ fulfillment_channel: 'fba' }) });
+   assertEquals(withNewItemAvailability(body, fba).attributes.fulfillment_availability, [
+      { fulfillment_channel_code: 'AMAZON_EU', marketplace_id: DE }
+   ]);
+   // No offer (no price, or a parent): no availability either.
+   const noOffer = buildListingBody(
+      context({ cell: cell({ price: null }) }),
+      structuredClone(storyAttributes),
+      urls,
+      null
+   );
+   assertEquals(
+      withNewItemAvailability(noOffer, context()).attributes.fulfillment_availability,
+      undefined
+   );
+});
+
+Deno.test(
+   'an existing SKU is patched with the attributes the panel owns, never the stock (C5)',
+   () => {
+      const body = withNewItemAvailability(
+         buildListingBody(context(), structuredClone(storyAttributes), urls, null),
+         context()
+      );
+      const patch = listingPatch(body);
+      assertEquals(patch.productType, 'LUGGAGE');
+      assert(patch.patches.every((p) => p.op === 'replace'));
+      assertEquals(
+         patch.patches.map((p) => p.path).sort(),
+         Object.keys(body.attributes)
+            .filter((name) => name !== 'fulfillment_availability')
+            .map((name) => `/attributes/${name}`)
+            .sort()
+      );
+      assertEquals(
+         patch.patches.find((p) => p.path === '/attributes/purchasable_offer')?.value,
+         body.attributes.purchasable_offer
+      );
+   }
+);
 
 Deno.test('buildListingBody replaces media references with public URLs', () => {
    const body = buildListingBody(context(), structuredClone(storyAttributes), urls, null);
@@ -228,7 +277,6 @@ Deno.test('buildListingBody sends an offer only for a matched ASIN', () => {
    assertEquals(body.requirements, 'LISTING_OFFER_ONLY');
    assertEquals(Object.keys(body.attributes).sort(), [
       'condition_type',
-      'fulfillment_availability',
       'merchant_suggested_asin',
       'purchasable_offer'
    ]);
@@ -429,12 +477,49 @@ const newState = (tables: Record<string, Row[]>): State => ({
 const cellRow = (state: State, id: string) =>
    state.tables.market_cell.find((row) => row.id === id) as Row;
 
+const latestOf = (state: State, cellId: string) =>
+   state.tables.listing_submission
+      .filter((row) => row.cell_id === cellId)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+
+let versions = 0;
+
 /** The 046 RPCs, reduced to what the function relies on. */
 const rpc = (
    state: State,
    name: string,
-   args: Record<string, unknown>
+   args: Record<string, unknown>,
+   client: string
 ): { data: unknown; error: unknown } => {
+   if (name === 'listing_begin_submission') {
+      const target = cellRow(state, args.p_cell_id as string);
+      const latest = latestOf(state, target.id as string);
+      if (
+         args.p_kind !== 'delete' &&
+         latest &&
+         latest.kind !== 'delete' &&
+         ['accepted', 'processing'].includes(latest.status as string)
+      )
+         return { data: null, error: { code: 'P0001', message: 'listing_in_progress' } };
+      const row: Row = {
+         id: `s-${++ids}`,
+         tenant_id: target.tenant_id,
+         cell_id: target.id,
+         kind: args.p_kind,
+         sku: args.p_sku,
+         marketplace_id: args.p_marketplace_id,
+         payload: args.p_payload,
+         status: 'processing',
+         issues: [],
+         amazon_submission_id: null,
+         created_by: args.p_created_by,
+         created_at: new Date(Date.parse('2026-11-06T10:00:00Z') + ids * 1000).toISOString()
+      };
+      state.tables.listing_submission.push(row);
+      state.inserts.push({ table: 'listing_submission', row, client });
+      if (args.p_kind !== 'delete') target.listing_state = 'submitted';
+      return { data: { ...row }, error: null };
+   }
    if (name === 'listing_apply_submission') {
       const submission = state.tables.listing_submission.find(
          (row) => row.id === args.p_submission_id
@@ -444,6 +529,9 @@ const rpc = (
       submission.amazon_submission_id =
          args.p_amazon_submission_id ?? submission.amazon_submission_id;
       const target = cellRow(state, submission.cell_id as string);
+      // An older submission settles itself only (046: the latest decides the cell).
+      if (latestOf(state, target.id as string) !== submission)
+         return { data: { ...target }, error: null };
       target.listing_state = args.p_listing_state;
       // Issues win (046 fix round 1): the status walks only without issues.
       if (
@@ -455,9 +543,18 @@ const rpc = (
    }
    if (name === 'listing_set_state') {
       const target = cellRow(state, args.p_cell_id as string);
+      // Written only over the version the caller read (046).
+      if (args.p_expected_updated_at && args.p_expected_updated_at !== target.updated_at)
+         return { data: { ...target }, error: null };
       target.listing_state = args.p_listing_state;
       if (args.p_listing_match) target.listing_match = args.p_listing_match;
-      return { data: null, error: null };
+      if (
+         args.p_listing_state !== 'issues' &&
+         String(target.open_issue ?? '').startsWith('Amazon: ')
+      )
+         target.open_issue = null;
+      target.updated_at = `2026-11-06T11:00:00.${String(++versions).padStart(6, '0')}+00:00`;
+      return { data: { ...target }, error: null };
    }
    if (name === 'listing_parent_cell') {
       const child = cellRow(state, args.p_cell_id as string);
@@ -584,7 +681,7 @@ const fakeDb = (state: State, client: string) => {
       storage,
       rpc: (name: string, args: Record<string, unknown>) => {
          state.rpcs.push({ name, args, client });
-         return Promise.resolve(rpc(state, name, args));
+         return Promise.resolve(rpc(state, name, args, client));
       }
    } as unknown as SupabaseClient<Database>;
 };
@@ -670,9 +767,8 @@ const deps = (
    amazon,
    env: () => ENV,
    admin: () => fakeDb(state, 'admin'),
-   userDb: () => fakeDb(state, 'user'),
    authorize: (_req, _required, run) => run({ tenantId: TENANT, userId: 'user-1' }),
-   publicUrl: PUBLIC_BASE,
+   publicUrl: () => PUBLIC_BASE,
    ...overrides
 });
 
@@ -757,7 +853,7 @@ Deno.test(
 // --- Handler -------------------------------------------------------------------------------------
 
 Deno.test(
-   'publish inserts the submission as the caller, puts the body and applies accepted',
+   'publish begins the submission as the caller, puts the body and applies accepted',
    async () => {
       clearTokenCache();
       const state = withMediaObject(story());
@@ -780,7 +876,9 @@ Deno.test(
 
       assertEquals(state.inserts.length, 1);
       const insert = state.inserts[0];
-      assertEquals(insert.client, 'user');
+      // Only the service role writes a submission (C9), with the caller as its author.
+      assertEquals(insert.client, 'admin');
+      assertEquals(insert.row.created_by, 'user-1');
       assertEquals(insert.row.kind, 'create');
       assertEquals(insert.row.sku, 'THO-MOP40-2P');
       assertEquals(insert.row.marketplace_id, DE);
@@ -796,6 +894,10 @@ Deno.test(
       assert(calls[0].url.includes('marketplaceIds=A1PA6795UKMFR9'));
       assertEquals(calls[0].body, insert.row.payload);
       const sent = calls[0].body as { attributes: Record<string, Array<Record<string, unknown>>> };
+      // A first publish creates the SKU: FBM starts at 0.
+      assertEquals(sent.attributes.fulfillment_availability, [
+         { fulfillment_channel_code: 'DEFAULT', quantity: 0, marketplace_id: DE }
+      ]);
       assertEquals(
          sent.attributes.main_product_image_locator[0].media_location,
          `${PUBLIC_BASE}/storage/v1/object/public/listing-images/${TENANT}/${MEDIA}/mop-primary.png`
@@ -903,7 +1005,12 @@ Deno.test('publish refuses a local image base in production before the insert', 
 Deno.test('publish marks the submission failed when Amazon throws after the insert', async () => {
    clearTokenCache();
    const state = withMediaObject(story());
-   const { deps: amazon } = fakeAmazon(() => new Response('{}', { status: 429 }));
+   const seen: unknown[] = [];
+   const { deps: amazon } = fakeAmazon(() => {
+      // C4: the submission and the submitted cell exist before Amazon is called.
+      seen.push([cellRow(state, CELL).listing_state, state.tables.listing_submission.length]);
+      return new Response('{}', { status: 429 });
+   });
    const res = await handler(
       post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
       deps(state, amazon)
@@ -924,6 +1031,8 @@ Deno.test('publish marks the submission failed when Amazon throws after the inse
          attributeNames: []
       }
    ]);
+   assert(seen.length > 0);
+   assert(seen.every((entry) => (entry as unknown[])[0] === 'submitted'));
 });
 
 Deno.test('publish of a child creates the parent cell and publishes the parent first', async () => {
@@ -972,14 +1081,14 @@ Deno.test('publish of a child creates the parent cell and publishes the parent f
    assertEquals(childBody.attributes.child_parent_sku_relationship[0].parent_sku, 'THO-MOP40');
    assertEquals(childBody.attributes.variation_theme[0].value, 'SIZE');
 
-   // A second child publish finds the parent's accepted submission and leaves the parent alone.
-   const before = calls.length;
-   await handler(
+   // A second publish while the child's own create is in flight is refused (C2, C13).
+   const before = [calls.length, state.inserts.length];
+   const again = await handler(
       post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
       deps(state, amazon)
    );
-   assertEquals(calls.length - before, 1);
-   assertEquals(state.inserts.at(-1)?.row.kind, 'create'); // accepted is not done yet
+   assertEquals([again.status, (await again.json()).message], [409, 'listing_in_progress']);
+   assertEquals([calls.length, state.inserts.length], before);
 });
 
 Deno.test('publish is an update once the cell has a done submission', async () => {
@@ -993,13 +1102,118 @@ Deno.test('publish is an update once the cell has a done submission', async () =
       status: 'done',
       created_at: '2026-11-01T00:00:00Z'
    });
-   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
    const res = await handler(
       post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
       deps(state, amazon)
    );
    assertEquals(res.status, 200);
    assertEquals(state.inserts[0].row.kind, 'update');
+   // An update patches the panel's attributes and never sends a quantity (C5).
+   assertEquals(
+      calls.map((c) => c.method),
+      ['PATCH']
+   );
+   const sent = calls[0].body as { patches: Array<{ path: string }> };
+   assertEquals(calls[0].body, state.inserts[0].row.payload);
+   assert(sent.patches.length > 0);
+   assertFalse(JSON.stringify(sent).includes('fulfillment_availability'));
+   assertFalse(JSON.stringify(sent).includes('quantity'));
+});
+
+Deno.test(
+   'production asks Amazon whether the SKU exists: new is PUT, existing is PATCH (C5)',
+   async () => {
+      const prod = {
+         env: () => ({ ...ENV, env: 'production' as const, selfRefreshToken: undefined }),
+         publicUrl: () => PROD_BASE
+      };
+      for (const exists of [false, true]) {
+         clearTokenCache();
+         const state = withMediaObject(story());
+         const { deps: amazon, calls } = fakeAmazon((call) =>
+            call.method === 'GET'
+               ? exists
+                  ? Response.json({ sku: 'THO-MOP40-2P', summaries: [] })
+                  : Response.json(
+                       { errors: [{ code: 'NOT_FOUND', message: 'nf' }] },
+                       { status: 404 }
+                    )
+               : PUT_ACCEPTED()
+         );
+         const res = await handler(
+            post({ action: 'publish', cell_id: CELL }),
+            deps(state, amazon, prod)
+         );
+         assertEquals(res.status, 200);
+         assertEquals(
+            calls.map((c) => c.method),
+            ['GET', exists ? 'PATCH' : 'PUT']
+         );
+         assertEquals(state.inserts[0].row.kind, exists ? 'update' : 'create');
+         const sent = JSON.stringify(calls[1].body);
+         assertEquals(sent.includes('"quantity":0'), !exists);
+         assertEquals(sent.includes('fulfillment_availability'), !exists);
+      }
+
+      // A matched ASIN the seller may already sell: an existing SKU keeps its stock too.
+      clearTokenCache();
+      const matched = withMediaObject(story());
+      cellRow(matched, CELL).listing_match = { asin: 'B07N4M94X4', restricted: false, reasons: [] };
+      const { deps: amazon, calls } = fakeAmazon((call) =>
+         call.method === 'GET' ? Response.json({ sku: 'THO-MOP40-2P' }) : PUT_ACCEPTED()
+      );
+      await handler(post({ action: 'publish', cell_id: CELL }), deps(matched, amazon, prod));
+      assertEquals(
+         calls.map((c) => c.method),
+         ['GET', 'PATCH']
+      );
+      assertFalse(JSON.stringify(calls[1].body).includes('quantity'));
+   }
+);
+
+Deno.test('publish is refused while the latest submission is in flight (C2, C13)', async () => {
+   for (const status of ['accepted', 'processing']) {
+      clearTokenCache();
+      const state = withMediaObject(story());
+      state.tables.listing_submission.push({
+         id: 's-flight',
+         tenant_id: TENANT,
+         cell_id: CELL,
+         kind: 'create',
+         status,
+         created_at: '2026-11-06T09:00:00Z'
+      });
+      const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+      const res = await handler(post({ action: 'publish', cell_id: CELL }), deps(state, amazon));
+      assertEquals([res.status, (await res.json()).message], [409, 'listing_in_progress']);
+      assertEquals([state.inserts, calls], [[], []]);
+   }
+
+   // A second publish that starts between the check and the row lock is refused by the RPC.
+   clearTokenCache();
+   const state = withMediaObject(story());
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const raced = await handler(
+      post({ action: 'publish', cell_id: CELL }),
+      deps(state, amazon, {
+         admin: () => {
+            const db = fakeDb(state, 'admin');
+            const rpcOf = db.rpc.bind(db);
+            return Object.assign(db, {
+               rpc: (name: string, args: Record<string, unknown>) =>
+                  name === 'listing_begin_submission'
+                     ? Promise.resolve({
+                          data: null,
+                          error: { code: 'P0001', message: 'listing_in_progress' }
+                       })
+                     : rpcOf(name as never, args as never)
+            }) as typeof db;
+         }
+      })
+   );
+   assertEquals([raced.status, (await raced.json()).message], [409, 'listing_in_progress']);
+   assertEquals(calls, []);
 });
 
 Deno.test('validate previews on the sandbox NA host and writes nothing', async () => {
@@ -1037,16 +1251,23 @@ Deno.test(
             )
          })
       );
-      assertEquals(required, [['select', 'market_cell']]);
+      assertEquals(required, [['insert', 'listing_submission']]);
       assertEquals(await res.json(), {
          missing: [],
-         match: { asin: null, restricted: false, reasons: [] },
+         match: {
+            asin: null,
+            restricted: false,
+            reasons: [],
+            checked_at: '2026-11-06T10:00:00.000Z'
+         },
          state: 'ready'
       });
       assertEquals(calls, []); // the static sandbox has no EAN catalogue answer
       const set = state.rpcs.find((r) => r.name === 'listing_set_state')!;
       assertEquals(set.args.p_listing_state, 'ready');
       assertEquals((set.args.p_listing_match as Record<string, unknown>).asin, null);
+      // Written only over the version read (C2).
+      assertEquals(set.args.p_expected_updated_at, VERSION);
 
       cellRow(state, '00000000-0000-4000-8000-00000000ce01').listing_state = 'submitted';
       const again = await handler(
@@ -1086,7 +1307,12 @@ Deno.test('check matches the GTIN and reads restrictions in production', async (
    );
    assertEquals(await res.json(), {
       missing: [],
-      match: { asin: 'B07N4M94X4', restricted: true, reasons: ['Approval required.'] },
+      match: {
+         asin: 'B07N4M94X4',
+         restricted: true,
+         reasons: ['Approval required.'],
+         checked_at: '2026-11-06T10:00:00.000Z'
+      },
       state: 'ready'
    });
    const catalog = new URL(calls[0].url);
@@ -1111,7 +1337,34 @@ Deno.test('check treats a cell without a connected account as draft', async () =
    assertEquals(calls, []);
 });
 
-const CELL = '00000000-0000-4000-8000-00000000ce01';
+Deno.test('a check over a cell published meanwhile reports the stored state (C2)', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   // A publish lands while Amazon is asked: the cell moves on and its version changes.
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'check', cell_id: CELL }),
+      deps(state, amazon, {
+         admin: () => {
+            const db = fakeDb(state, 'admin');
+            const rpcOf = db.rpc.bind(db);
+            return Object.assign(db, {
+               rpc: (name: string, args: Record<string, unknown>) => {
+                  if (name === 'listing_set_state') {
+                     Object.assign(cellRow(state, CELL), {
+                        listing_state: 'submitted',
+                        updated_at: '2026-11-06T10:30:00.000001+00:00'
+                     });
+                  }
+                  return rpcOf(name as never, args as never);
+               }
+            }) as typeof db;
+         }
+      })
+   );
+   assertEquals((await res.json()).state, 'submitted');
+   assertEquals(cellRow(state, CELL).listing_state, 'submitted');
+});
 
 const submitted = (state: State, status = 'accepted', id = 's-1') => {
    cellRow(state, CELL).listing_state = 'submitted';
@@ -1163,6 +1416,78 @@ Deno.test('a service-key status call has no separate path: it goes through autho
 });
 
 // --- refreshListingStatus (_shared/listingStatus.ts, imported by amazon-poll) --------------------
+
+Deno.test('refreshListingStatus never brings back a removed listing (C2, review #8)', async () => {
+   clearTokenCache();
+   const state = submitted(story(), 'done');
+   state.tables.listing_submission.push({
+      id: 's-delete',
+      tenant_id: TENANT,
+      cell_id: CELL,
+      kind: 'delete',
+      sku: 'THO-MOP40-2P',
+      marketplace_id: DE,
+      status: 'done',
+      issues: [],
+      created_at: '2026-11-06T09:30:00Z'
+   });
+   cellRow(state, CELL).listing_state = 'draft';
+   const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
+   const result = await refreshListingStatus(statusDeps(state, amazon), {
+      tenantId: TENANT,
+      cellId: CELL
+   });
+   assertEquals(result.submission.id, 's-delete');
+   assertEquals(result.cell.listing_state, 'draft');
+   assertEquals([calls, state.rpcs], [[], []]);
+});
+
+Deno.test(
+   'a done listing Amazon no longer knows is removed, not processing again (C2)',
+   async () => {
+      clearTokenCache();
+      const state = submitted(story(), 'done');
+      cellRow(state, CELL).listing_state = 'issues';
+      const { deps: amazon } = fakeAmazon(() =>
+         Response.json({ errors: [{ code: 'NOT_FOUND', message: 'nf' }] }, { status: 404 })
+      );
+      const result = await refreshListingStatus(statusDeps(state, amazon), {
+         tenantId: TENANT,
+         cellId: CELL
+      });
+      assertEquals(result.submission.status, 'done');
+      assertEquals(result.cell.listing_state, 'draft');
+      assertEquals(
+         state.rpcs.map((r) => r.name),
+         ['listing_set_state']
+      );
+
+      // Amazon knows it but reports neither live nor issues: a done submission stays as it is.
+      clearTokenCache();
+      const quiet = submitted(story(), 'done');
+      cellRow(quiet, CELL).listing_state = 'live';
+      const { deps: answer } = fakeAmazon(() => Response.json({ summaries: [], issues: [] }));
+      const kept = await refreshListingStatus(statusDeps(quiet, answer), {
+         tenantId: TENANT,
+         cellId: CELL
+      });
+      assertEquals([kept.submission.status, kept.cell.listing_state], ['done', 'live']);
+      assertEquals(quiet.rpcs, []);
+   }
+);
+
+Deno.test('the poll skips a done submission without calling Amazon (C6)', async () => {
+   clearTokenCache();
+   const state = submitted(story(), 'done');
+   const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
+   const result = await refreshListingStatus(
+      statusDeps(state, amazon),
+      { tenantId: TENANT, cellId: CELL },
+      { skipDone: true }
+   );
+   assertEquals([result.submission.status, result.cell.listing_state], ['done', 'submitted']);
+   assertEquals([calls, state.rpcs], [[], []]);
+});
 
 const statusDeps = (state: State, amazon: Partial<Deps>) => ({
    admin: fakeDb(state, 'admin'),
@@ -1237,7 +1562,7 @@ Deno.test(
    }
 );
 
-Deno.test('status as a user needs select on market_cell', async () => {
+Deno.test('status needs insert on listing_submission: it spends the grant (C10)', async () => {
    const state = story();
    const { deps: amazon } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
    let required: unknown;
@@ -1247,7 +1572,7 @@ Deno.test('status as a user needs select on market_cell', async () => {
          authorize: (_req, r, run) => ((required = r), run({ tenantId: TENANT, userId: 'user-1' }))
       })
    );
-   assertEquals(required, [['select', 'market_cell']]);
+   assertEquals(required, [['insert', 'listing_submission']]);
    assertEquals(res.status, 404);
    assertEquals((await res.json()).message, 'listing_submission_not_found');
 });
@@ -1264,10 +1589,22 @@ Deno.test('delete sends a delete submission and puts the cell back to draft', as
    assertEquals(res.status, 200);
    assertEquals(calls[0].method, 'DELETE');
    assertEquals(state.inserts[0].row.kind, 'delete');
-   assertEquals(state.inserts[0].client, 'user');
+   assertEquals(state.inserts[0].client, 'admin');
    assertEquals(state.tables.listing_submission[0].status, 'done');
    const set = state.rpcs.find((r) => r.name === 'listing_set_state')!;
    assertEquals([set.args.p_listing_state, set.args.p_listing_match], ['draft', null]);
+   // A removal from issues clears the Amazon open issue (C18; 046 does it in listing_set_state).
+   const fromIssues = story();
+   Object.assign(cellRow(fromIssues, CELL), {
+      listing_state: 'issues',
+      open_issue: "Amazon: 'size' is required but not supplied."
+   });
+   const { deps: again } = fakeAmazon(() => PUT_ACCEPTED());
+   await handler(post({ action: 'delete', cell_id: CELL }), deps(fromIssues, again));
+   assertEquals(
+      [cellRow(fromIssues, CELL).listing_state, cellRow(fromIssues, CELL).open_issue],
+      ['draft', null]
+   );
    // The business status is not walked by a delete.
    assertEquals(
       state.rpcs.some((r) => r.name === 'listing_apply_submission'),
@@ -1306,7 +1643,8 @@ Deno.test('publish_bulk reports products without a cell as skipped_no_cell', asy
             cell_id: null,
             result: 'skipped_no_cell'
          }
-      ]
+      ],
+      remaining: []
    });
 });
 
@@ -1351,7 +1689,8 @@ Deno.test('publish_bulk reports incomplete and failed cells and goes on', async 
             cell_id: '00000000-0000-4000-8000-00000000ce01',
             result: 'invalid'
          }
-      ]
+      ],
+      remaining: []
    });
 });
 
@@ -1459,8 +1798,16 @@ Deno.test('publish_bulk logs only the code and message of an unexpected error', 
             country: 'DE'
          }),
          deps(state, amazon, {
-            userDb: () => {
-               throw Object.assign(new Error('boom'), { detail: 'raw object field' });
+            admin: () => {
+               const db = fakeDb(state, 'admin');
+               const rpcOf = db.rpc.bind(db);
+               return Object.assign(db, {
+                  rpc: (name: string, args: Record<string, unknown>) => {
+                     if (name === 'listing_begin_submission')
+                        throw Object.assign(new Error('boom'), { detail: 'raw object field' });
+                     return rpcOf(name as never, args as never);
+                  }
+               }) as typeof db;
             }
          })
       );
@@ -1475,6 +1822,39 @@ Deno.test('publish_bulk logs only the code and message of an unexpected error', 
    }
    assertEquals(logged, [['amazon-listing bulk publish failed: internal_error boom']]);
 });
+
+Deno.test(
+   'publish_bulk takes 10 products at most and stops starting after its budget (C4)',
+   async () => {
+      const ids11 = Array.from(
+         { length: 11 },
+         (_, i) => `00000000-0000-4000-8000-0000000a${String(i).padStart(4, '0')}`
+      );
+      const tooMany = await handler(
+         post({ action: 'publish_bulk', product_ids: ids11, country: 'DE' }),
+         deps(story(), {})
+      );
+      assertEquals(tooMany.status, 422);
+
+      clearTokenCache();
+      const state = withMediaObject(story());
+      const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+      let clock = Date.parse('2026-11-06T10:00:00Z');
+      const ids = ['00000000-0000-4000-8000-00000000ad01', ...ids11.slice(0, 3)];
+      const res = await handler(
+         post({ action: 'publish_bulk', product_ids: ids, country: 'DE' }),
+         deps(state, {
+            ...amazon,
+            // Each reading moves the clock on: the first product uses up the budget.
+            now: () => (clock += 31_000)
+         })
+      );
+      const body = await res.json();
+      assertEquals(body.results.length, 1);
+      assertEquals(body.results[0].result, 'submitted');
+      assertEquals(body.remaining, ids.slice(1));
+   }
+);
 
 Deno.test('an unknown action is refused', async () => {
    const res = await handler(post({ action: 'nope' }), deps(story(), {}));

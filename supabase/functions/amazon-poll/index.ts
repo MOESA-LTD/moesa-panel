@@ -1,7 +1,7 @@
 // amazon-poll: resolves every submitted Amazon listing. 047's cron job POSTs here every 10 minutes
 // with the service key; there is no user route.
 //
-//   POST, Bearer service key -> { polled, failed, given_up, remaining }
+//   POST, Bearer service key -> { polled, failed, given_up, skipped, remaining }
 import { type AmazonEnv, amazonEnv, type Deps } from '../_shared/amazon.ts';
 import { assertServiceCall } from '../_shared/auth.ts';
 import type { Database } from '../_shared/database.types.ts';

@@ -1,23 +1,35 @@
-// amazon-listing: one cell's Amazon listing. Every action is POST { action, ... }.
+// amazon-listing: one cell's Amazon listing. Every action is POST { action, ... } and needs
+// insert on listing_submission (each one spends the customer's grant or writes state).
 //
-//   check        { cell_id }                   -> { missing, match, state }       select market_cell
-//   validate     { cell_id }                   -> { status, issues }              insert listing_submission
-//   publish      { cell_id }                   -> { cell, submission }            insert listing_submission
-//   delete       { cell_id }                   -> { cell, submission }            insert listing_submission
-//   status       { cell_id }                   -> { cell, submission }            select market_cell
-//   publish_bulk { product_ids, country }      -> { results }                     insert listing_submission
+//   check        { cell_id }                   -> { missing, match, state }
+//                match = { asin, restricted, reasons, checked_at } | null (no connected account)
+//   validate     { cell_id }                   -> { status, issues }
+//   publish      { cell_id }                   -> { cell, submission }  409 listing_in_progress
+//   delete       { cell_id }                   -> { cell, submission }
+//   status       { cell_id }                   -> { cell, submission }
+//   publish_bulk { product_ids (1..10), country } -> { results, remaining }
 //
-// Reads, RPCs and storage use the service client, always scoped by the caller's tenant; the
-// submission row is inserted with the caller's client (RLS, created_by). VALIDATION_PREVIEW runs
-// only on the validate action; validate copies the images too (storage only, idempotent) so the
-// preview sees the URLs a publish would send. `status` wraps _shared/listingStatus.ts, which
-// amazon-poll imports directly.
+// Reads, RPCs, storage and the submission rows use the service client, always scoped by the
+// caller's tenant; a submission is written by listing_begin_submission with created_by = the
+// caller, under the cell's row lock, before Amazon is called (the cell is then submitted, so a run
+// that dies leaves a row the poll settles). A publish is refused while the cell's latest
+// submission is accepted or processing. The check writes its state only over the cell version it
+// read (a publish or removal meanwhile wins). A SKU Amazon does not have yet is created with
+// putListingsItem and its initial availability; an existing one (production: getListingsItem;
+// sandbox, whose canned GET knows every SKU: the panel's own done submission) is updated with
+// patchListingsItem, replacing only the attributes the panel owns, never the seller's stock.
+// VALIDATION_PREVIEW runs only on the validate action; validate copies the images too (storage
+// only, idempotent) so the preview sees the URLs a publish would send. `status` wraps
+// _shared/listingStatus.ts, which amazon-poll imports directly. publish_bulk stops starting
+// products after BULK_BUDGET_MS and answers the rest in `remaining` for the next call.
 import {
    AmazonError,
    type AmazonEnv,
    amazonEnv,
    type Deps,
+   deploymentUrl,
    marketplaceFor,
+   type SpapiCall,
    spapiClient
 } from '../_shared/amazon.ts';
 import { type AmazonAccount, amazonAccountFor, withRevocation } from '../_shared/amazonAccount.ts';
@@ -38,11 +50,12 @@ import {
    loadListingCell,
    loadSubmission,
    refreshListingStatus,
+   setListingState,
    type SubmissionHead,
    type SubmissionStatus,
    submissionsOf
 } from '../_shared/listingStatus.ts';
-import { supabaseAdmin, supabaseClient } from '../_shared/supabaseClient.ts';
+import { supabaseAdmin } from '../_shared/supabaseClient.ts';
 import { type DefinitionRow, pickDefinition } from '../amazon-schema/schema.ts';
 import {
    type AmazonIssue,
@@ -53,25 +66,33 @@ import {
    deleteListingsItem,
    hasError,
    type ListingBody,
+   listingExists,
+   type ListingPatch,
+   listingPatch,
    type ListingSubmissionRow,
    listingRestrictions,
    type MarketCellRow,
    mediaRefs,
    parseSubmission,
+   patchListingsItem,
    type ProductRow,
    putListingsItem,
    requireLanguageTag,
    serverProvided,
-   skuFor
+   skuFor,
+   withNewItemAvailability
 } from './listing.ts';
 
 type Db = SupabaseClient<Database>;
 
-const READ: Requirement = [['select', 'market_cell']];
+/** Every action: the check and the status spend the customer's grant and write state too. */
 const WRITE: Requirement = [['insert', 'listing_submission']];
 /** The static sandbox serves the VALIDATION_PREVIEW mock only on its NA host, for this marketplace. */
 const SANDBOX_PREVIEW_MARKETPLACE = 'ATVPDKIKX0DER';
-const BULK_MAX = 50;
+/** Products per publish_bulk call. */
+export const BULK_MAX = 10;
+/** No new product of a publish_bulk call is started after this long (the rest are `remaining`). */
+export const BULK_BUDGET_MS = 60_000;
 
 export type HandlerDeps = {
    /** fetch / now / sleep for the SP-API client. */
@@ -79,15 +100,16 @@ export type HandlerDeps = {
    env: () => AmazonEnv;
    /** The service-role client: reads (scoped by tenant), RPCs, storage, the Amazon account. */
    admin: () => Db;
-   /** The caller's client: the listing_submission insert. */
-   userDb: (req: Request) => Db;
    authorize: (
       req: Request,
       required: Requirement,
       run: (context: { tenantId: string; userId: string }) => Promise<Response>
    ) => Promise<Response>;
-   /** The public base URL of the project (PUBLIC_SUPABASE_URL): Amazon fetches the images there. */
-   publicUrl: string;
+   /**
+    * The public base URL of the project (PUBLIC_SUPABASE_URL): Amazon fetches the images there.
+    * Required in production (_shared/amazon.ts deploymentUrl).
+    */
+   publicUrl: (env: AmazonEnv) => string;
 };
 
 const cellId = z.string().uuid();
@@ -105,7 +127,7 @@ const body = z.discriminatedUnion('action', [
    })
 ]);
 
-type Run = { req: Request; d: HandlerDeps; tenantId: string; env: AmazonEnv; admin: Db };
+type Run = { d: HandlerDeps; tenantId: string; userId: string; env: AmazonEnv; admin: Db };
 
 // --- Loading -------------------------------------------------------------------------------------
 
@@ -214,15 +236,6 @@ const isListed = (subs: SubmissionHead[], statuses: SubmissionStatus[]) => {
    return !!latest && latest.kind !== 'delete';
 };
 
-const setState = async (run: Run, cell: string, state: ListingState, match: Json | null) => {
-   const { error } = await run.admin.rpc('listing_set_state', {
-      p_cell_id: cell,
-      p_listing_state: state,
-      p_listing_match: match as Json
-   });
-   if (error) throw error;
-};
-
 /** The issue stored when a submission fails on our side or Amazon's: the error code, no secrets. */
 const failureIssue = (error: unknown): AmazonIssue => {
    const code =
@@ -243,27 +256,37 @@ const failureIssue = (error: unknown): AmazonIssue => {
 
 type SubmissionTarget = { cell: { id: string }; sku: string; marketplaceId: string };
 
-const insertSubmission = async (
+const IN_FLIGHT: SubmissionStatus[] = ['accepted', 'processing'];
+
+/** 409 listing_in_progress while the cell's latest submission (not a removal) is in flight. */
+const refuseInFlight = (subs: SubmissionHead[]) => {
+   const latest = subs[0];
+   if (latest && latest.kind !== 'delete' && IN_FLIGHT.includes(latest.status))
+      throw new HttpError(409, 'listing_in_progress');
+};
+
+/**
+ * 046's listing_begin_submission, as the caller (created_by): the submission row, written before
+ * Amazon is called, and for a create or update the cell in submitted. It refuses a second one in
+ * flight under the cell's row lock (409 listing_in_progress).
+ */
+const beginSubmission = async (
    run: Run,
    ctx: SubmissionTarget,
    kind: Database['public']['Enums']['listing_submission_kind'],
-   payload: ListingBody | Record<string, never>
+   payload: ListingBody | ListingPatch | Record<string, never>
 ) => {
-   const { data, error } = await run.d
-      .userDb(run.req)
-      .from('listing_submission')
-      .insert({
-         tenant_id: run.tenantId,
-         cell_id: ctx.cell.id,
-         kind,
-         sku: ctx.sku,
-         marketplace_id: ctx.marketplaceId,
-         payload: payload as unknown as Json
-      })
-      .select()
-      .single();
+   const { data, error } = await run.admin.rpc('listing_begin_submission', {
+      p_cell_id: ctx.cell.id,
+      p_kind: kind,
+      p_sku: ctx.sku,
+      p_marketplace_id: ctx.marketplaceId,
+      p_payload: payload as unknown as Json,
+      p_created_by: run.userId
+   });
+   if (error?.message === 'listing_in_progress') throw new HttpError(409, 'listing_in_progress');
    if (error) throw error;
-   return data as ListingSubmissionRow;
+   return data as unknown as ListingSubmissionRow;
 };
 
 const amazonCall = (run: Run, account: AmazonAccount, sandboxNa = false) =>
@@ -289,11 +312,15 @@ const check = async (run: Run, id: string) => {
    const current = ctx.cell.listing_state;
    const keep = current !== null && JOURNEY.includes(current);
 
+   // The state is written only over the version read here: a publish or a removal that ran while
+   // Amazon was asked wins, and the answer reports the state that is stored.
+   const version = ctx.cell.updated_at;
+
    const account = await accountOrNull(run, ctx);
    if (!account) {
       const state: ListingState = keep ? (current as ListingState) : 'draft';
-      await setState(run, ctx.cell.id, state, null);
-      return json({ missing, match: null, state });
+      const row = await setListingState(run.admin, ctx.cell.id, state, null, version);
+      return json({ missing, match: null, state: row.listing_state ?? state });
    }
 
    const sandbox = run.env.env === 'sandbox';
@@ -313,9 +340,12 @@ const check = async (run: Run, id: string) => {
       : missing.length
         ? 'draft'
         : 'ready';
-   const checkedAt = new Date((run.d.amazon.now ?? Date.now)()).toISOString();
-   await setState(run, ctx.cell.id, state, { ...match, checked_at: checkedAt });
-   return json({ missing, match, state });
+   const checked = {
+      ...match,
+      checked_at: new Date((run.d.amazon.now ?? Date.now)()).toISOString()
+   };
+   const row = await setListingState(run.admin, ctx.cell.id, state, checked, version);
+   return json({ missing, match: checked, state: row.listing_state ?? state });
 };
 
 /** The product's images copied to listing-images: their public URLs by media id (R5). */
@@ -324,7 +354,7 @@ const copyImages = (run: Run, ctx: CellContext) =>
       run.admin,
       run.tenantId,
       mediaRefs(attributesOf(ctx.product)),
-      run.d.publicUrl,
+      run.d.publicUrl(run.env),
       run.env.env
    );
 
@@ -357,11 +387,29 @@ const validate = async (run: Run, id: string) => {
 
 type Published = { cell: MarketCellRow; submission: ListingSubmissionRow };
 
+/**
+ * Whether Amazon has the cell's SKU already. Production asks Amazon; the static sandbox answers
+ * its canned item for every SKU, so there the panel's own done create or update decides.
+ */
+const skuExists = async (
+   run: Run,
+   call: SpapiCall,
+   account: AmazonAccount,
+   ctx: CellContext,
+   subs: SubmissionHead[]
+) =>
+   run.env.env === 'sandbox'
+      ? isListed(subs, ['done'])
+      : await withRevocation(run.admin, account.id, () =>
+           listingExists(call, account.sellerId, ctx.sku, ctx.marketplaceId)
+        );
+
 const publishCell = async (run: Run, id: string, asParent = false): Promise<Published> => {
-   // 1. Refusals: incomplete, then not connected.
+   // 1. Refusals: incomplete, in flight, then not connected.
    const ctx = await loadContext(run.admin, run.tenantId, id);
    const missing = missingFor(await loadDefinition(run, ctx), ctx);
    if (missing.length) throw new HttpError(422, 'listing_incomplete', missing);
+   refuseInFlight(await submissionsOf(run.admin, run.tenantId, ctx.cell.id));
    const account = await requireAccount(run, ctx);
 
    // 2. Images (a missing image or a non-public URL refuses before anything is written).
@@ -382,20 +430,36 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
       }
    }
 
-   // The body (with the parent's SKU for a child) is what the submission stores and Amazon gets.
+   // 4. A new SKU is created with its initial availability; an existing one is patched with the
+   // attributes the panel owns (never the seller's stock). The request (with the parent's SKU for a
+   // child) is what the submission stores and Amazon gets.
    const listingBody = bodyFor(ctx, imageUrls);
+   const call = amazonCall(run, account);
+   const subs = await submissionsOf(run.admin, run.tenantId, ctx.cell.id);
+   const exists = await skuExists(run, call, account, ctx, subs);
+   const request = exists ? listingPatch(listingBody) : withNewItemAvailability(listingBody, ctx);
 
-   // 4. The submission, as the caller.
-   const kind = isListed(await submissionsOf(run.admin, run.tenantId, ctx.cell.id), ['done'])
-      ? 'update'
-      : 'create';
-   const submission = await insertSubmission(run, ctx, kind, listingBody);
+   // 5. The submission (the cell goes submitted), as the caller, before Amazon is called.
+   const submission = await beginSubmission(run, ctx, exists ? 'update' : 'create', request);
 
-   // 5. Amazon; 6. any failure after the insert fails the submission and puts the cell in issues.
+   // 6. Amazon; any failure after the submission fails it and puts the cell in issues.
    try {
-      const call = amazonCall(run, account);
       const resp = await withRevocation(run.admin, account.id, () =>
-         putListingsItem(call, account.sellerId, ctx.sku, ctx.marketplaceId, listingBody)
+         exists
+            ? patchListingsItem(
+                 call,
+                 account.sellerId,
+                 ctx.sku,
+                 ctx.marketplaceId,
+                 request as ListingPatch
+              )
+            : putListingsItem(
+                 call,
+                 account.sellerId,
+                 ctx.sku,
+                 ctx.marketplaceId,
+                 request as ListingBody
+              )
       );
       const parsed = parseSubmission(resp);
       const state: ListingState =
@@ -439,7 +503,7 @@ const loadDeleteTarget = async (run: Run, id: string) => {
 const remove = async (run: Run, id: string): Promise<Response> => {
    const ctx = await loadDeleteTarget(run, id);
    const account = await amazonAccountFor(run.admin, ctx.cell.customer_id, run.tenantId, run.env);
-   const submission = await insertSubmission(run, ctx, 'delete', {});
+   const submission = await beginSubmission(run, ctx, 'delete', {});
 
    // A delete must not walk the business status (listing_apply_submission would): the
    // submission is settled directly and the cell goes back to draft.
@@ -476,7 +540,8 @@ const remove = async (run: Run, id: string): Promise<Response> => {
       amazon_submission_id: parsed.submissionId ?? null,
       issues: parsed.issues
    });
-   if (parsed.status === 'accepted') await setState(run, ctx.cell.id, 'draft', null);
+   // Draft again; leaving issues clears the cell's 'Amazon: ' open issue (046).
+   if (parsed.status === 'accepted') await setListingState(run.admin, ctx.cell.id, 'draft', null);
    return json({
       cell: await loadListingCell(run.admin, run.tenantId, ctx.cell.id),
       submission: await loadSubmission(run.admin, run.tenantId, submission.id)
@@ -508,8 +573,13 @@ const errorCode = (error: unknown) =>
 
 const publishBulk = async (run: Run, productIds: string[], country: string) => {
    marketplaceFor(country);
+   const now = run.d.amazon.now ?? Date.now;
+   const started = now();
    const results: BulkResult[] = [];
-   for (const productId of productIds) {
+   for (const [index, productId] of productIds.entries()) {
+      // The first product always runs, so every call makes progress.
+      if (index > 0 && now() - started >= BULK_BUDGET_MS)
+         return json({ results, remaining: productIds.slice(index) });
       const { data: found, error } = await run.admin
          .from('market_cell')
          .select('id')
@@ -544,7 +614,7 @@ const publishBulk = async (run: Run, productIds: string[], country: string) => {
          });
       }
    }
-   return json({ results });
+   return json({ results, remaining: [] });
 };
 
 // --- Routing -------------------------------------------------------------------------------------
@@ -559,11 +629,8 @@ const route = async (req: Request, d: HandlerDeps): Promise<Response> => {
    }
    const q = body.parse(raw);
 
-   const start = (tenantId: string): Run => ({ req, d, tenantId, env: d.env(), admin: d.admin() });
-
-   const required = q.action === 'check' || q.action === 'status' ? READ : WRITE;
-   return d.authorize(req, required, async ({ tenantId }) => {
-      const run = start(tenantId);
+   return d.authorize(req, WRITE, async ({ tenantId, userId }) => {
+      const run: Run = { d, tenantId, userId, env: d.env(), admin: d.admin() };
       switch (q.action) {
          case 'check':
             return check(run, q.cell_id);
@@ -592,9 +659,8 @@ export async function handler(req: Request, deps: Partial<HandlerDeps> = {}): Pr
       amazon: {},
       env: () => amazonEnv(),
       admin: supabaseAdmin,
-      userDb: supabaseClient,
       authorize: withAuthorization,
-      publicUrl: Deno.env.get('PUBLIC_SUPABASE_URL') ?? 'http://127.0.0.1:54321',
+      publicUrl: (env) => deploymentUrl('PUBLIC_SUPABASE_URL', env),
       ...deps
    };
    try {
