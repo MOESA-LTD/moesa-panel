@@ -9,7 +9,8 @@ export const TERM_CATEGORIES = [
    'gate',
    'family',
    'severity',
-   'abbreviation'
+   'abbreviation',
+   'amazon'
 ] as const;
 
 export type TermCategory = (typeof TERM_CATEGORIES)[number];
@@ -74,7 +75,10 @@ const LIST: Term[] = [
    { code: '(M)', category: 'gate', slug: 'M_gate' },
    ...derived('family', 'incident_family', (value) => value.toUpperCase()),
    ...derived('severity', 'incident_severity', (value) => value.toUpperCase()),
-   ...plain('abbreviation', ABBREVIATIONS)
+   ...plain('abbreviation', ABBREVIATIONS),
+   { code: 'productType', category: 'amazon', slug: 'product_type' },
+   { code: 'submissionId', category: 'amazon', slug: 'submission_id' },
+   { code: 'variation_theme', category: 'amazon', slug: 'variation_theme' }
 ];
 
 export const TERMS: Readonly<Record<string, Term>> = Object.fromEntries(
@@ -153,7 +157,8 @@ export const TERM_SECTIONS = [
    { id: 'packages', categories: ['package'] },
    { id: 'gates', categories: ['gate'] },
    { id: 'incidents', categories: ['family', 'severity'] },
-   { id: 'abbreviations', categories: ['abbreviation'] }
+   { id: 'abbreviations', categories: ['abbreviation'] },
+   { id: 'amazon', categories: ['amazon'] }
 ] as const satisfies readonly { id: string; categories: readonly TermCategory[] }[];
 
 /** The system guide's "how the panel works" topics (i18n `system_guide.topics.<topic>`). */

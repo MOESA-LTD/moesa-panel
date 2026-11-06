@@ -2824,6 +2824,14 @@
                      "2": "Prova yapın, sonra her çakışmaya karar verin: bağla, yeni kod, boş [[GTIN]] ya da atla.",
                      "3": "Onaylayın; kimlik eşlemesini indirin, eksik dosya varsa kopyayı yineleyin."
                   }
+               },
+               "connect_amazon": {
+                  "title": "Amazon hesabını bağla",
+                  "steps": {
+                     "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
+                     "2": "Amazon hesabında Amazon'u bağla'ya basıp satıcı olarak izin verin.",
+                     "3": "Sekme satıcı kimliğiyle Bağlı gösterir; bundan sonra yayınlama yapılabilir."
+                  }
                }
             }
          },
@@ -2881,6 +2889,14 @@
                      "1": "Ürünü, sonra Ortam sekmesini açın.",
                      "2": "Dosyaları bırakın; ilk görsel birincil görsel olur.",
                      "3": "Dosyanın rolünü menüsünden değiştirin."
+                  }
+               },
+               "fill_amazon": {
+                  "title": "Amazon içeriğini doldur",
+                  "steps": {
+                     "1": "Ürünü, sonra Amazon sekmesini açın ve [[productType]] seçin.",
+                     "2": "Zorunlu işaretli alanları doldurun; sayaç kaç alanın kaldığını gösterir. Ana ürün için ayrıca [[variation_theme]] gerekir.",
+                     "3": "Amazon içeriğini kaydedin; pazar hücresi nelerin eksik kaldığını gösterir."
                   }
                }
             }
@@ -3056,6 +3072,14 @@
                      "2": "Platform kimliği, platform [[SKU]], fiyat, para birimi ve stok kaynağını doldurun.",
                      "3": "İçerik onaylıyken ([[L-G1]]) Yayında'yı seçin."
                   }
+               },
+               "publish_amazon": {
+                  "title": "Hücreyi Amazon'da yayınla",
+                  "steps": {
+                     "1": "Bir Amazon hücresini açıp Kontrol et'e basın; bağlantı verilen eksik alanları düzeltin.",
+                     "2": "Hücre hazır olunca Amazon'da yayınla'ya basın; Amazon bir [[submissionId]] ile yanıt verir.",
+                     "3": "Durumun Yayında'ya geçmesini izleyin ya da sorunları açıp her birini Amazon sekmesinde düzeltin."
+                  }
                }
             }
          },
@@ -3151,6 +3175,10 @@
          "abbreviations": {
             "title": "Kısaltmalar",
             "intro": "Ekranlarda geçen ticari kısaltmalar."
+         },
+         "amazon": {
+            "title": "Amazon listing",
+            "intro": "Amazon'un kendi terimleri; mesajlarında ve Amazon sekmesinde göründükleri gibi."
          }
       },
       "topics": {
@@ -3362,6 +3390,18 @@
       "SKU": {
          "short": "Stok kodu: satıcının bir ürün varyantı için kendi kodu.",
          "long": "Bir varyant bir SKU ve ürün ana tablosunda bir satırdır ([[S10]]); platform ya da ülke içermez. Pazar yerinde aynı ürünün kendi platform SKU'su olabilir; pazar hücresinde tutulur. SKU benzersizdir."
+      },
+      "product_type": {
+         "short": "Amazon'un bir ürün için kullandığı kategori, örneğin LUGGAGE. Amazon'un hangi alanları isteyeceğini belirler.",
+         "long": "Amazon her ürün tipini kendi şemasıyla tanımlar; Amazon sekmesi tam olarak bu alanları gösterir. Ürün başına bir kez seçilir; Amazon şemayı değiştirirse girdiğiniz değerler korunur, eksik alanlar yeniden hesaplanır. Hücre yayına alınmadan önce doldurulmalıdır ([[S05]])."
+      },
+      "submission_id": {
+         "short": "Amazon'un bir listing gönderimine verdiği kimlik.",
+         "long": "Her Yayınla, Güncelle veya Kaldır bir gönderim oluşturur ve Amazon bu kimlikle yanıt verir. Panel, gönderim bitene ya da sorun çıkana kadar bu kimlikle Amazon'u yoklar; bir şey ters giderse Amazon desteği de bunu sorar."
+      },
+      "variation_theme": {
+         "short": "Bir ana ürünün alt ürünlerinin birbirinden nasıl ayrıldığı, örneğin beden veya renk.",
+         "long": "Varyasyon ailesinin ana ürününde belirlenir. Her alt ürün buna uyan alanları (beden, renk gibi) ve ana ürün bağlantısını taşımalıdır; yoksa Amazon listing'i reddeder. Panel bunları Amazon sekmesinde eksik olarak işaretler."
       }
    }
 }

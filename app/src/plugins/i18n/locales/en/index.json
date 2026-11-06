@@ -2824,6 +2824,14 @@
                      "2": "Rehearse, then decide each conflict: link, new code, empty [[GTIN]] or skip.",
                      "3": "Confirm; download the ID map, and retry the file copy if files are missing."
                   }
+               },
+               "connect_amazon": {
+                  "title": "Connect the Amazon account",
+                  "steps": {
+                     "1": "Open the customer, then the Platforms tab.",
+                     "2": "Press Connect Amazon on the Amazon account and give consent as the seller.",
+                     "3": "The tab shows Connected with the seller ID; publishing is possible from then on."
+                  }
                }
             }
          },
@@ -2881,6 +2889,14 @@
                      "1": "Open the product, then Media.",
                      "2": "Drop the files; the first image becomes the primary image.",
                      "3": "Change a file's role from its menu."
+                  }
+               },
+               "fill_amazon": {
+                  "title": "Fill in the Amazon content",
+                  "steps": {
+                     "1": "Open the product, then the Amazon tab, and choose the [[productType]].",
+                     "2": "Fill the fields marked Required; the counter shows how many are left. A parent product also needs its [[variation_theme]].",
+                     "3": "Save the Amazon content; the market cell shows what is still missing."
                   }
                }
             }
@@ -3056,6 +3072,14 @@
                      "2": "Fill the platform ID, platform [[SKU]], price, currency and stock source.",
                      "3": "With the content approved ([[L-G1]]), choose Live."
                   }
+               },
+               "publish_amazon": {
+                  "title": "Publish a cell on Amazon",
+                  "steps": {
+                     "1": "Open an Amazon cell and press Check; fix the missing fields it links to.",
+                     "2": "When the cell is ready, press Publish on Amazon; Amazon answers with a [[submissionId]].",
+                     "3": "Watch the state move to Live, or open the issues and fix each one in the Amazon tab."
+                  }
                }
             }
          },
@@ -3151,6 +3175,10 @@
          "abbreviations": {
             "title": "Abbreviations",
             "intro": "Trade abbreviations used on the screens."
+         },
+         "amazon": {
+            "title": "Amazon listing",
+            "intro": "Amazon's own words, as they appear in its messages and in the Amazon tab."
          }
       },
       "topics": {
@@ -3362,6 +3390,18 @@
       "SKU": {
          "short": "Stock keeping unit: the seller's own code for one product variant.",
          "long": "One variant is one SKU and one row of the product master ([[S10]]); it holds no platform or country. A marketplace may have its own platform SKU for the same product, kept on the market cell. A SKU is unique."
+      },
+      "product_type": {
+         "short": "Amazon's category of a product, for example LUGGAGE. It decides which fields Amazon asks for.",
+         "long": "Amazon describes every product type with its own schema, and the Amazon tab shows exactly those fields. Pick it once per product; if Amazon changes the schema the values you entered are kept and the missing fields are recomputed. It is filled in before a cell can be published ([[S05]])."
+      },
+      "submission_id": {
+         "short": "The ID Amazon gives to one submission of a listing.",
+         "long": "Every Publish, Update or Remove creates one submission, and Amazon answers with this ID. The panel polls Amazon with it until the submission is done or has issues; it is also what Amazon support asks for when something looks wrong."
+      },
+      "variation_theme": {
+         "short": "How the children of a parent product differ, for example by size or colour.",
+         "long": "Set on the parent product of a variation family. Every child must then carry the matching attributes (such as size or colour) and the parent link, or Amazon refuses the listing. The panel marks them as missing in the Amazon tab."
       }
    }
 }

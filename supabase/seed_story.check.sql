@@ -140,6 +140,7 @@ VALUES
     ('market_cell', 'compliance', 'all', NULL),
     ('market_cell', 'stock_source', 'all', NULL),
     ('market_cell', 'content_status', 'all', NULL),
+    ('market_cell', 'listing_state', 'all', NULL),
     -- Task 8: gates, incidents and change requests.
     ('project_gate', 'status', 'all', NULL),
     ('incident', 'family', 'all', NULL),
@@ -170,7 +171,6 @@ VALUES
     ('media_link', 'entity_type', 'exempt', 'media links go to products, orders, shipments and change requests'),
     ('permission', 'command', 'exempt', 'reference data, not tenant rows'),
     ('permission', 'kind', 'exempt', 'reference data, not tenant rows'),
-    ('market_cell', 'listing_state', 'exempt', 'Task 12 sets it to all'),
     ('customer_platform_account', 'api_connection', 'exempt', 'revoked comes only from Amazon (invalid_grant)'),
     ('listing_submission', 'kind', 'exempt', 'API-driven; the story holds create'),
     ('listing_submission', 'status', 'exempt', 'API-driven; the story holds done, invalid and processing');
@@ -675,4 +675,27 @@ SELECT 'guide.page', p FROM (VALUES ('setting', 'setting'), ('customer', 'custom
 -- amazon.cron_secrets: the Vault secrets the pg_cron jobs of migration 047 read exist (names only, never values)
 SELECT 'amazon.cron_secrets', n FROM unnest(ARRAY['edge_function_url', 'edge_service_key']) n
    WHERE NOT EXISTS (SELECT 1 FROM vault.secrets s WHERE s.name = n);
+-- m22.connected: THO's amazon account is connected with a seller id and a date
+SELECT 'm22.connected' WHERE NOT EXISTS (SELECT 1 FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id WHERE c.code = 'THO' AND a.platform_id = 'amazon' AND a.api_connection = 'connected' AND a.seller_id IS NOT NULL AND a.authorized_at IS NOT NULL);
+-- m22.no_token: the sandbox uses the self-authorized token, so no Vault secret holds a refresh token for any account
+SELECT 'm22.no_token', a.id FROM public.customer_platform_account a WHERE private.amazon_token(a.id) IS NOT NULL;
+-- m22.definition: the fixture is in the cache, under the envelope's schema, for every marketplace of THO's amazon cells that has one
+SELECT 'm22.definition', m FROM unnest(ARRAY['A1PA6795UKMFR9', 'A13V1IB3VIYZZH', 'APJ6JRA9NG5V4', 'A1RKKUPIHCS9HS', 'A1805IZSGTT6HS']) m
+   WHERE NOT EXISTS (SELECT 1 FROM public.amazon_product_type_definition WHERE product_type = 'LUGGAGE' AND marketplace_id = m AND locale = 'en_GB' AND version = 'UHqSqmb4FNUk=' AND jsonb_typeof(schema -> 'properties') = 'object');
+-- m22.attributes: the mop has its product type, schema version, attributes and the variation theme of its family
+SELECT 'm22.attributes' WHERE NOT EXISTS (SELECT 1 FROM public.product WHERE tenant_id = pg_temp.moesa() AND sku = 'THO-MOP40-2P' AND amazon_product_type = 'LUGGAGE' AND amazon_schema_version = 'UHqSqmb4FNUk='
+   AND listing_attributes ? 'item_name' AND listing_attributes ? 'variation_theme');
+-- m22.submissions: one done, one invalid with issues
+SELECT 'm22.submissions', s FROM unnest(ARRAY['done','invalid']) s WHERE NOT EXISTS (SELECT 1 FROM public.listing_submission WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s AND (s = 'done' OR jsonb_array_length(issues) > 0));
+-- m22.cell_states: the step 07 THO cells carry the listing state of their journey, and the FR cell says why in its open issue
+SELECT 'm22.cell_states', v.id FROM (VALUES ('5eed0007-0000-4000-8000-000000000001'::UUID, 'live'), ('5eed0007-0000-4000-8000-000000000002', 'issues'), ('5eed0007-0000-4000-8000-000000000003', 'submitted'),
+   ('5eed0007-0000-4000-8000-000000000004', 'ready'), ('5eed0007-0000-4000-8000-000000000005', 'draft')) v (id, st)
+   WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = v.id AND listing_state::TEXT = v.st);
+-- m22.de_listing: the live DE cell has its language and fulfilment channel
+SELECT 'm22.de_listing' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = '5eed0007-0000-4000-8000-000000000001' AND listing_language = 'de_DE' AND fulfillment_channel = 'fbm');
+-- m22.fr_issue: the cell in issues has Amazon's issue as its open issue and the invalid submission behind it
+SELECT 'm22.fr_issue' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell c JOIN public.listing_submission s ON s.cell_id = c.id AND s.status = 'invalid'
+   WHERE c.id = '5eed0007-0000-4000-8000-000000000002' AND c.open_issue LIKE 'Amazon: %' AND s.issues @> '[{"code": "90220"}]' AND s.issues @> '[{"code": "90000900"}]');
+-- m22.status_untouched: R2, the business status of the step 07 DE and NL cells did not move
+SELECT 'm22.status_untouched', id FROM public.market_cell WHERE id IN ('5eed0007-0000-4000-8000-000000000001','5eed0007-0000-4000-8000-000000000005') AND status NOT IN ('live','suppressed');
 ROLLBACK;

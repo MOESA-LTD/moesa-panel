@@ -1517,6 +1517,88 @@ BEGIN
 END;
 $$;
 
+-- Step 11 (2 days ago): Amazon listing, as koordinator in MOESA LTD. THO's amazon account is
+-- connected (the sandbox uses the self-authorized token, so no Vault secret holds one); the R3
+-- fixture (scripts/seed-story.mjs hands it over as the story.amazon_* settings) is the cached
+-- LUGGAGE definition of every marketplace the step 07 cells use, and THO-MOP40-2P (a variation
+-- parent) has its product type, schema version and attributes. The five Amazon cells of step 07
+-- show one listing state each: DE live (a done create), FR issues (an invalid create, Amazon's
+-- sandbox INVALID list), IT submitted (a create still processing), ES ready, NL draft. The
+-- business status of the cells does not move (R2). Submission ids 5eed0011-…-NN.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('koordinator@moesa-panel.test', 'MOESA LTD');
+    v_definition JSONB := current_setting('story.amazon_definition')::JSONB;
+    v_attributes JSONB := current_setting('story.amazon_attributes')::JSONB;
+    v_seller TEXT := current_setting('story.amazon_seller_id');
+    v_account UUID;
+    v_product UUID;
+    v_attributes_all JSONB;
+BEGIN
+    INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, display_name, schema, property_groups)
+    SELECT m, v_definition ->> 'productType', v_definition ->> 'locale', v_definition -> 'productTypeVersion' ->> 'version',
+           v_definition ->> 'displayName', v_definition -> 'schema', v_definition -> 'propertyGroups'
+    FROM unnest(ARRAY['A1PA6795UKMFR9', 'A13V1IB3VIYZZH', 'APJ6JRA9NG5V4', 'A1RKKUPIHCS9HS', 'A1805IZSGTT6HS']) m;
+
+    UPDATE public.customer_platform_account a
+    SET api_connection = 'connected', seller_id = v_seller, authorized_at = now() - INTERVAL '2 days'
+    FROM public.customer c
+    WHERE c.id = a.customer_id AND c.code = 'THO' AND c.tenant_id = v_tenant AND a.platform_id = 'amazon'
+    RETURNING a.id INTO v_account;
+    IF v_account IS NULL THEN
+        RAISE EXCEPTION 'story 11: THO has no amazon account';
+    END IF;
+
+    -- The mop is a variation parent (it has children), so its attributes name the theme.
+    v_attributes_all := v_attributes || '{"variation_theme": [{"value": "NUMBER_OF_ITEMS"}]}'::JSONB;
+    UPDATE public.product
+    SET amazon_product_type = v_definition ->> 'productType',
+        amazon_schema_version = v_definition -> 'productTypeVersion' ->> 'version',
+        listing_attributes = v_attributes_all
+    WHERE tenant_id = v_tenant AND sku = 'THO-MOP40-2P'
+    RETURNING id INTO v_product;
+    IF v_product IS NULL THEN
+        RAISE EXCEPTION 'story 11: no THO-MOP40-2P';
+    END IF;
+
+    UPDATE public.market_cell c
+    SET listing_language = l.language, fulfillment_channel = l.channel
+    FROM (VALUES ('5eed0007-0000-4000-8000-000000000001'::UUID, 'de_DE', 'fbm'), ('5eed0007-0000-4000-8000-000000000002', 'fr_FR', NULL),
+                 ('5eed0007-0000-4000-8000-000000000003', 'it_IT', NULL), ('5eed0007-0000-4000-8000-000000000004', 'es_ES', NULL),
+                 ('5eed0007-0000-4000-8000-000000000005', 'nl_NL', NULL)) l (id, language, channel)
+    WHERE c.id = l.id AND c.tenant_id = v_tenant;
+
+    INSERT INTO public.listing_submission (id, tenant_id, cell_id, kind, sku, marketplace_id, payload, amazon_submission_id, status, issues, created_at)
+    VALUES
+        ('5eed0011-0000-4000-8000-000000000001', v_tenant, '5eed0007-0000-4000-8000-000000000001', 'create', 'THO-MOP40-2P-DE', 'A1PA6795UKMFR9',
+         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_attributes_all),
+         'f1dc2914-75dd-11ea-bc55-0242ac130003', 'processing', '[]', now() - INTERVAL '2 days'),
+        ('5eed0011-0000-4000-8000-000000000002', v_tenant, '5eed0007-0000-4000-8000-000000000002', 'create', 'THO-MOP40-2P-FR', 'A13V1IB3VIYZZH',
+         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_attributes_all),
+         NULL, 'processing', '[]', now() - INTERVAL '2 days'),
+        ('5eed0011-0000-4000-8000-000000000003', v_tenant, '5eed0007-0000-4000-8000-000000000003', 'create', 'THO-MOP40-2P-IT', 'APJ6JRA9NG5V4',
+         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_attributes_all),
+         NULL, 'processing', '[]', now() - INTERVAL '2 days');
+
+    -- DE: Amazon accepted the create and the poll found the listing live.
+    PERFORM public.listing_apply_submission('5eed0011-0000-4000-8000-000000000001', 'done', 'f1dc2914-75dd-11ea-bc55-0242ac130003', '[]', 'live', 'B0STORY001');
+    PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000001', 'live',
+        jsonb_build_object('asin', 'B0STORY001', 'restricted', FALSE, 'reasons', '[]'::JSONB, 'checked_at', now() - INTERVAL '2 days'));
+    -- FR: Amazon's sandbox INVALID answer; the cell goes to issues and says why in its open issue.
+    PERFORM public.listing_apply_submission('5eed0011-0000-4000-8000-000000000002', 'invalid', NULL, jsonb_build_array(
+        jsonb_build_object('code', '90220', 'message', '''condition_type'' is required but not supplied.', 'severity', 'ERROR', 'attributeNames', jsonb_build_array('condition_type')),
+        jsonb_build_object('code', '90000900', 'message', '''fake_attribute'' is not defined in the product type definition.', 'severity', 'ERROR', 'attributeNames', jsonb_build_array('fake_attribute'))
+    ), 'issues', NULL);
+    -- IT: sent, Amazon has not answered yet.
+    PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000003', 'submitted', NULL);
+    -- ES and NL: the cell is complete / still being filled in.
+    PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000004', 'ready', NULL);
+    PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000005', 'draft', NULL);
+
+    PERFORM private.story_end('2 days');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),

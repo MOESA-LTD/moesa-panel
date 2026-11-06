@@ -79,6 +79,7 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
          task('add_customer', 'create', 'customer'),
          task('add_warehouse', 'create', 'customer_warehouse'),
          task('add_platform', 'create', 'customer_platform_account'),
+         task('connect_amazon', 'update', 'customer_platform_account'),
          task('transfer_customer', 'create', 'transfer')
       ],
       related: ['ops-project', 'ops-product', 'ops-market'],
@@ -100,10 +101,11 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
       tasks: [
          task('import_products', 'create', 'product'),
          task('add_spec', 'create', 'document'),
-         task('add_media', 'create', 'media')
+         task('add_media', 'create', 'media'),
+         task('fill_amazon', 'update', 'product')
       ],
       related: ['ops-document', 'ops-media', 'ops-market'],
-      terms: ['S10', 'SKU', 'GTIN', 'S07'],
+      terms: ['S10', 'SKU', 'GTIN', 'S07', 'productType', 'variation_theme'],
       glossary: ['product_status', 'document_status']
    },
    project: {
@@ -165,10 +167,11 @@ export const PAGE_GUIDES: Record<GuidePage, PageGuide> = {
       tasks: [
          task('add_cells', 'create', 'market_cell'),
          task('screen_compliance', 'update', 'market_cell'),
-         task('go_live', 'update', 'market_cell')
+         task('go_live', 'update', 'market_cell'),
+         task('publish_amazon', 'create', 'listing_submission')
       ],
       related: ['ops-product', 'ops-customer', 'ops-incident'],
-      terms: ['S05', 'S12', 'SKU', 'L-G1', 'S13', 'ASIN'],
+      terms: ['S05', 'S12', 'SKU', 'L-G1', 'S13', 'ASIN', 'submissionId'],
       glossary: ['market_cell_status', 'market_compliance', 'content_status', 'stock_source']
    },
    incident: {
