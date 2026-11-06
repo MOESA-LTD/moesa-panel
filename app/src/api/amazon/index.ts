@@ -1,4 +1,5 @@
 import type { CustomerPlatformAccountRow } from '@/api/customer';
+import type { MarketCellRow } from '@/api/marketMatrix';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { allValues } from '@/lib/enumValues';
@@ -462,6 +463,37 @@ export function useCellCheck(cellId: MaybeRefOrGetter<string | null>) {
       enabled: computed(() => !!toValue(cellId)),
       refetchOnWindowFocus: false,
       retry: false
+   });
+}
+
+/** A market cell of the product on Amazon, as the product's Amazon tab reads it. */
+export type ProductAmazonCell = Pick<
+   MarketCellRow,
+   'id' | 'country' | 'listing_language' | 'price' | 'currency'
+>;
+
+/** The product's Amazon cells, oldest first (the tab works in the first one's marketplace). */
+export function useProductAmazonCells(productId: MaybeRefOrGetter<string | null>) {
+   const tenantKey = useTenantKey();
+   return useQuery({
+      queryKey: computed(() =>
+         queryKeys.list(tenantKey.value, 'market_cell', {
+            view: 'amazon_cells',
+            productId: toValue(productId)
+         })
+      ),
+      queryFn: async ({ signal }): Promise<ProductAmazonCell[]> => {
+         const { data } = await supabase
+            .from('market_cell')
+            .select('id, country, listing_language, price, currency')
+            .eq('product_id', toValue(productId)!)
+            .eq('platform_id', 'amazon')
+            .order('created_at')
+            .abortSignal(signal)
+            .throwOnError();
+         return data;
+      },
+      enabled: computed(() => !!toValue(productId))
    });
 }
 

@@ -823,7 +823,8 @@
          "ops_change_request_decision": "Decision",
          "ops_change_request_documents": "Documents",
          "guide": "System guide",
-         "ops_transfer": "Transfer"
+         "ops_transfer": "Transfer",
+         "ops_product_amazon": "Amazon"
       }
    },
    "account": {
@@ -1263,7 +1264,8 @@
             "cost": "Cost",
             "documents": "Documents",
             "media": "Media",
-            "orders": "Orders and shipments"
+            "orders": "Orders and shipments",
+            "amazon": "Amazon"
          },
          "sections": {
             "identity": "Product",
@@ -2296,7 +2298,10 @@
             "image_clear": "Remove image",
             "save": "Save Amazon content",
             "values_kept": "Values already entered are kept.",
-            "json_invalid": "This is not valid JSON."
+            "json_invalid": "This is not valid JSON.",
+            "issue_link": "Go to {field}",
+            "product_type_empty": "Choose the Amazon product type to fill in its fields.",
+            "provided": "Filled in on publishing, from the product or the market cell."
          },
          "cell": {
             "title": "Amazon listing",

@@ -572,6 +572,7 @@
          "ops_product_orders": "PO/sevkiyat geçmişi",
          "ops_product_documents": "Belgeler",
          "ops_product_media": "Ortam",
+         "ops_product_amazon": "Amazon",
          "ops_product_import": "Ürün içe aktar",
          "ops_project": "Projeler",
          "ops_project_list": "Proje listesi",
@@ -1263,7 +1264,8 @@
             "cost": "Maliyet",
             "orders": "PO/sevkiyat geçmişi",
             "documents": "Belgeler",
-            "media": "Ortam"
+            "media": "Ortam",
+            "amazon": "Amazon"
          },
          "sections": {
             "identity": "Ürün",
@@ -2296,7 +2298,10 @@
             "image_clear": "Görseli kaldır",
             "save": "Amazon içeriğini kaydet",
             "values_kept": "Daha önce girilen değerler korunur.",
-            "json_invalid": "Bu geçerli bir JSON değil."
+            "json_invalid": "Bu geçerli bir JSON değil.",
+            "issue_link": "{field} alanına git",
+            "product_type_empty": "Alanlarını doldurmak için Amazon ürün tipini seçin.",
+            "provided": "Yayınlarken üründen veya pazar hücresinden doldurulur."
          },
          "cell": {
             "title": "Amazon listesi",
