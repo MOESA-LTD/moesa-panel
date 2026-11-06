@@ -1,0 +1,446 @@
+{
+  "$comment": "R3 fixture, captured by hand. The SP-API static sandbox answers getDefinitionsProductType for LUGGAGE with a schema link that cannot be downloaded, so this envelope mirrors the Product Type Definitions API (2020-09-01) response and carries the schema inline, written from Amazon's product type meta-schema conventions (property groups, required and conditionally required attributes via allOf if/then, language-tagged and marketplace-scoped arrays, enums with enumNames, units). It is the only hand-maintained Amazon schema in the repo: data, not code. Keep it small but representative.",
+  "productType": "LUGGAGE",
+  "marketplaceIds": ["A1PA6795UKMFR9"],
+  "locale": "en_GB",
+  "displayName": "Luggage",
+  "requirements": "LISTING",
+  "requirementsEnforced": "ENFORCED",
+  "productTypeVersion": { "version": "UHqSqmb4FNUk=", "latest": true, "releaseCandidate": false },
+  "propertyGroups": {
+    "product_identity": {
+      "title": "Product Identity",
+      "description": "Information to uniquely identify the product (such as name, brand and identifiers)",
+      "propertyNames": ["item_name", "brand", "externally_assigned_product_identifier", "merchant_suggested_asin", "item_type_keyword"]
+    },
+    "offer": {
+      "title": "Offer",
+      "description": "Information to enable the offering of the product for sale",
+      "propertyNames": ["condition_type", "purchasable_offer", "fulfillment_availability", "list_price"]
+    },
+    "images": {
+      "title": "Images",
+      "description": "Images for the product",
+      "propertyNames": ["main_product_image_locator", "other_product_image_locator_1", "swatch_product_image_locator"]
+    },
+    "product_details": {
+      "title": "Product Details",
+      "description": "Details that describe the product",
+      "propertyNames": ["bullet_point", "product_description", "color", "number_of_items", "item_package_weight", "is_fragile"]
+    },
+    "variations": {
+      "title": "Variations",
+      "description": "Variation relationships of the product",
+      "propertyNames": ["parentage_level", "child_parent_sku_relationship", "variation_theme"]
+    }
+  },
+  "schema": {
+    "$schema": "https://schemas.amazon.com/selling-partners/definitions/product-types/meta-schema/v1",
+    "$id": "https://schemas.amazon.com/selling-partners/definitions/product-types/schema/v1/LUGGAGE",
+    "$comment": "Hand-written fixture (R3), see the envelope's $comment.",
+    "$defs": {
+      "marketplace_id": {
+        "default": "A1PA6795UKMFR9",
+        "editable": false,
+        "hidden": true,
+        "examples": ["Amazon.de"],
+        "type": "string",
+        "anyOf": [{ "type": "string" }, { "type": "string", "enum": ["A1PA6795UKMFR9"], "enumNames": ["Amazon.de"] }]
+      },
+      "language_tag": {
+        "default": "de_DE",
+        "editable": false,
+        "hidden": true,
+        "examples": ["German (Germany)"],
+        "type": "string",
+        "anyOf": [{ "type": "string" }, { "type": "string", "enum": ["de_DE", "en_GB"], "enumNames": ["German (Germany)", "English (United Kingdom)"] }]
+      }
+    },
+    "type": "object",
+    "required": ["item_name", "brand", "externally_assigned_product_identifier", "condition_type", "main_product_image_locator", "bullet_point"],
+    "allOf": [
+      {
+        "if": {
+          "required": ["parentage_level"],
+          "properties": { "parentage_level": { "contains": { "properties": { "value": { "enum": ["child"] } } } } }
+        },
+        "then": { "required": ["child_parent_sku_relationship", "variation_theme"] }
+      }
+    ],
+    "properties": {
+      "item_name": {
+        "title": "Item Name",
+        "description": "Provide a title for the item that may be customer facing",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "language_tag"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Title", "description": "Product name as shown to customers", "type": "string", "minLength": 1, "maxLength": 200, "editable": true, "hidden": false },
+            "language_tag": { "$ref": "#/$defs/language_tag" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "brand": {
+        "title": "Brand Name",
+        "description": "Provide the brand name of the product",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "language_tag"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Brand Name", "type": "string", "minLength": 1, "maxLength": 100 },
+            "language_tag": { "$ref": "#/$defs/language_tag" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "externally_assigned_product_identifier": {
+        "title": "External Product ID",
+        "description": "Provide the external ID (barcode) type and the barcode of the item",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "type"],
+        "items": {
+          "type": "object",
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "title": "External Product ID Type", "type": "string", "enum": ["ean", "gtin", "upc"], "enumNames": ["EAN", "GTIN", "UPC"] },
+            "value": { "title": "External Product ID", "type": "string" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "merchant_suggested_asin": {
+        "title": "Merchant Suggested ASIN",
+        "description": "The ASIN of an existing catalogue item this offer matches",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Merchant Suggested ASIN", "type": "string", "minLength": 10, "maxLength": 10 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "item_type_keyword": {
+        "title": "Item Type Keyword",
+        "description": "Keyword that places the item in the right browse node",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Item Type Keyword", "type": "string", "maxLength": 100 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "condition_type": {
+        "title": "Item Condition",
+        "description": "The condition of the item",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": {
+              "title": "Item Condition",
+              "type": "string",
+              "enum": ["new_new", "used_like_new", "used_very_good", "used_good", "used_acceptable"],
+              "enumNames": ["New", "Used - Like New", "Used - Very Good", "Used - Good", "Used - Acceptable"]
+            },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "purchasable_offer": {
+        "title": "Purchasable Offer",
+        "description": "The price at which the item is offered for sale",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "audience"],
+        "items": {
+          "type": "object",
+          "required": ["currency", "our_price"],
+          "properties": {
+            "currency": { "title": "Currency", "type": "string", "enum": ["EUR", "GBP", "PLN", "SEK"] },
+            "our_price": {
+              "title": "Your Price",
+              "type": "array",
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "schedule": {
+                    "type": "array",
+                    "maxItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["value_with_tax"],
+                      "properties": { "value_with_tax": { "title": "Price incl. VAT", "type": "number", "minimum": 0 } }
+                    }
+                  }
+                }
+              }
+            },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "fulfillment_availability": {
+        "title": "Fulfillment Availability",
+        "description": "Who fulfils the order and how many units are available",
+        "type": "array",
+        "maxItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["fulfillment_channel_code"],
+          "properties": {
+            "fulfillment_channel_code": { "title": "Fulfillment Channel Code", "type": "string" },
+            "quantity": { "title": "Quantity", "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "list_price": {
+        "title": "List Price",
+        "description": "The manufacturer's suggested retail price",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "currency"],
+        "items": {
+          "type": "object",
+          "required": ["value", "currency"],
+          "properties": {
+            "value": { "title": "List Price", "type": "number", "minimum": 0 },
+            "currency": { "title": "Currency", "type": "string", "enum": ["EUR", "GBP", "PLN", "SEK"] },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "main_product_image_locator": {
+        "title": "Main Image Location",
+        "description": "The URL of the main product image",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["media_location"],
+          "properties": {
+            "media_location": { "title": "Media Location", "type": "string", "format": "uri", "minLength": 1, "maxLength": 2048 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "other_product_image_locator_1": {
+        "title": "Other Image Location",
+        "description": "The URL of an additional product image",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["media_location"],
+          "properties": {
+            "media_location": { "title": "Media Location", "type": "string", "format": "uri", "minLength": 1, "maxLength": 2048 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "swatch_product_image_locator": {
+        "title": "Swatch Image Location",
+        "description": "The URL of the colour swatch image",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["media_location"],
+          "properties": {
+            "media_location": { "title": "Media Location", "type": "string", "format": "uri", "minLength": 1, "maxLength": 2048 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "bullet_point": {
+        "title": "Bullet Point",
+        "description": "Brief descriptive text, called out via a bullet point, regarding a specific aspect of the product",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 5,
+        "selectors": ["marketplace_id", "language_tag"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Bullet Point", "type": "string", "minLength": 1, "maxLength": 200 },
+            "language_tag": { "$ref": "#/$defs/language_tag" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "product_description": {
+        "title": "Product Description",
+        "description": "The description you provide should pertain to the product in general, not your particular item",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "language_tag"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Product Description", "type": "string", "minLength": 1, "maxLength": 2000 },
+            "language_tag": { "$ref": "#/$defs/language_tag" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "color": {
+        "title": "Colour",
+        "description": "The colour of the item",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id", "language_tag"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Colour", "type": "string", "maxLength": 100 },
+            "language_tag": { "$ref": "#/$defs/language_tag" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "number_of_items": {
+        "title": "Number of Items",
+        "description": "The number of identical items in a single unit for sale",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Number of Items", "type": "integer", "minimum": 1 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "item_package_weight": {
+        "title": "Package Weight",
+        "description": "The weight of the package",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value", "unit"],
+          "properties": {
+            "value": { "title": "Package Weight", "type": "number", "minimum": 0 },
+            "unit": { "title": "Package Weight Unit", "type": "string", "enum": ["kilograms", "grams"], "enumNames": ["Kilograms", "Grams"] },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "is_fragile": {
+        "title": "Is Fragile",
+        "description": "Whether the item is fragile",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Is Fragile", "type": "boolean" },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "parentage_level": {
+        "title": "Parentage Level",
+        "description": "Whether the item is a parent or a child in a variation family",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Parentage Level", "type": "string", "enum": ["parent", "child"], "enumNames": ["Parent", "Child"] },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "child_parent_sku_relationship": {
+        "title": "Child Parent SKU Relationship",
+        "description": "The SKU of the parent and the type of the relationship",
+        "type": "array",
+        "maxItems": 1,
+        "selectors": ["marketplace_id"],
+        "items": {
+          "type": "object",
+          "required": ["child_relationship_type"],
+          "properties": {
+            "child_relationship_type": { "title": "Relationship Type", "type": "string", "enum": ["variation"], "enumNames": ["Variation"] },
+            "parent_sku": { "title": "Parent SKU", "type": "string", "maxLength": 40 },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "variation_theme": {
+        "title": "Variation Theme",
+        "description": "The attributes by which the children of the family differ",
+        "type": "array",
+        "maxItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "title": "Variation Theme Name", "type": "string", "enum": ["COLOR", "SIZE", "SIZE/COLOR", "NUMBER_OF_ITEMS"], "enumNames": ["Colour", "Size", "Size / Colour", "Number of Items"] },
+            "marketplace_id": { "$ref": "#/$defs/marketplace_id" }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

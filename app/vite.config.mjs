@@ -7,7 +7,10 @@ import Components from 'unplugin-vue-components/vite';
 import viteCompression from 'vite-plugin-compression';
 import packageVersion from 'vite-plugin-package-version';
 
-import { defineConfig } from 'vite';
+import { defineConfig, searchForWorkspaceRoot } from 'vite';
+
+/** Pure modules shared with the Edge Functions (e.g. listingCompleteness.ts), outside the app root. */
+const edgeShared = path.resolve(__dirname, '../supabase/functions/_shared');
 
 export default defineConfig({
    build: {
@@ -36,6 +39,10 @@ export default defineConfig({
       strictPort: true,
       watch: {
          usePolling: true
+      },
+      // The dev server only serves files under the app root by default; `@edge-shared` lives beside it.
+      fs: {
+         allow: [searchForWorkspaceRoot(__dirname), edgeShared]
       }
    },
    plugins: [
@@ -99,7 +106,8 @@ export default defineConfig({
          '@lib': path.resolve(__dirname, 'src/lib'),
          '@services': path.resolve(__dirname, 'src/services'),
          '@composables': path.resolve(__dirname, 'src/composables'),
-         '@types': path.resolve(__dirname, 'src/@types')
+         '@types': path.resolve(__dirname, 'src/@types'),
+         '@edge-shared': edgeShared
       }
    },
    optimizeDeps: {

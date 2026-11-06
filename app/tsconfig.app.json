@@ -18,9 +18,16 @@
          "@lib/*": ["./src/lib/*"],
          "@services/*": ["./src/services/*"],
          "@composables/*": ["./src/composables/*"],
-         "@types/*": ["./src/@types/*"]
+         "@types/*": ["./src/@types/*"],
+         "@edge-shared/*": ["../supabase/functions/_shared/*"]
       }
    },
-   "include": ["src/**/*", "src/**/*.vue", "auto-imports.d.ts", "components.d.ts"],
+   "include": [
+      "src/**/*",
+      "src/**/*.vue",
+      "auto-imports.d.ts",
+      "components.d.ts",
+      "../supabase/functions/_shared/listingCompleteness.ts"
+   ],
    "exclude": ["src/script/**"]
 }
