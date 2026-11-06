@@ -1,4 +1,4 @@
-// Unit tests of the pure parts of seed-story.mjs: node --test scripts/
+// Unit tests of the pure parts of seed-story.mjs: node --test scripts/seed-story.test.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';

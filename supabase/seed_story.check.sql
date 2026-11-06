@@ -144,7 +144,7 @@ VALUES
     ('incident', 'outcome', 'exempt', 'only some closed incidents carry one'),
     ('incident', 'root_cause', 'exempt', 'free choice per incident, no screen depends on each value'),
     ('incident', 'affected_parties', 'exempt', 'free choice per incident, no screen depends on each value'),
-    ('incident', 'entity_type', 'exempt', 'covered through document.entity_type; incidents attach to a few kinds'),
+    ('incident', 'entity_type', 'exempt', 'open-ended exemption: incident.entity_type is a free choice per incident, no screen depends on each value'),
     ('incident_deadline', 'kind', 'exempt', 'a sample of deadlines is enough'),
     ('incident_log', 'cost_payer', 'exempt', 'a sample of cost lines is enough'),
     ('change_request', 'cost_payer', 'exempt', 'a sample is enough'),
