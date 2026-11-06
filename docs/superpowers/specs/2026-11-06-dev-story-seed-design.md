@@ -68,8 +68,8 @@ contents.
   actor work. Never `SET ROLE authenticated` (it would switch the bypass off).
 - `moesa.rules_bypass = '1'` (030/040) silences the business-rule guards for backdated transitions.
   It does not cover: forced first statuses (insert, then UPDATE under the flag and set the
-  server-set fields explicitly); gate passes and rollbacks (meet the real rules); `created_at` of a
-  change request (the only sanctioned `ALTER TABLE … DISABLE TRIGGER change_request_due`, re-enabled
+  server-set fields explicitly); gate passes and rollbacks (meet the real rules); `decision_due_on` of a
+  change request (`created_at` stays; the only sanctioned `ALTER TABLE … DISABLE TRIGGER change_request_due`, re-enabled
   in the same block, as test 038 does); media rows (need `storage.objects`, hence the real upload);
   the `transfer` row (call the real `public.transfer_customer` as akif); rows of a read-only company
   (insert before the subscription flips).
@@ -114,7 +114,7 @@ output. It is the regression net when later migrations change rules.
 **Order inside the SQL.** Customers and suppliers → products, specs and documents → projects,
 tasks, gate approvals and passes (real rules) → purchase orders through their transitions (flag on
 for backdating) → shipments → market cells → incidents (with the one G3 rollback) → change requests
-(with the CR `created_at` exception) → media rows and remaining documents → feed backdating → the
+(with the CR `decision_due_on` exception) → media rows and remaining documents → feed backdating → the
 copy transfer of KRN into MOESA Europe as akif (rehearsal, then run with `report_hash`, `clear_gtin`
 decisions), left with `files_status = 'pending'` because no client copies the files.
 

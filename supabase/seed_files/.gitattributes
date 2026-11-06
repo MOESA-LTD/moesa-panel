@@ -1,2 +1,4 @@
 # Sample files are bytes: no line-ending conversion (it would break the PDF xref offsets).
 * binary
+# This file itself is text.
+.gitattributes text eol=lf
