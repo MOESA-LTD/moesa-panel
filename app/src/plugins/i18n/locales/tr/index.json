@@ -183,6 +183,7 @@
       "password_length": "Şifre uzunluğu",
       "phone_change_required": "Telefon değişikliği gerekiyor",
       "recovery_link_used": "Geri yükleme bağlantısı kullanıldı",
+      "request_failed": "İstek başarısız",
       "server_error": "Sunucu hatası",
       "signup_disabled": "Kayıt devre dışı",
       "token_expired": "Belirteç süresi doldu",

@@ -315,6 +315,7 @@
       "password_length": "Password length insufficient",
       "phone_change_required": "Phone change required",
       "recovery_link_used": "Recovery link already used",
+      "request_failed": "Request failed",
       "server_error": "Server error",
       "signup_disabled": "Sign-up disabled",
       "token_expired": "Token expired",

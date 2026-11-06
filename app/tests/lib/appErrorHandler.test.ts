@@ -54,6 +54,36 @@ describe('appErrorHandler', () => {
       ]);
    });
 
+   it('titles a PostgREST refusal with a neutral summary, not the class name', async () => {
+      const error = Object.assign(new Error('transfer_product_in_use'), {
+         name: 'PostgrestError',
+         code: 'P0001',
+         details: '',
+         hint: ''
+      });
+
+      await appErrorHandler(error);
+
+      expect(toasts()).toEqual([
+         expect.objectContaining({
+            summary: en.errors.request_failed,
+            detail: i18n.t('errors.transfer_product_in_use')
+         })
+      ]);
+      expect(en.errors.request_failed).toBe('Request failed');
+   });
+
+   it('keeps the name of another classified error as its summary', async () => {
+      await appErrorHandler({ name: 'AuthApiError', status: 400, message: 'invalid_credentials' });
+
+      expect(toasts()).toEqual([
+         expect.objectContaining({
+            summary: 'AuthApiError',
+            detail: i18n.t('errors.invalid_credentials')
+         })
+      ]);
+   });
+
    it('stays silent for a value that is neither an Error nor carries a status or code', async () => {
       await appErrorHandler({ reason: 'whatever' });
 

@@ -28,7 +28,13 @@ export const appErrorHandler = async (error: any) => {
    };
 
    await nextTick(async () => {
-      const summary = classified ? translate(error.name || error.status) : i18n.t('errors.unknown');
+      // A PostgREST refusal carries the class name only; its message is the useful part.
+      const summary =
+         error.name === 'PostgrestError'
+            ? i18n.t('errors.request_failed')
+            : classified
+              ? translate(error.name || error.status)
+              : i18n.t('errors.unknown');
       const detail = classified
          ? translate(
               error.message || error.details || error.code || error.description || error.hint
