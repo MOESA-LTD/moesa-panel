@@ -166,6 +166,20 @@ async function uploadMedia(apiUrl, serviceRoleKey, tenantId) {
    }
 }
 
+// Where a request made from the database container reaches the Edge Functions (Kong on the
+// Docker network; verified with a pg_net probe in M22 task 2).
+export const EDGE_FUNCTION_URL = 'http://supabase_kong_moesa-panel:8000/functions/v1';
+
+// The two Vault secrets the pg_cron jobs of migration 047 read (edge_function_url, edge_service_key):
+// any old secret is deleted, then created. The key is dollar-quoted and never printed.
+export function edgeSecretsSql(serviceRoleKey) {
+   if (!serviceRoleKey || serviceRoleKey.includes('$k$')) throw new Error('unusable service role key');
+   return `DELETE FROM vault.secrets WHERE name IN ('edge_function_url', 'edge_service_key');
+SELECT vault.create_secret('${EDGE_FUNCTION_URL}', 'edge_function_url', 'Edge Functions base URL for pg_cron');
+SELECT vault.create_secret($k$${serviceRoleKey}$k$, 'edge_service_key', 'Service key for pg_cron calls');
+`;
+}
+
 // The steps are injectable so the test can prove the KRN guard stops the run before any upload.
 export async function main({ keys = localKeys, sql = psql, upload = uploadMedia, exit = process.exit } = {}) {
    const { apiUrl, serviceRoleKey } = keys();
@@ -189,6 +203,8 @@ export async function main({ keys = localKeys, sql = psql, upload = uploadMedia,
    const storyDate = sql('SELECT current_date').trim();
    if (!/^\d{4}-\d{2}-\d{2}$/.test(storyDate)) throw new Error(`unexpected database date: ${storyDate}`);
    sql(storySql, { singleTransaction: true });
+   // After the story and before its check, which asserts both secrets exist.
+   sql(edgeSecretsSql(serviceRoleKey), { singleTransaction: true });
 
    const checkSql = readFileSync(CHECK_SQL, 'utf8');
    const failures = parseCheckRows(sql(`SET story.today = '${storyDate}';\n${checkSql}`));

@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { assertLocalApiUrl, bigPdf, countChecks, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
+import { assertLocalApiUrl, bigPdf, countChecks, edgeSecretsSql, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
 
 test('bigPdf is sample.pdf padded with comment lines to exactly 12 MiB', () => {
    const sample = readFileSync(path.join(ROOT, 'supabase', 'seed_files', 'sample.pdf'));
@@ -107,6 +107,38 @@ test('the check runs with the story date the database had before the story began
    assert.match(calls.at(-1).text, /^SET story\.today = '2026-11-06';\n/);
    assert.ok(calls.indexOf(calls.at(-1)) > story);
    assert.match(logs.join('\n'), /ok \(\d+ checks\)/);
+});
+
+test('edgeSecretsSql sets both secrets after the story and before the check', async () => {
+   const sqlText = edgeSecretsSql('svc-key');
+   assert.match(sqlText, /'edge_function_url'/);
+   assert.match(sqlText, /'edge_service_key'/);
+   assert.match(sqlText, /supabase_kong_moesa-panel:8000\/functions\/v1/);
+   assert.match(sqlText, /\$k\$svc-key\$k\$/);
+   assert.throws(() => edgeSecretsSql('bad$k$key'));
+
+   const order = [];
+   const original = console.log;
+   console.log = () => {};
+   try {
+      await main({
+         keys: () => ({ apiUrl: 'http://127.0.0.1:1', serviceRoleKey: 'svc-key' }),
+         sql: (text, opts) => {
+            if (text.startsWith('SELECT count(*) FROM public.customer')) return '0';
+            if (text.startsWith('SELECT id FROM public.tenant')) return 'tenant-id';
+            if (text === 'SELECT current_date') return '2026-11-06';
+            order.push(text.includes('edge_service_key') && text.includes('vault.create_secret') ? 'secrets' : opts?.singleTransaction ? 'story' : 'check');
+            return '';
+         },
+         upload: async () => {},
+         exit: (code) => {
+            throw new Error(`exit ${code}`);
+         },
+      });
+   } finally {
+      console.log = original;
+   }
+   assert.deepEqual(order, ['story', 'secrets', 'check']);
 });
 
 test('the check SQL derives every date from pg_temp.today(), never current_date directly', () => {

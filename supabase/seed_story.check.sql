@@ -672,4 +672,7 @@ SELECT 'guide.page', p FROM (VALUES ('setting', 'setting'), ('customer', 'custom
    ('document', 'document'), ('media', 'media'), ('purchase_order', 'purchase_order'), ('shipment', 'shipment'), ('market_matrix', 'market_cell'),
    ('incident', 'incident'), ('change_request', 'change_request')) v (p, tbl)
    WHERE NOT pg_temp.has_rows(tbl);
+-- amazon.cron_secrets: the Vault secrets the pg_cron jobs of migration 047 read exist (names only, never values)
+SELECT 'amazon.cron_secrets', n FROM unnest(ARRAY['edge_function_url', 'edge_service_key']) n
+   WHERE NOT EXISTS (SELECT 1 FROM vault.secrets s WHERE s.name = n);
 ROLLBACK;

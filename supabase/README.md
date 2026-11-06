@@ -125,3 +125,12 @@ ffmpeg -f lavfi -i testsrc2=size=320x240:rate=15 -t 2 -c:v libx264 -pix_fmt yuv4
 
 `sample.pdf` is a one-page PDF with the text "MOESA seed sample". A small Node snippet wrote it,
 with the xref offsets computed.
+
+## Amazon schedules (pg_cron + pg_net)
+
+Migration 047 schedules `amazon-poll` (every 10 minutes) and `amazon-schema-refresh` (Mondays 04:00).
+They call the Edge Functions through `private.amazon_cron_call`, which reads two Vault secrets at
+run time: `edge_function_url` (the functions base URL, no trailing path) and `edge_service_key`
+(the service role key). Locally `pnpm dev:seed-story` sets both. On the hosted project the owner
+sets the same two secrets once in the dashboard (Project, Vault); until then the jobs log
+`amazon_cron_unconfigured` and do nothing. Rotating the key means updating the secret only.
