@@ -123,14 +123,14 @@ VALUES
     ('market_cell', 'stock_source', 'all', NULL),
     ('market_cell', 'content_status', 'all', NULL),
     -- Task 8: gates, incidents and change requests.
-    ('project_gate', 'status', 'pending', NULL),
-    ('incident', 'family', 'pending', NULL),
-    ('incident', 'severity', 'pending', NULL),
-    ('incident', 'status', 'pending', NULL),
-    ('change_request', 'status', 'pending', NULL),
-    ('change_request', 'source', 'pending', NULL),
-    ('change_request', 'urgency', 'pending', NULL),
-    ('change_request', 'change_kinds', 'pending', NULL),
+    ('project_gate', 'status', 'all', NULL),
+    ('incident', 'family', 'all', NULL),
+    ('incident', 'severity', 'all', NULL),
+    ('incident', 'status', 'all', NULL),
+    ('change_request', 'status', 'all', NULL),
+    ('change_request', 'source', 'all', NULL),
+    ('change_request', 'urgency', 'all', NULL),
+    ('change_request', 'change_kinds', 'all', NULL),
     -- Task 9: documents and media.
     ('document', 'type', 'pending', NULL),
     ('document', 'status', 'pending', NULL),
@@ -221,9 +221,9 @@ SELECT 'box.gates_customer' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gat
 SELECT 'm1.closed_with_project' WHERE NOT EXISTS (SELECT 1 FROM public.customer c JOIN public.project p ON p.customer_id = c.id WHERE c.code = 'CLS' AND c.status = 'closed' AND p.status = 'closed');
 SELECT 'm5.a0_only' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE project_id = '5eed0004-0000-4000-8000-000000000008' AND code = 'PL_G1' AND status = 'pending');
 SELECT 'feed.step04_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'project' AND now()::DATE - created_at::DATE > 7);
--- m5.gate_states: each story project's passed gates (in position order) and the gate it waits on
+-- m5.gate_states: each story project's passed gates (in position order) and the gate it waits on (the variant's G3 was passed in step 05 and rolled back in step 08)
 SELECT 'm5.gate_states', x.nn FROM (VALUES
-    ('01', 'G1,PL_G1', 'PL_G2'), ('02', 'G2,G3', 'G4'), ('03', 'G3', 'G4'), ('04', '', 'G2'), ('05', 'G1,G2,G3,G4,G5', NULL),
+    ('01', 'G1,PL_G1', 'PL_G2'), ('02', 'G2', 'G3'), ('03', 'G3', 'G4'), ('04', '', 'G2'), ('05', 'G1,G2,G3,G4,G5', NULL),
     ('06', '', 'G1'), ('07', '', 'G5'), ('08', '', 'PL_G1'), ('09', '', 'G1')) x (nn, passed, waits)
 WHERE (SELECT coalesce(string_agg(g.code::TEXT, ',' ORDER BY g.position) FILTER (WHERE g.status = 'passed'), '')
        FROM public.project_gate g WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID) IS DISTINCT FROM x.passed
@@ -261,7 +261,6 @@ SELECT 'box.po_production', s FROM unnest(ARRAY['deposit_paid', 'in_production',
 SELECT 'm5.reorder_on_g4' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE project_id = '5eed0004-0000-4000-8000-000000000003' AND gate_code = 'G4' AND waiting_days >= 10);
 SELECT 'box.gates_team' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE tenant_id = pg_temp.moesa() AND NOT needs_management AND NOT needs_customer_approval);
 SELECT 'm5.closed_project' WHERE NOT EXISTS (SELECT 1 FROM public.project WHERE id = '5eed0004-0000-4000-8000-000000000005' AND status = 'closed' AND current_phase = 'closed');
-SELECT 'm5.variant_g3_passed' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE project_id = '5eed0004-0000-4000-8000-000000000002' AND code = 'G3' AND status = 'passed');
 SELECT 'feed.step05_last_week' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'purchase_order' AND now()::DATE - created_at::DATE BETWEEN 2 AND 7);
 -- m7.po_states: each story order's status and project
 SELECT 'm7.po_states', x.nn FROM (VALUES
@@ -294,10 +293,11 @@ WHERE NOT CASE x.k
 -- m7.psi_docs: an approved PSI report on the order in production, only a draft one on the ready order
 SELECT 'm7.psi_docs' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000006' AND has_approved_psi)
    OR NOT EXISTS (SELECT 1 FROM public.document WHERE entity_type = 'purchase_order' AND entity_id = '5eed0005-0000-4000-8000-000000000007' AND type = 'psi_report' AND status = 'draft');
--- m5.g3_pi: each G3 of a story project passed on the PI of that project's approved order
-SELECT 'm5.g3_pi', x.nn FROM (VALUES ('02', '05'), ('03', '04'), ('05', '09')) x (nn, po)
+-- m5.g3_pi: each G3 of a story project passed on the PI of that project's approved order (the variant's was rolled back in step 08 and keeps its evidence)
+SELECT 'm5.g3_pi', x.nn FROM (VALUES ('02', '05', 'rolled_back'), ('03', '04', 'passed'), ('05', '09', 'passed')) x (nn, po, st)
 WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g JOIN public.purchase_order o ON o.id = ('5eed0005-0000-4000-8000-0000000000' || x.po)::UUID AND o.project_id = g.project_id
-    WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND g.code = 'G3' AND g.status = 'passed' AND o.pi_document_id = ANY (g.evidence_document_ids));
+    WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND g.code = 'G3' AND g.status = x.st::public.gate_status AND g.passed_at IS NOT NULL
+      AND o.pi_document_id = ANY (g.evidence_document_ids));
 
 -- Task 6: shipments, the partial receipt of PO-008 and the cones project's G5
 SELECT 'box.shipments_in_transit', s FROM unnest(ARRAY['loaded', 'in_transit', 'at_customs']) s WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s);
@@ -354,21 +354,21 @@ SELECT 'm5.g5_receipt' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g
 -- Task 7: market cells
 SELECT 'box.market_summary', c FROM unnest(ARRAY['THO', 'KRN']) c WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_market WHERE tenant_id = pg_temp.moesa() AND customer_code = c AND target_count >= 1);
 SELECT 'm9.red_candidate' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = '5eed0007-0000-4000-8000-000000000009' AND status = 'candidate' AND compliance = 'red' AND compliance_note IS NOT NULL);
-SELECT 'm9.suppressed_issue' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE tenant_id = pg_temp.moesa() AND status = 'suppressed' AND open_issue IS NOT NULL);
+SELECT 'm9.suppressed_issue' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = '5eed0007-0000-4000-8000-000000000005' AND tenant_id = pg_temp.moesa() AND status = 'suppressed' AND open_issue LIKE 'OA-06:%');
 SELECT 'feed.step07_last_week' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_notification_feed WHERE tenant_id = pg_temp.moesa() AND table_name = 'market_cell' AND since = 'last_week');
 -- m9.cells: each story cell's product, platform, country, status, compliance and content state
 SELECT 'm9.cells', x.nn FROM (VALUES
     ('01', 'THO-MOP40-2P', 'amazon', 'DE', 'live', 'green', 'approved'), ('02', 'THO-MOP40-2P', 'amazon', 'FR', 'live', 'yellow', 'approved'),
-    ('03', 'THO-MOP40-2P', 'amazon', 'IT', 'preparing', 'pending', 'translated'), ('04', 'THO-MOP40-2P', 'amazon', 'ES', 'uploaded', 'green', NULL),
+    ('03', 'THO-MOP40-2P', 'amazon', 'IT', 'preparing', 'pending', 'translated'), ('04', 'THO-MOP40-2P', 'amazon', 'ES', 'uploaded', 'green', 'none'),
     ('05', 'THO-MOP40-2P', 'amazon', 'NL', 'suppressed', 'green', 'approved'), ('06', 'THO-TIPS-6-50', 'amazon', 'ES', 'planned', 'green', 'en_master'),
-    ('07', 'THO-TIPS-6-50', 'amazon', 'IT', 'stopped', 'green', NULL), ('08', 'THO-TIPS-6-50', 'kaufland', 'DE', 'live', 'green', 'approved'),
-    ('09', 'THO-CONES-100', 'amazon', 'PL', 'candidate', 'red', 'none'), ('10', 'THO-CONES-100', 'ebay', 'DE', 'paused', 'green', NULL),
-    ('11', 'THO-CONES-100', 'otto', 'DE', 'removed', 'green', NULL), ('12', 'KRN-VASE-01', 'bol', 'NL', 'live', 'green', 'approved'),
-    ('13', 'KRN-VASE-01', 'kaufland', 'AT', 'planned', 'green', NULL)) x (nn, sku, platform, country, st, comp, content)
+    ('07', 'THO-TIPS-6-50', 'amazon', 'IT', 'stopped', 'green', 'approved'), ('08', 'THO-TIPS-6-50', 'kaufland', 'DE', 'live', 'green', 'approved'),
+    ('09', 'THO-CONES-100', 'amazon', 'PL', 'candidate', 'red', 'none'), ('10', 'THO-CONES-100', 'ebay', 'DE', 'paused', 'green', 'none'),
+    ('11', 'THO-CONES-100', 'otto', 'DE', 'removed', 'green', 'none'), ('12', 'KRN-VASE-01', 'bol', 'NL', 'live', 'green', 'approved'),
+    ('13', 'KRN-VASE-01', 'kaufland', 'AT', 'planned', 'green', 'none')) x (nn, sku, platform, country, st, comp, content)
 WHERE NOT EXISTS (SELECT 1 FROM public.market_cell m JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
     WHERE m.id = ('5eed0007-0000-4000-8000-0000000000' || x.nn)::UUID AND m.tenant_id = pg_temp.moesa() AND p.sku = x.sku AND m.platform_id = x.platform
       AND m.country = x.country AND m.status = x.st::public.market_cell_status AND m.compliance = x.comp::public.market_compliance
-      AND (x.content IS NULL OR m.content_status = x.content::public.content_status));
+      AND m.content_status = x.content::public.content_status);
 -- m9.live_listed: every live or suppressed story cell carries its listing data and a launch date that is not in the future
 SELECT 'm9.live_listed', m.id FROM public.market_cell m
 WHERE m.id::TEXT LIKE '5eed0007-%' AND m.status IN ('live', 'suppressed', 'stopped')
@@ -383,5 +383,89 @@ SELECT 'm9.notes', m.id::TEXT FROM public.market_cell m WHERE m.id::TEXT LIKE '5
 -- m9.krn: the second customer's cells belong to KRN
 SELECT 'm9.krn', m.id FROM public.market_cell m WHERE m.id IN ('5eed0007-0000-4000-8000-000000000012', '5eed0007-0000-4000-8000-000000000013')
   AND NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.id = m.customer_id AND c.code = 'KRN');
+
+-- Task 8: incidents (with the variant's G3 rollback) and change requests
+SELECT 'box.incidents_open' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_incident WHERE tenant_id = pg_temp.moesa() AND management_notice_missing);
+SELECT 'm10.notice_late' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_incident WHERE incident_id = '5eed0008-0000-4000-8000-000000000001' AND customer_notice_late AND management_notice_missing);
+SELECT 'm10.deadline_past' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_incident WHERE incident_id = '5eed0008-0000-4000-8000-000000000002' AND overdue_deadline_count > 0);
+SELECT 'm10.doc_request_ahead' WHERE NOT EXISTS (SELECT 1 FROM public.incident_deadline WHERE incident_id = '5eed0008-0000-4000-8000-000000000006' AND kind = 'document_request' AND due_at > now() + INTERVAL '2 days');
+SELECT 'm10.repeat' WHERE (SELECT count(*) FROM public.incident WHERE tenant_id = pg_temp.moesa() AND incident_type = 'OL-09' AND opened_at > now() - INTERVAL '90 days') < 2
+   OR NOT EXISTS (SELECT 1 FROM public.incident_overview WHERE id = '5eed0008-0000-4000-8000-000000000004' AND is_repeat);
+SELECT 'm10.unclassified' WHERE NOT EXISTS (SELECT 1 FROM public.incident WHERE id = '5eed0008-0000-4000-8000-000000000008' AND family = 'om' AND incident_type IS NULL);
+SELECT 'm10.cost_log' WHERE NOT EXISTS (SELECT 1 FROM public.incident_log WHERE incident_id = '5eed0008-0000-4000-8000-000000000002' AND cost_amount = 350 AND cost_currency = 'EUR' AND cost_payer = 'carrier_insurance' AND customer_approved);
+SELECT 'm10.entity_kinds', k FROM unnest(ARRAY['project', 'purchase_order', 'shipment', 'product', 'market_cell']) k WHERE NOT EXISTS (SELECT 1 FROM public.incident WHERE tenant_id = pg_temp.moesa() AND entity_type::TEXT = k);
+SELECT 'm10.closed_by_management' WHERE NOT EXISTS (SELECT 1 FROM public.incident i JOIN public.user u ON u.id = i.closed_by AND u.email = 'akif@moesa-panel.test' WHERE i.id = '5eed0008-0000-4000-8000-000000000007' AND i.closed_on IS NOT NULL);
+-- m10.incidents: each story incident's family, card, severity, status, code prefix and linked record (all THO)
+SELECT 'm10.incidents', x.nn FROM (VALUES
+    ('01', 'ol', 'OL-02', 's1', 'open', 'shipment', '5eed0006-0000-4000-8000-000000000002'),
+    ('02', 'ol', 'OL-05', 's2', 'contained', 'shipment', '5eed0006-0000-4000-8000-000000000009'),
+    ('03', 'ol', 'OL-09', 's3', 'closed', 'shipment', '5eed0006-0000-4000-8000-000000000006'),
+    ('04', 'ol', 'OL-09', 's3', 'open', 'shipment', '5eed0006-0000-4000-8000-000000000007'),
+    ('05', 'ot', 'OT-04', 's2', 'contained', 'purchase_order', '5eed0005-0000-4000-8000-000000000003'),
+    ('06', 'oa', 'OA-02', 's3', 'open', 'market_cell', '5eed0007-0000-4000-8000-000000000005'),
+    ('07', 'ou', 'OU-01', 's1', 'closed', 'product', (SELECT id::TEXT FROM public.product WHERE sku = 'THO-TIPS-6-50' AND tenant_id = pg_temp.moesa())),
+    ('08', 'om', NULL, 's3', 'open', 'project', (SELECT id::TEXT FROM public.project WHERE display_name = 'Mop ailesi çok ülke pilotu' AND tenant_id = pg_temp.moesa()))
+    ) x (nn, fam, typ, sev, st, et, eid)
+WHERE NOT EXISTS (SELECT 1 FROM public.incident i JOIN public.customer c ON c.id = i.customer_id AND c.code = 'THO'
+    WHERE i.id = ('5eed0008-0000-4000-8000-0000000000' || x.nn)::UUID AND i.tenant_id = pg_temp.moesa() AND i.family = x.fam::public.incident_family
+      AND i.incident_type IS NOT DISTINCT FROM x.typ AND i.severity = x.sev::public.incident_severity AND i.status = x.st::public.incident_status
+      AND i.entity_type = x.et::public.document_entity AND i.entity_id = x.eid::UUID
+      AND i.code LIKE upper(x.fam) || '-THO-%');
+-- m10.notified: management and the customer were told of the s1/s2 incidents that left open, after the opening and in time; m10.closed: the closed ones carry their closure
+SELECT 'm10.notified', i.id::TEXT FROM public.incident i
+WHERE i.id::TEXT LIKE '5eed0008-%' AND i.status <> 'open' AND i.severity IN ('s1', 's2')
+  AND (i.management_notified_at IS NULL OR i.management_notified_at < i.opened_at OR i.customer_notified_at IS NULL OR i.customer_notified_at > i.customer_notice_due_at)
+UNION ALL
+SELECT 'm10.closed', i.id::TEXT FROM public.incident i
+WHERE i.id IN ('5eed0008-0000-4000-8000-000000000003', '5eed0008-0000-4000-8000-000000000007')
+  AND (i.status <> 'closed' OR i.outcome IS NULL OR i.root_cause IS NULL OR nullif(btrim(i.preventive_action), '') IS NULL OR i.closed_on IS NULL OR i.closed_by IS NULL);
+-- m5.rolled_back: the variant's G3 was rolled back through the OT-04 incident; the project is back in the phase G3 closes
+SELECT 'm5.rolled_back' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE project_id = '5eed0004-0000-4000-8000-000000000002' AND code = 'G3' AND status = 'rolled_back'
+       AND rolled_back_incident_id = '5eed0008-0000-4000-8000-000000000005' AND nullif(btrim(rolled_back_reason), '') IS NOT NULL)
+   OR NOT EXISTS (SELECT 1 FROM public.project WHERE id = '5eed0004-0000-4000-8000-000000000002' AND status = 'active' AND current_phase = public.phase_before('G3'));
+SELECT 'm5.variant_waits_customer' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE project_id = '5eed0004-0000-4000-8000-000000000002' AND gate_code = 'G3' AND needs_customer_approval);
+SELECT 'box.change_requests_open' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE tenant_id = pg_temp.moesa() AND overdue)
+   OR NOT EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE tenant_id = pg_temp.moesa() AND NOT overdue);
+SELECT 'm10.cr_applied_version' WHERE NOT EXISTS (SELECT 1 FROM public.change_request r JOIN public.document a ON a.id = r.affected_document_id JOIN public.document b ON b.id = r.result_document_id
+   WHERE r.id = '5eed0008-0000-4000-8000-000000000015' AND r.status = 'applied' AND r.closed_on IS NOT NULL AND a.id = '5eed0003-0000-4000-8000-000000000030'
+     AND b.version > a.version AND b.type = a.type AND b.entity_type = a.entity_type AND b.entity_id = a.entity_id AND b.status = 'signed' AND a.status = 'superseded');
+SELECT 'm10.cr_trigger_on' WHERE NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'change_request_due' AND tgrelid = 'public.change_request'::REGCLASS AND tgenabled = 'O');
+SELECT 'feed.step08_today' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_notification_feed WHERE tenant_id = pg_temp.moesa() AND since = 'today' AND table_name IN ('incident', 'change_request'));
+-- m10.crs: each story change request's source, urgency, status, kinds, project and code prefix (all THO)
+SELECT 'm10.crs', x.nn FROM (VALUES
+    ('11', 'customer', 'normal', 'open', '{packaging,design}', NULL), ('12', 'company', 'urgent', 'open', '{deadline}', NULL),
+    ('13', 'customer', 'normal', 'approved', '{spec,content}', '01'), ('14', 'supplier', 'normal', 'rejected', '{price,supplier}', NULL),
+    ('15', 'regulation', 'normal', 'applied', '{packaging}', '04')) x (nn, src, urg, st, kinds, project)
+WHERE NOT EXISTS (SELECT 1 FROM public.change_request r JOIN public.customer c ON c.id = r.customer_id AND c.code = 'THO'
+    WHERE r.id = ('5eed0008-0000-4000-8000-0000000000' || x.nn)::UUID AND r.tenant_id = pg_temp.moesa() AND r.source = x.src::public.change_request_source
+      AND r.urgency = x.urg::public.change_request_urgency AND r.status = x.st::public.change_request_status AND r.change_kinds = x.kinds::public.change_kind[]
+      AND r.project_id IS NOT DISTINCT FROM ('5eed0004-0000-4000-8000-0000000000' || x.project)::UUID AND r.code LIKE 'CR-THO-%');
+-- m10.cr_states: what each decision left behind
+SELECT 'm10.cr_states', x.k FROM (VALUES ('11_products'), ('11_due_ahead'), ('12_overdue'), ('13_customer_approval'), ('14_rejected')) x (k)
+WHERE NOT CASE x.k
+    WHEN '11_products' THEN coalesce((SELECT array_agg(p.sku::TEXT ORDER BY p.sku) FROM public.change_request_product rp JOIN public.product p ON p.id = rp.product_id
+                             WHERE rp.change_request_id = '5eed0008-0000-4000-8000-000000000011') = ARRAY['THO-MOP40-2P', 'THO-MOP40-3P'], FALSE)
+    WHEN '11_due_ahead' THEN EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE change_request_id = '5eed0008-0000-4000-8000-000000000011' AND NOT overdue AND decision_due_on >= current_date + 2)
+    WHEN '12_overdue' THEN EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE change_request_id = '5eed0008-0000-4000-8000-000000000012' AND overdue AND decision_due_on = current_date - 2)
+    WHEN '13_customer_approval' THEN EXISTS (SELECT 1 FROM public.change_request r JOIN public.document d ON d.id = r.customer_approval_document_id
+                                             JOIN public.user u ON u.id = r.company_approved_by AND u.email = 'akif@moesa-panel.test'
+                                             JOIN public.project_gate g ON g.project_id = r.project_id AND g.code = r.affected_gate_code AND g.status = 'passed' AND g.needs_customer_approval
+                                             WHERE r.id = '5eed0008-0000-4000-8000-000000000013' AND r.affected_gate_code = 'PL_G1' AND r.customer_approved_on = current_date - 3
+                                               AND r.company_approved_on IS NOT NULL AND d.type = 'change_request' AND d.status = 'signed'
+                                               AND d.entity_type = 'change_request' AND d.entity_id = r.id)
+    ELSE EXISTS (SELECT 1 FROM public.change_request WHERE id = '5eed0008-0000-4000-8000-000000000014' AND nullif(btrim(decision_note), '') IS NOT NULL AND closed_on IS NOT NULL) END;
+-- dates.weekday (Ruling P5): every business-day deadline of the story falls on a weekday: the s2 customer notices, the document request and the normal requests' decision dates (and they are all there)
+SELECT 'dates.weekday', x.k FROM (
+    SELECT 'incident ' || i.id, (i.customer_notice_due_at AT TIME ZONE 'UTC')::DATE FROM public.incident i WHERE i.id::TEXT LIKE '5eed0008-%' AND i.severity = 's2'
+    UNION ALL
+    SELECT 'deadline ' || d.id, (d.due_at AT TIME ZONE 'UTC')::DATE FROM public.incident_deadline d WHERE d.incident_id::TEXT LIKE '5eed0008-%' AND d.kind = 'document_request'
+    UNION ALL
+    SELECT 'change_request ' || r.id, r.decision_due_on FROM public.change_request r WHERE r.id::TEXT LIKE '5eed0008-%' AND r.urgency = 'normal'
+    UNION ALL
+    SELECT 'rows', NULL::DATE WHERE (SELECT count(*) FROM public.incident WHERE id::TEXT LIKE '5eed0008-%' AND severity = 's2') <> 2
+       OR (SELECT count(*) FROM public.incident_deadline WHERE incident_id::TEXT LIKE '5eed0008-%' AND kind = 'document_request') <> 1
+       OR (SELECT count(*) FROM public.change_request WHERE id::TEXT LIKE '5eed0008-%' AND urgency = 'normal') <> 4
+    ) x (k, d)
+WHERE x.d IS NULL OR extract(isodow FROM x.d) >= 6;
 
 ROLLBACK;

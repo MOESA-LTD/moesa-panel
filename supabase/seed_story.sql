@@ -1100,6 +1100,236 @@ BEGIN
 END;
 $$;
 
+-- Opens an incident of the story (the fixed id p_id) in the request's tenant, for the customer of
+-- the linked record, by the real rules: the code trigger forces open and the code, the notice
+-- trigger sets customer_notice_due_at from p_opened_at. p_fields carries the optional opening
+-- columns (reported_by, current_state, immediate_action, affected_parties).
+CREATE FUNCTION private.story_incident (p_id UUID, p_family public.incident_family, p_type TEXT, p_severity public.incident_severity,
+                                        p_opened_at TIMESTAMPTZ, p_entity_type public.document_entity, p_entity_id UUID,
+                                        p_title TEXT, p_what_happened TEXT, p_fields JSONB DEFAULT '{}') RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_tenant UUID := private.requested_tenant();
+    v_customer UUID := private.entity_customer(p_entity_type, p_entity_id, private.requested_tenant());
+    v_rec public.incident := jsonb_populate_record(NULL::public.incident, p_fields);
+BEGIN
+    IF v_customer IS NULL THEN
+        RAISE EXCEPTION 'story 08: no % %', p_entity_type, p_entity_id;
+    END IF;
+
+    INSERT INTO public.incident (id, tenant_id, customer_id, family, incident_type, severity, title, what_happened, reported_by,
+                                 current_state, immediate_action, entity_type, entity_id, opened_at, affected_parties)
+    VALUES (p_id, v_tenant, v_customer, p_family, p_type, p_severity, p_title, p_what_happened, v_rec.reported_by,
+            v_rec.current_state, v_rec.immediate_action, p_entity_type, p_entity_id, p_opened_at,
+            coalesce(v_rec.affected_parties, '{}'));
+END;
+$$;
+
+-- Opens a change request of the story (the fixed id p_id) for THO in the request's tenant, by the
+-- real rules: the code trigger forces open, the due trigger sets created_at to now and
+-- decision_due_on from it. p_fields carries the optional columns (project_id, affected_gate_code,
+-- affected_document_id, other_documents, cost_impact, cost_payer, delay_days, quality_impact,
+-- listing_impact); p_skus the products it touches.
+CREATE FUNCTION private.story_cr (p_id UUID, p_source public.change_request_source, p_urgency public.change_request_urgency,
+                                  p_kinds public.change_kind[], p_title TEXT, p_current_value TEXT, p_requested_value TEXT,
+                                  p_reason TEXT, p_fields JSONB DEFAULT '{}', p_skus TEXT[] DEFAULT '{}') RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_tenant UUID := private.requested_tenant();
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.code = 'THO' AND c.tenant_id = private.requested_tenant());
+    v_rec public.change_request := jsonb_populate_record(NULL::public.change_request, p_fields);
+    v_rows INT;
+BEGIN
+    INSERT INTO public.change_request (id, tenant_id, customer_id, project_id, title, source, urgency, change_kinds, current_value,
+                                       requested_value, reason, affected_gate_code, affected_document_id, other_documents,
+                                       cost_impact, cost_payer, delay_days, quality_impact, listing_impact)
+    VALUES (p_id, v_tenant, v_tho, v_rec.project_id, p_title, p_source, p_urgency, p_kinds, p_current_value, p_requested_value,
+            p_reason, v_rec.affected_gate_code, v_rec.affected_document_id, v_rec.other_documents, v_rec.cost_impact,
+            v_rec.cost_payer, v_rec.delay_days, v_rec.quality_impact, v_rec.listing_impact);
+
+    INSERT INTO public.change_request_product (change_request_id, product_id, tenant_id, customer_id)
+    SELECT p_id, p.id, v_tenant, v_tho
+    FROM public.product p
+    WHERE p.tenant_id = v_tenant AND p.sku = ANY (p_skus);
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> cardinality(p_skus) THEN
+        RAISE EXCEPTION 'story 08: change request % found % of the products %', p_id, v_rows, p_skus;
+    END IF;
+END;
+$$;
+
+-- Step 08 (today): incidents of every family, severity and status, the variant's G3 rolled back
+-- through the OT-04 incident, and change requests in every status, as akif (management) in MOESA
+-- LTD. Everything meets the real rules, with the rules bypass off: incidents are opened at their
+-- past opened_at and walked open → contained → closed one UPDATE at a time (management told before
+-- an s1/s2 leaves open; the guard sets closed_on and closed_by on closing); the rollback goes
+-- through public.rollback_gate while its incident is contained; requests go open → approved |
+-- rejected, approved → applied. The incidents come first, so that the step's audit transaction is
+-- named after the incident table. The one sanctioned trigger bypass: the urgent request's past
+-- decision date, with change_request_due off for that UPDATE only (as test 038 does). Incident ids
+-- 5eed0008-…-0N, change request ids …-1N, documents …-2N; codes come from the triggers.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('akif@moesa-panel.test', 'MOESA LTD');
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.code = 'THO' AND c.tenant_id = private.requested_tenant());
+    v_tips50 UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = private.requested_tenant());
+    v_cones100 UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-CONES-100' AND p.tenant_id = private.requested_tenant());
+    v_pilot UUID := (SELECT p.id FROM public.project p WHERE p.display_name = 'Mop ailesi çok ülke pilotu' AND p.tenant_id = private.requested_tenant());
+    v_variant_g3 UUID := (SELECT g.id FROM public.project_gate g WHERE g.project_id = '5eed0004-0000-4000-8000-000000000002' AND g.code = 'G3');
+    v_gate public.project_gate;
+    v_rows INT;
+BEGIN
+    IF v_tho IS NULL OR v_tips50 IS NULL OR v_cones100 IS NULL OR v_pilot IS NULL OR v_variant_g3 IS NULL THEN
+        RAISE EXCEPTION 'story 08: a seed or story row is missing';
+    END IF;
+
+    -- 01 OL-02 s1, open five hours: management not told yet, the customer's 4-hour notice is late.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000001', 'ol', 'OL-02', 's1', now() - INTERVAL '5 hours', 'shipment',
+        '5eed0006-0000-4000-8000-000000000002', 'Tır depoda kabul edilmedi',
+        'Rosbach deposu randevusuz gelen aracı geri çevirdi; yük araçta bekliyor.',
+        jsonb_build_object('reported_by', 'Forwarder operasyon (telefon)', 'current_state', 'Araç depo önünde bekliyor',
+                           'affected_parties', ARRAY['customer', 'forwarder', 'warehouse']));
+
+    -- 02 OL-05 s2, contained: hasarlı teslimat; the 48-hour supplier damage notice ran out two days ago.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000002', 'ol', 'OL-05', 's2', now() - INTERVAL '4 days', 'shipment',
+        '5eed0006-0000-4000-8000-000000000009', 'Teslimatta hasarlı koliler',
+        'Hava kargo teslimatında koliler ezik geldi; teslim tutanağına hasar notu düşüldü.',
+        jsonb_build_object('reported_by', 'Müşteri deposu (e-posta)', 'immediate_action', 'Hasarlı koliler ayrıldı, fotoğraflandı',
+                           'affected_parties', ARRAY['customer', 'supplier', 'forwarder']));
+    INSERT INTO public.incident_deadline (tenant_id, incident_id, kind, label)
+    VALUES (v_tenant, '5eed0008-0000-4000-8000-000000000002', 'supplier_damage', 'Tedarikçiye hasar bildirimi');
+    INSERT INTO public.incident_log (tenant_id, incident_id, logged_at, note, counterparty, decision, cost_amount, cost_currency, cost_payer,
+                                     customer_approved)
+    VALUES (v_tenant, '5eed0008-0000-4000-8000-000000000002', now() - INTERVAL '3 days', 'Taşıyıcı sigortasına hasar dosyası açıldı.',
+            'Taşıyıcı sigorta birimi (e-posta)', 'Hasar bedeli sigortadan karşılanacak', 350, 'EUR', 'carrier_insurance', TRUE);
+    UPDATE public.incident
+    SET management_notified_at = opened_at + INTERVAL '1 hour', customer_notified_at = opened_at + INTERVAL '2 hours'
+    WHERE id = '5eed0008-0000-4000-8000-000000000002';
+    UPDATE public.incident SET status = 'contained', current_state = 'Hasarlı koliler ayrıldı, sigorta süreci sürüyor'
+    WHERE id = '5eed0008-0000-4000-8000-000000000002';
+
+    -- 03 OL-09 s3, closed: eksik koli, fully recovered.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000003', 'ol', 'OL-09', 's3', now() - INTERVAL '60 days', 'shipment',
+        '5eed0006-0000-4000-8000-000000000006', 'Eksik koli',
+        'Gümrük sayımında iki koli eksik çıktı.', jsonb_build_object('reported_by', 'Gümrük müşaviri (e-posta)'));
+    UPDATE public.incident SET status = 'contained' WHERE id = '5eed0008-0000-4000-8000-000000000003';
+    UPDATE public.incident
+    SET status = 'closed', outcome = 'full_recovery', root_cause = 'carrier',
+        root_cause_note = 'Koliler aktarma limanında başka bir konşimentoya yüklenmiş',
+        preventive_action = 'Aktarmalı sevkiyatlarda koli sayısı her aktarmada teyit edilecek'
+    WHERE id = '5eed0008-0000-4000-8000-000000000003';
+
+    -- 04 OL-09 s3, open: the same card again within 90 days (a repeat).
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000004', 'ol', 'OL-09', 's3', now() - INTERVAL '10 days', 'shipment',
+        '5eed0006-0000-4000-8000-000000000007', 'Eksik koli (tekrar)',
+        'Kara yolu teslimatında bir koli eksik sayıldı.', jsonb_build_object('reported_by', 'Müşteri deposu (e-posta)'));
+
+    -- 05 OT-04 s2, contained: the supplier's PI does not match the order; it rolls back the variant's G3.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000005', 'ot', 'OT-04', 's2', now() - INTERVAL '3 days', 'purchase_order',
+        '5eed0005-0000-4000-8000-000000000003', 'PI tutarsızlığı',
+        'Tedarikçinin PI toplamı sipariş tutarından farklı; onaylı varyant fiyatları da etkileniyor.',
+        jsonb_build_object('reported_by', 'Satın alma (e-posta)', 'affected_parties', ARRAY['customer', 'supplier']));
+    UPDATE public.incident
+    SET management_notified_at = opened_at + INTERVAL '30 minutes', customer_notified_at = opened_at + INTERVAL '2 hours'
+    WHERE id = '5eed0008-0000-4000-8000-000000000005';
+    UPDATE public.incident SET status = 'contained', immediate_action = 'Siparişler PI düzeltilene kadar bekletiliyor'
+    WHERE id = '5eed0008-0000-4000-8000-000000000005';
+    v_gate := public.rollback_gate(v_variant_g3, 'PI tutarsızlığı (OT-04)', '5eed0008-0000-4000-8000-000000000005');
+    IF v_gate.status IS DISTINCT FROM 'rolled_back' THEN
+        RAISE EXCEPTION 'story 08: the variant''s G3 was not rolled back';
+    END IF;
+
+    -- 06 OA-02 s3, open: the platform asks for a document within five business days.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000006', 'oa', 'OA-02', 's3', now() - INTERVAL '1 day', 'market_cell',
+        '5eed0007-0000-4000-8000-000000000005', 'Platform belge talebi',
+        'Platform, askıdaki ilan için ürün uygunluk belgesi istedi.', jsonb_build_object('reported_by', 'Satıcı paneli bildirimi'));
+    INSERT INTO public.incident_deadline (tenant_id, incident_id, kind, label)
+    VALUES (v_tenant, '5eed0008-0000-4000-8000-000000000006', 'document_request', 'Platforma belge yükleme');
+
+    -- 07 OU-01 s1, closed by management: PSI sapması, partly recovered.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000007', 'ou', 'OU-01', 's1', now() - INTERVAL '20 days', 'product',
+        v_tips50, 'PSI sapması',
+        'Sevkiyat öncesi denetimde filtre ölçüleri toleransın dışında çıktı.',
+        jsonb_build_object('reported_by', 'Denetim firması (rapor)', 'affected_parties', ARRAY['customer', 'supplier']));
+    UPDATE public.incident
+    SET management_notified_at = opened_at + INTERVAL '1 hour', customer_notified_at = opened_at + INTERVAL '3 hours'
+    WHERE id = '5eed0008-0000-4000-8000-000000000007';
+    UPDATE public.incident SET status = 'contained', immediate_action = 'Sapmalı parti ayrıldı, yeniden üretim istendi'
+    WHERE id = '5eed0008-0000-4000-8000-000000000007';
+    UPDATE public.incident
+    SET status = 'closed', outcome = 'partial_recovery', root_cause = 'supplier',
+        root_cause_note = 'Kalıp aşınması fark edilmemiş', impact_note = 'Partinin bir kısmı indirimli satıldı',
+        preventive_action = 'Her üretimde ilk numune ölçü raporu istenecek', customer_closure_notified_on = current_date - 1
+    WHERE id = '5eed0008-0000-4000-8000-000000000007';
+
+    -- 08 OM s3, open and not yet classified, on the pilot project.
+    PERFORM private.story_incident('5eed0008-0000-4000-8000-000000000008', 'om', NULL, 's3', now() - INTERVAL '2 days', 'project',
+        v_pilot, 'Müşteri talebi netleşmedi',
+        'Müşteri pilot kapsamını toplantıda değiştirmek istedi; konu henüz sınıflandırılmadı.',
+        jsonb_build_object('reported_by', 'Koordinatör (toplantı)'));
+
+    -- 11 open, normal: carton print and design, two products, decided in five business days.
+    PERFORM private.story_cr('5eed0008-0000-4000-8000-000000000011', 'customer', 'normal', ARRAY['packaging', 'design']::public.change_kind[],
+        'Koli baskısı ve etiket tasarımı', 'Tek renk koli baskısı', 'İki renk baskı, yeni logo', 'Müşteri marka yenilemesi',
+        jsonb_build_object('cost_impact', 'Baskı kalıbı ek maliyeti', 'cost_payer', 'customer', 'delay_days', 5),
+        ARRAY['THO-MOP40-2P', 'THO-MOP40-3P']);
+
+    -- 12 open, urgent, its decision date passed (the sanctioned trigger bypass, as test 038).
+    PERFORM private.story_cr('5eed0008-0000-4000-8000-000000000012', 'company', 'urgent', ARRAY['deadline']::public.change_kind[],
+        'Teslim tarihinin öne alınması', 'Mevcut teslim planı', 'Teslimin bir hafta öne alınması', 'Sezon başlangıcı öne çekildi');
+    ALTER TABLE public.change_request DISABLE TRIGGER change_request_due;
+    UPDATE public.change_request SET decision_due_on = current_date - 2 WHERE id = '5eed0008-0000-4000-8000-000000000012';
+    ALTER TABLE public.change_request ENABLE TRIGGER change_request_due;
+
+    -- 13 approved after the private label project's PL_G1 (passed, customer approval), with the
+    -- customer's signed approval document of this request.
+    PERFORM private.story_cr('5eed0008-0000-4000-8000-000000000013', 'customer', 'normal', ARRAY['spec', 'content']::public.change_kind[],
+        'Fırça kıl sertliği ve ürün metni', 'Orta sertlik', 'Sert kıl, ürün metninde belirtilecek', 'Müşteri geri bildirimi',
+        jsonb_build_object('project_id', '5eed0004-0000-4000-8000-000000000001', 'affected_gate_code', 'PL_G1',
+                           'quality_impact', 'Numune yeniden onaylanacak', 'listing_impact', 'Ürün metni güncellenecek'));
+    PERFORM private.story_doc('5eed0008-0000-4000-8000-000000000021', 'change_request', '5eed0008-0000-4000-8000-000000000013', v_tho,
+                              'change_request', 1, 'signed', current_date - 3);
+    UPDATE public.change_request
+    SET customer_approved_on = current_date - 3, customer_approval_document_id = '5eed0008-0000-4000-8000-000000000021'
+    WHERE id = '5eed0008-0000-4000-8000-000000000013';
+    UPDATE public.change_request SET status = 'approved', decision_note = 'Müşteri yazılı onayı ile kabul edildi'
+    WHERE id = '5eed0008-0000-4000-8000-000000000013';
+
+    -- 14 rejected: the supplier's price rise.
+    PERFORM private.story_cr('5eed0008-0000-4000-8000-000000000014', 'supplier', 'normal', ARRAY['price', 'supplier']::public.change_kind[],
+        'Tedarikçi fiyat artışı', 'Birim fiyat 1,90 USD', 'Birim fiyat 2,10 USD', 'Hammadde maliyeti arttı',
+        jsonb_build_object('cost_impact', 'Birim başına 0,20 USD', 'cost_payer', 'company'));
+    UPDATE public.change_request SET status = 'rejected', decision_note = 'Sözleşme fiyatı yıl sonuna kadar geçerli; artış kabul edilmedi'
+    WHERE id = '5eed0008-0000-4000-8000-000000000014';
+
+    -- 15 applied: the cones' label artwork v1 → v2 (signed) on the revision project of step 04.
+    PERFORM private.story_cr('5eed0008-0000-4000-8000-000000000015', 'regulation', 'normal', ARRAY['packaging']::public.change_kind[],
+        'Etikette geri dönüşüm işareti', 'Etiket v1', 'Etiket v2, geri dönüşüm işaretli', 'Ambalaj mevzuatı',
+        jsonb_build_object('project_id', '5eed0004-0000-4000-8000-000000000004',
+                           'affected_document_id', '5eed0003-0000-4000-8000-000000000030'));
+    UPDATE public.change_request SET status = 'approved' WHERE id = '5eed0008-0000-4000-8000-000000000015';
+    PERFORM private.story_doc('5eed0008-0000-4000-8000-000000000022', 'product', v_cones100, v_tho, 'label_artwork', 2, 'signed',
+                              current_date);
+    UPDATE public.change_request SET status = 'applied', result_document_id = '5eed0008-0000-4000-8000-000000000022'
+    WHERE id = '5eed0008-0000-4000-8000-000000000015';
+
+    SELECT count(*) INTO v_rows FROM public.change_request
+    WHERE id::TEXT LIKE '5eed0008-%' AND status = CASE id::TEXT
+        WHEN '5eed0008-0000-4000-8000-000000000013' THEN 'approved'::public.change_request_status
+        WHEN '5eed0008-0000-4000-8000-000000000014' THEN 'rejected'
+        WHEN '5eed0008-0000-4000-8000-000000000015' THEN 'applied'
+        ELSE 'open' END;
+    IF v_rows <> 5 THEN
+        RAISE EXCEPTION 'story 08: % of 5 change requests reached their status', v_rows;
+    END IF;
+
+    PERFORM private.story_end('0');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),
@@ -1108,7 +1338,9 @@ private.story_pass_gate (UUID, UUID, public.gate_code, TIMESTAMPTZ, UUID[]),
 private.story_po_walk (UUID, public.purchase_order_status, TIMESTAMPTZ),
 private.story_po_pi (UUID, UUID, public.document_status, DATE, NUMERIC),
 private.story_shipment_walk (UUID, public.shipment_status, TIMESTAMPTZ, DATE),
-private.story_cell (UUID, TEXT, TEXT, TEXT, public.market_cell_status[], JSONB);
+private.story_cell (UUID, TEXT, TEXT, TEXT, public.market_cell_status[], JSONB),
+private.story_incident (UUID, public.incident_family, TEXT, public.incident_severity, TIMESTAMPTZ, public.document_entity, UUID, TEXT, TEXT, JSONB),
+private.story_cr (UUID, public.change_request_source, public.change_request_urgency, public.change_kind[], TEXT, TEXT, TEXT, TEXT, JSONB, TEXT[]);
 
 -- The last block: no step may leave the rules bypass on, and no claims outlive the story.
 DO $$
