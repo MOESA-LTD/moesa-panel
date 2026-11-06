@@ -118,10 +118,10 @@ VALUES
     ('shipment', 'status', 'all', NULL),
     ('shipment', 'mode', 'all', NULL),
     -- Task 7: market cells.
-    ('market_cell', 'status', 'pending', NULL),
-    ('market_cell', 'compliance', 'pending', NULL),
-    ('market_cell', 'stock_source', 'pending', NULL),
-    ('market_cell', 'content_status', 'pending', NULL),
+    ('market_cell', 'status', 'all', NULL),
+    ('market_cell', 'compliance', 'all', NULL),
+    ('market_cell', 'stock_source', 'all', NULL),
+    ('market_cell', 'content_status', 'all', NULL),
     -- Task 8: gates, incidents and change requests.
     ('project_gate', 'status', 'pending', NULL),
     ('incident', 'family', 'pending', NULL),
@@ -350,5 +350,38 @@ SELECT 'm5.g5_receipt' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g
     JOIN public.shipment s ON s.id = d.entity_id AND s.status = 'accepted' AND s.delivered_at < g.passed_at
     JOIN public.shipment_purchase_order sp ON sp.shipment_id = s.id AND sp.purchase_order_id = '5eed0005-0000-4000-8000-000000000009'
     WHERE g.project_id = '5eed0004-0000-4000-8000-000000000005' AND g.code = 'G5' AND g.status = 'passed');
+
+-- Task 7: market cells
+SELECT 'box.market_summary', c FROM unnest(ARRAY['THO', 'KRN']) c WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_market WHERE tenant_id = pg_temp.moesa() AND customer_code = c AND target_count >= 1);
+SELECT 'm9.red_candidate' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = '5eed0007-0000-4000-8000-000000000009' AND status = 'candidate' AND compliance = 'red' AND compliance_note IS NOT NULL);
+SELECT 'm9.suppressed_issue' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE tenant_id = pg_temp.moesa() AND status = 'suppressed' AND open_issue IS NOT NULL);
+SELECT 'feed.step07_last_week' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_notification_feed WHERE tenant_id = pg_temp.moesa() AND table_name = 'market_cell' AND since = 'last_week');
+-- m9.cells: each story cell's product, platform, country, status, compliance and content state
+SELECT 'm9.cells', x.nn FROM (VALUES
+    ('01', 'THO-MOP40-2P', 'amazon', 'DE', 'live', 'green', 'approved'), ('02', 'THO-MOP40-2P', 'amazon', 'FR', 'live', 'yellow', 'approved'),
+    ('03', 'THO-MOP40-2P', 'amazon', 'IT', 'preparing', 'pending', 'translated'), ('04', 'THO-MOP40-2P', 'amazon', 'ES', 'uploaded', 'green', NULL),
+    ('05', 'THO-MOP40-2P', 'amazon', 'NL', 'suppressed', 'green', 'approved'), ('06', 'THO-TIPS-6-50', 'amazon', 'ES', 'planned', 'green', 'en_master'),
+    ('07', 'THO-TIPS-6-50', 'amazon', 'IT', 'stopped', 'green', NULL), ('08', 'THO-TIPS-6-50', 'kaufland', 'DE', 'live', 'green', 'approved'),
+    ('09', 'THO-CONES-100', 'amazon', 'PL', 'candidate', 'red', 'none'), ('10', 'THO-CONES-100', 'ebay', 'DE', 'paused', 'green', NULL),
+    ('11', 'THO-CONES-100', 'otto', 'DE', 'removed', 'green', NULL), ('12', 'KRN-VASE-01', 'bol', 'NL', 'live', 'green', 'approved'),
+    ('13', 'KRN-VASE-01', 'kaufland', 'AT', 'planned', 'green', NULL)) x (nn, sku, platform, country, st, comp, content)
+WHERE NOT EXISTS (SELECT 1 FROM public.market_cell m JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
+    WHERE m.id = ('5eed0007-0000-4000-8000-0000000000' || x.nn)::UUID AND m.tenant_id = pg_temp.moesa() AND p.sku = x.sku AND m.platform_id = x.platform
+      AND m.country = x.country AND m.status = x.st::public.market_cell_status AND m.compliance = x.comp::public.market_compliance
+      AND (x.content IS NULL OR m.content_status = x.content::public.content_status));
+-- m9.live_listed: every live or suppressed story cell carries its listing data and a launch date that is not in the future
+SELECT 'm9.live_listed', m.id FROM public.market_cell m
+WHERE m.id::TEXT LIKE '5eed0007-%' AND m.status IN ('live', 'suppressed', 'stopped')
+  AND (nullif(btrim(m.platform_product_id), '') IS NULL OR nullif(btrim(m.platform_sku), '') IS NULL OR m.price IS NULL OR m.currency IS NULL
+       OR m.stock_source IS NULL OR m.content_status <> 'approved' OR m.launched_on IS NULL OR m.launched_on > current_date);
+-- m9.reasons: stock sources and the notes of the cells that need them
+SELECT 'm9.reasons', x.nn FROM (VALUES ('01', 'customer_warehouse'), ('02', 'pan_eu'), ('08', '3pl'), ('12', 'platform')) x (nn, src)
+WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = ('5eed0007-0000-4000-8000-0000000000' || x.nn)::UUID AND stock_source = x.src::public.stock_source)
+UNION ALL
+SELECT 'm9.notes', m.id::TEXT FROM public.market_cell m WHERE m.id::TEXT LIKE '5eed0007-%'
+  AND (m.status IN ('stopped', 'removed') AND m.notes IS NULL OR m.compliance IN ('yellow', 'red') AND m.compliance_note IS NULL);
+-- m9.krn: the second customer's cells belong to KRN
+SELECT 'm9.krn', m.id FROM public.market_cell m WHERE m.id IN ('5eed0007-0000-4000-8000-000000000012', '5eed0007-0000-4000-8000-000000000013')
+  AND NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.id = m.customer_id AND c.code = 'KRN');
 
 ROLLBACK;

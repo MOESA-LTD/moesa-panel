@@ -989,6 +989,117 @@ BEGIN
 END;
 $$;
 
+-- The helper of step 07: one market cell. The cell is inserted (the guard forces candidate) with
+-- p_fields applied through jsonb_populate_record: the listing data (platform_product_id,
+-- platform_sku, price, currency, stock_source, content_status, launched_on), the reasons
+-- (open_issue, notes, compliance_note), compliance, target_launch_on and last_checked_on. Then one
+-- UPDATE per status of p_path, in order and under the real guard (no bypass: every walk below is
+-- an allowed transition). Entering live dates the launch with p_fields.launched_on. The product
+-- is found by SKU in the step's tenant (the x-tenant-id header story_begin set).
+CREATE FUNCTION private.story_cell (p_id UUID, p_sku TEXT, p_platform TEXT, p_country TEXT, p_path public.market_cell_status[],
+                                    p_fields JSONB DEFAULT '{}') RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_tenant UUID := (current_setting('request.headers')::JSONB ->> 'x-tenant-id')::UUID;
+    v_product public.product;
+    v_rec public.market_cell := jsonb_populate_record(NULL::public.market_cell, p_fields);
+    v_status public.market_cell_status;
+BEGIN
+    SELECT p.* INTO v_product FROM public.product p WHERE p.sku = p_sku AND p.tenant_id = v_tenant;
+    IF v_product.id IS NULL THEN
+        RAISE EXCEPTION 'story 07: no product %', p_sku;
+    END IF;
+
+    INSERT INTO public.market_cell (id, tenant_id, customer_id, product_id, platform_id, country, compliance, compliance_note,
+                                    platform_product_id, platform_sku, price, currency, stock_source, content_status,
+                                    target_launch_on, last_checked_on, open_issue, notes)
+    VALUES (p_id, v_tenant, v_product.customer_id, v_product.id, p_platform, p_country, coalesce(v_rec.compliance, 'pending'),
+            v_rec.compliance_note, v_rec.platform_product_id, v_rec.platform_sku, v_rec.price, v_rec.currency, v_rec.stock_source,
+            coalesce(v_rec.content_status, 'none'), v_rec.target_launch_on, v_rec.last_checked_on, v_rec.open_issue, v_rec.notes);
+
+    FOREACH v_status IN ARRAY p_path LOOP
+        UPDATE public.market_cell SET status = v_status, launched_on = CASE WHEN v_status = 'live' THEN v_rec.launched_on ELSE launched_on END
+        WHERE id = p_id;
+    END LOOP;
+END;
+$$;
+
+-- Step 07 (3 days ago): market cells in every status, as koordinator in MOESA LTD. THO's mop in
+-- DE and FR is live (FR with a yellow compliance note), IT is being prepared, ES uploaded and NL
+-- suppressed by the platform; the tips are planned (ES), stopped (IT) and live on Kaufland; the
+-- cones sit as a red candidate (PL), paused (eBay DE) and removed (Otto). KRN's vase is live on
+-- bol and planned on Kaufland AT. Cell ids 5eed0007-…-NN.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('koordinator@moesa-panel.test', 'MOESA LTD');
+BEGIN
+    -- THO: the mop
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000001', 'THO-MOP40-2P', 'amazon', 'DE',
+        ARRAY['planned', 'preparing', 'uploaded', 'live']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'platform_product_id', 'B0STORY001', 'platform_sku', 'THO-MOP40-2P-DE', 'price', 24.90,
+                           'currency', 'EUR', 'stock_source', 'customer_warehouse', 'content_status', 'approved',
+                           'launched_on', current_date - 12, 'last_checked_on', current_date - 1));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000002', 'THO-MOP40-2P', 'amazon', 'FR',
+        ARRAY['planned', 'preparing', 'uploaded', 'live']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'yellow', 'compliance_note', 'Fransa için ambalaj geri dönüşüm işareti doğrulanacak',
+                           'platform_product_id', 'B0STORY002', 'platform_sku', 'THO-MOP40-2P-FR', 'price', 25.90, 'currency', 'EUR',
+                           'stock_source', 'pan_eu', 'content_status', 'approved', 'launched_on', current_date - 8,
+                           'last_checked_on', current_date - 2));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000003', 'THO-MOP40-2P', 'amazon', 'IT',
+        ARRAY['planned', 'preparing']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'pending', 'content_status', 'translated', 'target_launch_on', current_date + 21));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000004', 'THO-MOP40-2P', 'amazon', 'ES',
+        ARRAY['planned', 'preparing', 'uploaded']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'target_launch_on', current_date + 10));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000005', 'THO-MOP40-2P', 'amazon', 'NL',
+        ARRAY['planned', 'preparing', 'uploaded', 'live', 'suppressed']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'platform_product_id', 'B0STORY005', 'platform_sku', 'THO-MOP40-2P-NL', 'price', 26.50,
+                           'currency', 'EUR', 'stock_source', 'customer_warehouse', 'content_status', 'approved',
+                           'launched_on', current_date - 6, 'last_checked_on', current_date - 1,
+                           'open_issue', 'OA-06: ilan platform tarafından askıya alındı, eksik ürün bilgisi bekleniyor'));
+
+    -- THO: the tips
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000006', 'THO-TIPS-6-50', 'amazon', 'ES',
+        ARRAY['planned']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'content_status', 'en_master', 'target_launch_on', current_date + 45));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000007', 'THO-TIPS-6-50', 'amazon', 'IT',
+        ARRAY['planned', 'preparing', 'uploaded', 'live', 'stopped']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'platform_product_id', 'B0STORY007', 'platform_sku', 'THO-TIPS-6-50-IT', 'price', 12.90,
+                           'currency', 'EUR', 'stock_source', 'customer_warehouse', 'content_status', 'approved',
+                           'launched_on', current_date - 30, 'last_checked_on', current_date - 4,
+                           'notes', 'Düşük satış nedeniyle bu pazarda durduruldu'));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000008', 'THO-TIPS-6-50', 'kaufland', 'DE',
+        ARRAY['planned', 'preparing', 'uploaded', 'live']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'platform_product_id', 'KL-STORY-008', 'platform_sku', 'THO-TIPS-6-50-KL', 'price', 11.90,
+                           'currency', 'EUR', 'stock_source', '3pl', 'content_status', 'approved',
+                           'launched_on', current_date - 20, 'last_checked_on', current_date - 3));
+
+    -- THO: the cones
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000009', 'THO-CONES-100', 'amazon', 'PL',
+        ARRAY[]::public.market_cell_status[],
+        jsonb_build_object('compliance', 'red', 'compliance_note', 'Polonya için gerekli uygunluk belgesi yok, pazar kapalı',
+                           'content_status', 'none'));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000010', 'THO-CONES-100', 'ebay', 'DE',
+        ARRAY['paused']::public.market_cell_status[], jsonb_build_object('compliance', 'green'));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000011', 'THO-CONES-100', 'otto', 'DE',
+        ARRAY['removed']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'notes', 'Otto satış koşulları uygun değil, hedeften çıkarıldı'));
+
+    -- KRN: the vase
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000012', 'KRN-VASE-01', 'bol', 'NL',
+        ARRAY['planned', 'preparing', 'uploaded', 'live']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'platform_product_id', 'BOL-STORY-012', 'platform_sku', 'KRN-VASE-01-NL', 'price', 39.90,
+                           'currency', 'EUR', 'stock_source', 'platform', 'content_status', 'approved',
+                           'launched_on', current_date - 10, 'last_checked_on', current_date - 2));
+    PERFORM private.story_cell('5eed0007-0000-4000-8000-000000000013', 'KRN-VASE-01', 'kaufland', 'AT',
+        ARRAY['planned']::public.market_cell_status[],
+        jsonb_build_object('compliance', 'green', 'target_launch_on', current_date + 30));
+
+    PERFORM private.story_end('3 days');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),
@@ -996,7 +1107,8 @@ private.story_doc (UUID, public.document_entity, UUID, UUID, public.document_typ
 private.story_pass_gate (UUID, UUID, public.gate_code, TIMESTAMPTZ, UUID[]),
 private.story_po_walk (UUID, public.purchase_order_status, TIMESTAMPTZ),
 private.story_po_pi (UUID, UUID, public.document_status, DATE, NUMERIC),
-private.story_shipment_walk (UUID, public.shipment_status, TIMESTAMPTZ, DATE);
+private.story_shipment_walk (UUID, public.shipment_status, TIMESTAMPTZ, DATE),
+private.story_cell (UUID, TEXT, TEXT, TEXT, public.market_cell_status[], JSONB);
 
 -- The last block: no step may leave the rules bypass on, and no claims outlive the story.
 DO $$
