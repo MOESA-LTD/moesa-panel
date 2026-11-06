@@ -14,6 +14,7 @@ import {
    issueField,
    LISTING_STATE_SEVERITY,
    LISTING_STATES,
+   marketplaceIdFor,
    listingStateSeverity,
    publishBulk,
    publishCell,
@@ -37,7 +38,8 @@ const mock = vi.hoisted(() => ({
    invoke: vi.fn(),
    cache: null as unknown,
    fromCalls: [] as unknown[][],
-   rows: null as unknown
+   rows: null as unknown,
+   tenant: 't1' as string | null
 }));
 
 vi.mock('@/lib/supabase', () => ({
@@ -68,7 +70,9 @@ vi.mock('@/lib/supabase', () => ({
    }
 }));
 
-vi.mock('@/store/auth', () => ({ useAuthStore: () => ({ currentTenant: { id: 't1' } }) }));
+vi.mock('@/store/auth', () => ({
+   useAuthStore: () => ({ currentTenant: mock.tenant ? { id: mock.tenant } : null })
+}));
 vi.mock('@/api/useTenantKey', () => ({ useTenantKey: () => ({ value: 't1' }) }));
 
 const fixture = JSON.parse(
@@ -80,7 +84,21 @@ const fixture = JSON.parse(
 
 const HEADERS = { 'x-tenant-id': 't1' };
 
-const cellRow = { id: 'c1', listing_state: 'submitted' };
+const cellRow = {
+   id: 'c1',
+   status: 'uploaded',
+   listing_state: 'submitted',
+   listing_match: { asin: null, restricted: false, reasons: [] },
+   listing_checked_at: '2026-11-06T10:00:00Z',
+   listing_language: 'de_DE',
+   fulfillment_channel: 'fbm',
+   platform_product_id: null,
+   platform_sku: 'SKU-DE',
+   open_issue: null,
+   price: 19.9,
+   currency: 'EUR',
+   product_id: 'p1'
+};
 const submissionRow = {
    id: 's1',
    tenant_id: 't1',
@@ -102,6 +120,7 @@ beforeEach(() => {
    mock.fromCalls.length = 0;
    mock.cache = null;
    mock.rows = null;
+   mock.tenant = 't1';
 });
 
 describe('constants', () => {
@@ -172,7 +191,7 @@ describe('edge calls', () => {
          body: { action: 'publish', cell_id: 'c1' },
          headers: HEADERS
       });
-      expect(result.cell).toMatchObject({ id: 'c1' });
+      expect(result.cell).toMatchObject({ id: 'c1', product_id: 'p1', listing_state: 'submitted' });
       expect(result.submission.status).toBe('accepted');
    });
 
@@ -287,6 +306,47 @@ describe('edge calls', () => {
    });
 });
 
+describe('tenant and cell parsing', () => {
+   it('refuses to call without an active tenant', async () => {
+      mock.tenant = null;
+      await expect(checkCell('c1')).rejects.toMatchObject({ code: 'tenant_not_allowed' });
+      expect(mock.invoke).not.toHaveBeenCalled();
+   });
+
+   it('rejects a cell without its status and reads an unknown listing state', async () => {
+      const noStatus: Partial<typeof cellRow> = { ...cellRow };
+      delete noStatus.status;
+      mock.invoke.mockResolvedValueOnce({
+         data: { cell: noStatus, submission: submissionRow },
+         error: null
+      });
+      await expect(publishCell('c1')).rejects.toBeInstanceOf(ZodError);
+      mock.invoke.mockResolvedValueOnce({
+         data: { cell: { ...cellRow, listing_state: 'beamed' }, submission: submissionRow },
+         error: null
+      });
+      expect((await publishCell('c1')).cell.listing_state).toBe('unknown');
+   });
+});
+
+describe('marketplaceIdFor', () => {
+   it('maps every country the app publishes to', () => {
+      expect(AMAZON_COUNTRIES.map(marketplaceIdFor)).toEqual([
+         'A1PA6795UKMFR9',
+         'A13V1IB3VIYZZH',
+         'APJ6JRA9NG5V4',
+         'A1RKKUPIHCS9HS',
+         'A1805IZSGTT6HS',
+         'A1C3SOZRARQ6R3',
+         'A2NODRKZP88ZB9',
+         'AMEN7PMS3EDWL',
+         'A1F83G8C2ARO7P'
+      ]);
+      expect(marketplaceIdFor('de')).toBe('A1PA6795UKMFR9');
+      expect(marketplaceIdFor('US')).toBeNull();
+   });
+});
+
 describe('fetchDefinition', () => {
    const args = { productType: 'LUGGAGE', country: 'DE', locale: 'de_DE', customerId: 'cu1' };
    const row = {
@@ -305,6 +365,9 @@ describe('fetchDefinition', () => {
       const definition = await fetchDefinition(args);
       expect(definition.version).toBe('1.0');
       expect(mock.fromCalls[0]).toEqual(['from', 'amazon_product_type_definition']);
+      expect(mock.fromCalls).toContainEqual(['eq', 'marketplace_id', 'A1PA6795UKMFR9']);
+      expect(mock.fromCalls).toContainEqual(['eq', 'product_type', 'LUGGAGE']);
+      expect(mock.fromCalls).toContainEqual(['eq', 'locale', 'de_DE']);
       expect(mock.invoke).not.toHaveBeenCalled();
    });
 
@@ -317,6 +380,14 @@ describe('fetchDefinition', () => {
          'amazon-schema?action=definition&product_type=LUGGAGE&country=DE&locale=de_DE&customer_id=cu1'
       );
       expect(init).toEqual({ method: 'GET', headers: HEADERS });
+   });
+
+   it('refuses a country without a marketplace before any request', async () => {
+      await expect(fetchDefinition({ ...args, country: 'US' })).rejects.toMatchObject({
+         code: 'amazon_marketplace_unsupported'
+      });
+      expect(mock.fromCalls).toEqual([]);
+      expect(mock.invoke).not.toHaveBeenCalled();
    });
 
    it('rejects a definition without properties', async () => {

@@ -1,5 +1,4 @@
 import type { CustomerPlatformAccountRow } from '@/api/customer';
-import type { MarketCellRow } from '@/api/marketMatrix';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { allValues } from '@/lib/enumValues';
@@ -54,6 +53,23 @@ export const AMAZON_LANGUAGE_TAGS = [
    'fr_BE',
    'en_GB'
 ] as const;
+
+/** Amazon's marketplace id of each country (EU stores; sellingpartner docs "Marketplace IDs"). */
+export const MARKETPLACE_IDS: Record<(typeof AMAZON_COUNTRIES)[number], string> = {
+   DE: 'A1PA6795UKMFR9',
+   FR: 'A13V1IB3VIYZZH',
+   IT: 'APJ6JRA9NG5V4',
+   ES: 'A1RKKUPIHCS9HS',
+   NL: 'A1805IZSGTT6HS',
+   PL: 'A1C3SOZRARQ6R3',
+   SE: 'A2NODRKZP88ZB9',
+   BE: 'AMEN7PMS3EDWL',
+   GB: 'A1F83G8C2ARO7P'
+};
+
+/** The marketplace id of a country, or null for one Amazon is not published to. */
+export const marketplaceIdFor = (country: string): string | null =>
+   (MARKETPLACE_IDS as Record<string, string | undefined>)[country.toUpperCase()] ?? null;
 
 // --- schemas ---
 
@@ -150,14 +166,26 @@ const validateResultSchema = z.object({
 });
 export type ValidateResult = z.infer<typeof validateResultSchema>;
 
-// The cell is the database row, which the edge function returns whole; only its id is checked.
-const cellSchema = z.custom<MarketCellRow>(
-   (value) =>
-      typeof value === 'object' && value !== null && typeof (value as MarketCellRow).id === 'string'
-);
+// The cell is the database row; the fields the UI reads are parsed, the rest passes through.
+const nullableString = z.string().nullable();
+export const cellSchema = z.looseObject({
+   id: z.string(),
+   status: z.string(),
+   listing_state: z.union([z.null(), listingStateSchema]),
+   listing_match: z.record(z.string(), z.unknown()).nullable(),
+   listing_checked_at: nullableString,
+   listing_language: nullableString,
+   fulfillment_channel: nullableString,
+   platform_product_id: nullableString,
+   platform_sku: nullableString,
+   open_issue: nullableString,
+   price: z.number().nullable(),
+   currency: nullableString
+});
+export type PublishedCell = z.infer<typeof cellSchema>;
 
 const cellAndSubmissionSchema = z.object({ cell: cellSchema, submission: submissionSchema });
-export type CellPublication = { cell: MarketCellRow; submission: ListingSubmissionRow };
+export type CellPublication = { cell: PublishedCell; submission: ListingSubmissionRow };
 
 /** The outcome of one product of a bulk publish; an unknown result reads as 'error'. */
 export const bulkResultSchema = z.object({
@@ -226,7 +254,8 @@ async function toError(error: unknown): Promise<unknown> {
 /** The active tenant's header: the functions authorize the session in that tenant. */
 const tenantHeaders = () => {
    const tenantId = useAuthStore().currentTenant?.id;
-   return tenantId ? { 'x-tenant-id': tenantId } : undefined;
+   if (!tenantId) throw new AmazonApiError('tenant_not_allowed');
+   return { 'x-tenant-id': tenantId };
 };
 
 async function call<T>(
@@ -245,6 +274,8 @@ async function call<T>(
 const listing = <T>(body: Record<string, unknown>, schema: z.ZodType<T>) =>
    call('amazon-listing', { method: 'POST', body }, schema);
 
+// functions-js appends the function name to the functions URL unchanged, so the query string
+// travels with it; the schema function reads its action and parameters from there.
 const schemaFunction = <T>(params: Record<string, string>, schemaOut: z.ZodType<T>) =>
    call(`amazon-schema?${new URLSearchParams(params)}`, { method: 'GET' }, schemaOut);
 
@@ -266,16 +297,22 @@ export async function searchProductTypes(args: {
    return productTypes;
 }
 
-/** A product type's schema: the cache table first, then the edge function (which fills it). */
+/**
+ * A product type's schema, keyed per marketplace: the cache table first, then the edge function
+ * (which fills it; in the sandbox it answers the fixture row for any marketplace).
+ */
 export async function fetchDefinition(args: {
    productType: string;
    country: string;
    locale: string;
    customerId: string;
 }): Promise<Definition> {
+   const marketplaceId = marketplaceIdFor(args.country);
+   if (!marketplaceId) throw new AmazonApiError('amazon_marketplace_unsupported');
    const { data } = await supabase
       .from('amazon_product_type_definition')
       .select('*')
+      .eq('marketplace_id', marketplaceId)
       .eq('product_type', args.productType)
       .eq('locale', args.locale)
       .limit(1)
@@ -306,14 +343,9 @@ export const validateCell = (cellId: string): Promise<ValidateResult> =>
 export const publishCell = (cellId: string): Promise<CellPublication> =>
    listing({ action: 'publish', cell_id: cellId }, cellAndSubmissionSchema);
 
-/** The same call: publishing a listed cell again updates it. */
-export const updateCell = publishCell;
-
 /** Takes the listing down; resolves to the cell and the delete submission. */
 export const deleteListing = (cellId: string): Promise<CellPublication> =>
    listing({ action: 'delete', cell_id: cellId }, cellAndSubmissionSchema);
-
-export const deleteCell = deleteListing;
 
 /** The function takes at most 50 products per call. */
 const BULK_BATCH = 50;
