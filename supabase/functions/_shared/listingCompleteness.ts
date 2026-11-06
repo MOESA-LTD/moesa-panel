@@ -230,14 +230,28 @@ export function completeness(
 const isBlank = (value: unknown) =>
    value == null || (typeof value === 'string' && value.trim() === '');
 
+/** What the server fills that depends on more than the product row and the cell. */
+export type ProvidedOptions = {
+   /** The product is a variation parent (it has children): it sends no identifier and no offer (R7). */
+   isParent?: boolean;
+};
+
 /**
  * The attributes the server fills on publish, so they count as filled (`CompletenessOptions.provided`):
  * the identifier from the GTIN, and the offer and availability once the cell has a price and a currency.
+ * A variation parent has none of them to send, so all three count as provided (R7).
  */
 export function serverProvided(
    product: { gtin?: string | null },
-   cell: { price?: number | string | null; currency?: string | null }
+   cell: { price?: number | string | null; currency?: string | null },
+   opts: ProvidedOptions = {}
 ): string[] {
+   if (opts.isParent)
+      return [
+         'externally_assigned_product_identifier',
+         'purchasable_offer',
+         'fulfillment_availability'
+      ];
    const provided: string[] = [];
    if (!isBlank(product.gtin)) provided.push('externally_assigned_product_identifier');
    if (!isBlank(cell.price) && !isBlank(cell.currency))

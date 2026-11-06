@@ -177,6 +177,30 @@ Deno.test(
    }
 );
 
+Deno.test(
+   'serverProvided counts the identifier and the offer of a variation parent as provided (R7)',
+   () => {
+      const all = [
+         'externally_assigned_product_identifier',
+         'purchasable_offer',
+         'fulfillment_availability'
+      ];
+      assertEquals(
+         serverProvided({ gtin: null }, { price: null, currency: null }, { isParent: true }),
+         all
+      );
+      assertEquals(
+         serverProvided(
+            { gtin: '4006381333931' },
+            { price: 9, currency: 'EUR' },
+            { isParent: true }
+         ),
+         all
+      );
+      assertEquals(serverProvided({ gtin: null }, { price: null }, { isParent: false }), []);
+   }
+);
+
 Deno.test('languageTag prefers the cell language, else the marketplace default', () => {
    assertEquals(languageTag('DE', null), 'de_DE');
    assertEquals(languageTag('DE', 'en_GB'), 'en_GB');

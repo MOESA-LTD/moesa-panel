@@ -185,13 +185,7 @@ const loadDefinition = async (run: Run, ctx: CellContext): Promise<DefinitionRow
 
 /** The required attributes still missing; a parent sends no identifier and no offer (R7). */
 const missingFor = (definition: DefinitionRow, ctx: CellContext): MissingField[] => {
-   const provided = serverProvided(ctx.product, ctx.cell);
-   if (ctx.children.length)
-      provided.push(
-         'externally_assigned_product_identifier',
-         'purchasable_offer',
-         'fulfillment_availability'
-      );
+   const provided = serverProvided(ctx.product, ctx.cell, { isParent: ctx.children.length > 0 });
    return missingAttributes(
       definition.schema as AmazonSchema,
       definition.property_groups as PropertyGroups,
