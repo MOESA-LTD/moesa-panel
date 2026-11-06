@@ -26,6 +26,7 @@ import {
    type ListingSubmissionRow,
    type ValidateResult
 } from '@/api/amazon';
+import { defaultCurrencyFor } from '@/constants/currency';
 import { glossaryKey } from '@/api/glossary';
 import { marketCellResource, STOCK_SOURCES } from '@/api/marketMatrix';
 import { productResource } from '@/api/product';
@@ -256,7 +257,7 @@ type MarketplaceFields = Pick<
 >;
 const fieldsOf = (row: typeof cell.value): MarketplaceFields => ({
    price: row?.price ?? null,
-   currency: row?.currency ?? null,
+   currency: row?.currency ?? defaultCurrencyFor(row?.country),
    listing_language: row?.listing_language ?? null,
    fulfillment_channel: row?.fulfillment_channel ?? null,
    stock_source: row?.stock_source ?? null
@@ -274,8 +275,6 @@ const FULFILLMENT_OPTIONS = computed(() =>
 
 const { mutateAsync: saveCell, isPending: savingFields } = marketCellResource.useSave();
 const saveFields = async () => {
-   // Kept as saved, so the reloaded cell matches the fields.
-   fields.value.currency = fields.value.currency?.trim().toUpperCase() || null;
    try {
       await saveCell({ id: props.cellId, ...fields.value } as ResourceInput<'market_cell'>);
       toast.add({
@@ -593,10 +592,10 @@ const askRemove = () =>
                />
             </FormField>
             <FormField fluid :label="$t('ops.market.fields.currency')" v-slot="slotProps">
-               <InputText
+               <SelectCurrency
                   v-bind="slotProps"
                   v-model="fields.currency"
-                  maxlength="3"
+                  show-clear
                   :disabled="!canEditCell"
                />
             </FormField>

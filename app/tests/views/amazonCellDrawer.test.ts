@@ -764,6 +764,22 @@ describe('CellAmazonDrawer', () => {
       });
    });
 
+   it('renders the currency as a select, prefilled from the cell country when empty', async () => {
+      const { default: Select } = await import('primevue/select');
+      const currencySelect = (wrapper: Wrapper) =>
+         wrapper
+            .findAllComponents(Select)
+            .find((select) => select.props('options')?.includes('USD'))!;
+
+      expect(currencySelect(await mountDrawer()).props('modelValue')).toBe('EUR');
+
+      cellRef.value = { ...CELL, country: 'PL', currency: null };
+      expect(currencySelect(await mountDrawer()).props('modelValue')).toBe('PLN');
+
+      cellRef.value = { ...CELL, country: 'GB', currency: 'USD' };
+      expect(currencySelect(await mountDrawer()).props('modelValue')).toBe('USD');
+   });
+
    it('offers no Amazon action without the right to submit', async () => {
       ability.update([
          { action: 'select', subject: 'market_cell' },

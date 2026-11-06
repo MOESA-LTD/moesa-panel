@@ -21,6 +21,7 @@ import {
 import { useLookup } from '@/api/useLookup';
 import { useDialogRef } from '@/composables/useDialogRef';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+import { defaultCurrencyFor } from '@/constants/currency';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { isTermCode } from '@/constants/terms';
 import { useCustomerFilter } from '@/store/customerFilter';
@@ -56,7 +57,8 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       prefill: () => ({
          product_id: props.product_id ?? undefined,
          platform_id: props.platform_id ?? undefined,
-         country: props.country ?? undefined
+         country: props.country ?? undefined,
+         currency: defaultCurrencyFor(props.country) ?? undefined
       }),
       useRow: marketCellResource.useOne,
       useSaveRow: marketCellResource.useSave,
@@ -104,6 +106,15 @@ const countryOptions = computed(
    () =>
       platforms.value?.find((platform) => platform.id === values.value.platform_id)?.countries ?? []
 );
+// A currency left empty (or still the previous country's default on a new cell) follows the country.
+watch(
+   () => values.value.country,
+   (country, before) => {
+      const current = values.value.currency;
+      if (!current || (!props.id && current === defaultCurrencyFor(before)))
+         values.value.currency = defaultCurrencyFor(country) ?? current ?? null;
+   }
+);
 const onPlatformPick = () => {
    if (values.value.country && !countryOptions.value.includes(values.value.country))
       values.value.country = null;
@@ -147,7 +158,7 @@ const setAmazonOpen = async (open: boolean) => {
    if (open || ((await amazonDrawer.value?.allowClose()) ?? true)) amazonOpen.value = open;
 };
 
-const LISTING_TEXTS = ['platform_sku', 'currency'] as const;
+const LISTING_TEXTS = ['platform_sku'] as const;
 const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
 </script>
 
@@ -345,6 +356,15 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
                v-slot="slotProps"
             >
                <InputText v-bind="slotProps" v-model="values[field]" />
+            </FormField>
+            <FormField
+               fluid
+               :label="$t('ops.market.fields.currency')"
+               :error="errors.currency"
+               :readonly
+               v-slot="slotProps"
+            >
+               <SelectCurrency v-bind="slotProps" v-model="values.currency" />
             </FormField>
             <FormField
                fluid
