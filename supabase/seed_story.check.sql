@@ -115,8 +115,8 @@ VALUES
     ('purchase_order_payment', 'kind', 'all', NULL),
     ('purchase_order_payment', 'paid_by', 'all', NULL),
     -- Task 6: shipments.
-    ('shipment', 'status', 'pending', NULL),
-    ('shipment', 'mode', 'pending', NULL),
+    ('shipment', 'status', 'all', NULL),
+    ('shipment', 'mode', 'all', NULL),
     -- Task 7: market cells.
     ('market_cell', 'status', 'pending', NULL),
     ('market_cell', 'compliance', 'pending', NULL),
@@ -298,5 +298,57 @@ SELECT 'm7.psi_docs' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overv
 SELECT 'm5.g3_pi', x.nn FROM (VALUES ('02', '05'), ('03', '04'), ('05', '09')) x (nn, po)
 WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g JOIN public.purchase_order o ON o.id = ('5eed0005-0000-4000-8000-0000000000' || x.po)::UUID AND o.project_id = g.project_id
     WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND g.code = 'G3' AND g.status = 'passed' AND o.pi_document_id = ANY (g.evidence_document_ids));
+
+-- Task 6: shipments, the partial receipt of PO-008 and the cones project's G5
+SELECT 'box.shipments_in_transit', s FROM unnest(ARRAY['loaded', 'in_transit', 'at_customs']) s WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s);
+SELECT 'box.shipments_late' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE shipment_id = '5eed0006-0000-4000-8000-000000000005' AND overdue);
+SELECT 'm8.eta_ahead' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE shipment_id = '5eed0006-0000-4000-8000-000000000004' AND NOT overdue);
+SELECT 'm8.dispute_running' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at > now());
+SELECT 'm8.events' WHERE (SELECT count(*) FROM public.shipment_event WHERE shipment_id = '5eed0006-0000-4000-8000-000000000005') < 3;
+SELECT 'm7.partially_received' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_line l WHERE l.purchase_order_id = '5eed0005-0000-4000-8000-000000000008'
+   AND (SELECT sum(sl.quantity) FROM public.shipment_line sl JOIN public.shipment s ON s.id = sl.shipment_id AND s.status = 'accepted' WHERE sl.purchase_order_line_id = l.id) < l.quantity);
+SELECT 'feed.step06_yesterday' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_notification_feed WHERE tenant_id = pg_temp.moesa() AND table_name = 'shipment' AND since = 'yesterday');
+-- m8.ship_states: each story shipment's status, mode, code number, order and shipped quantity (order NULL: none; 0: linked, no line)
+SELECT 'm8.ship_states', x.nn FROM (VALUES
+    ('01', 'planned', 'road', '08', 400), ('02', 'booked', 'fcl20', '11', 0), ('03', 'loaded', 'lcl', '06', 1000),
+    ('04', 'in_transit', 'fcl40', '07', 4000), ('05', 'in_transit', 'fcl40', '05', 800), ('06', 'at_customs', 'fcl20', '06', 1000),
+    ('07', 'delivered', 'road', '06', 1000), ('08', 'accepted', 'courier', '08', 600), ('09', 'disputed', 'air', '09', 500),
+    ('10', 'cancelled', 'lcl', NULL, NULL), ('11', 'accepted', 'fcl20', '09', 1500)) x (nn, st, mode, po, qty)
+WHERE NOT EXISTS (SELECT 1 FROM public.shipment s JOIN public.customer c ON c.id = s.customer_id AND c.code = 'THO'
+    WHERE s.id = ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID AND s.status = x.st::public.shipment_status AND s.mode = x.mode::public.shipment_mode
+      AND s.code LIKE 'SHP-THO-%-0' || x.nn)
+   OR (SELECT string_agg(right(sp.purchase_order_id::TEXT, 2), ',') FROM public.shipment_purchase_order sp WHERE sp.shipment_id = ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID) IS DISTINCT FROM x.po
+   OR (SELECT CASE WHEN x.po IS NOT NULL THEN coalesce(sum(sl.quantity), 0) END FROM public.shipment_line sl WHERE sl.shipment_id = ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID) IS DISTINCT FROM x.qty;
+-- m8.po_lines_capped: no story order line ships more than ordered plus tolerance, over the shipments that are not cancelled
+SELECT 'm8.po_lines_capped', l.id FROM public.purchase_order_line l JOIN public.purchase_order o ON o.id = l.purchase_order_id
+WHERE o.id::TEXT LIKE '5eed0005-%'
+  AND (SELECT coalesce(sum(sl.quantity), 0) FROM public.shipment_line sl JOIN public.shipment s ON s.id = sl.shipment_id AND s.status <> 'cancelled' WHERE sl.purchase_order_line_id = l.id) > floor(l.quantity * (1 + coalesce(o.tolerance_pct, 0) / 100));
+-- m7.rest_planned: the rest of PO-008 (1000 - 600) is on the planned shipment
+SELECT 'm7.rest_planned' WHERE NOT EXISTS (SELECT 1 FROM public.shipment_line sl JOIN public.shipment s ON s.id = sl.shipment_id
+    WHERE s.id = '5eed0006-0000-4000-8000-000000000001' AND s.status = 'planned' AND sl.purchase_order_line_id = '5eed0005-0000-4000-8000-000000000108' AND sl.quantity = 400);
+-- m8.accepted: every accepted story shipment has a signed delivery receipt, matching quantities, no damage, an acceptor and an acceptance date on or after the delivery
+SELECT 'm8.accepted', s.id FROM public.shipment s
+WHERE s.id::TEXT LIKE '5eed0006-%' AND s.status = 'accepted'
+  AND (s.quantity_matches IS NOT TRUE OR s.has_damage IS NOT FALSE OR s.accepted_on IS NULL OR s.delivered_at IS NULL OR s.accepted_on < s.delivered_at::DATE
+       OR nullif(btrim(s.accepted_by), '') IS NULL
+       OR NOT EXISTS (SELECT 1 FROM public.document d WHERE d.entity_type = 'shipment' AND d.entity_id = s.id AND d.type = 'delivery_receipt' AND d.status = 'signed'));
+SELECT 'm8.accepted_on' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000008' AND accepted_on = current_date - 3 AND delivered_at < now() - interval '4 days');
+-- m8.delivered: delivered yesterday, its deadline the CN1 notice time (48 h) after the delivery
+SELECT 'm8.delivered' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at = delivered_at + interval '48 hours' AND delivered_at BETWEEN now() - interval '2 days' AND now() - interval '12 hours');
+SELECT 'm8.disputed' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000009' AND has_damage AND delivered_at IS NOT NULL AND dispute_deadline_at IS NOT NULL);
+-- m8.booked: the booked shipment's confirmation and dates; the loaded one leaves tomorrow
+SELECT 'm8.booked' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000002' AND booking_confirmed_on = current_date - 2 AND etd = current_date + 5 AND eta = current_date + 30)
+   OR NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000003' AND etd = current_date + 1 AND eta = current_date + 28);
+-- m8.docs: the shipment documents of step 06
+SELECT 'm8.docs', x.nn FROM (VALUES ('201', '04', 'packing_list', 'draft'), ('202', '04', 'commercial_invoice', 'signed'), ('203', '05', 'bill_of_lading', 'signed'),
+    ('204', '06', 'customs', 'draft'), ('205', '08', 'delivery_receipt', 'signed'), ('206', '11', 'delivery_receipt', 'signed')) x (nn, ship, type, st)
+WHERE NOT EXISTS (SELECT 1 FROM public.document d WHERE d.id = ('5eed0006-0000-4000-8000-000000000' || x.nn)::UUID AND d.entity_type = 'shipment'
+    AND d.entity_id = ('5eed0006-0000-4000-8000-0000000000' || x.ship)::UUID AND d.type = x.type::public.document_type AND d.status = x.st::public.document_status);
+-- m5.g5_receipt: the cones project's G5 cites the signed delivery receipt of its order's accepted shipment, passed after that delivery
+SELECT 'm5.g5_receipt' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g
+    JOIN public.document d ON d.id = ANY (g.evidence_document_ids) AND d.type = 'delivery_receipt' AND d.status = 'signed' AND d.entity_type = 'shipment'
+    JOIN public.shipment s ON s.id = d.entity_id AND s.status = 'accepted' AND s.delivered_at < g.passed_at
+    JOIN public.shipment_purchase_order sp ON sp.shipment_id = s.id AND sp.purchase_order_id = '5eed0005-0000-4000-8000-000000000009'
+    WHERE g.project_id = '5eed0004-0000-4000-8000-000000000005' AND g.code = 'G5' AND g.status = 'passed');
 
 ROLLBACK;

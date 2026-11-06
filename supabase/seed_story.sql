@@ -643,7 +643,6 @@ DECLARE
     v_reorder UUID := '5eed0004-0000-4000-8000-000000000003';
     v_cones UUID := '5eed0004-0000-4000-8000-000000000005';
     v_pi RECORD;
-    v_rows INT;
 BEGIN
     IF v_tho IS NULL OR v_tr1 IS NULL OR v_cn1 IS NULL OR v_id1 IS NULL OR v_mop IS NULL OR v_tips50 IS NULL
        OR v_cones100 IS NULL OR v_mop_spec IS NULL THEN
@@ -757,24 +756,234 @@ BEGIN
                               '5eed0005-0000-4000-8000-000000000007', v_tho, 'psi_report', 1, 'draft', NULL);
 
     -- The gates that need a PI, by the real rules (the bypass is off again), oldest first. The
-    -- cones project then closes, its last gate passed.
+    -- cones project's G5 (on its shipment's delivery receipt) and its close are in step 06.
     PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000403', v_cones, 'G3', now() - interval '80 days',
                                     ARRAY['5eed0005-0000-4000-8000-000000000209'::UUID]);
     PERFORM private.story_pass_gate(NULL, v_cones, 'G4', now() - interval '70 days');
-    PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000405', v_cones, 'G5', now() - interval '60 days');
     PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000402', v_reorder, 'G3', now() - interval '12 days',
                                     ARRAY['5eed0005-0000-4000-8000-000000000204'::UUID]);
     PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000401', v_variant, 'G3', now() - interval '6 days',
                                     ARRAY['5eed0005-0000-4000-8000-000000000205'::UUID]);
 
+    PERFORM private.story_end('5 days');
+END;
+$$;
+
+-- Moves a story shipment one status at a time to p_to, the way shipment_guard (031, 041) would let
+-- it: planned, booked, loaded, in_transit, at_customs (only when it is the target), delivered, then
+-- accepted or disputed (a disputed one may go on to accepted); cancelled straight from planned or
+-- booked. Before each step it checks what the guard checks on entering that status (an order; the
+-- booking date; a line; ETD and ETA; the delivery time; a signed or approved delivery receipt and,
+-- straight from delivered, matching quantities without damage), then makes the step in one UPDATE
+-- under the rules bypass, so the shipment's dates may lie in the past. It sets what the guard would
+-- set: the dispute deadline on delivered (p_dispute_deadline_at, else the suppliers' shortest
+-- damage-notice time after the delivery, NULL when no supplier has one) and the acceptance date on
+-- accepted (p_accepted_on, else today).
+CREATE FUNCTION private.story_shipment_walk (
+    p_id UUID,
+    p_to public.shipment_status,
+    p_dispute_deadline_at TIMESTAMPTZ DEFAULT NULL,
+    p_accepted_on DATE DEFAULT NULL
+) RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_ship public.shipment;
+    v_next public.shipment_status;
+    v_hours INT;
+BEGIN
+    LOOP
+        SELECT * INTO v_ship FROM public.shipment s WHERE s.id = p_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'story: no shipment %', p_id;
+        END IF;
+
+        EXIT WHEN v_ship.status = p_to;
+
+        v_next := CASE
+            WHEN v_ship.status IN ('accepted', 'cancelled') THEN NULL
+            WHEN p_to = 'cancelled' THEN CASE WHEN v_ship.status IN ('planned', 'booked') THEN 'cancelled' END
+            WHEN v_ship.status = 'disputed' THEN CASE WHEN p_to = 'accepted' THEN 'accepted' END
+            WHEN v_ship.status = 'delivered' THEN CASE WHEN p_to IN ('accepted', 'disputed') THEN p_to::TEXT END
+            WHEN v_ship.status > p_to THEN NULL
+            WHEN v_ship.status = 'planned' THEN 'booked'
+            WHEN v_ship.status = 'booked' THEN 'loaded'
+            WHEN v_ship.status = 'loaded' THEN 'in_transit'
+            WHEN v_ship.status = 'in_transit' THEN CASE WHEN p_to = 'at_customs' THEN 'at_customs' ELSE 'delivered' END
+            WHEN v_ship.status = 'at_customs' THEN 'delivered'
+        END;
+
+        IF v_next IS NULL THEN
+            RAISE EXCEPTION 'story: shipment % cannot go from % to %', p_id, v_ship.status, p_to;
+        END IF;
+
+        IF v_next = 'booked' AND (v_ship.booking_confirmed_on IS NULL OR NOT EXISTS (
+            SELECT 1 FROM public.shipment_purchase_order sp WHERE sp.shipment_id = p_id
+        )) THEN
+            RAISE EXCEPTION 'story: shipment % has no order or no booking date', p_id;
+        ELSIF v_next = 'loaded' AND NOT EXISTS (SELECT 1 FROM public.shipment_line sl WHERE sl.shipment_id = p_id) THEN
+            RAISE EXCEPTION 'story: shipment % has no lines', p_id;
+        ELSIF v_next = 'in_transit' AND (v_ship.etd IS NULL OR v_ship.eta IS NULL) THEN
+            RAISE EXCEPTION 'story: shipment % has no ETD or ETA', p_id;
+        ELSIF v_next = 'delivered' AND v_ship.delivered_at IS NULL THEN
+            RAISE EXCEPTION 'story: shipment % has no delivery time', p_id;
+        ELSIF v_next = 'accepted' AND (NOT EXISTS (
+            SELECT 1 FROM public.document d
+            WHERE d.entity_type = 'shipment' AND d.entity_id = p_id AND d.type = 'delivery_receipt'
+              AND d.status IN ('signed', 'approved')
+        ) OR (v_ship.status = 'delivered' AND (v_ship.quantity_matches IS NOT TRUE OR v_ship.has_damage IS NOT FALSE))) THEN
+            RAISE EXCEPTION 'story: shipment % has no delivery receipt, or a reservation', p_id;
+        END IF;
+
+        SELECT min(s.damage_notice_hours) INTO v_hours
+        FROM public.shipment_purchase_order sp
+        JOIN public.purchase_order po ON po.id = sp.purchase_order_id
+        JOIN public.supplier s ON s.id = po.supplier_id
+        WHERE sp.shipment_id = p_id;
+
+        PERFORM private.story_bypass(TRUE);
+
+        UPDATE public.shipment s
+        SET status = v_next,
+            dispute_deadline_at = CASE WHEN v_next = 'delivered'
+                                       THEN coalesce(p_dispute_deadline_at, s.dispute_deadline_at,
+                                                     s.delivered_at + v_hours * INTERVAL '1 hour')
+                                       ELSE s.dispute_deadline_at END,
+            accepted_on = CASE WHEN v_next = 'accepted' THEN coalesce(p_accepted_on, s.accepted_on, current_date)
+                               ELSE s.accepted_on END
+        WHERE s.id = p_id;
+
+        PERFORM private.story_bypass(FALSE);
+    END LOOP;
+END;
+$$;
+
+-- Step 06 (yesterday): shipments in every status, as koordinator in MOESA LTD, all to THO's
+-- Rosbach warehouse. Each shipment is inserted (the code trigger forces planned; codes follow the
+-- insert order, SHP-THO-<year>-001..011), gets its order and lines while it is planned (the line
+-- cap is the order line's quantity plus the order's tolerance, over all shipments), its dates, then
+-- story_shipment_walk takes it to its status. Shipment ids 5eed0006-…-NN, lines …-1NN, shipment
+-- documents …-2NN, the G5 approval …-301, events …-4NN.
+--   PO-008 is partially received: 08 accepted 600 of its 1000, 01 (planned) carries the other 400.
+--   PO-009 (closed in step 05) went out in two shipments: 11, accepted a month ago, is the cones
+--   project's G5 evidence (its signed delivery receipt), and the project closes here; 09, the rest,
+--   arrived damaged four days ago and is disputed. The order closed before 09 was linked, so its
+--   links are made under the bypass (Ruling P1: shipment_po_not_open; the order closed after the
+--   dispute in the story's time).
+-- The incidents on 06 (OL-08) and 09 (OL-05) come with step 08, the damage photo of 09 with the
+-- media step.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('koordinator@moesa-panel.test', 'MOESA LTD');
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.tenant_id = v_tenant AND c.code = 'THO');
+    v_rosbach UUID := (SELECT w.id FROM public.customer_warehouse w
+                       JOIN public.customer c ON c.id = w.customer_id AND c.tenant_id = w.tenant_id AND c.code = 'THO'
+                       WHERE w.tenant_id = v_tenant AND w.display_name = 'Rosbach');
+    v_acceptor TEXT := (SELECT u.user_metadata ->> 'display_name' FROM public.user u WHERE u.email = 'baris@moesa-panel.test');
+    v_cones UUID := '5eed0004-0000-4000-8000-000000000005';
+    v_rows INT;
+BEGIN
+    IF v_tho IS NULL OR v_rosbach IS NULL OR v_acceptor IS NULL THEN
+        RAISE EXCEPTION 'story 06: THO, its Rosbach warehouse or baris of seed.sql is missing';
+    END IF;
+
+    -- Eleven shipments, in code order.
+    INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id, created_at)
+    SELECT ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID, v_tenant, v_tho, x.mode::public.shipment_mode, v_rosbach,
+           now() - make_interval(days => x.age)
+    FROM (VALUES ('01', 'road', 3), ('02', 'fcl20', 6), ('03', 'lcl', 12), ('04', 'fcl40', 15), ('05', 'fcl40', 40),
+                 ('06', 'fcl20', 35), ('07', 'road', 20), ('08', 'courier', 12), ('09', 'air', 12), ('10', 'lcl', 8),
+                 ('11', 'fcl20', 72)) x (nn, mode, age)
+    ORDER BY x.nn;
+
+    -- The orders, while every shipment is planned: by the real link rules (the order's PI is
+    -- approved and it is not closed), except PO-009's two links (see above).
+    INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id)
+    SELECT ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID, ('5eed0005-0000-4000-8000-0000000000' || x.po)::UUID, v_tenant
+    FROM (VALUES ('01', '08'), ('02', '11'), ('03', '06'), ('04', '07'), ('05', '05'), ('06', '06'), ('07', '06'),
+                 ('08', '08')) x (nn, po);
+
+    PERFORM private.story_bypass(TRUE);
+
+    INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id)
+    VALUES ('5eed0006-0000-4000-8000-000000000009', '5eed0005-0000-4000-8000-000000000009', v_tenant),
+           ('5eed0006-0000-4000-8000-000000000011', '5eed0005-0000-4000-8000-000000000009', v_tenant);
+
+    PERFORM private.story_bypass(FALSE);
+
+    -- The lines, by the real cap: PO-006's 3000 over 03, 06 and 07; PO-008's 1000 over 08 (600)
+    -- and 01 (400); PO-009's 2000 over 11 (1500) and 09 (500). 02 is booked before its goods
+    -- (PO-011 is still in production).
+    INSERT INTO public.shipment_line (id, tenant_id, shipment_id, purchase_order_id, purchase_order_line_id, quantity)
+    SELECT ('5eed0006-0000-4000-8000-0000000001' || x.nn)::UUID, v_tenant, ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID,
+           ('5eed0005-0000-4000-8000-0000000000' || x.po)::UUID, ('5eed0005-0000-4000-8000-0000000001' || x.po)::UUID, x.qty
+    FROM (VALUES ('01', '08', 400), ('03', '06', 1000), ('04', '07', 4000), ('05', '05', 800), ('06', '06', 1000),
+                 ('07', '06', 1000), ('08', '08', 600), ('09', '09', 500), ('11', '09', 1500)) x (nn, po, qty);
+
+    -- The dates and the acceptance record, still on planned shipments (no bypass needed).
+    UPDATE public.shipment s
+    SET booking_confirmed_on = current_date + x.booked_in,
+        etd = current_date + x.etd_in,
+        eta = current_date + x.eta_in,
+        delivered_at = now() - x.delivered_ago,
+        accepted_by = CASE WHEN x.accepted THEN v_acceptor END,
+        quantity_matches = CASE WHEN x.accepted THEN TRUE END,
+        has_damage = CASE WHEN x.accepted THEN FALSE WHEN x.nn = '09' THEN TRUE END
+    FROM (VALUES ('02', -2, 5, 30, NULL::INTERVAL, FALSE),
+                 ('03', -3, 1, 28, NULL, FALSE),
+                 ('04', -10, -5, 9, NULL, FALSE),
+                 ('05', -35, -30, -4, NULL, FALSE),
+                 ('06', -33, -28, -2, NULL, FALSE),
+                 ('07', -18, -16, -2, INTERVAL '1 day', FALSE),
+                 ('08', -9, -8, -6, INTERVAL '5 days', TRUE),
+                 ('09', -10, -7, -5, INTERVAL '4 days', FALSE),
+                 ('11', -70, -66, -36, INTERVAL '34 days', TRUE)) x (nn, booked_in, etd_in, eta_in, delivered_ago, accepted)
+    WHERE s.id = ('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID;
+
+    -- The documents of the shipments, the delivery receipts before the acceptances they allow.
+    PERFORM private.story_doc(('5eed0006-0000-4000-8000-000000000' || x.nn)::UUID, 'shipment',
+                              ('5eed0006-0000-4000-8000-0000000000' || x.ship)::UUID, v_tho, x.type::public.document_type, 1,
+                              x.st::public.document_status, current_date + x.issued_in)
+    FROM (VALUES ('201', '04', 'packing_list', 'draft', NULL::INT), ('202', '04', 'commercial_invoice', 'signed', -6),
+                 ('203', '05', 'bill_of_lading', 'signed', -30), ('204', '06', 'customs', 'draft', NULL),
+                 ('205', '08', 'delivery_receipt', 'signed', -4), ('206', '11', 'delivery_receipt', 'signed', -33)) x (nn, ship, type, st, issued_in);
+
+    -- The walks (01 stays planned). 07's deadline is CN1's 48 hours after yesterday's delivery;
+    -- ID1 has no notice time, so 09's is set: 48 hours after its delivery, already past.
+    PERFORM private.story_shipment_walk(('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID, x.st::public.shipment_status)
+    FROM (VALUES ('02', 'booked'), ('03', 'loaded'), ('04', 'in_transit'), ('05', 'in_transit'), ('06', 'at_customs'),
+                 ('07', 'delivered'), ('10', 'cancelled')) x (nn, st);
+    PERFORM private.story_shipment_walk('5eed0006-0000-4000-8000-000000000008', 'accepted', NULL, current_date - 3);
+    PERFORM private.story_shipment_walk('5eed0006-0000-4000-8000-000000000009', 'disputed',
+                                        now() - INTERVAL '4 days' + INTERVAL '48 hours');
+    PERFORM private.story_shipment_walk('5eed0006-0000-4000-8000-000000000011', 'accepted', NULL, current_date - 33);
+    -- The damage photo of 09 attaches here in the media step (an evidence_photo media link).
+
+    -- The late shipment's log (S15 §B, steps 1-4).
+    INSERT INTO public.shipment_event (id, tenant_id, shipment_id, happened_at, step, from_party, to_party, channel, note)
+    VALUES ('5eed0006-0000-4000-8000-000000000401', v_tenant, '5eed0006-0000-4000-8000-000000000005', now() - INTERVAL '30 days', 1,
+            'Forwarder', 'MOESA', 'e-mail', 'Booking teyidi ve yükleme tarihi alındı'),
+           ('5eed0006-0000-4000-8000-000000000402', v_tenant, '5eed0006-0000-4000-8000-000000000005', now() - INTERVAL '20 days', 2,
+            'MOESA', 'Müşteri', 'e-mail', 'Konşimento ve ETA müşteriye iletildi'),
+           ('5eed0006-0000-4000-8000-000000000403', v_tenant, '5eed0006-0000-4000-8000-000000000005', now() - INTERVAL '10 days', 3,
+            'Forwarder', 'MOESA', 'telefon', 'Aktarma limanında gecikme bildirildi'),
+           ('5eed0006-0000-4000-8000-000000000404', v_tenant, '5eed0006-0000-4000-8000-000000000005', now() - INTERVAL '5 days', 4,
+            'MOESA', 'Müşteri', 'e-mail', 'Yeni ETA belirsiz, müşteri bilgilendirildi');
+
+    -- The cones project's G5 on 11's delivery receipt, three days after the delivery, by the real
+    -- rules; then the project closes, its last gate passed.
+    PERFORM private.story_pass_gate('5eed0006-0000-4000-8000-000000000301', v_cones, 'G5', now() - INTERVAL '30 days',
+                                    ARRAY['5eed0006-0000-4000-8000-000000000206'::UUID]);
+
     UPDATE public.project SET status = 'closed' WHERE id = v_cones AND current_phase = 'closed';
     GET DIAGNOSTICS v_rows = ROW_COUNT;
 
     IF v_rows <> 1 THEN
-        RAISE EXCEPTION 'story 05: the cones project did not reach its closed phase';
+        RAISE EXCEPTION 'story 06: the cones project did not reach its closed phase';
     END IF;
 
-    PERFORM private.story_end('5 days');
+    PERFORM private.story_end('1 day');
 END;
 $$;
 
@@ -784,7 +993,8 @@ private.story_end (INTERVAL),
 private.story_doc (UUID, public.document_entity, UUID, UUID, public.document_type, INT, public.document_status, DATE, TEXT, UUID),
 private.story_pass_gate (UUID, UUID, public.gate_code, TIMESTAMPTZ, UUID[]),
 private.story_po_walk (UUID, public.purchase_order_status, TIMESTAMPTZ),
-private.story_po_pi (UUID, UUID, public.document_status, DATE, NUMERIC);
+private.story_po_pi (UUID, UUID, public.document_status, DATE, NUMERIC),
+private.story_shipment_walk (UUID, public.shipment_status, TIMESTAMPTZ, DATE);
 
 -- The last block: no step may leave the rules bypass on, and no claims outlive the story.
 DO $$
