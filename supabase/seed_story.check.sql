@@ -194,8 +194,17 @@ SELECT 'm4.spec_superseded' WHERE NOT EXISTS (SELECT 1 FROM public.document d JO
    OR NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id WHERE p.sku = 'THO-MOP40-2P' AND d.type = 'spec_sheet' AND d.version = 2 AND d.status = 'signed');
 SELECT 'm3.evidence_mix' WHERE NOT EXISTS (SELECT 1 FROM public.product_evidence e JOIN public.product p ON p.id = e.product_id WHERE p.sku = 'THO-TIPS-6-50' AND NOT e.has_signed_spec)
    OR NOT EXISTS (SELECT 1 FROM public.product_evidence e JOIN public.product p ON p.id = e.product_id WHERE p.sku = 'THO-MOP40-3P' AND e.has_signed_spec);
-SELECT 'box.unsigned_skus' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND unsigned_sku_count > 0);
-SELECT 'box.incomplete_compliance' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND active_sku_count > compliance_complete_count);
+-- box.unsigned_skus / box.incomplete_compliance: a story SKU is one the box counts (an active product, neither
+-- concept nor archived, of the customer's row), not only a seed.sql one.
+SELECT 'box.unsigned_skus' WHERE NOT EXISTS (SELECT 1 FROM public.product_evidence e WHERE e.tenant_id = pg_temp.moesa() AND e.sku = 'THO-MOP40-4P' AND e.status NOT IN ('archived', 'concept') AND NOT e.has_signed_spec)
+   OR NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND customer_code = 'THO' AND unsigned_sku_count > 0);
+SELECT 'box.incomplete_compliance' WHERE NOT EXISTS (SELECT 1 FROM public.product_evidence e WHERE e.tenant_id = pg_temp.moesa() AND e.sku = 'THO-MOP40-3P' AND e.status NOT IN ('archived', 'concept') AND NOT e.compliance_complete)
+   OR NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND customer_code = 'THO' AND active_sku_count > compliance_complete_count);
+SELECT 'm4.tips_compliance_docs' WHERE (SELECT count(DISTINCT d.type) FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = pg_temp.moesa() AND d.type IN ('sds', 'doc_of_conformity', 'test_report') AND d.is_signed AND d.status IN ('signed', 'approved')) < 3;
+SELECT 'm4.old_certificate' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-CONES-100' AND p.tenant_id = pg_temp.moesa() AND d.type = 'certificate' AND d.status = 'signed' AND d.is_signed AND d.issued_on < current_date - 365);
+SELECT 'm4.no_spec' WHERE EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-MOP40-4P' AND p.tenant_id = pg_temp.moesa() AND d.type = 'spec_sheet')
+   OR NOT EXISTS (SELECT 1 FROM public.product p WHERE p.sku = 'THO-MOP40-4P' AND p.tenant_id = pg_temp.moesa());
+SELECT 'm4.draft_spec' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = pg_temp.moesa() AND d.type = 'spec_sheet' AND d.status = 'draft');
 SELECT 'feed.step03_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'product' AND now()::DATE - created_at::DATE > 7);
 
 ROLLBACK;
