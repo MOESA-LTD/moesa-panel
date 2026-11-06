@@ -25,6 +25,7 @@ import { DIALOG_POSITIONS } from '@/constants/router';
 import { isTermCode } from '@/constants/terms';
 import { useCustomerFilter } from '@/store/customerFilter';
 import ProductSelect from '../purchase-order/ProductSelect.vue';
+import CellAmazonDrawer from './CellAmazonDrawer.vue';
 import ProjectSelect from '../purchase-order/ProjectSelect.vue';
 
 // A market cell (S05), opened as a dialog. A new one names its product, platform and country (an
@@ -138,6 +139,9 @@ const productIdLabel = computed(
    () => cell.value?.platform?.product_id_label || t('ops.market.fields.platform_product_id')
 );
 
+// An Amazon cell opens its listing (connection, completeness, publishing) in a drawer.
+const amazonOpen = ref(false);
+
 const LISTING_TEXTS = ['platform_sku', 'currency'] as const;
 const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
 </script>
@@ -154,6 +158,25 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
          :value="$t(`ops.market.status.${cell.status}`)"
          :severity="MARKET_CELL_STATUS_SEVERITY[cell.status]"
       />
+      <template v-if="cell.platform_id === 'amazon' && id">
+         <span class="flex-1" />
+         <Button
+            data-action="amazon-open"
+            variant="outlined"
+            size="small"
+            :icon="PrimeIcons.AMAZON"
+            :label="$t('ops.amazon.cell.open')"
+            @click="amazonOpen = true"
+         />
+         <Drawer
+            v-model:visible="amazonOpen"
+            position="right"
+            :header="$t('ops.amazon.cell.title')"
+            class="!w-full md:!w-[40rem]"
+         >
+            <CellAmazonDrawer v-if="amazonOpen" :cellId="cell.id" />
+         </Drawer>
+      </template>
    </div>
    <FormBox
       @submit="save"

@@ -8,6 +8,8 @@ import {
    usePlatformOptions
 } from '@/api/customer';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+import dayjs from 'dayjs';
+import AmazonConnection from './AmazonConnection.vue';
 
 // Opened as a dialog from a customer's platform accounts: a new account belongs to the route's
 // customer. Only who holds the account and whether the tenant has access are kept: no passwords
@@ -17,7 +19,7 @@ const props = defineProps<{
    customerId?: string | null;
 }>();
 
-const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft } =
+const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, draft, row } =
    useUpsertForm({
       id: () => props.id,
       prefill: () => ({ customer_id: props.customerId ?? undefined }),
@@ -44,6 +46,21 @@ const countryOptions = computed(
 
 <template>
    <div class="card">
+      <div
+         v-if="row?.platform_id === 'amazon'"
+         class="mb-4 flex flex-wrap items-center gap-2"
+         data-amazon-connection
+      >
+         <span class="font-semibold">{{ $t('ops.amazon.platform.api_connection') }}</span>
+         <AmazonConnection :account="row" />
+         <small v-if="row.authorized_at" class="text-muted-color">
+            {{
+               $t('ops.amazon.connect.connected_on', {
+                  date: dayjs(row.authorized_at).format('YYYY-MM-DD')
+               })
+            }}
+         </small>
+      </div>
       <FormBox
          @submit="save"
          @reset="() => reset()"

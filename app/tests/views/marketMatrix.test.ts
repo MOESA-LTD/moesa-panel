@@ -242,6 +242,10 @@ describe('market cell dialogs', () => {
       const actions = wrapper.getComponent(StatusActions);
 
       expect(actions.props('next')).toEqual(['live', 'suppressed']);
+      // An Amazon cell opens its listing drawer.
+      expect(wrapper.get('[data-action="amazon-open"]').text()).toBe(
+         i18n.t('ops.amazon.cell.open')
+      );
       expect(actions.props('warnings')).toEqual({
          live: i18n.t('ops.market.live_missing', {
             fields: i18n.t('ops.market.fields.content_status')

@@ -2332,7 +2332,7 @@
             "history_empty": "Nothing has been submitted yet.",
             "issue_general": "General",
             "check": "Check",
-            "publish": "Publish",
+            "publish": "Publish on Amazon",
             "update": "Update on Amazon",
             "validate": "Validate with Amazon",
             "validated": {
@@ -2341,7 +2341,23 @@
             },
             "delete": "Delete from Amazon",
             "delete_confirm": "Delete this listing from Amazon?",
-            "checked_at": "Checked {date}"
+            "checked_at": "Checked {date}",
+            "state": "Listing state",
+            "state_unknown": "Unknown state",
+            "open_platforms": "Open the customer’s platform accounts",
+            "product_type_missing": "The product has no Amazon product type yet.",
+            "open_tab": "Open the Amazon tab",
+            "catalogue": "Catalogue match",
+            "fields_save": "Save marketplace fields",
+            "published": "Sent to Amazon: {status}",
+            "publish_blocked": {
+               "not_connected": "Connect the customer’s Amazon account first.",
+               "product_type": "Choose the product’s Amazon product type first.",
+               "missing": "Fill in the missing fields first.",
+               "unchecked": "Run Check to mark the listing ready.",
+               "submitted": "Amazon is still processing the last submission.",
+               "unsaved": "Save the marketplace fields first."
+            }
          },
          "connect": {
             "button": "Connect Amazon",
@@ -2352,7 +2368,10 @@
             "result": {
                "connected": "Amazon is connected.",
                "error": "Amazon could not be connected."
-            }
+            },
+            "seller_id": "Seller ID {id}",
+            "disconnect_confirm": "Disconnect the Amazon account? Nothing can be published to Amazon until it is connected again.",
+            "disconnected": "Amazon is disconnected."
          },
          "bulk": {
             "open": "Publish to Amazon",
@@ -2372,6 +2391,25 @@
                "skipped_incomplete": "Skipped: required fields are missing",
                "invalid": "Rejected by Amazon",
                "error": "Failed"
+            },
+            "open_disabled_empty": "Select products first.",
+            "open_disabled_mixed": "Pick products of one customer to publish them.",
+            "summary": "{submitted} of {total} submitted"
+         },
+         "submission": {
+            "kind": {
+               "create": "Create",
+               "update": "Update",
+               "delete": "Removal",
+               "unknown": "Other"
+            },
+            "status": {
+               "accepted": "Accepted",
+               "invalid": "Rejected",
+               "processing": "Processing",
+               "done": "Done",
+               "failed": "Failed",
+               "unknown": "Unknown"
             }
          }
       }

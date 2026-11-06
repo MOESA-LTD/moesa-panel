@@ -105,6 +105,52 @@ describe('MarketMatrixGrid', () => {
       expect(empty.text()).toContain(i18n.t('ops.market.no_cells'));
    });
 
+   it('shows the listing state of an API-managed cell', () => {
+      const badge = (
+         state: string | null,
+         extra: Partial<MarketCellOverviewRow> = {},
+         connected?: string[]
+      ) => {
+         const amazon = {
+            ...CELLS[2]!,
+            customer_id: 'k1',
+            listing_state: state,
+            ...extra
+         } as MarketCellOverviewRow;
+         const wrapper = mount(MarketMatrixGrid, {
+            props: { cells: [amazon], canCreate: true, amazonConnected: connected },
+            global: { plugins: [i18NPlugin, PrimeVue], directives: { tooltip: Tooltip } }
+         });
+         return bodyCell(wrapper, 0, 0).find('[data-listing-state]');
+      };
+
+      for (const [state, severity] of [
+         ['draft', 'secondary'],
+         ['ready', 'info'],
+         ['submitted', 'warn'],
+         ['live', 'success'],
+         ['issues', 'danger']
+      ] as const) {
+         const tag = badge(state);
+         expect(tag.text()).toBe(i18n.t(`ops.amazon.state.${state}`));
+         expect(tag.attributes('data-listing-state')).toBe(state);
+         expect(tag.classes()).toContain(`p-tag-${severity}`);
+      }
+
+      // A state of a newer database: named as unknown, not dropped.
+      const unknown = badge('withdrawn');
+      expect(unknown.text()).toBe(i18n.t('ops.amazon.cell.state_unknown'));
+      expect(unknown.classes()).toContain('p-tag-secondary');
+
+      // A cell without a state, and a cell of another platform, show no listing badge.
+      expect(badge(null).exists()).toBe(false);
+      expect(badge('live', { platform_id: 'ebay', cell_key: 'ebay_DE' }).exists()).toBe(false);
+
+      // N2: a customer whose account is not connected shows draft whatever the stored state.
+      expect(badge('live', {}, []).attributes('data-listing-state')).toBe('draft');
+      expect(badge('live', {}, ['k1']).attributes('data-listing-state')).toBe('live');
+   });
+
    it('warns of a red compliance', () => {
       const red = [{ ...CELLS[2]!, compliance: 'red' } as MarketCellOverviewRow];
       const icon = bodyCell(mountGrid(true, red), 0, 0).get('.pi-exclamation-triangle');

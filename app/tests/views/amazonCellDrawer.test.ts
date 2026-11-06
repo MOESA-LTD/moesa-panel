@@ -1,0 +1,474 @@
+import '../setup/mockMain';
+import type { Definition, ListingSubmissionRow } from '@/api/amazon';
+import { ability } from '@/plugins/casl';
+import en from '@/plugins/i18n/locales/en/index.json';
+import CellAmazonDrawer from '@/views/pages/ops/market/CellAmazonDrawer.vue';
+import type { Attributes } from '@edge-shared/listingCompleteness';
+import i18n, { i18NPlugin } from '@plugins/i18n';
+import { abilitiesPlugin } from '@casl/vue';
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
+import { enableAutoUnmount, flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import PrimeVue from 'primevue/config';
+import Tooltip from 'primevue/tooltip';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ref, toValue, type MaybeRefOrGetter } from 'vue';
+
+// The Amazon drawer of a market cell: connection, completeness for the cell's marketplace,
+// marketplace fields, catalogue match, history and the actions, all on the API module's hooks.
+const seed = (file: string) =>
+   JSON.parse(
+      readFileSync(resolve(__dirname, '../../../supabase/seed_files/amazon', file), 'utf8')
+   );
+const fixture = seed('LUGGAGE.A1PA6795UKMFR9.en_GB.json');
+const story = seed('LUGGAGE.attributes.json') as Attributes;
+
+const definition: Definition = {
+   marketplace_id: fixture.marketplaceIds[0],
+   product_type: fixture.productType,
+   locale: fixture.locale,
+   version: fixture.productTypeVersion.version,
+   display_name: fixture.displayName,
+   schema: fixture.schema,
+   property_groups: fixture.propertyGroups,
+   fetched_at: '2026-11-06T00:00:00Z'
+};
+
+const api = vi.hoisted(() => ({
+   publish: vi.fn(),
+   validate: vi.fn(),
+   remove: vi.fn(),
+   saveCell: vi.fn(),
+   refetchCheck: vi.fn(),
+   toast: vi.fn(),
+   confirm: vi.fn(),
+   checkTarget: null as null | (() => string | null)
+}));
+
+const cellRef = ref<Record<string, unknown> | null>(null);
+const productRef = ref<Record<string, unknown> | null>(null);
+const accountsRef = ref<Record<string, unknown>[]>([]);
+const submissionsRef = ref<ListingSubmissionRow[]>([]);
+const checkRef = ref<unknown>(undefined);
+const checkUpdatedRef = ref(0);
+
+vi.mock('@/lib/supabase', () => ({ supabase: {} }));
+vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: api.toast }) }));
+vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: api.confirm }) }));
+vi.mock('@/store/auth', () => ({
+   useAuthStore: () => ({ currentTenant: { id: 't1' }, canIn: () => true })
+}));
+vi.mock('@/api/marketMatrix', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@/api/marketMatrix')>()),
+   marketCellResource: {
+      useOne: () => ({ data: cellRef }),
+      useSave: () => ({ mutateAsync: api.saveCell, isPending: ref(false) })
+   }
+}));
+vi.mock('@/api/product', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@/api/product')>()),
+   productResource: { useOne: () => ({ data: productRef }) }
+}));
+vi.mock('@/api/amazon', async (importOriginal) => ({
+   ...(await importOriginal<typeof import('@/api/amazon')>()),
+   useAmazonAccounts: () => ({ data: accountsRef }),
+   useDefinition: () => ({ data: ref(definition), error: ref(null), isFetching: ref(false) }),
+   useCellCheck: (cellId: MaybeRefOrGetter<string | null>) => {
+      api.checkTarget = () => toValue(cellId);
+      return {
+         data: checkRef,
+         dataUpdatedAt: checkUpdatedRef,
+         error: ref(null),
+         isFetching: ref(false),
+         refetch: api.refetchCheck
+      };
+   },
+   useListingSubmissions: () => ({ data: submissionsRef }),
+   usePublishCell: () => ({ mutateAsync: api.publish, isPending: ref(false) }),
+   useValidateCell: () => ({ mutateAsync: api.validate, isPending: ref(false) }),
+   useDeleteListing: () => ({ mutateAsync: api.remove, isPending: ref(false) })
+}));
+
+const NOW = new Date().toISOString();
+
+const CELL = {
+   id: 'c1',
+   customer_id: 'k1',
+   product_id: 'p1',
+   platform_id: 'amazon',
+   country: 'DE',
+   status: 'preparing',
+   listing_state: 'ready',
+   listing_checked_at: NOW,
+   listing_match: { asin: null, restricted: false, reasons: [], checked_at: NOW },
+   listing_language: null,
+   fulfillment_channel: 'fbm',
+   price: 19.9,
+   currency: 'EUR',
+   stock_source: 'platform',
+   product: { sku: 'THO-MOP40-2P', display_name: 'Mop' },
+   project: null,
+   platform: { display_name: 'Amazon', countries: ['DE'], product_id_label: 'ASIN' }
+};
+
+const PRODUCT = {
+   id: 'p1',
+   customer_id: 'k1',
+   tenant_id: 't1',
+   gtin: '4260696025909',
+   amazon_product_type: 'LUGGAGE',
+   amazon_schema_version: definition.version,
+   listing_attributes: story
+};
+
+const ACCOUNT = {
+   id: 'a1',
+   customer_id: 'k1',
+   platform_id: 'amazon',
+   api_connection: 'connected',
+   authorized_at: NOW,
+   seller_id: 'A2SELLER'
+};
+
+const submission = (extra: Partial<ListingSubmissionRow> = {}): ListingSubmissionRow => ({
+   id: 's1',
+   tenant_id: 't1',
+   cell_id: 'c1',
+   kind: 'create',
+   sku: 'THO-MOP40-2P',
+   marketplace_id: 'A1PA6795UKMFR9',
+   payload: {},
+   amazon_submission_id: 'sub-1',
+   status: 'processing',
+   issues: [],
+   created_by: null,
+   created_at: '2026-11-06T10:00:00Z',
+   updated_at: '2026-11-06T10:00:00Z',
+   ...extra
+});
+
+const mountDrawer = async () => {
+   const wrapper = mount(CellAmazonDrawer, {
+      props: { cellId: 'c1' },
+      global: {
+         plugins: [
+            i18NPlugin,
+            PrimeVue,
+            [VueQueryPlugin, { queryClient: new QueryClient() }],
+            [abilitiesPlugin, ability, { useGlobalProperties: true }]
+         ],
+         directives: { tooltip: Tooltip },
+         stubs: { RouterLink: RouterLinkStub }
+      }
+   });
+   await flushPromises();
+   return wrapper;
+};
+
+type Wrapper = Awaited<ReturnType<typeof mountDrawer>>;
+const action = (wrapper: Wrapper, name: string) => wrapper.find(`[data-action="${name}"]`);
+const isDisabled = (wrapper: Wrapper, name: string) =>
+   action(wrapper, name).attributes('disabled') !== undefined;
+const links = (wrapper: Wrapper) =>
+   wrapper.findAllComponents(RouterLinkStub).map((link) => link.props('to'));
+
+enableAutoUnmount(afterEach);
+beforeAll(() => i18n.setLocaleMessage('en', en));
+beforeEach(() => {
+   ability.update([{ action: 'manage', subject: 'all' }]);
+   cellRef.value = { ...CELL };
+   productRef.value = { ...PRODUCT };
+   accountsRef.value = [{ ...ACCOUNT }];
+   submissionsRef.value = [];
+   checkRef.value = undefined;
+   checkUpdatedRef.value = 0;
+});
+
+describe('CellAmazonDrawer', () => {
+   it('shows the missing required fields for the cell marketplace with a link to the Amazon tab', async () => {
+      const attributes: Attributes = { ...story };
+      delete attributes.condition_type;
+      productRef.value = { ...PRODUCT, listing_attributes: attributes };
+      const wrapper = await mountDrawer();
+
+      const missing = wrapper.get('[data-missing="condition_type"]');
+      expect(missing.text()).toContain(
+         en.ops.amazon.cell.missing_link.replace('{field}', 'Item Condition')
+      );
+      expect(links(wrapper)).toContainEqual({
+         name: 'ops-product-manage-amazon',
+         params: { id: 'p1' },
+         query: { field: 'condition_type' }
+      });
+      // The GTIN and the price provide the identifier and the offer: not listed.
+      expect(wrapper.find('[data-missing="externally_assigned_product_identifier"]').exists()).toBe(
+         false
+      );
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+      expect(wrapper.get('[data-blocked]').text()).toBe(en.ops.amazon.cell.publish_blocked.missing);
+   });
+
+   it('reads completeness in the cell listing language', async () => {
+      // The story's values are German; an English listing misses the language-tagged ones.
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      expect(wrapper.find('[data-missing="item_name"]').exists()).toBe(true);
+
+      cellRef.value = { ...CELL };
+      const german = await mountDrawer();
+      expect(german.find('[data-missing]').exists()).toBe(false);
+      expect(german.text()).toContain(en.ops.amazon.cell.missing_none);
+   });
+
+   it('Publish is disabled until connected and ready', async () => {
+      // N2: the stored state is live, but the account is not connected: shown as draft.
+      cellRef.value = { ...CELL, listing_state: 'live' };
+      accountsRef.value = [{ ...ACCOUNT, api_connection: 'none' }];
+      let wrapper = await mountDrawer();
+      expect(wrapper.get('[data-state]').attributes('data-state')).toBe('draft');
+      expect(wrapper.get('[data-api-connection]').text()).toBe(en.ops.amazon.api_connection.none);
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+      expect(wrapper.get('[data-blocked]').text()).toBe(
+         en.ops.amazon.cell.publish_blocked.not_connected
+      );
+      expect(links(wrapper)).toContainEqual({
+         name: 'ops-customer-manage-platforms',
+         params: { id: 'k1' }
+      });
+
+      // Connected, but not checked ready yet.
+      cellRef.value = { ...CELL, listing_state: 'draft' };
+      accountsRef.value = [{ ...ACCOUNT }];
+      wrapper = await mountDrawer();
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+      expect(wrapper.get('[data-blocked]').text()).toBe(
+         en.ops.amazon.cell.publish_blocked.unchecked
+      );
+
+      // Waiting for Amazon.
+      cellRef.value = { ...CELL, listing_state: 'submitted' };
+      wrapper = await mountDrawer();
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+      expect(wrapper.get('[data-blocked]').text()).toBe(
+         en.ops.amazon.cell.publish_blocked.submitted
+      );
+
+      for (const state of ['ready', 'live', 'issues']) {
+         cellRef.value = { ...CELL, listing_state: state };
+         wrapper = await mountDrawer();
+         expect(isDisabled(wrapper, 'publish')).toBe(false);
+         expect(wrapper.find('[data-blocked]').exists()).toBe(false);
+      }
+   });
+
+   it('Publish calls amazon-listing publish and shows submitted', async () => {
+      api.publish.mockResolvedValue({
+         cell: { ...CELL, listing_state: 'submitted' },
+         submission: submission()
+      });
+      const wrapper = await mountDrawer();
+      expect(action(wrapper, 'publish').text()).toBe(en.ops.amazon.cell.publish);
+
+      await action(wrapper, 'publish').trigger('click');
+      await flushPromises();
+
+      expect(api.publish).toHaveBeenCalledWith('c1');
+      expect(wrapper.get('[data-state]').attributes('data-state')).toBe('submitted');
+      expect(wrapper.get('[data-state]').text()).toBe(en.ops.amazon.state.submitted);
+      expect(wrapper.get('[data-published]').text()).toContain(
+         en.ops.amazon.submission.status.processing
+      );
+   });
+
+   it('shows a refused publish with its error text', async () => {
+      const { AmazonApiError } = await import('@/api/amazon');
+      api.publish.mockRejectedValue(new AmazonApiError('amazon_not_connected'));
+      const wrapper = await mountDrawer();
+      await action(wrapper, 'publish').trigger('click');
+      await flushPromises();
+      expect(api.toast).toHaveBeenCalledWith(
+         expect.objectContaining({ severity: 'error', detail: en.errors.amazon_not_connected })
+      );
+   });
+
+   it('shows Update on Amazon after a done submission', async () => {
+      submissionsRef.value = [
+         submission({ id: 's2', kind: 'update', status: 'processing' }),
+         submission({ status: 'done' })
+      ];
+      cellRef.value = { ...CELL, listing_state: 'live' };
+      const wrapper = await mountDrawer();
+      expect(action(wrapper, 'publish').text()).toBe(en.ops.amazon.cell.update);
+      expect(action(wrapper, 'delete').exists()).toBe(true);
+
+      // A done delete takes the listing away again: back to Publish.
+      submissionsRef.value = [submission({ id: 's3', kind: 'delete', status: 'done' })];
+      const removed = await mountDrawer();
+      expect(action(removed, 'publish').text()).toBe(en.ops.amazon.cell.publish);
+      expect(action(removed, 'delete').exists()).toBe(false);
+   });
+
+   it('Remove from Amazon asks first', async () => {
+      submissionsRef.value = [submission({ status: 'done' })];
+      cellRef.value = { ...CELL, listing_state: 'live' };
+      api.remove.mockResolvedValue({
+         cell: { ...CELL, listing_state: 'submitted' },
+         submission: submission({ id: 's9', kind: 'delete' })
+      });
+      const wrapper = await mountDrawer();
+      await action(wrapper, 'delete').trigger('click');
+      expect(api.remove).not.toHaveBeenCalled();
+      const request = api.confirm.mock.calls[0]![0] as { message: string; accept: () => unknown };
+      expect(request.message).toBe(en.ops.amazon.cell.delete_confirm);
+      await request.accept();
+      await flushPromises();
+      expect(api.remove).toHaveBeenCalledWith('c1');
+   });
+
+   it('shows the history with Amazon messages verbatim and field titles from the schema', async () => {
+      const message = "'condition_type' is required but not supplied.";
+      submissionsRef.value = [
+         submission({
+            status: 'invalid',
+            issues: [
+               { code: '90220', message, severity: 'ERROR', attributeNames: ['condition_type'] }
+            ]
+         })
+      ];
+      cellRef.value = { ...CELL, listing_state: 'issues' };
+      const wrapper = await mountDrawer();
+
+      const entry = wrapper.get('[data-submission="s1"]');
+      expect(entry.text()).toContain(en.ops.amazon.submission.kind.create);
+      expect(entry.text()).toContain(en.ops.amazon.submission.status.invalid);
+      const issue = entry.get('[data-issue]');
+      expect(issue.get('[data-issue-field]').text()).toBe('Item Condition');
+      expect(issue.text()).toContain(message);
+      expect(issue.text()).toContain('90220');
+      expect(links(wrapper)).toContainEqual({
+         name: 'ops-product-manage-amazon',
+         params: { id: 'p1' },
+         query: { field: 'condition_type' }
+      });
+   });
+
+   it('lists an issue without attributeNames under General', async () => {
+      const message =
+         'The image URL could not be downloaded. Please make sure it is publicly accessible.';
+      submissionsRef.value = [
+         submission({
+            status: 'done',
+            issues: [{ code: '18027', message, severity: 'ERROR', attributeNames: [] }]
+         })
+      ];
+      const wrapper = await mountDrawer();
+      const issue = wrapper.get('[data-issue]');
+      expect(issue.get('[data-issue-field]').text()).toBe(en.ops.amazon.cell.issue_general);
+      expect(issue.text()).toContain(message);
+      expect(issue.findComponent(RouterLinkStub).exists()).toBe(false);
+   });
+
+   it('Validate with Amazon runs only on click', async () => {
+      api.validate.mockResolvedValue({
+         status: 'INVALID',
+         issues: [
+            {
+               code: '8541',
+               message: 'Bad bullet.',
+               severity: 'WARNING',
+               attributeNames: ['bullet_point']
+            }
+         ]
+      });
+      const wrapper = await mountDrawer();
+      expect(api.validate).not.toHaveBeenCalled();
+
+      await action(wrapper, 'validate').trigger('click');
+      await flushPromises();
+      expect(api.validate).toHaveBeenCalledWith('c1');
+      const result = wrapper.get('[data-validated]');
+      expect(result.text()).toContain(en.ops.amazon.cell.validated.INVALID);
+      expect(result.text()).toContain('Bad bullet.');
+      expect(result.text()).toContain('Bullet Point');
+   });
+
+   it('checks on open only when the last check is older than an hour, and on Check', async () => {
+      await mountDrawer();
+      expect(api.checkTarget!()).toBeNull();
+
+      cellRef.value = {
+         ...CELL,
+         listing_state: 'draft',
+         listing_checked_at: '2026-01-01T00:00:00Z'
+      };
+      const stale = await mountDrawer();
+      expect(api.checkTarget!()).toBe('c1');
+
+      // A check result shows the match and takes over the state.
+      checkRef.value = {
+         missing: [],
+         match: { asin: 'B0MATCH', restricted: true, reasons: ['APPROVAL_REQUIRED'] },
+         state: 'ready'
+      };
+      checkUpdatedRef.value = Date.now();
+      await flushPromises();
+      // The state the check wrote shows before the cell is read again.
+      expect(stale.get('[data-state]').attributes('data-state')).toBe('ready');
+      expect(stale.text()).toContain(en.ops.amazon.cell.match.found.replace('{asin}', 'B0MATCH'));
+      expect(stale.text()).toContain(
+         en.ops.amazon.cell.restriction.restricted.replace('{reasons}', 'APPROVAL_REQUIRED')
+      );
+
+      cellRef.value = { ...CELL };
+      checkRef.value = undefined;
+      const fresh = await mountDrawer();
+      await action(fresh, 'check').trigger('click');
+      expect(api.checkTarget!()).toBe('c1');
+   });
+
+   it('shows the stored match: a new product', async () => {
+      const wrapper = await mountDrawer();
+      expect(wrapper.text()).toContain(en.ops.amazon.cell.match.new);
+      expect(wrapper.text()).toContain(en.ops.amazon.cell.restriction.none);
+   });
+
+   it('saves the marketplace fields through the cell', async () => {
+      api.saveCell.mockResolvedValue({ ...CELL, fulfillment_channel: 'fba' });
+      const wrapper = await mountDrawer();
+      const save = wrapper.get('[data-action="save-fields"]');
+      expect(save.attributes('disabled')).toBeDefined();
+
+      const { default: Select } = await import('primevue/select');
+      const channel = wrapper
+         .findAllComponents(Select)
+         .find((select) => select.attributes('data-field') === 'fulfillment_channel')!;
+      channel.vm.$emit('update:modelValue', 'fba');
+      await flushPromises();
+      expect(save.attributes('disabled')).toBeUndefined();
+      // Unsaved fields hold the publish back.
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+
+      await save.trigger('click');
+      await flushPromises();
+      expect(api.saveCell).toHaveBeenCalledWith({
+         id: 'c1',
+         price: 19.9,
+         currency: 'EUR',
+         listing_language: null,
+         fulfillment_channel: 'fba',
+         stock_source: 'platform'
+      });
+   });
+
+   it('offers no Amazon action without the right to submit', async () => {
+      ability.update([
+         { action: 'select', subject: 'market_cell' },
+         { action: 'select', subject: 'listing_submission' }
+      ]);
+      const wrapper = await mountDrawer();
+      for (const name of ['check', 'validate', 'publish', 'delete'])
+         expect(action(wrapper, name).exists()).toBe(false);
+      expect(api.checkTarget!()).toBeNull();
+   });
+});

@@ -41,6 +41,24 @@ export const LISTING_STATE_SEVERITY: Record<ListingState, ListingSeverity> = {
 export const listingStateSeverity = (state: string | null | undefined): ListingSeverity =>
    LISTING_STATE_SEVERITY[state as ListingState] ?? 'secondary';
 
+/** The states in which the listing may be sent to Amazon (again): checked complete, live, or with issues. */
+export const PUBLISHABLE_STATES: readonly ListingState[] = ['ready', 'live', 'issues'];
+
+/**
+ * The state a cell is shown and treated in (ruling N2): draft while its customer's Amazon account
+ * is not connected, whatever is stored (a transferred cell keeps the state of its source).
+ */
+export const shownListingState = (
+   state: ListingState | string | null | undefined,
+   connected: boolean
+): ListingState | string | null => (connected ? (state ?? null) : 'draft');
+
+/** The label of a listing state; a state the app does not know is named as such. */
+export const listingStateLabel = (state: string | null | undefined): string =>
+   LISTING_STATES.includes(state as ListingState)
+      ? i18n.t(`ops.amazon.state.${state}`)
+      : i18n.t('ops.amazon.cell.state_unknown');
+
 /** The EU countries the Amazon API publishes to, with the default language tag of each (same order). */
 export const AMAZON_COUNTRIES = ['DE', 'FR', 'IT', 'ES', 'NL', 'PL', 'SE', 'BE', 'GB'] as const;
 export const AMAZON_LANGUAGE_TAGS = [
@@ -494,6 +512,39 @@ export function useProductAmazonCells(productId: MaybeRefOrGetter<string | null>
          return data;
       },
       enabled: computed(() => !!toValue(productId))
+   });
+}
+
+/** A customer's Amazon platform account as the panel shows it (no credential is a column). */
+export type AmazonAccount = Pick<
+   CustomerPlatformAccountRow,
+   'id' | 'customer_id' | 'platform_id' | 'api_connection' | 'authorized_at' | 'seller_id'
+>;
+
+/**
+ * The Amazon platform accounts of one customer (`{customerId}`) or of every customer (`{}`); null
+ * waits. A customer has one at most (UNIQUE customer, platform).
+ */
+export function useAmazonAccounts(filter: MaybeRefOrGetter<{ customerId?: string } | null>) {
+   const tenantKey = useTenantKey();
+   return useQuery({
+      queryKey: computed(() =>
+         queryKeys.list(tenantKey.value, 'customer_platform_account', {
+            view: 'amazon',
+            ...toValue(filter)
+         })
+      ),
+      queryFn: async ({ signal }): Promise<AmazonAccount[]> => {
+         let query = supabase
+            .from('customer_platform_account')
+            .select('id, customer_id, platform_id, api_connection, authorized_at, seller_id')
+            .eq('platform_id', 'amazon');
+         const customerId = toValue(filter)?.customerId;
+         if (customerId) query = query.eq('customer_id', customerId);
+         const { data } = await query.abortSignal(signal).throwOnError();
+         return data;
+      },
+      enabled: computed(() => !!toValue(filter))
    });
 }
 

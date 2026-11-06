@@ -2332,7 +2332,7 @@
             "history_empty": "Henüz bir şey gönderilmedi.",
             "issue_general": "Genel",
             "check": "Kontrol et",
-            "publish": "Yayınla",
+            "publish": "Amazon’da yayınla",
             "update": "Amazon’da güncelle",
             "validate": "Amazon ile doğrula",
             "validated": {
@@ -2341,7 +2341,23 @@
             },
             "delete": "Amazon’dan sil",
             "delete_confirm": "Bu liste Amazon’dan silinsin mi?",
-            "checked_at": "Kontrol: {date}"
+            "checked_at": "Kontrol: {date}",
+            "state": "Liste durumu",
+            "state_unknown": "Bilinmeyen durum",
+            "open_platforms": "Müşterinin platform hesaplarını aç",
+            "product_type_missing": "Ürünün henüz bir Amazon ürün tipi yok.",
+            "open_tab": "Amazon sekmesini aç",
+            "catalogue": "Katalog eşleşmesi",
+            "fields_save": "Pazaryeri alanlarını kaydet",
+            "published": "Amazon’a gönderildi: {status}",
+            "publish_blocked": {
+               "not_connected": "Önce müşterinin Amazon hesabını bağlayın.",
+               "product_type": "Önce ürünün Amazon ürün tipini seçin.",
+               "missing": "Önce eksik alanları doldurun.",
+               "unchecked": "Listeyi hazır işaretlemek için Kontrol et’i çalıştırın.",
+               "submitted": "Amazon son gönderimi hâlâ işliyor.",
+               "unsaved": "Önce pazaryeri alanlarını kaydedin."
+            }
          },
          "connect": {
             "button": "Amazon’u bağla",
@@ -2352,7 +2368,10 @@
             "result": {
                "connected": "Amazon bağlandı.",
                "error": "Amazon bağlanamadı."
-            }
+            },
+            "seller_id": "Satıcı kimliği {id}",
+            "disconnect_confirm": "Amazon hesabının bağlantısı kesilsin mi? Yeniden bağlanana kadar Amazon’a hiçbir şey yayınlanamaz.",
+            "disconnected": "Amazon bağlantısı kesildi."
          },
          "bulk": {
             "open": "Amazon’da yayınla",
@@ -2372,6 +2391,25 @@
                "skipped_incomplete": "Atlandı: zorunlu alanlar eksik",
                "invalid": "Amazon reddetti",
                "error": "Başarısız"
+            },
+            "open_disabled_empty": "Önce ürün seçin.",
+            "open_disabled_mixed": "Yayınlamak için tek bir müşterinin ürünlerini seçin.",
+            "summary": "{total} üründen {submitted} tanesi gönderildi"
+         },
+         "submission": {
+            "kind": {
+               "create": "Oluşturma",
+               "update": "Güncelleme",
+               "delete": "Kaldırma",
+               "unknown": "Diğer"
+            },
+            "status": {
+               "accepted": "Kabul edildi",
+               "invalid": "Reddedildi",
+               "processing": "İşleniyor",
+               "done": "Tamamlandı",
+               "failed": "Başarısız",
+               "unknown": "Bilinmiyor"
             }
          }
       }

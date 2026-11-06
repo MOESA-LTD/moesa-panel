@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { listingStateLabel, listingStateSeverity, shownListingState } from '@/api/amazon';
 import {
    buildMatrix,
    MARKET_CELL_STATUS_SEVERITY,
@@ -11,7 +12,9 @@ import { formatEmpty } from '@/constants/format';
 
 // The S05 matrix: a row per product, a column per platform and country that has a cell. An opened
 // cell shows its status (and a warning when its compliance is red) and opens it; a cell that is not
-// opened shows S05's dash, a button to open it for those who may.
+// opened shows S05's dash, a button to open it for those who may. An Amazon cell the API manages
+// shows its listing state under the status; with `amazonConnected` (the customers whose Amazon
+// account is connected) a cell of any other customer shows draft (ruling N2).
 const props = defineProps<{
    cells: MarketCellOverviewRow[];
    canCreate: boolean;
@@ -19,6 +22,8 @@ const props = defineProps<{
    loading?: boolean;
    /** The cells could not be loaded: says so instead of the empty matrix's hint. */
    error?: boolean;
+   /** The customers whose Amazon account is connected; unset shows the stored listing states. */
+   amazonConnected?: readonly string[];
 }>();
 const emit = defineEmits<{
    open: [cellId: string];
@@ -34,6 +39,13 @@ const add = (row: MarketMatrixRow, column: MarketMatrixColumn) =>
       platformId: column.platformId,
       country: column.country
    });
+
+/** The listing state an Amazon cell shows, or null for a cell the API does not manage. */
+const listingState = (cell: MarketCellOverviewRow) => {
+   if (cell.platform_id !== 'amazon' || !cell.listing_state) return null;
+   const connected = !props.amazonConnected || props.amazonConnected.includes(cell.customer_id!);
+   return shownListingState(cell.listing_state, connected);
+};
 
 const columnLabel = (column: MarketMatrixColumn) => `${column.platformName} ${column.country}`;
 </script>
@@ -63,7 +75,7 @@ const columnLabel = (column: MarketMatrixColumn) => `${column.platformName} ${co
             <button
                v-if="data.cells[column.key]"
                type="button"
-               class="inline-flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
+               class="inline-flex cursor-pointer flex-wrap items-center justify-center gap-1 border-none bg-transparent p-0"
                @click="emit('open', data.cells[column.key].id)"
             >
                <Tag
@@ -78,6 +90,14 @@ const columnLabel = (column: MarketMatrixColumn) => `${column.platformName} ${co
                   role="img"
                   v-tooltip.top="t('ops.market.compliance.red')"
                   :aria-label="t('ops.market.compliance.red')"
+               />
+               <Tag
+                  v-if="listingState(data.cells[column.key])"
+                  class="basis-full !text-xs"
+                  :data-listing-state="listingState(data.cells[column.key])"
+                  :value="listingStateLabel(listingState(data.cells[column.key]))"
+                  :severity="listingStateSeverity(listingState(data.cells[column.key]))"
+                  v-tooltip.top="t('ops.amazon.cell.state')"
                />
             </button>
             <Button
