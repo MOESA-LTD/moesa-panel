@@ -668,7 +668,7 @@ const routes: RouteRecordRaw[] = [
                         }
                      },
                      {
-                        // The Amazon content; `?field=<attribute>` opens that field.
+                        // The Amazon content; `?market=<country>`, `?lang=<xx_YY>` and `?field=<attribute>` pick its cell, language and field.
                         path: 'amazon',
                         name: 'ops-product-manage-amazon',
                         props: true,
