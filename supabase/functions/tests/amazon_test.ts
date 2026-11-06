@@ -258,6 +258,77 @@ Deno.test('spapi gives up on persistent 5xx with amazon_unavailable', async () =
    assertEquals(fake.spapiCalls().length, 4);
 });
 
+Deno.test('spapiHost honours a sandbox region override and refuses it in production', () => {
+   assertEquals(spapiHost(ENV, 'na'), 'https://sandbox.sellingpartnerapi-na.amazon.com');
+   const production: AmazonEnv = { ...ENV, env: 'production' };
+   assertEquals(spapiHost(production, 'eu'), 'https://sellingpartnerapi-eu.amazon.com');
+   const error = assertThrows(() => spapiHost(production, 'na'), AmazonError);
+   assertEquals(error.code, 'amazon_region_unsupported');
+});
+
+Deno.test('spapi sends a sandbox region override to that host', async () => {
+   clearTokenCache();
+   const fake = fakeDeps([() => Response.json({})]);
+
+   await spapiClient('Atzr|r', ENV, fake.deps, { sandboxRegionOverride: 'na' })({
+      method: 'GET',
+      path: '/x'
+   });
+
+   assertEquals(fake.spapiCalls()[0].url, 'https://sandbox.sellingpartnerapi-na.amazon.com/x');
+   const error = assertThrows(
+      () =>
+         spapiClient('Atzr|r', { ...ENV, env: 'production' }, fake.deps, {
+            sandboxRegionOverride: 'na'
+         }),
+      AmazonError
+   );
+   assertEquals(error.code, 'amazon_region_unsupported');
+});
+
+Deno.test('spapi waits as long as Retry-After asks, within the cap', async () => {
+   clearTokenCache();
+   const after = (value: string) => () =>
+      Response.json(errorBody('QuotaExceeded'), { status: 429, headers: { 'Retry-After': value } });
+   const fake = fakeDeps([
+      after('2'), // seconds, longer than the 500 ms backoff
+      after(new Date(5000).toUTCString()), // an HTTP date, 5 s after the fake now (0)
+      after('0'), // shorter than the backoff: the backoff wins
+      () => Response.json({ ok: true })
+   ]);
+
+   assertEquals(await spapiClient('Atzr|r', ENV, fake.deps)({ method: 'GET', path: '/x' }), {
+      ok: true
+   });
+   assertEquals(fake.sleeps, [2000, 5000, 2000]);
+
+   clearTokenCache();
+   const capped = fakeDeps([after('120'), () => Response.json({})]);
+   await spapiClient('Atzr|r', ENV, capped.deps)({ method: 'GET', path: '/x' });
+   assertEquals(capped.sleeps, [30_000]);
+});
+
+Deno.test('spapi maps the sandbox wrong-region 403 to amazon_request_invalid', async () => {
+   clearTokenCache();
+   const errors = [
+      {
+         code: 'Unauthorized',
+         message: 'Access to requested resource is denied.',
+         details: 'The marketplaces you provided are not valid for region.'
+      }
+   ];
+   const wrongRegion = () => Response.json({ errors }, { status: 403 });
+   const fake = fakeDeps([wrongRegion, wrongRegion]);
+
+   const error = await assertRejects(
+      () => spapiClient('Atzr|r', ENV, fake.deps)({ method: 'GET', path: '/x' }),
+      AmazonRequestError
+   );
+   assertEquals([error.code, error.status], ['amazon_request_invalid', 422]);
+   assertEquals(error.details, errors);
+   assertEquals(fake.lwaCalls().length, 2);
+});
+
 Deno.test('spapi refreshes the token once on 403 Unauthorized', async () => {
    clearTokenCache();
    const unauthorized = () =>
@@ -353,6 +424,32 @@ Deno.test('TokenBucket lets the burst through and then waits', async () => {
    await bucket.take();
    assertEquals(sleeps.length, 1);
 });
+
+Deno.test(
+   'TokenBucket refuses a wait longer than its maximum and keeps the reservation free',
+   async () => {
+      const sleeps: number[] = [];
+      const bucket = new TokenBucket(
+         1,
+         1,
+         {
+            now: () => 0,
+            sleep: (ms) => {
+               sleeps.push(ms);
+               return Promise.resolve();
+            }
+         },
+         1500
+      );
+
+      await bucket.take(); // the burst
+      await bucket.take(); // waits 1000 ms
+      const error = await assertRejects(() => bucket.take(), AmazonThrottleError); // would wait 2000 ms
+      assertEquals([error.code, error.status], ['amazon_rate_limited', 429]);
+      await assertRejects(() => bucket.take(), AmazonThrottleError); // the refused take was given back
+      assertEquals(sleeps, [1000]);
+   }
+);
 
 Deno.test('assertServiceCall accepts only the service key', () => {
    const req = (authorization?: string) =>

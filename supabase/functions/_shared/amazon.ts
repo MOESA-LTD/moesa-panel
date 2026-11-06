@@ -60,10 +60,22 @@ export function amazonEnv(
 
 export const LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
 
-export function spapiHost(env: AmazonEnv): string {
-   return env.env === 'sandbox'
-      ? `https://sandbox.sellingpartnerapi-${env.region}.amazon.com`
-      : `https://sellingpartnerapi-${env.region}.amazon.com`;
+/** The SP-API regions. Only `eu` is configurable; the others serve sandbox-only mocks. */
+export type Region = 'eu' | 'na' | 'fe';
+
+/**
+ * The SP-API host. `sandboxRegionOverride` reaches a static-sandbox mock that Amazon serves from
+ * another region (the VALIDATION_PREVIEW mock for ATVPDKIKX0DER lives on the NA sandbox); it is
+ * refused in production with amazon_region_unsupported.
+ */
+export function spapiHost(env: AmazonEnv, sandboxRegionOverride?: Region): string {
+   if (env.env === 'sandbox') {
+      return `https://sandbox.sellingpartnerapi-${sandboxRegionOverride ?? env.region}.amazon.com`;
+   }
+   if (sandboxRegionOverride && sandboxRegionOverride !== env.region) {
+      throw new AmazonError('amazon_region_unsupported', 500);
+   }
+   return `https://sellingpartnerapi-${env.region}.amazon.com`;
 }
 
 type Marketplace = { marketplaceId: string; languageTag: string; currency: string };
@@ -103,6 +115,8 @@ const withDefaults = (deps?: Partial<Deps>): Deps => ({ ...defaultDeps, ...deps 
 /**
  * Rate limiter: `burst` calls pass at once, then one per 1/`ratePerSecond` s. Each take reserves
  * a token (the balance may go negative) and sleeps until it is due, so concurrent callers queue.
+ * A take that would wait longer than `maxWaitMs` gives its reservation back and throws
+ * AmazonThrottleError('amazon_rate_limited', 429), so a drained bucket never blocks for long.
  */
 export class TokenBucket {
    private tokens: number;
@@ -112,7 +126,8 @@ export class TokenBucket {
    constructor(
       private readonly ratePerSecond: number,
       private readonly burst: number,
-      deps?: Partial<Deps>
+      deps?: Partial<Deps>,
+      private readonly maxWaitMs = 10_000
    ) {
       this.deps = withDefaults(deps);
       this.tokens = burst;
@@ -127,7 +142,14 @@ export class TokenBucket {
       );
       this.last = now;
       this.tokens -= 1;
-      if (this.tokens < 0) await this.deps.sleep((-this.tokens / this.ratePerSecond) * 1000);
+      if (this.tokens >= 0) return;
+
+      const wait = (-this.tokens / this.ratePerSecond) * 1000;
+      if (wait > this.maxWaitMs) {
+         this.tokens += 1;
+         throw new AmazonThrottleError('amazon_rate_limited', 429);
+      }
+      await this.deps.sleep(wait);
    }
 }
 
@@ -235,6 +257,20 @@ const USER_AGENT = 'moesa-panel/1.0 (Language=TypeScript)';
 const RETRY_STATUSES = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 3;
 const BACKOFF_MS = 500;
+/** The longest wait a Retry-After header can ask for. */
+const MAX_RETRY_AFTER_MS = 30_000;
+
+/** Retry-After in ms (delta seconds or an HTTP date), undefined when absent or unreadable. */
+const retryAfterMs = (response: Response | undefined, now: number) => {
+   const value = response?.headers.get('retry-after')?.trim();
+   if (!value) return undefined;
+   if (/^\d+$/.test(value)) return Number(value) * 1000;
+   const date = Date.parse(value);
+   return Number.isNaN(date) ? undefined : Math.max(0, date - now);
+};
+
+/** The sandbox's answer to a marketplace of another region (403 with code Unauthorized). */
+const WRONG_REGION = /marketplaces you provided are not valid for region/i;
 
 /** One bucket per host for this function instance: 5 req/s, burst 10 (the sandbox allows 15). */
 const buckets = new Map<string, TokenBucket>();
@@ -260,10 +296,20 @@ const amazonErrors = (body: unknown) => {
       : undefined;
 };
 
+export type SpapiOptions = {
+   /** Sandbox only: send the calls to this region's sandbox host (production throws). */
+   sandboxRegionOverride?: Region;
+};
+
 /** A request function bound to one refresh token: auth, rate limit, retries and typed errors. */
-export function spapiClient(refreshToken: string, env: AmazonEnv, deps?: Partial<Deps>): SpapiCall {
+export function spapiClient(
+   refreshToken: string,
+   env: AmazonEnv,
+   deps?: Partial<Deps>,
+   options: SpapiOptions = {}
+): SpapiCall {
    const d = withDefaults(deps);
-   const host = spapiHost(env);
+   const host = spapiHost(env, options.sandboxRegionOverride);
    const bucket = bucketFor(host);
 
    return async <T>(req: SpapiRequest): Promise<T> => {
@@ -298,7 +344,9 @@ export function spapiClient(refreshToken: string, env: AmazonEnv, deps?: Partial
 
          if (RETRY_STATUSES.has(status)) {
             if (attempt < MAX_RETRIES) {
-               await d.sleep(BACKOFF_MS * 2 ** attempt);
+               const backoff = BACKOFF_MS * 2 ** attempt;
+               const asked = retryAfterMs(response, d.now()) ?? 0;
+               await d.sleep(Math.min(MAX_RETRY_AFTER_MS, Math.max(backoff, asked)));
                attempt += 1;
                continue;
             }
@@ -320,6 +368,11 @@ export function spapiClient(refreshToken: string, env: AmazonEnv, deps?: Partial
                refreshed = true;
                dropToken(refreshToken, env);
                continue;
+            }
+            // Still refused with a fresh token: a marketplace of another region is a bad request.
+            const wrongRegion = errors.some((e) => WRONG_REGION.test(`${e.message} ${e.details}`));
+            if (wrongRegion) {
+               throw new AmazonRequestError('amazon_request_invalid', 422, errors, requestId);
             }
             throw new AmazonAuthError('amazon_auth_failed', 502, errors, requestId);
          }

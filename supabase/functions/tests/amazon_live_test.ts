@@ -1,7 +1,7 @@
 // Calls the SP-API static sandbox with the self-authorized credentials in supabase/functions/.env.
 // Run with `deno task test:live`; without the credentials or --allow-net every test is ignored.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { amazonEnv, type SpapiCall, spapiClient } from '../_shared/amazon.ts';
+import { amazonEnv, type Region, type SpapiCall, spapiClient } from '../_shared/amazon.ts';
 
 const live =
    !!Deno.env.get('AMAZON_SPAPI_LWA_CLIENT_ID') &&
@@ -13,18 +13,17 @@ if (!live)
    );
 
 /**
- * `region` overrides the host for one case only: Amazon serves the VALIDATION_PREVIEW mock
+ * `sandboxRegionOverride` is used for one case only: Amazon serves the VALIDATION_PREVIEW mock
  * (marketplace ATVPDKIKX0DER) from the NA sandbox; the EU sandbox answers it with 403
  * Unauthorized "The marketplaces you provided are not valid for region."
  */
-const sandbox = (region?: 'na'): { spapi: SpapiCall; sellerId: string } => {
-   const configured = amazonEnv();
-   const env = region ? { ...configured, region: region as unknown as 'eu' } : configured;
+const sandbox = (sandboxRegionOverride?: Region): { spapi: SpapiCall; sellerId: string } => {
+   const env = amazonEnv();
    assertEquals(env.env, 'sandbox', 'the live tests run only against the sandbox');
    assert(env.selfRefreshToken, 'AMAZON_SPAPI_REFRESH_TOKEN is required');
    // The static sandbox matches on sku, marketplaceIds, includedData and mode; any seller id passes.
    return {
-      spapi: spapiClient(env.selfRefreshToken, env),
+      spapi: spapiClient(env.selfRefreshToken, env, {}, { sandboxRegionOverride }),
       sellerId: env.sellerId ?? 'SANDBOX_SELLER'
    };
 };

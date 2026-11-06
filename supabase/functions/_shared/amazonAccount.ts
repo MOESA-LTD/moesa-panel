@@ -13,7 +13,10 @@ export type AmazonAccount = {
    refreshToken: string;
 };
 
-/** The customer's connected `amazon` platform account; any other state is 409 amazon_not_connected. */
+/**
+ * The customer's connected `amazon` platform account; any other state is 409 amazon_not_connected.
+ * `db` must be the service-role client (supabaseAdmin): amazon_account_token is not granted to users.
+ */
 export async function amazonAccountFor(
    db: SupabaseClient<Database>,
    customerId: string,
