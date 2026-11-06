@@ -8,7 +8,8 @@
       "dev:vue": "vite --host",
       "dev:supabase": "supabase start --ignore-health-check",
       "dev:supabase-types": "supabase gen types typescript --local > ../supabase/functions/_shared/database.types.ts",
-      "dev:supabase-reset": "supabase db reset && pnpm dev:supabase-types",
+      "dev:seed-story": "node ../scripts/seed-story.mjs",
+      "dev:supabase-reset": "supabase db reset && pnpm dev:seed-story && pnpm dev:supabase-types",
       "build": "vite build",
       "preview": "vite preview",
       "typecheck": "vue-tsc --build",
@@ -20,7 +21,7 @@
       "i18n-build": "node src/script/translate-with-ollama.js",
       "lint:fix": "pnpm lint --fix",
       "prepare": "cd .. && husky app/.husky",
-      "test:db": "cd ../supabase && supabase test db",
+      "test:db": "cd ../supabase && supabase db reset && supabase test db",
       "i18n-sync": "node src/script/sync-locales.mjs"
    },
    "dependencies": {
