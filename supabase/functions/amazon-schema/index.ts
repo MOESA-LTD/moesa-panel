@@ -1,5 +1,5 @@
 // amazon-schema: product type search, the cached (or fetched) definition of a product type for a
-// marketplace, and the weekly refresh that 047's cron job POSTs to amazon-schema/refresh.
+// marketplace, and the daily refresh that 047's cron job POSTs to amazon-schema/refresh.
 //
 //   GET  ?action=search&keywords=&country=&customer_id=                  -> { productTypes }
 //   GET  ?action=definition&product_type=&country=&locale?=&customer_id= -> the cache row
@@ -32,7 +32,7 @@ import {
 
 const TABLE = 'amazon_product_type_definition';
 const PERMISSION: Requirement = [['update', 'product']];
-/** A cached schema older than this is re-fetched by the weekly refresh. */
+/** A cached schema older than this is re-fetched by the daily refresh. */
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 /** One refresh run handles at most this many rows, oldest first; the rest wait for the next run. */
 const REFRESH_BATCH = 20;
@@ -198,7 +198,7 @@ const refresh = async (d: HandlerDeps) => {
          try {
             fresh = await fetchDefinition(call, key, d.amazon);
          } catch (error) {
-            // A revoked grant ends the run; any other Amazon failure keeps the old row for next week.
+            // A revoked grant ends the run; any other Amazon failure keeps the old row for the next run.
             if (error instanceof AmazonAuthError) throw error;
             const code = error instanceof AmazonError ? error.code : 'internal_error';
             console.error(
