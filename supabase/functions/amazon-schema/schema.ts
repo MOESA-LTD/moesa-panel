@@ -28,7 +28,9 @@ export async function downloadSchema(
    deps?: Partial<Deps>
 ): Promise<unknown> {
    const fetcher = deps?.fetch ?? fetch;
-   let bytes: Uint8Array;
+   // Built from response.arrayBuffer(), so the backing buffer is a plain ArrayBuffer; newer Deno
+   // type libraries require that for crypto.subtle.digest.
+   let bytes: Uint8Array<ArrayBuffer>;
    try {
       const response = await fetcher(link.resource, { method: 'GET' });
       if (!response.ok) {
