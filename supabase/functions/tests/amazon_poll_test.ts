@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert@1';
-import { AmazonAuthError, type AmazonEnv } from '../_shared/amazon.ts';
+import { AmazonAuthError, type AmazonEnv, AmazonThrottleError } from '../_shared/amazon.ts';
 import { handler } from '../amazon-poll/index.ts';
 import { POLL_CAP, type RefreshFn } from '../amazon-poll/poll.ts';
 
@@ -17,24 +17,62 @@ const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 
 type Rpc = { fn: string; args: Record<string, unknown> };
 
-/** A service-role client that answers each table with canned rows and records the query. */
+type Row = { id: string; tenant_id: string; listing_checked_at?: string | null };
+
+/**
+ * A service-role client over canned rows. market_cell answers like the real query: ordered by
+ * listing_checked_at (nulls first) and limited; update() stamps the row.
+ */
 const fakeAdmin = (tables: Record<string, unknown[]>, opts: { count?: number } = {}) => {
    const queries: { table: string; ops: [string, unknown[]][] }[] = [];
    const rpcs: Rpc[] = [];
+   const stamps: string[] = [];
+   const cells = (tables.market_cell ?? []) as Row[];
+   const stamp = (id: string, at = '2026-11-06T12:00:00.000Z') => {
+      const row = cells.find((c) => c.id === id);
+      if (row) row.listing_checked_at = at;
+   };
    const admin = {
       from(table: string) {
          const query = { table, ops: [] as [string, unknown[]][] };
          queries.push(query);
-         const rows = tables[table] ?? [];
          const builder: Record<string, unknown> = {};
+         let updating: Record<string, unknown> | null = null;
          for (const op of ['select', 'eq', 'order', 'limit']) {
             builder[op] = (...args: unknown[]) => {
                query.ops.push([op, args]);
                return builder;
             };
          }
-         builder.then = (resolve: (v: unknown) => unknown) =>
-            resolve({ data: rows, count: opts.count ?? rows.length, error: null });
+         builder.update = (values: Record<string, unknown>) => {
+            updating = values;
+            query.ops.push(['update', [values]]);
+            return builder;
+         };
+         builder.then = (resolve: (v: unknown) => unknown) => {
+            if (updating) {
+               const id = query.ops.find(
+                  ([op, a]) => op === 'eq' && a[0] === 'id'
+               )?.[1][1] as string;
+               stamps.push(id);
+               stamp(id, updating.listing_checked_at as string);
+               return resolve({ error: null });
+            }
+            let rows = (tables[table] ?? []) as Row[];
+            if (table === 'market_cell') {
+               const limit = query.ops.find(([op]) => op === 'limit')?.[1][0] as number;
+               rows = [...rows]
+                  .sort((x, y) =>
+                     (x.listing_checked_at ?? '').localeCompare(y.listing_checked_at ?? '')
+                  )
+                  .slice(0, limit);
+            }
+            return resolve({
+               data: rows,
+               count: opts.count ?? (tables[table] ?? []).length,
+               error: null
+            });
+         };
          return builder;
       },
       rpc(fn: string, args: Record<string, unknown>) {
@@ -42,7 +80,7 @@ const fakeAdmin = (tables: Record<string, unknown[]>, opts: { count?: number } =
          return Promise.resolve({ data: { id: 'cell' }, error: null });
       }
    };
-   return { admin: () => admin as never, queries, rpcs };
+   return { admin: () => admin as never, queries, rpcs, stamps, stamp, cells };
 };
 
 const post = (key?: string) =>
@@ -298,3 +336,70 @@ Deno.test('the time budget stops new cells and leaves them in remaining', async 
       remaining: 1
    });
 });
+
+Deno.test('polls the cell checked longest ago first (nulls first), up to the cap', async () => {
+   const db = fakeAdmin({
+      market_cell: [
+         { id: 'new', tenant_id: 't1', listing_checked_at: '2026-11-06T11:50:00Z' },
+         { id: 'old', tenant_id: 't1', listing_checked_at: '2026-11-06T10:00:00Z' },
+         { id: 'never', tenant_id: 't1', listing_checked_at: null },
+         { id: 'extra', tenant_id: 't1', listing_checked_at: '2026-11-06T11:59:00Z' }
+      ]
+   });
+   const order: string[] = [];
+   const refresh: RefreshFn = (deps, target) => {
+      order.push(target.cellId!);
+      return processing()(deps, target);
+   };
+   await run(post(SERVICE_KEY), db, refresh, { cap: 3 });
+   assertEquals(order, ['never', 'old', 'new']);
+});
+
+Deno.test('failing cells are stamped and rotate behind healthy ones (no starvation)', async () => {
+   const market_cell = Array.from({ length: 21 }, (_, i) => ({
+      id: `c${String(i).padStart(2, '0')}`,
+      tenant_id: `t${i}`,
+      listing_checked_at: null as string | null
+   }));
+   const db = fakeAdmin({ market_cell, listing_submission: [] });
+   const failing = new Set(market_cell.slice(0, 20).map((c) => c.id));
+   const seen: string[][] = [];
+   let tick = NOW;
+   for (let n = 0; n < 2; n++) {
+      const batch: string[] = [];
+      seen.push(batch);
+      const refresh: RefreshFn = (deps, target) => {
+         batch.push(target.cellId!);
+         if (failing.has(target.cellId!))
+            return Promise.reject(new AmazonAuthError('amazon_connection_revoked', 409));
+         db.stamp(target.cellId!, new Date(++tick).toISOString());
+         return processing()(deps, target);
+      };
+      await quiet(() => run(post(SERVICE_KEY), db, refresh, { amazon: { now: () => ++tick } }));
+   }
+   assertEquals(seen[0].length, 20);
+   assertEquals(seen[0].includes('c20'), false);
+   // Run 2: the stamped failures sit behind the never-checked healthy cell.
+   assertEquals(seen[1][0], 'c20');
+   assertEquals(db.stamps.length, 20 + 19);
+});
+
+Deno.test(
+   'a transient error on a cell older than 24 hours rotates but is not given up',
+   async () => {
+      const db = fakeAdmin({
+         market_cell: [{ id: 'c1', tenant_id: 't1' }],
+         listing_submission: [
+            { id: 'old', kind: 'create', status: 'processing', created_at: hoursAgo(30) }
+         ]
+      });
+      const { result: res } = await quiet(() =>
+         run(post(SERVICE_KEY), db, () =>
+            Promise.reject(new AmazonThrottleError('amazon_throttled', 429))
+         )
+      );
+      assertEquals(await res.json(), { polled: 0, failed: 1, given_up: 0, remaining: 0 });
+      assertEquals(db.rpcs.length, 0);
+      assertEquals(db.stamps, ['c1']);
+   }
+);

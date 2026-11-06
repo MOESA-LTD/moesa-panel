@@ -2,6 +2,7 @@
 // its status through the shared refreshListingStatus, oldest check first, a few per run. A cell
 // Amazon has not reported within POLL_GIVE_UP_HOURS is given up: submission failed, cell issues.
 import { type AmazonEnv, AmazonError, type Deps } from '../_shared/amazon.ts';
+import { HttpError } from '../_shared/http.ts';
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import {
@@ -61,6 +62,12 @@ const failedCode = (error: unknown) => {
    return 'internal_error';
 };
 
+/** Throttling, Amazon 5xx and network errors pass by themselves; the rest (revoked...) will not. */
+const transient = (error: unknown) => {
+   if (error instanceof AmazonError) return error.status === 429 || error.status >= 500;
+   return !(error instanceof HttpError);
+};
+
 /** Marks a submission failed and its cell `issues` (the RPC writes the open_issue from the issue). */
 const giveUp = async (db: Db, submissionId: string) => {
    await applySubmission(db, submissionId, 'failed', null, [GIVE_UP_ISSUE], 'issues', null);
@@ -107,7 +114,19 @@ export async function pollSubmitted(
       } catch (error) {
          failed += 1;
          console.error(`amazon-poll failed: ${failedCode(error)}`);
-         // A cell that keeps failing (revoked account...) must not wait forever either.
+         // The check stamp moves the cell to the back of the queue, so failing cells never starve the rest.
+         try {
+            const { error: stampError } = await admin
+               .from('market_cell')
+               .update({ listing_checked_at: new Date(now()).toISOString() })
+               .eq('id', cell.id)
+               .eq('tenant_id', cell.tenant_id);
+            if (stampError) throw stampError;
+         } catch (inner) {
+            console.error(`amazon-poll stamp failed: ${failedCode(inner)}`);
+         }
+         // A cell that keeps failing for good (revoked account...) must not wait forever either.
+         if (transient(error)) continue;
          try {
             const latest = (await submissionsOf(admin, cell.tenant_id, cell.id)).find(
                (s) => s.kind !== 'delete'
