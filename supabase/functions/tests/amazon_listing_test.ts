@@ -5,6 +5,8 @@ import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
 import type { AmazonSchema, GetDefinitionResponse } from '../_shared/listingCompleteness.ts';
 import { toDefinitionRow } from '../_shared/listingCompleteness.ts';
+import { withAuthorization } from '../_shared/auth.ts';
+import { refreshListingStatus } from '../_shared/listingStatus.ts';
 import { handler, type HandlerDeps } from '../amazon-listing/index.ts';
 import {
    buildListingBody,
@@ -670,7 +672,6 @@ const deps = (
    admin: () => fakeDb(state, 'admin'),
    userDb: () => fakeDb(state, 'user'),
    authorize: (_req, _required, run) => run({ tenantId: TENANT, userId: 'user-1' }),
-   serviceKey: 'service-key',
    publicUrl: PUBLIC_BASE,
    ...overrides
 });
@@ -1110,33 +1111,30 @@ Deno.test('check treats a cell without a connected account as draft', async () =
    assertEquals(calls, []);
 });
 
-Deno.test('status applies the sandbox item to the latest submission (service call)', async () => {
-   clearTokenCache();
-   const state = story();
-   cellRow(state, '00000000-0000-4000-8000-00000000ce01').listing_state = 'submitted';
+const CELL = '00000000-0000-4000-8000-00000000ce01';
+
+const submitted = (state: State, status = 'accepted', id = 's-1') => {
+   cellRow(state, CELL).listing_state = 'submitted';
    state.tables.listing_submission.push({
-      id: 's-1',
+      id,
       tenant_id: TENANT,
-      cell_id: '00000000-0000-4000-8000-00000000ce01',
+      cell_id: CELL,
       kind: 'create',
       sku: 'THO-MOP40-2P',
       marketplace_id: DE,
-      status: 'accepted',
+      status,
+      issues: [],
       created_at: '2026-11-06T09:00:00Z'
    });
+   return state;
+};
+
+Deno.test('status applies the sandbox item to the latest submission (user route)', async () => {
+   clearTokenCache();
+   const state = submitted(story());
    const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
-   let authorized = false;
-   const res = await handler(
-      post(
-         { action: 'status', cell_id: '00000000-0000-4000-8000-00000000ce01' },
-         'Bearer service-key'
-      ),
-      deps(state, amazon, {
-         authorize: () => ((authorized = true), Promise.resolve(new Response()))
-      })
-   );
+   const res = await handler(post({ action: 'status', cell_id: CELL }), deps(state, amazon));
    assertEquals(res.status, 200);
-   assertEquals(authorized, false);
    const body = await res.json();
    assertEquals(body.cell.listing_state, 'issues');
    assertEquals(body.submission.status, 'done');
@@ -1146,6 +1144,98 @@ Deno.test('status applies the sandbox item to the latest submission (service cal
    const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
    assertEquals([apply.args.p_status, apply.args.p_listing_state], ['done', 'issues']);
 });
+
+Deno.test('a service-key status call has no separate path: it goes through authorize', async () => {
+   const state = submitted(story());
+   const { deps: amazon } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
+   let authorized = 0;
+   const res = await handler(
+      post({ action: 'status', cell_id: CELL }, 'Bearer service-key'),
+      deps(state, amazon, {
+         authorize: () => {
+            authorized += 1;
+            return Promise.reject(new HttpError(401, 'unauthorized'));
+         }
+      })
+   );
+   assertEquals([authorized, res.status], [1, 401]);
+   assertEquals(state.rpcs, []);
+});
+
+// --- refreshListingStatus (_shared/listingStatus.ts, imported by amazon-poll) --------------------
+
+const statusDeps = (state: State, amazon: Partial<Deps>) => ({
+   admin: fakeDb(state, 'admin'),
+   env: ENV,
+   amazon
+});
+
+Deno.test('refreshListingStatus by submission applies a live summary with its ASIN', async () => {
+   clearTokenCache();
+   const state = submitted(story());
+   const { deps: amazon } = fakeAmazon(() =>
+      Response.json({
+         summaries: [{ marketplaceId: DE, asin: 'B071VG5N9D', status: ['BUYABLE'] }],
+         issues: []
+      })
+   );
+   const result = await refreshListingStatus(statusDeps(state, amazon), {
+      tenantId: TENANT,
+      submissionId: 's-1'
+   });
+   assertEquals(result.cell.listing_state, 'live');
+   assertEquals(result.submission.status, 'done');
+   const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
+   assertEquals(apply.args.p_asin, 'B071VG5N9D');
+   assertEquals(apply.client, 'admin');
+});
+
+Deno.test('refreshListingStatus keeps an unknown SKU processing', async () => {
+   clearTokenCache();
+   const state = submitted(story());
+   const { deps: amazon } = fakeAmazon(() =>
+      Response.json({ errors: [{ code: 'NOT_FOUND', message: 'not found' }] }, { status: 404 })
+   );
+   const result = await refreshListingStatus(statusDeps(state, amazon), {
+      tenantId: TENANT,
+      cellId: CELL
+   });
+   assertEquals(result.submission.status, 'processing');
+   assertEquals(result.cell.listing_state, 'submitted');
+});
+
+Deno.test(
+   'refreshListingStatus leaves an invalid submission alone and scopes by tenant',
+   async () => {
+      const state = submitted(story(), 'invalid');
+      const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
+      const result = await refreshListingStatus(statusDeps(state, amazon), {
+         tenantId: TENANT,
+         cellId: CELL
+      });
+      assertEquals(result.submission.status, 'invalid');
+      assertEquals([calls, state.rpcs], [[], []]);
+
+      const other = '00000000-0000-4000-8000-0000000000a2';
+      const byCell = await assertRejects(
+         () => refreshListingStatus(statusDeps(state, amazon), { tenantId: other, cellId: CELL }),
+         HttpError
+      );
+      assertEquals([byCell.status, byCell.message], [404, 'listing_cell_not_found']);
+      const bySubmission = await assertRejects(
+         () =>
+            refreshListingStatus(statusDeps(state, amazon), {
+               tenantId: other,
+               submissionId: 's-1'
+            }),
+         HttpError
+      );
+      assertEquals(
+         [bySubmission.status, bySubmission.message],
+         [404, 'listing_submission_not_found']
+      );
+   }
+);
 
 Deno.test('status as a user needs select on market_cell', async () => {
    const state = story();
@@ -1263,6 +1353,127 @@ Deno.test('publish_bulk reports incomplete and failed cells and goes on', async 
          }
       ]
    });
+});
+
+Deno.test('a child publish does not send a parent that Amazon is still processing', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   const PARENT = '00000000-0000-4000-8000-00000000ad02';
+   const PARENT_CELL = '00000000-0000-4000-8000-00000000ce02';
+   state.tables.product[0].parent_id = PARENT;
+   state.tables.product.push(
+      product({
+         id: PARENT,
+         sku: 'THO-MOP40',
+         gtin: null,
+         listing_attributes: {
+            ...structuredClone(storyAttributes),
+            variation_theme: [{ value: 'SIZE' }]
+         }
+      })
+   );
+   state.tables.market_cell.push(cell({ id: PARENT_CELL, product_id: PARENT, price: null }));
+   // The parent's create was polled to processing by the status action.
+   state.tables.listing_submission.push({
+      id: 's-parent',
+      tenant_id: TENANT,
+      cell_id: PARENT_CELL,
+      kind: 'create',
+      status: 'processing',
+      created_at: '2026-11-06T09:00:00Z'
+   });
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(post({ action: 'publish', cell_id: CELL }), deps(state, amazon));
+   assertEquals(res.status, 200);
+   assertEquals(
+      state.inserts.map((i) => i.row.cell_id),
+      [CELL]
+   );
+   assertEquals(calls.length, 1);
+});
+
+Deno.test('delete withdraws a cell whose product type and language were cleared', async () => {
+   clearTokenCache();
+   const state = story();
+   state.tables.product[0].amazon_product_type = null;
+   cellRow(state, CELL).listing_language = 'xx_XX';
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(post({ action: 'delete', cell_id: CELL }), deps(state, amazon));
+   assertEquals(res.status, 200);
+   assertEquals(calls[0].method, 'DELETE');
+   assertEquals(state.inserts[0].row.sku, 'THO-MOP40-2P');
+   assertEquals(state.inserts[0].row.marketplace_id, DE);
+});
+
+Deno.test("another tenant's cell is not found", async () => {
+   const state = withMediaObject(story());
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const other = deps(state, amazon, {
+      authorize: (_req, _r, run) =>
+         run({ tenantId: '00000000-0000-4000-8000-0000000000a2', userId: 'user-2' })
+   });
+   for (const action of ['check', 'validate', 'publish', 'delete', 'status']) {
+      const res = await handler(post({ action, cell_id: CELL }), other);
+      assertEquals(
+         [action, res.status, (await res.json()).message],
+         [action, 404, 'listing_cell_not_found']
+      );
+   }
+   assertEquals([state.inserts, state.rpcs, calls], [[], [], []]);
+});
+
+Deno.test('a refused authorize stops the action', async () => {
+   const state = withMediaObject(story());
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const refused = await handler(
+      post({ action: 'publish', cell_id: CELL }),
+      deps(state, amazon, {
+         authorize: () => Promise.reject(new HttpError(403, 'forbidden'))
+      })
+   );
+   assertEquals([refused.status, (await refused.json()).message], [403, 'forbidden']);
+
+   // The real withAuthorization: no JWT is 401 before any database access.
+   const noJwt = await handler(
+      new Request('http://localhost/amazon-listing', {
+         method: 'POST',
+         body: JSON.stringify({ action: 'publish', cell_id: CELL })
+      }),
+      deps(state, amazon, { authorize: withAuthorization })
+   );
+   assertEquals([noJwt.status, (await noJwt.json()).message], [401, 'unauthorized']);
+   assertEquals([state.inserts, state.rpcs, state.uploads, calls], [[], [], [], []]);
+});
+
+Deno.test('publish_bulk logs only the code and message of an unexpected error', async () => {
+   const state = withMediaObject(story());
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const logged: unknown[][] = [];
+   const original = console.error;
+   console.error = (...args: unknown[]) => void logged.push(args);
+   try {
+      const res = await handler(
+         post({
+            action: 'publish_bulk',
+            product_ids: ['00000000-0000-4000-8000-00000000ad01'],
+            country: 'DE'
+         }),
+         deps(state, amazon, {
+            userDb: () => {
+               throw Object.assign(new Error('boom'), { detail: 'raw object field' });
+            }
+         })
+      );
+      assertEquals((await res.json()).results[0], {
+         product_id: '00000000-0000-4000-8000-00000000ad01',
+         cell_id: CELL,
+         result: 'error',
+         code: 'internal_error'
+      });
+   } finally {
+      console.error = original;
+   }
+   assertEquals(logged, [['amazon-listing bulk publish failed: internal_error boom']]);
 });
 
 Deno.test('an unknown action is refused', async () => {

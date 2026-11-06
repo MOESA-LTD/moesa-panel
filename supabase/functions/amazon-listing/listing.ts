@@ -5,13 +5,24 @@ import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
 import { type Attributes, languageTag, serverProvided } from '../_shared/listingCompleteness.ts';
+import { type AmazonIssue, listingItemPath, toIssue } from '../_shared/listingStatus.ts';
 
 export { serverProvided };
+// The issue shape, the derived state and the GET live in _shared/listingStatus.ts (amazon-poll
+// imports them from there); they are re-exported for this function's callers and tests.
+export {
+   type AmazonIssue,
+   deriveListingState,
+   getListingsItem,
+   hasError,
+   type ItemSummary,
+   LISTINGS_ITEMS,
+   toIssue
+} from '../_shared/listingStatus.ts';
 
-type Tables = Database['public']['Tables'];
-export type MarketCellRow = Tables['market_cell']['Row'];
-export type ProductRow = Tables['product']['Row'];
-export type ListingSubmissionRow = Tables['listing_submission']['Row'];
+export type { ListingSubmissionRow, MarketCellRow } from '../_shared/listingStatus.ts';
+import type { MarketCellRow } from '../_shared/listingStatus.ts';
+export type ProductRow = Database['public']['Tables']['product']['Row'];
 
 export type CellContext = {
    cell: MarketCellRow;
@@ -29,7 +40,6 @@ export type CellContext = {
    sku: string;
 };
 
-export const LISTINGS_ITEMS = '/listings/2021-08-01/items';
 export const LISTINGS_RESTRICTIONS = '/listings/2021-08-01/restrictions';
 export const CATALOG_ITEMS = '/catalog/2022-04-01/items';
 export const LISTING_IMAGES_BUCKET = 'listing-images';
@@ -202,44 +212,6 @@ export function buildListingBody(
 
 // --- Amazon's answers ----------------------------------------------------------------------------
 
-export type AmazonIssue = {
-   code: string;
-   message: string;
-   severity: 'ERROR' | 'WARNING' | 'INFO';
-   attributeNames: string[];
-   categories?: string[];
-};
-
-type RawIssue = {
-   code?: unknown;
-   message?: unknown;
-   severity?: unknown;
-   attributeNames?: unknown;
-   categories?: unknown;
-   marketplaceIds?: unknown;
-};
-
-const strings = (value: unknown): string[] =>
-   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
-
-/** Amazon's issue in the stored shape; `attributeNames` defaults to [] (the sandbox's 18027). */
-export function toIssue(raw: unknown): AmazonIssue {
-   const issue = (isEntry(raw) ? raw : {}) as RawIssue;
-   const severity =
-      issue.severity === 'WARNING' || issue.severity === 'INFO' ? issue.severity : 'ERROR';
-   const out: AmazonIssue = {
-      code: String(issue.code ?? ''),
-      message: String(issue.message ?? ''),
-      severity,
-      attributeNames: strings(issue.attributeNames)
-   };
-   if (Array.isArray(issue.categories)) out.categories = strings(issue.categories);
-   return out;
-}
-
-export const hasError = (issues: readonly AmazonIssue[]) =>
-   issues.some((issue) => issue.severity === 'ERROR');
-
 /** putListingsItem / deleteListingsItem: Amazon answers ACCEPTED or INVALID. */
 export function parseSubmission(resp: {
    status: string;
@@ -253,44 +225,11 @@ export function parseSubmission(resp: {
    };
 }
 
-export type ItemSummary = { marketplaceId: string; asin?: string; status?: string[] };
-
-/**
- * The listing state from getListingsItem: issues of the marketplace (sandbox: all, its canned
- * answers are US-only) with an ERROR give `issues`; else a BUYABLE or DISCOVERABLE summary of the
- * marketplace (sandbox: the first) gives `live`; else the listing is still `submitted`.
- */
-export function deriveListingState(
-   item: { summaries?: ItemSummary[]; issues?: unknown[] },
-   marketplaceId: string,
-   sandbox: boolean
-): { state: 'live' | 'issues' | 'submitted'; asin: string | null; issues: AmazonIssue[] } {
-   const issues = (item.issues ?? [])
-      .filter((raw) => {
-         if (sandbox) return true;
-         const ids = (isEntry(raw) ? raw : {}).marketplaceIds;
-         return !Array.isArray(ids) || ids.includes(marketplaceId);
-      })
-      .map(toIssue);
-   const summaries = item.summaries ?? [];
-   const summary = sandbox
-      ? summaries[0]
-      : summaries.find((entry) => entry.marketplaceId === marketplaceId);
-   const asin = summary?.asin ?? null;
-
-   if (hasError(issues)) return { state: 'issues', asin, issues };
-   const status = summary?.status ?? [];
-   if (summary && (status.includes('BUYABLE') || status.includes('DISCOVERABLE')))
-      return { state: 'live', asin, issues };
-   return { state: 'submitted', asin, issues };
-}
-
 // --- Calls ---------------------------------------------------------------------------------------
 
 type SubmissionResponse = { status: string; submissionId: string; issues?: unknown[] };
 
-const itemPath = (sellerId: string, sku: string) =>
-   `${LISTINGS_ITEMS}/${encodeURIComponent(sellerId)}/${encodeURIComponent(sku)}`;
+const itemPath = listingItemPath;
 
 /** putListingsItem: a full replace of the listing (or, with `mode`, a VALIDATION_PREVIEW). */
 export function putListingsItem(
@@ -321,19 +260,6 @@ export function deleteListingsItem(
       method: 'DELETE',
       path: itemPath(sellerId, sku),
       query: { marketplaceIds: marketplaceId }
-   });
-}
-
-export function getListingsItem(
-   call: SpapiCall,
-   sellerId: string,
-   sku: string,
-   marketplaceId: string
-): Promise<{ summaries?: ItemSummary[]; issues?: unknown[] }> {
-   return call({
-      method: 'GET',
-      path: itemPath(sellerId, sku),
-      query: { marketplaceIds: marketplaceId, includedData: ['summaries', 'issues'] }
    });
 }
 
