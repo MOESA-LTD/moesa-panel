@@ -103,6 +103,15 @@ Rulings during the run:
 - M3: a create or update may start while a delete is still in flight (the 409 guard covers creates/updates in flight only).
 - A parent cell with no submission of its own fails `listing_submission_not_found` on every poll run (pre-existing).
 
+
+### Drawer inline editing (2026-11-07, owner chose option A)
+
+Missing required fields and fields named by Amazon issues are now edited inside the cell drawer with the tab's own field component; "Tüm alanları ürün sekmesinde aç" opens the tab in a new browser tab. Parked minors from its review:
+
+- The save merges per attribute, not per language entry: another session's change to a different language of the same attribute is overwritten (changes to other attributes are kept).
+- A stale refetch landing right after a save could briefly bring back the pre-save values (unlikely race in `useListingAttributes`).
+- Closing the cell dialog with both the cell form and the drawer fields unsaved asks twice; a combined prompt can come later.
+
 ## Deferred minors
 
 ### Fixed in the final fix wave (verify)
