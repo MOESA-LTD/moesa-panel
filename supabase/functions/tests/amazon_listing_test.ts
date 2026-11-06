@@ -1,0 +1,1272 @@
+import { assert, assertEquals, assertRejects, assertThrows } from 'jsr:@std/assert@1';
+import { type AmazonEnv, clearTokenCache, type Deps } from '../_shared/amazon.ts';
+import type { Database } from '../_shared/database.types.ts';
+import type { SupabaseClient } from '../_shared/deps.ts';
+import { HttpError } from '../_shared/http.ts';
+import type { AmazonSchema, GetDefinitionResponse } from '../_shared/listingCompleteness.ts';
+import { toDefinitionRow } from '../_shared/listingCompleteness.ts';
+import { handler, type HandlerDeps } from '../amazon-listing/index.ts';
+import {
+   buildListingBody,
+   type CellContext,
+   copyListingImages,
+   deriveListingState,
+   type MarketCellRow,
+   mediaRefs,
+   parseSubmission,
+   type ProductRow,
+   publicImageUrl,
+   requireLanguageTag,
+   skuFor
+} from '../amazon-listing/listing.ts';
+
+const fixture: GetDefinitionResponse & { schema: AmazonSchema } = JSON.parse(
+   await Deno.readTextFile(
+      new URL('../../seed_files/amazon/LUGGAGE.A1PA6795UKMFR9.en_GB.json', import.meta.url)
+   )
+);
+const storyAttributes = JSON.parse(
+   await Deno.readTextFile(
+      new URL('../../seed_files/amazon/LUGGAGE.attributes.json', import.meta.url)
+   )
+);
+
+const DE = 'A1PA6795UKMFR9';
+const FR = 'A13V1IB3VIYZZH';
+const TENANT = '00000000-0000-4000-8000-0000000000a1';
+const CUSTOMER = '00000000-0000-4000-8000-0000000000c1';
+const MEDIA = '5eed0009-0000-4000-8000-000000000001';
+const MEDIA_2 = '5eed0009-0000-4000-8000-000000000002';
+const PUBLIC_BASE = 'http://127.0.0.1:54321';
+
+// --- Rows ----------------------------------------------------------------------------------------
+
+const product = (over: Partial<ProductRow> = {}): ProductRow =>
+   ({
+      id: '00000000-0000-4000-8000-00000000ad01',
+      tenant_id: TENANT,
+      customer_id: CUSTOMER,
+      sku: 'THO-MOP40-2P',
+      gtin: '4260696025800',
+      parent_id: null,
+      amazon_product_type: 'LUGGAGE',
+      listing_attributes: structuredClone(storyAttributes),
+      ...over
+   }) as ProductRow;
+
+const cell = (over: Partial<MarketCellRow> = {}): MarketCellRow =>
+   ({
+      id: '00000000-0000-4000-8000-00000000ce01',
+      tenant_id: TENANT,
+      customer_id: CUSTOMER,
+      product_id: '00000000-0000-4000-8000-00000000ad01',
+      platform_id: 'amazon',
+      country: 'DE',
+      status: 'planned',
+      price: 24.9,
+      currency: 'EUR',
+      platform_sku: null,
+      platform_product_id: null,
+      listing_state: null,
+      listing_language: null,
+      listing_match: null,
+      fulfillment_channel: 'fbm',
+      open_issue: null,
+      ...over
+   }) as MarketCellRow;
+
+const context = (over: Partial<CellContext> = {}): CellContext => {
+   const c = over.cell ?? cell();
+   const p = over.product ?? product();
+   return {
+      cell: c,
+      product: p,
+      parent: null,
+      parentCell: null,
+      children: [],
+      marketplaceId: DE,
+      languageTag: 'de_DE',
+      currency: c.currency,
+      sku: skuFor(c, p),
+      ...over
+   };
+};
+
+const urls = { [MEDIA]: `${PUBLIC_BASE}/storage/v1/object/public/listing-images/x/mop.png` };
+
+// --- buildListingBody ----------------------------------------------------------------------------
+
+Deno.test(
+   'buildListingBody keeps the cell language and marketplace and stamps marketplace_id',
+   () => {
+      const attributes = {
+         ...structuredClone(storyAttributes),
+         item_name: [
+            { value: 'Wischmopp', language_tag: 'de_DE' },
+            { value: 'Serpillière', language_tag: 'fr_FR' }
+         ],
+         color: [
+            { value: 'Weiß', marketplace_id: DE },
+            { value: 'Blanc', marketplace_id: FR }
+         ]
+      };
+      const body = buildListingBody(context(), attributes, urls, null);
+      assertEquals(body.productType, 'LUGGAGE');
+      assertEquals(body.requirements, 'LISTING');
+      assertEquals(body.attributes.item_name, [
+         { value: 'Wischmopp', language_tag: 'de_DE', marketplace_id: DE }
+      ]);
+      assertEquals(body.attributes.color, [{ value: 'Weiß', marketplace_id: DE }]);
+      assertEquals(body.attributes.condition_type, [{ value: 'new_new', marketplace_id: DE }]);
+   }
+);
+
+Deno.test('buildListingBody adds the GTIN as ean and the offer from the cell', () => {
+   const body = buildListingBody(context(), structuredClone(storyAttributes), urls, null);
+   assertEquals(body.attributes.externally_assigned_product_identifier, [
+      { type: 'ean', value: '4260696025800', marketplace_id: DE }
+   ]);
+   assertEquals(body.attributes.purchasable_offer, [
+      { currency: 'EUR', our_price: [{ schedule: [{ value_with_tax: 24.9 }] }], marketplace_id: DE }
+   ]);
+   assertEquals(body.attributes.fulfillment_availability, [
+      { fulfillment_channel_code: 'DEFAULT', quantity: 0, marketplace_id: DE }
+   ]);
+
+   const fba = buildListingBody(
+      context({ cell: cell({ fulfillment_channel: 'fba' }) }),
+      structuredClone(storyAttributes),
+      urls,
+      null
+   );
+   assertEquals(fba.attributes.fulfillment_availability[0], {
+      fulfillment_channel_code: 'AMAZON_EU',
+      quantity: 0,
+      marketplace_id: DE
+   });
+
+   // No price (or no currency): no offer, as serverProvided says (C3).
+   const noPrice = buildListingBody(
+      context({ cell: cell({ price: null }) }),
+      structuredClone(storyAttributes),
+      urls,
+      null
+   );
+   assertEquals(noPrice.attributes.purchasable_offer, undefined);
+   assertEquals(noPrice.attributes.fulfillment_availability, undefined);
+});
+
+Deno.test('buildListingBody replaces media references with public URLs', () => {
+   const body = buildListingBody(context(), structuredClone(storyAttributes), urls, null);
+   assertEquals(body.attributes.main_product_image_locator, [
+      { media_location: urls[MEDIA], marketplace_id: DE }
+   ]);
+});
+
+Deno.test('buildListingBody refuses a media reference without a copied image', () => {
+   const error = assertThrows(
+      () => buildListingBody(context(), structuredClone(storyAttributes), {}, null),
+      HttpError
+   );
+   assertEquals(error.status, 422);
+   assertEquals(error.message, 'listing_image_missing');
+   assertEquals(error.details, ['main_product_image_locator']);
+});
+
+Deno.test('buildListingBody makes a parent without GTIN and a child that points at it', () => {
+   const parent = product({
+      id: '00000000-0000-4000-8000-00000000ad02',
+      sku: 'THO-MOP-PARENT',
+      gtin: '4260696025999',
+      listing_attributes: {
+         ...structuredClone(storyAttributes),
+         variation_theme: [{ value: 'SIZE' }],
+         merchant_suggested_asin: [{ value: 'B000000000' }]
+      }
+   });
+   const child = product({ parent_id: '00000000-0000-4000-8000-00000000ad02' });
+   const parentCell = cell({
+      id: '00000000-0000-4000-8000-00000000ce02',
+      product_id: '00000000-0000-4000-8000-00000000ad02',
+      price: 19.9,
+      platform_sku: 'PARENT-DE'
+   });
+
+   const parentBody = buildListingBody(
+      context({ cell: parentCell, product: parent, children: [child], sku: 'PARENT-DE' }),
+      parent.listing_attributes as Record<string, unknown[]>,
+      urls,
+      null
+   );
+   assertEquals(parentBody.attributes.externally_assigned_product_identifier, undefined);
+   assertEquals(parentBody.attributes.merchant_suggested_asin, undefined);
+   assertEquals(parentBody.attributes.parentage_level, [{ value: 'parent', marketplace_id: DE }]);
+   assertEquals(parentBody.attributes.variation_theme, [{ value: 'SIZE', marketplace_id: DE }]);
+   assertEquals(parentBody.attributes.purchasable_offer, undefined);
+   assertEquals(parentBody.attributes.fulfillment_availability, undefined);
+
+   const childBody = buildListingBody(
+      context({ product: child, parent, parentCell }),
+      structuredClone(storyAttributes),
+      urls,
+      null
+   );
+   assertEquals(childBody.attributes.parentage_level, [{ value: 'child', marketplace_id: DE }]);
+   assertEquals(childBody.attributes.child_parent_sku_relationship, [
+      { child_relationship_type: 'variation', parent_sku: 'PARENT-DE', marketplace_id: DE }
+   ]);
+   assertEquals(childBody.attributes.variation_theme, [{ value: 'SIZE', marketplace_id: DE }]);
+   assertEquals(childBody.attributes.externally_assigned_product_identifier, [
+      { type: 'ean', value: '4260696025800', marketplace_id: DE }
+   ]);
+});
+
+Deno.test('buildListingBody sends an offer only for a matched ASIN', () => {
+   const body = buildListingBody(context(), structuredClone(storyAttributes), urls, 'B07N4M94X4');
+   assertEquals(body.requirements, 'LISTING_OFFER_ONLY');
+   assertEquals(Object.keys(body.attributes).sort(), [
+      'condition_type',
+      'fulfillment_availability',
+      'merchant_suggested_asin',
+      'purchasable_offer'
+   ]);
+   assertEquals(body.attributes.merchant_suggested_asin, [
+      { value: 'B07N4M94X4', marketplace_id: DE }
+   ]);
+   // An offer-only body sends no image, so a missing copy does not block it.
+   buildListingBody(context(), structuredClone(storyAttributes), {}, 'B07N4M94X4');
+});
+
+// --- Language, SKU, URLs -------------------------------------------------------------------------
+
+Deno.test('the listing language is the cell language, else the default; none is refused', () => {
+   assertEquals(requireLanguageTag('DE', null), 'de_DE');
+   assertEquals(requireLanguageTag('BE', null), 'fr_BE');
+   assertEquals(requireLanguageTag('BE', 'nl_BE'), 'nl_BE');
+   const error = assertThrows(() => requireLanguageTag('XX', null), HttpError);
+   assertEquals([error.status, error.message], [422, 'listing_language_missing']);
+});
+
+Deno.test('skuFor prefers the cell SKU', () => {
+   assertEquals(skuFor(cell({ platform_sku: 'THO-MOP40-2P-DE' }), product()), 'THO-MOP40-2P-DE');
+   assertEquals(skuFor(cell({ platform_sku: '  ' }), product()), 'THO-MOP40-2P');
+   assertEquals(skuFor(null, product()), 'THO-MOP40-2P');
+});
+
+Deno.test('refuses non-public image URLs in production', () => {
+   const path = `${TENANT}/${MEDIA}/mop primary.png`;
+   for (const base of ['http://127.0.0.1:54321', 'https://localhost:54321', 'https://kong:8000']) {
+      const error = assertThrows(() => publicImageUrl(base, path, 'production'), HttpError);
+      assertEquals([error.status, error.message], [422, 'listing_image_url_not_public']);
+   }
+   assertEquals(
+      publicImageUrl('http://127.0.0.1:54321', path, 'sandbox'),
+      `http://127.0.0.1:54321/storage/v1/object/public/listing-images/${TENANT}/${MEDIA}/mop%20primary.png`
+   );
+   assertEquals(
+      publicImageUrl('https://abc.supabase.co/', path, 'production'),
+      `https://abc.supabase.co/storage/v1/object/public/listing-images/${TENANT}/${MEDIA}/mop%20primary.png`
+   );
+});
+
+Deno.test('mediaRefs lists each media id with the attributes that use it', () => {
+   const refs = mediaRefs({
+      main_product_image_locator: [{ media_location: `media:${MEDIA}` }],
+      other_product_image_locator_1: [{ media_location: `media:${MEDIA}` }],
+      swatch_product_image_locator: [{ media_location: 'https://example.com/a.png' }],
+      item_name: [{ value: 'media:not-a-reference' }]
+   });
+   assertEquals(
+      [...refs.entries()],
+      [[MEDIA, ['main_product_image_locator', 'other_product_image_locator_1']]]
+   );
+});
+
+// --- Amazon answers ------------------------------------------------------------------------------
+
+/** The static sandbox's getListingsItem answer (summaries and issues as captured, trimmed). */
+const SANDBOX_ITEM = {
+   sku: 'GM-ZDPI-9B4E',
+   summaries: [
+      { marketplaceId: 'ATVPDKIKX0DER', asin: 'B071VG5N9D', status: ['BUYABLE'] },
+      { marketplaceId: 'A2EUQ1WTGCTBG2', asin: 'B071VG5N9D', status: [] }
+   ],
+   issues: [
+      {
+         code: '90220',
+         message: "'size' is required but not supplied.",
+         severity: 'ERROR',
+         attributeNames: ['size'],
+         categories: ['MISSING_ATTRIBUTE', 'LISTING'],
+         marketplaceIds: ['ATVPDKIKX0DER']
+      },
+      {
+         code: '18027',
+         message:
+            'We believe the main image has text, logo, graphic, or watermark that is not permitted for this product type.',
+         severity: 'ERROR',
+         categories: ['INVALID_IMAGE', 'LISTING'],
+         marketplaceIds: ['ATVPDKIKX0DER', 'A2EUQ1WTGCTBG2']
+      }
+   ]
+};
+
+const SANDBOX_ACCEPTED = {
+   sku: 'GM-ZDPI-9B4E',
+   status: 'ACCEPTED',
+   submissionId: 'f1dc2914-75dd-11ea-bc55-0242ac130003',
+   issues: []
+};
+
+const SANDBOX_INVALID = {
+   sku: 'VALIDATION_INVALID',
+   status: 'INVALID',
+   submissionId: 'a1c562c2-1695-11ee-be56-0242ac120002',
+   issues: [
+      {
+         code: '90220',
+         message: "'condition_type' is required but not supplied.",
+         severity: 'ERROR',
+         attributeNames: ['condition_type'],
+         categories: ['MISSING_ATTRIBUTE', 'LISTING']
+      }
+   ]
+};
+
+Deno.test('parseSubmission reads the canned ACCEPTED and INVALID answers', () => {
+   assertEquals(parseSubmission(SANDBOX_ACCEPTED), {
+      status: 'accepted',
+      submissionId: 'f1dc2914-75dd-11ea-bc55-0242ac130003',
+      issues: []
+   });
+   const invalid = parseSubmission(SANDBOX_INVALID);
+   assertEquals(invalid.status, 'invalid');
+   assertEquals(invalid.issues[0].attributeNames, ['condition_type']);
+   assertEquals(invalid.issues[0].severity, 'ERROR');
+});
+
+Deno.test('deriveListingState keeps issues without attributeNames', () => {
+   const derived = deriveListingState(SANDBOX_ITEM, DE, true);
+   assertEquals(derived.state, 'issues');
+   assertEquals(derived.issues.length, 2);
+   const image = derived.issues.find((issue) => issue.code === '18027');
+   assert(image);
+   assertEquals(image.attributeNames, []);
+   assertEquals(image.categories, ['INVALID_IMAGE', 'LISTING']);
+   // In production the US-only issues do not belong to DE.
+   assertEquals(deriveListingState(SANDBOX_ITEM, DE, false).issues, []);
+});
+
+Deno.test('deriveListingState is live for BUYABLE without errors', () => {
+   assertEquals(
+      deriveListingState(
+         {
+            summaries: [
+               { marketplaceId: 'A1PA6795UKMFR9', asin: 'B071VG5N9D', status: ['BUYABLE'] }
+            ]
+         },
+         DE,
+         false
+      ),
+      { state: 'live', asin: 'B071VG5N9D', issues: [] }
+   );
+   const warning = deriveListingState(
+      {
+         summaries: [{ marketplaceId: DE, asin: 'B071VG5N9D', status: ['DISCOVERABLE'] }],
+         issues: [{ code: '1', message: 'm', severity: 'WARNING' }]
+      },
+      DE,
+      false
+   );
+   assertEquals(warning.state, 'live');
+   assertEquals(warning.issues.length, 1);
+});
+
+Deno.test(
+   'deriveListingState is submitted when the marketplace has no summary yet (production)',
+   () => {
+      assertEquals(deriveListingState({ summaries: SANDBOX_ITEM.summaries }, DE, false), {
+         state: 'submitted',
+         asin: null,
+         issues: []
+      });
+      assertEquals(deriveListingState({}, DE, false).state, 'submitted');
+      // The sandbox reads its first summary, whatever marketplace it names.
+      assertEquals(
+         deriveListingState({ summaries: SANDBOX_ITEM.summaries }, DE, true).state,
+         'live'
+      );
+   }
+);
+
+// --- Fakes ---------------------------------------------------------------------------------------
+
+type Row = Record<string, unknown>;
+type State = {
+   tables: Record<string, Row[]>;
+   rpcs: Array<{ name: string; args: Record<string, unknown>; client: string }>;
+   inserts: Array<{ table: string; row: Row; client: string }>;
+   updates: Array<{ table: string; patch: Row; client: string }>;
+   storage: Record<string, Map<string, Blob>>;
+   uploads: Array<{ bucket: string; path: string; contentType?: string }>;
+   downloads: Array<{ bucket: string; path: string }>;
+};
+
+let ids = 0;
+
+const newState = (tables: Record<string, Row[]>): State => ({
+   tables: { listing_submission: [], ...tables },
+   rpcs: [],
+   inserts: [],
+   updates: [],
+   storage: { media: new Map(), 'listing-images': new Map() },
+   uploads: [],
+   downloads: []
+});
+
+const cellRow = (state: State, id: string) =>
+   state.tables.market_cell.find((row) => row.id === id) as Row;
+
+/** The 046 RPCs, reduced to what the function relies on. */
+const rpc = (
+   state: State,
+   name: string,
+   args: Record<string, unknown>
+): { data: unknown; error: unknown } => {
+   if (name === 'listing_apply_submission') {
+      const submission = state.tables.listing_submission.find(
+         (row) => row.id === args.p_submission_id
+      )!;
+      submission.status = args.p_status;
+      submission.issues = args.p_issues;
+      submission.amazon_submission_id =
+         args.p_amazon_submission_id ?? submission.amazon_submission_id;
+      const target = cellRow(state, submission.cell_id as string);
+      target.listing_state = args.p_listing_state;
+      // Issues win (046 fix round 1): the status walks only without issues.
+      if (
+         (args.p_status === 'accepted' || args.p_listing_state === 'live') &&
+         args.p_listing_state !== 'issues'
+      )
+         target.status = 'uploaded';
+      return { data: { ...target }, error: null };
+   }
+   if (name === 'listing_set_state') {
+      const target = cellRow(state, args.p_cell_id as string);
+      target.listing_state = args.p_listing_state;
+      if (args.p_listing_match) target.listing_match = args.p_listing_match;
+      return { data: null, error: null };
+   }
+   if (name === 'listing_parent_cell') {
+      const child = cellRow(state, args.p_cell_id as string);
+      const childProduct = state.tables.product.find((row) => row.id === child.product_id)!;
+      if (!childProduct.parent_id) return { data: null, error: null };
+      let parentCell = state.tables.market_cell.find(
+         (row) => row.product_id === childProduct.parent_id && row.country === child.country
+      );
+      if (!parentCell) {
+         parentCell = {
+            ...cell({
+               id: '00000000-0000-4000-8000-00000000ce02',
+               product_id: childProduct.parent_id as string,
+               price: null,
+               currency: null
+            }),
+            status: 'candidate'
+         };
+         state.tables.market_cell.push(parentCell);
+      }
+      return { data: parentCell.id, error: null };
+   }
+   if (name === 'amazon_account_token') return { data: 'Atzr|prod', error: null };
+   return { data: null, error: null };
+};
+
+type Filter = (row: Row) => boolean;
+
+/** A chainable PostgREST fake over `state.tables`: eq / in / order / limit / single / insert / update. */
+const fakeDb = (state: State, client: string) => {
+   const from = (table: string) => {
+      const filters: Filter[] = [];
+      let mode: 'select' | 'insert' | 'update' = 'select';
+      let payload: Row | Row[] | undefined;
+      let order: { column: string; ascending: boolean } | undefined;
+      let limit: number | undefined;
+      let single: 'single' | 'maybe' | undefined;
+
+      const run = () => {
+         const rows = (state.tables[table] ??= []);
+         if (mode === 'insert') {
+            const inserted = (Array.isArray(payload) ? payload : [payload!]).map((row) => ({
+               id: `s-${++ids}`,
+               status: 'processing',
+               issues: [],
+               amazon_submission_id: null,
+               created_at: new Date(Date.parse('2026-11-06T10:00:00Z') + ids * 1000).toISOString(),
+               ...row
+            }));
+            for (const row of inserted) state.inserts.push({ table, row, client });
+            rows.push(...inserted);
+            return { data: single ? inserted[0] : inserted, error: null };
+         }
+         let found = rows.filter((row) => filters.every((f) => f(row)));
+         if (mode === 'update') {
+            for (const row of found) Object.assign(row, payload);
+            state.updates.push({ table, patch: payload as Row, client });
+         }
+         if (order) {
+            const { column, ascending } = order;
+            found = [...found].sort(
+               (a, b) => String(a[column]).localeCompare(String(b[column])) * (ascending ? 1 : -1)
+            );
+         }
+         if (limit !== undefined) found = found.slice(0, limit);
+         if (single === 'maybe') return { data: found[0] ?? null, error: null };
+         if (single === 'single')
+            return found[0]
+               ? { data: found[0], error: null }
+               : { data: null, error: { code: 'PGRST116' } };
+         return { data: found, error: null };
+      };
+
+      const builder: Record<string, unknown> = {
+         select: () => builder,
+         insert: (row: Row | Row[]) => ((mode = 'insert'), (payload = row), builder),
+         update: (patch: Row) => ((mode = 'update'), (payload = patch), builder),
+         eq: (column: string, value: unknown) => (
+            filters.push((row) => row[column] === value), builder
+         ),
+         in: (column: string, values: unknown[]) => (
+            filters.push((row) => values.includes(row[column])), builder
+         ),
+         order: (column: string, opts?: { ascending?: boolean }) => (
+            (order = { column, ascending: opts?.ascending ?? true }), builder
+         ),
+         limit: (n: number) => ((limit = n), builder),
+         single: () => ((single = 'single'), builder),
+         maybeSingle: () => ((single = 'maybe'), builder),
+         then: (resolve: (r: unknown) => unknown, reject: (e: unknown) => unknown) =>
+            Promise.resolve().then(run).then(resolve, reject)
+      };
+      return builder;
+   };
+
+   const storage = {
+      from: (bucket: string) => ({
+         list: (dir: string, opts?: { search?: string }) => {
+            const names = [...(state.storage[bucket]?.keys() ?? [])]
+               .filter((path) => path.startsWith(`${dir}/`))
+               .map((path) => path.slice(dir.length + 1))
+               .filter((name) => !opts?.search || name === opts.search);
+            return Promise.resolve({ data: names.map((name) => ({ name })), error: null });
+         },
+         download: (path: string) => {
+            state.downloads.push({ bucket, path });
+            const blob = state.storage[bucket]?.get(path);
+            return Promise.resolve(
+               blob
+                  ? { data: blob, error: null }
+                  : { data: null, error: new Error('Object not found') }
+            );
+         },
+         upload: (path: string, blob: Blob, opts?: { contentType?: string }) => {
+            state.uploads.push({ bucket, path, contentType: opts?.contentType });
+            state.storage[bucket].set(path, blob);
+            return Promise.resolve({ data: { path }, error: null });
+         }
+      })
+   };
+
+   return {
+      from,
+      storage,
+      rpc: (name: string, args: Record<string, unknown>) => {
+         state.rpcs.push({ name, args, client });
+         return Promise.resolve(rpc(state, name, args));
+      }
+   } as unknown as SupabaseClient<Database>;
+};
+
+const ENV: AmazonEnv = {
+   env: 'sandbox',
+   region: 'eu',
+   clientId: 'amzn1.application-oa2-client.test',
+   clientSecret: 'shh',
+   selfRefreshToken: 'Atzr|self',
+   sellerId: 'A2SELLER'
+};
+
+type Call = { method: string; url: string; body?: unknown };
+
+/** LWA answers a token; SP-API calls are answered by `answer` (method + URL). */
+const fakeAmazon = (answer: (call: Call) => Response) => {
+   const calls: Call[] = [];
+   const deps: Partial<Deps> = {
+      fetch: (input, init) => {
+         const url = String(input);
+         if (url === 'https://api.amazon.com/auth/o2/token')
+            return Promise.resolve(Response.json({ access_token: 'Atza|t', expires_in: 3600 }));
+         const call = {
+            method: init?.method ?? 'GET',
+            url,
+            body: init?.body ? JSON.parse(String(init.body)) : undefined
+         };
+         calls.push(call);
+         return Promise.resolve(answer(call));
+      },
+      now: () => Date.parse('2026-11-06T10:00:00Z'),
+      sleep: () => Promise.resolve()
+   };
+   return { deps, calls };
+};
+
+const definitionRow = () => ({
+   ...toDefinitionRow(fixture, undefined, 'en_GB'),
+   fetched_at: '2026-11-06T00:00:00Z'
+});
+
+const story = (): State =>
+   newState({
+      market_cell: [cell()],
+      product: [product()],
+      // The fixture under its own key (en_GB) and under DE's production key (de_DE).
+      amazon_product_type_definition: [definitionRow(), { ...definitionRow(), locale: 'de_DE' }],
+      customer_platform_account: [
+         {
+            id: 'acc-1',
+            tenant_id: TENANT,
+            customer_id: CUSTOMER,
+            platform_id: 'amazon',
+            api_connection: 'connected',
+            seller_id: 'A2SELLER'
+         }
+      ],
+      media: [
+         {
+            id: MEDIA,
+            tenant_id: TENANT,
+            storage_path: `${TENANT}/${MEDIA}/mop-primary.png`,
+            file_name: 'mop-primary.png',
+            mime_type: 'image/png'
+         }
+      ]
+   });
+
+const withMediaObject = (state: State) => {
+   state.storage.media.set(
+      `${TENANT}/${MEDIA}/mop-primary.png`,
+      new Blob(['png'], { type: 'image/png' })
+   );
+   return state;
+};
+
+const deps = (
+   state: State,
+   amazon: Partial<Deps>,
+   overrides: Partial<HandlerDeps> = {}
+): Partial<HandlerDeps> => ({
+   amazon,
+   env: () => ENV,
+   admin: () => fakeDb(state, 'admin'),
+   userDb: () => fakeDb(state, 'user'),
+   authorize: (_req, _required, run) => run({ tenantId: TENANT, userId: 'user-1' }),
+   serviceKey: 'service-key',
+   publicUrl: PUBLIC_BASE,
+   ...overrides
+});
+
+const post = (body: unknown, authorization = 'Bearer user-jwt') =>
+   new Request('http://localhost/amazon-listing', {
+      method: 'POST',
+      headers: { Authorization: authorization, 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+   });
+
+const PUT_ACCEPTED = () => Response.json(SANDBOX_ACCEPTED);
+
+// --- Images --------------------------------------------------------------------------------------
+
+Deno.test('copyListingImages copies a new image once and gives its public URL', async () => {
+   const state = withMediaObject(story());
+   const db = fakeDb(state, 'admin');
+   const refs = new Map([[MEDIA, ['main_product_image_locator']]]);
+   const first = await copyListingImages(db, TENANT, refs, PUBLIC_BASE, 'sandbox');
+   assertEquals(first, {
+      [MEDIA]: `${PUBLIC_BASE}/storage/v1/object/public/listing-images/${TENANT}/${MEDIA}/mop-primary.png`
+   });
+   assertEquals(state.downloads, [{ bucket: 'media', path: `${TENANT}/${MEDIA}/mop-primary.png` }]);
+   assertEquals(state.uploads, [
+      {
+         bucket: 'listing-images',
+         path: `${TENANT}/${MEDIA}/mop-primary.png`,
+         contentType: 'image/png'
+      }
+   ]);
+
+   // The object already exists: no second download or upload.
+   await copyListingImages(db, TENANT, refs, PUBLIC_BASE, 'sandbox');
+   assertEquals(state.downloads.length, 1);
+   assertEquals(state.uploads.length, 1);
+});
+
+Deno.test(
+   'copyListingImages refuses missing media and non-images with the attribute names',
+   async () => {
+      const state = withMediaObject(story());
+      state.tables.media.push({
+         id: MEDIA_2,
+         tenant_id: TENANT,
+         storage_path: `${TENANT}/${MEDIA_2}/spec.pdf`,
+         file_name: 'spec.pdf',
+         mime_type: 'application/pdf'
+      });
+      const refs = new Map([
+         [MEDIA, ['main_product_image_locator']],
+         [MEDIA_2, ['other_product_image_locator_1']],
+         ['5eed0009-0000-4000-8000-00000000dead', ['swatch_product_image_locator']]
+      ]);
+      const error = await assertRejects(
+         () => copyListingImages(fakeDb(state, 'admin'), TENANT, refs, PUBLIC_BASE, 'sandbox'),
+         HttpError
+      );
+      assertEquals([error.status, error.message], [422, 'listing_image_missing']);
+      assertEquals(error.details, [
+         'other_product_image_locator_1',
+         'swatch_product_image_locator'
+      ]);
+      assertEquals(state.uploads, []);
+
+      // A media row whose object is gone from storage is missing too.
+      const gone = story();
+      const goneError = await assertRejects(
+         () =>
+            copyListingImages(
+               fakeDb(gone, 'admin'),
+               TENANT,
+               new Map([[MEDIA, ['main_product_image_locator']]]),
+               PUBLIC_BASE,
+               'sandbox'
+            ),
+         HttpError
+      );
+      assertEquals(goneError.details, ['main_product_image_locator']);
+   }
+);
+
+// --- Handler -------------------------------------------------------------------------------------
+
+Deno.test(
+   'publish inserts the submission as the caller, puts the body and applies accepted',
+   async () => {
+      clearTokenCache();
+      const state = withMediaObject(story());
+      const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+      let required: unknown;
+      const res = await handler(
+         post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+         deps(state, amazon, {
+            authorize: (_req, r, run) => (
+               (required = r), run({ tenantId: TENANT, userId: 'user-1' })
+            )
+         })
+      );
+      assertEquals(res.status, 200);
+      assertEquals(required, [['insert', 'listing_submission']]);
+      const body = await res.json();
+      assertEquals(body.cell.listing_state, 'submitted');
+      assertEquals(body.submission.status, 'accepted');
+      assertEquals(body.submission.amazon_submission_id, 'f1dc2914-75dd-11ea-bc55-0242ac130003');
+
+      assertEquals(state.inserts.length, 1);
+      const insert = state.inserts[0];
+      assertEquals(insert.client, 'user');
+      assertEquals(insert.row.kind, 'create');
+      assertEquals(insert.row.sku, 'THO-MOP40-2P');
+      assertEquals(insert.row.marketplace_id, DE);
+      assertEquals(insert.row.tenant_id, TENANT);
+
+      assertEquals(calls.length, 1);
+      assertEquals(calls[0].method, 'PUT');
+      assert(
+         calls[0].url.startsWith(
+            'https://sandbox.sellingpartnerapi-eu.amazon.com/listings/2021-08-01/items/A2SELLER/THO-MOP40-2P?'
+         )
+      );
+      assert(calls[0].url.includes('marketplaceIds=A1PA6795UKMFR9'));
+      assertEquals(calls[0].body, insert.row.payload);
+      const sent = calls[0].body as { attributes: Record<string, Array<Record<string, unknown>>> };
+      assertEquals(
+         sent.attributes.main_product_image_locator[0].media_location,
+         `${PUBLIC_BASE}/storage/v1/object/public/listing-images/${TENANT}/${MEDIA}/mop-primary.png`
+      );
+
+      const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
+      assertEquals(apply.client, 'admin');
+      assertEquals(apply.args.p_status, 'accepted');
+      assertEquals(apply.args.p_listing_state, 'submitted');
+   }
+);
+
+Deno.test(
+   'publish of an accepted answer with errors leaves the cell in issues (issues win)',
+   async () => {
+      clearTokenCache();
+      const state = withMediaObject(story());
+      const { deps: amazon } = fakeAmazon(() =>
+         Response.json({
+            ...SANDBOX_ACCEPTED,
+            issues: [{ code: '18027', message: 'image', severity: 'ERROR' }]
+         })
+      );
+      const res = await handler(
+         post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+         deps(state, amazon)
+      );
+      assertEquals(res.status, 200);
+      const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
+      assertEquals([apply.args.p_status, apply.args.p_listing_state], ['accepted', 'issues']);
+      assertEquals(apply.args.p_issues, [
+         { code: '18027', message: 'image', severity: 'ERROR', attributeNames: [] }
+      ]);
+      // The RPC fake keeps 046's rule: issues never walk the business status.
+      assertEquals(cellRow(state, '00000000-0000-4000-8000-00000000ce01').status, 'planned');
+   }
+);
+
+Deno.test(
+   'publish refuses an incomplete cell and an unconnected account before any write',
+   async () => {
+      clearTokenCache();
+      const incomplete = withMediaObject(story());
+      (incomplete.tables.product[0].listing_attributes as Record<string, unknown>).brand = [];
+      const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+      const res = await handler(
+         post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+         deps(incomplete, amazon)
+      );
+      assertEquals(res.status, 422);
+      const body = await res.json();
+      assertEquals(body.message, 'listing_incomplete');
+      assertEquals(body.details, [
+         { attribute: 'brand', group: 'product_identity', reason: 'required' }
+      ]);
+
+      const unconnected = withMediaObject(story());
+      unconnected.tables.customer_platform_account[0].api_connection = 'none';
+      const res2 = await handler(
+         post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+         deps(unconnected, amazon)
+      );
+      assertEquals(res2.status, 409);
+      assertEquals((await res2.json()).message, 'amazon_not_connected');
+
+      assertEquals([...incomplete.inserts, ...unconnected.inserts], []);
+      assertEquals(calls, []);
+   }
+);
+
+Deno.test('publish refuses a missing image before the insert', async () => {
+   clearTokenCache();
+   const state = story(); // the media row exists, its object does not
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 422);
+   assertEquals(await res.json(), {
+      message: 'listing_image_missing',
+      details: ['main_product_image_locator']
+   });
+   assertEquals(state.inserts, []);
+   assertEquals(calls, []);
+});
+
+Deno.test('publish refuses a local image base in production before the insert', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon, {
+         env: () => ({ ...ENV, env: 'production', selfRefreshToken: undefined })
+      })
+   );
+   assertEquals(res.status, 422);
+   assertEquals((await res.json()).message, 'listing_image_url_not_public');
+   assertEquals(state.inserts, []);
+   assertEquals(state.uploads, []);
+   assertEquals(calls, []);
+});
+
+Deno.test('publish marks the submission failed when Amazon throws after the insert', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   const { deps: amazon } = fakeAmazon(() => new Response('{}', { status: 429 }));
+   const res = await handler(
+      post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 429);
+   assertEquals((await res.json()).message, 'amazon_throttled');
+   assertEquals(state.inserts.length, 1);
+   const apply = state.rpcs.filter((r) => r.name === 'listing_apply_submission');
+   assertEquals(apply.length, 1);
+   assertEquals(apply[0].args.p_submission_id, state.inserts[0].row.id);
+   assertEquals(apply[0].args.p_status, 'failed');
+   assertEquals(apply[0].args.p_listing_state, 'issues');
+   assertEquals(apply[0].args.p_issues, [
+      {
+         code: 'amazon_throttled',
+         message: 'amazon_throttled',
+         severity: 'ERROR',
+         attributeNames: []
+      }
+   ]);
+});
+
+Deno.test('publish of a child creates the parent cell and publishes the parent first', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   state.tables.product[0].parent_id = '00000000-0000-4000-8000-00000000ad02';
+   state.tables.product.push(
+      product({
+         id: '00000000-0000-4000-8000-00000000ad02',
+         sku: 'THO-MOP40',
+         gtin: null,
+         listing_attributes: {
+            ...structuredClone(storyAttributes),
+            variation_theme: [{ value: 'SIZE' }]
+         }
+      })
+   );
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 200);
+   assertEquals((await res.json()).cell.id, '00000000-0000-4000-8000-00000000ce01');
+
+   assert(
+      state.rpcs.some(
+         (r) =>
+            r.name === 'listing_parent_cell' &&
+            r.args.p_cell_id === '00000000-0000-4000-8000-00000000ce01'
+      )
+   );
+   assertEquals(
+      state.inserts.map((i) => i.row.cell_id),
+      ['00000000-0000-4000-8000-00000000ce02', '00000000-0000-4000-8000-00000000ce01']
+   );
+   assertEquals(
+      calls.map((c) => new URL(c.url).pathname.split('/').pop()),
+      ['THO-MOP40', 'THO-MOP40-2P']
+   );
+   const [parentBody, childBody] = calls.map(
+      (c) => c.body as { attributes: Record<string, Array<Record<string, unknown>>> }
+   );
+   assertEquals(parentBody.attributes.parentage_level[0].value, 'parent');
+   assertEquals(parentBody.attributes.externally_assigned_product_identifier, undefined);
+   assertEquals(childBody.attributes.child_parent_sku_relationship[0].parent_sku, 'THO-MOP40');
+   assertEquals(childBody.attributes.variation_theme[0].value, 'SIZE');
+
+   // A second child publish finds the parent's accepted submission and leaves the parent alone.
+   const before = calls.length;
+   await handler(
+      post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(calls.length - before, 1);
+   assertEquals(state.inserts.at(-1)?.row.kind, 'create'); // accepted is not done yet
+});
+
+Deno.test('publish is an update once the cell has a done submission', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   state.tables.listing_submission.push({
+      id: 's-old',
+      tenant_id: TENANT,
+      cell_id: '00000000-0000-4000-8000-00000000ce01',
+      kind: 'create',
+      status: 'done',
+      created_at: '2026-11-01T00:00:00Z'
+   });
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'publish', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 200);
+   assertEquals(state.inserts[0].row.kind, 'update');
+});
+
+Deno.test('validate previews on the sandbox NA host and writes nothing', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_INVALID));
+   const res = await handler(
+      post({ action: 'validate', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 200);
+   const body = await res.json();
+   assertEquals(body.status, 'INVALID');
+   assertEquals(body.issues[0].attributeNames, ['condition_type']);
+   const url = new URL(calls[0].url);
+   assertEquals(url.host, 'sandbox.sellingpartnerapi-na.amazon.com');
+   assertEquals(url.searchParams.get('mode'), 'VALIDATION_PREVIEW');
+   assertEquals(url.searchParams.get('includedData'), 'identifiers,issues');
+   assertEquals(url.searchParams.get('marketplaceIds'), 'ATVPDKIKX0DER');
+   assertEquals([state.inserts, state.rpcs], [[], []]);
+});
+
+Deno.test(
+   'check writes ready with a new-product match in sandbox and keeps a journey state',
+   async () => {
+      clearTokenCache();
+      const state = withMediaObject(story());
+      const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+      let required: unknown;
+      const res = await handler(
+         post({ action: 'check', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+         deps(state, amazon, {
+            authorize: (_req, r, run) => (
+               (required = r), run({ tenantId: TENANT, userId: 'user-1' })
+            )
+         })
+      );
+      assertEquals(required, [['select', 'market_cell']]);
+      assertEquals(await res.json(), {
+         missing: [],
+         match: { asin: null, restricted: false, reasons: [] },
+         state: 'ready'
+      });
+      assertEquals(calls, []); // the static sandbox has no EAN catalogue answer
+      const set = state.rpcs.find((r) => r.name === 'listing_set_state')!;
+      assertEquals(set.args.p_listing_state, 'ready');
+      assertEquals((set.args.p_listing_match as Record<string, unknown>).asin, null);
+
+      cellRow(state, '00000000-0000-4000-8000-00000000ce01').listing_state = 'submitted';
+      const again = await handler(
+         post({ action: 'check', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+         deps(state, amazon)
+      );
+      assertEquals((await again.json()).state, 'submitted');
+   }
+);
+
+Deno.test('check matches the GTIN and reads restrictions in production', async () => {
+   clearTokenCache();
+   const state = story();
+   const { deps: amazon, calls } = fakeAmazon((call) =>
+      call.url.includes('/catalog/2022-04-01/items')
+         ? Response.json({ numberOfResults: 1, items: [{ asin: 'B07N4M94X4' }] })
+         : Response.json({
+              restrictions: [
+                 {
+                    marketplaceId: DE,
+                    conditionType: 'new_new',
+                    reasons: [{ message: 'Approval required.' }]
+                 },
+                 {
+                    marketplaceId: 'ATVPDKIKX0DER',
+                    conditionType: 'new_new',
+                    reasons: [{ message: 'US only' }]
+                 }
+              ]
+           })
+   );
+   const res = await handler(
+      post({ action: 'check', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon, {
+         env: () => ({ ...ENV, env: 'production', selfRefreshToken: undefined })
+      })
+   );
+   assertEquals(await res.json(), {
+      missing: [],
+      match: { asin: 'B07N4M94X4', restricted: true, reasons: ['Approval required.'] },
+      state: 'ready'
+   });
+   const catalog = new URL(calls[0].url);
+   assertEquals(catalog.searchParams.get('identifiers'), '4260696025800');
+   assertEquals(catalog.searchParams.get('identifiersType'), 'EAN');
+   assertEquals(catalog.searchParams.get('includedData'), 'summaries');
+   const restrictions = new URL(calls[1].url);
+   assertEquals(restrictions.pathname, '/listings/2021-08-01/restrictions');
+   assertEquals(restrictions.searchParams.get('conditionType'), 'new_new');
+   assertEquals(restrictions.searchParams.get('sellerId'), 'A2SELLER');
+});
+
+Deno.test('check treats a cell without a connected account as draft', async () => {
+   const state = story();
+   state.tables.customer_platform_account[0].api_connection = 'revoked';
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'check', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(await res.json(), { missing: [], match: null, state: 'draft' });
+   assertEquals(calls, []);
+});
+
+Deno.test('status applies the sandbox item to the latest submission (service call)', async () => {
+   clearTokenCache();
+   const state = story();
+   cellRow(state, '00000000-0000-4000-8000-00000000ce01').listing_state = 'submitted';
+   state.tables.listing_submission.push({
+      id: 's-1',
+      tenant_id: TENANT,
+      cell_id: '00000000-0000-4000-8000-00000000ce01',
+      kind: 'create',
+      sku: 'THO-MOP40-2P',
+      marketplace_id: DE,
+      status: 'accepted',
+      created_at: '2026-11-06T09:00:00Z'
+   });
+   const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
+   let authorized = false;
+   const res = await handler(
+      post(
+         { action: 'status', cell_id: '00000000-0000-4000-8000-00000000ce01' },
+         'Bearer service-key'
+      ),
+      deps(state, amazon, {
+         authorize: () => ((authorized = true), Promise.resolve(new Response()))
+      })
+   );
+   assertEquals(res.status, 200);
+   assertEquals(authorized, false);
+   const body = await res.json();
+   assertEquals(body.cell.listing_state, 'issues');
+   assertEquals(body.submission.status, 'done');
+   const url = new URL(calls[0].url);
+   assertEquals(url.pathname, '/listings/2021-08-01/items/A2SELLER/THO-MOP40-2P');
+   assertEquals(url.searchParams.get('includedData'), 'summaries,issues');
+   const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
+   assertEquals([apply.args.p_status, apply.args.p_listing_state], ['done', 'issues']);
+});
+
+Deno.test('status as a user needs select on market_cell', async () => {
+   const state = story();
+   const { deps: amazon } = fakeAmazon(() => Response.json(SANDBOX_ITEM));
+   let required: unknown;
+   const res = await handler(
+      post({ action: 'status', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon, {
+         authorize: (_req, r, run) => ((required = r), run({ tenantId: TENANT, userId: 'user-1' }))
+      })
+   );
+   assertEquals(required, [['select', 'market_cell']]);
+   assertEquals(res.status, 404);
+   assertEquals((await res.json()).message, 'listing_submission_not_found');
+});
+
+Deno.test('delete sends a delete submission and puts the cell back to draft', async () => {
+   clearTokenCache();
+   const state = story();
+   cellRow(state, '00000000-0000-4000-8000-00000000ce01').listing_state = 'live';
+   const { deps: amazon, calls } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'delete', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 200);
+   assertEquals(calls[0].method, 'DELETE');
+   assertEquals(state.inserts[0].row.kind, 'delete');
+   assertEquals(state.inserts[0].client, 'user');
+   assertEquals(state.tables.listing_submission[0].status, 'done');
+   const set = state.rpcs.find((r) => r.name === 'listing_set_state')!;
+   assertEquals([set.args.p_listing_state, set.args.p_listing_match], ['draft', null]);
+   // The business status is not walked by a delete.
+   assertEquals(
+      state.rpcs.some((r) => r.name === 'listing_apply_submission'),
+      false
+   );
+});
+
+Deno.test('publish_bulk reports products without a cell as skipped_no_cell', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   state.tables.product.push(
+      product({ id: '00000000-0000-4000-8000-00000000ad03', sku: 'THO-OTHER' })
+   );
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({
+         action: 'publish_bulk',
+         product_ids: [
+            '00000000-0000-4000-8000-00000000ad01',
+            '00000000-0000-4000-8000-00000000ad03'
+         ],
+         country: 'DE'
+      }),
+      deps(state, amazon)
+   );
+   assertEquals(res.status, 200);
+   assertEquals(await res.json(), {
+      results: [
+         {
+            product_id: '00000000-0000-4000-8000-00000000ad01',
+            cell_id: '00000000-0000-4000-8000-00000000ce01',
+            result: 'submitted'
+         },
+         {
+            product_id: '00000000-0000-4000-8000-00000000ad03',
+            cell_id: null,
+            result: 'skipped_no_cell'
+         }
+      ]
+   });
+});
+
+Deno.test('publish_bulk reports incomplete and failed cells and goes on', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   state.tables.product.push(
+      product({
+         id: '00000000-0000-4000-8000-00000000ad04',
+         sku: 'THO-TWO',
+         listing_attributes: {}
+      })
+   );
+   state.tables.market_cell.push(
+      cell({
+         id: '00000000-0000-4000-8000-00000000ce03',
+         product_id: '00000000-0000-4000-8000-00000000ad04'
+      })
+   );
+   const { deps: amazon } = fakeAmazon(() => Response.json(SANDBOX_INVALID));
+   const res = await handler(
+      post({
+         action: 'publish_bulk',
+         product_ids: [
+            '00000000-0000-4000-8000-00000000ad04',
+            '00000000-0000-4000-8000-00000000ad01'
+         ],
+         country: 'de'
+      }),
+      deps(state, amazon)
+   );
+   assertEquals(await res.json(), {
+      results: [
+         {
+            product_id: '00000000-0000-4000-8000-00000000ad04',
+            cell_id: '00000000-0000-4000-8000-00000000ce03',
+            result: 'skipped_incomplete',
+            code: 'listing_incomplete'
+         },
+         {
+            product_id: '00000000-0000-4000-8000-00000000ad01',
+            cell_id: '00000000-0000-4000-8000-00000000ce01',
+            result: 'invalid'
+         }
+      ]
+   });
+});
+
+Deno.test('an unknown action is refused', async () => {
+   const res = await handler(post({ action: 'nope' }), deps(story(), {}));
+   assertEquals(res.status, 422);
+   assertEquals((await res.json()).message, 'invalid_request');
+});

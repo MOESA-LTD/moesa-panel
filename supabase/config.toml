@@ -264,6 +264,10 @@ verify_jwt = false
 [functions.amazon-auth]
 verify_jwt = false
 
+# Users call it with their JWT; amazon-poll calls the status action with the service key (also a valid JWT).
+[functions.amazon-listing]
+verify_jwt = true
+
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true
