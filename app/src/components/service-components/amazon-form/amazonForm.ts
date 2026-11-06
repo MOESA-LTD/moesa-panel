@@ -174,14 +174,14 @@ export const baseAttribute = (name: string) => name.split(/[[.]/)[0]!;
 
 /** The group that lists the attribute, or null. */
 export const groupOf = (groups: PropertyGroups, attribute: string): string | null =>
-   Object.keys(groups).find((key) => groups[key]!.propertyNames.includes(attribute)) ?? null;
+   groups.find(({ propertyNames }) => propertyNames.includes(attribute))?.key ?? null;
 
 /** The missing fields in the order the form shows them: by group, then by the group's own order. */
 export function missingInFormOrder(
    missing: readonly MissingField[],
    groups: PropertyGroups
 ): MissingField[] {
-   const order = Object.values(groups).flatMap(({ propertyNames }) => propertyNames);
+   const order = groups.flatMap(({ propertyNames }) => propertyNames);
    const rank = (attribute: string) => {
       const at = order.indexOf(attribute);
       return at === -1 ? order.length : at;

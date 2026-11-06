@@ -16,8 +16,10 @@ import {
    LISTING_STATES,
    marketplaceIdFor,
    listingStateSeverity,
+   orderAmazonCells,
    publishBulk,
    publishCell,
+   refreshCellStatus,
    searchProductTypes,
    submissionSchema,
    useCellCheck,
@@ -27,7 +29,7 @@ import {
    usePublishCell,
    validateCell
 } from '@/api/amazon';
-import type { AmazonSchema } from '@edge-shared/listingCompleteness';
+import { MARKETPLACE_IDS, type AmazonSchema } from '@edge-shared/listingCompleteness';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { flushPromises, mount } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
@@ -224,8 +226,8 @@ describe('edge calls', () => {
       ]);
    });
 
-   it('publishBulk sends 50 products per call and joins the results', async () => {
-      const ids = Array.from({ length: 120 }, (_, i) => `p${i}`);
+   it('publishBulk sends 10 products per call and joins the results', async () => {
+      const ids = Array.from({ length: 25 }, (_, i) => `p${i}`);
       mock.invoke.mockImplementation(
          async (_name: string, init: { body: { product_ids: string[] } }) => ({
             data: {
@@ -242,11 +244,85 @@ describe('edge calls', () => {
       expect(mock.invoke).toHaveBeenCalledTimes(3);
       expect(mock.invoke.mock.calls[0]![1]).toEqual({
          method: 'POST',
-         body: { action: 'publish_bulk', product_ids: ids.slice(0, 50), country: 'DE' },
+         body: { action: 'publish_bulk', product_ids: ids.slice(0, 10), country: 'DE' },
          headers: HEADERS
       });
-      expect(results).toHaveLength(120);
+      expect(results).toHaveLength(25);
       expect(results[0]!.result).toBe('error');
+   });
+
+   it('publishBulk sends again what a call left in remaining, in order (C4)', async () => {
+      const ids = Array.from({ length: 12 }, (_, i) => `p${i}`);
+      // The first call runs out of time after three products.
+      mock.invoke.mockImplementation(
+         async (_name: string, init: { body: { product_ids: string[] } }) => {
+            const sent = init.body.product_ids;
+            const done = mock.invoke.mock.calls.length === 1 ? sent.slice(0, 3) : sent;
+            return {
+               data: {
+                  results: done.map((id) => ({
+                     product_id: id,
+                     cell_id: 'c',
+                     result: 'submitted'
+                  })),
+                  remaining: sent.slice(done.length)
+               },
+               error: null
+            };
+         }
+      );
+      const results = await publishBulk(ids, 'DE');
+      expect(mock.invoke.mock.calls.map(([, init]) => init.body.product_ids)).toEqual([
+         ids.slice(0, 10),
+         ids.slice(3, 12)
+      ]);
+      expect(results.map(({ product_id }) => product_id)).toEqual(ids);
+      expect(results.every(({ result }) => result === 'submitted')).toBe(true);
+   });
+
+   it('publishBulk keeps earlier results when a call fails and marks the rest failed (C4)', async () => {
+      const ids = Array.from({ length: 15 }, (_, i) => `p${i}`);
+      mock.invoke
+         .mockResolvedValueOnce({
+            data: {
+               results: ids
+                  .slice(0, 10)
+                  .map((id) => ({ product_id: id, cell_id: 'c', result: 'submitted' })),
+               remaining: []
+            },
+            error: null
+         })
+         .mockResolvedValueOnce({
+            data: null,
+            error: {
+               context: { json: async () => ({ message: 'amazon_throttled' }) }
+            }
+         });
+      const results = await publishBulk(ids, 'DE');
+      expect(results).toHaveLength(15);
+      expect(results.slice(0, 10).every(({ result }) => result === 'submitted')).toBe(true);
+      expect(results.slice(10)).toEqual(
+         ids.slice(10).map((id) => ({
+            product_id: id,
+            cell_id: null,
+            result: 'error',
+            code: 'amazon_throttled'
+         }))
+      );
+   });
+
+   it('refreshCellStatus asks for the status of the cell (C3)', async () => {
+      mock.invoke.mockResolvedValueOnce({
+         data: { cell: cellRow, submission: submissionRow },
+         error: null
+      });
+      const answer = await refreshCellStatus('c1');
+      expect(mock.invoke).toHaveBeenCalledWith('amazon-listing', {
+         method: 'POST',
+         body: { action: 'status', cell_id: 'c1' },
+         headers: HEADERS
+      });
+      expect(answer.cell.listing_state).toBe('submitted');
    });
 
    it('connectAmazon returns the redirect in production and the account in sandbox', async () => {
@@ -335,6 +411,24 @@ describe('tenant and cell parsing', () => {
 });
 
 describe('marketplaceIdFor', () => {
+   it('reads the one marketplace map the edge functions use (C17)', () => {
+      expect(Object.keys(MARKETPLACE_IDS)).toEqual([...AMAZON_COUNTRIES]);
+      expect(AMAZON_COUNTRIES.map(marketplaceIdFor)).toEqual(
+         AMAZON_COUNTRIES.map((country) => MARKETPLACE_IDS[country])
+      );
+   });
+
+   it('orders cells by the EU country order, then id (B1)', () => {
+      const cells = [
+         { id: 'c3', country: 'IT' },
+         { id: 'c9', country: 'NL' },
+         { id: 'c2', country: 'DE' },
+         { id: 'c1', country: 'DE' },
+         { id: 'c0', country: 'US' }
+      ];
+      expect(orderAmazonCells(cells).map(({ id }) => id)).toEqual(['c1', 'c2', 'c3', 'c9', 'c0']);
+   });
+
    it('maps every country the app publishes to', () => {
       expect(AMAZON_COUNTRIES.map(marketplaceIdFor)).toEqual([
          'A1PA6795UKMFR9',
@@ -361,7 +455,7 @@ describe('fetchDefinition', () => {
       version: '1.0',
       display_name: 'Luggage',
       schema: fixture.schema,
-      property_groups: { g: { title: 'G', propertyNames: ['brand'] } },
+      property_groups: [{ key: 'g', title: 'G', propertyNames: ['brand'] }],
       fetched_at: '2026-11-06T10:00:00Z'
    };
 

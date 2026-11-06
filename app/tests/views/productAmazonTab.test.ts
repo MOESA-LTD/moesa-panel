@@ -4,7 +4,7 @@ import AmazonAttributeForm from '@/components/service-components/amazon-form/Ama
 import MediaPickerDialog from '@/components/service-components/media/MediaPickerDialog.vue';
 import en from '@/plugins/i18n/locales/en/index.json';
 import Amazon from '@/views/pages/ops/product/tabs/Amazon.vue';
-import type { Attributes } from '@edge-shared/listingCompleteness';
+import { toPropertyGroups, type Attributes } from '@edge-shared/listingCompleteness';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
@@ -12,7 +12,7 @@ import { resolve } from 'node:path';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick, ref } from 'vue';
+import { nextTick, ref, toValue, type MaybeRefOrGetter } from 'vue';
 
 const seed = (file: string) =>
    JSON.parse(
@@ -28,7 +28,7 @@ const definition: Definition = {
    version: fixture.productTypeVersion.version,
    display_name: fixture.displayName,
    schema: fixture.schema,
-   property_groups: fixture.propertyGroups,
+   property_groups: toPropertyGroups(fixture.propertyGroups),
    fetched_at: '2026-11-06T00:00:00Z'
 };
 
@@ -40,7 +40,8 @@ const api = vi.hoisted(() => ({
    cells: [] as unknown[],
    submissions: [] as unknown[],
    definition: null as unknown,
-   route: { query: {} as Record<string, string> }
+   route: { query: {} as Record<string, string> },
+   submissionsFor: null as null | (() => string | null)
 }));
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
@@ -83,7 +84,10 @@ vi.mock('@/api/amazon', async (importOriginal) => ({
    useProductAmazonCells: () => ({ data: cellsRef }),
    useProductTypeSearch: () => ({ data: ref([]), isFetching: ref(false) }),
    useDefinition: () => ({ data: ref(api.definition), isFetching: ref(false), error: ref(null) }),
-   useListingSubmissions: () => ({ data: ref(api.submissions) })
+   useListingSubmissions: (cellId: MaybeRefOrGetter<string | null>) => {
+      api.submissionsFor = () => toValue(cellId);
+      return { data: ref(api.submissions) };
+   }
 }));
 
 const plugins = [i18NPlugin, PrimeVue, ToastService];
@@ -452,6 +456,53 @@ describe('the product Amazon tab', () => {
 
       expect((field().get('textarea').element as HTMLTextAreaElement).value).toBe('');
       expect(field().text()).not.toContain('This is not valid JSON.');
+   });
+
+   it('works in the first cell of the EU country order, or the market a link names (B1)', async () => {
+      const cells = [
+         { id: 'c-it', country: 'IT', listing_language: null, price: null, currency: null },
+         { id: 'c-nl', country: 'NL', listing_language: null, price: null, currency: null },
+         { id: 'c-de', country: 'DE', listing_language: null, price: null, currency: null }
+      ];
+      api.cells = cells;
+      let wrapper = mountTab();
+      await flushPromises();
+      expect(api.submissionsFor!()).toBe('c-de');
+      expect(wrapper.getComponent(AmazonAttributeForm).props('languageTag')).toBe('de_DE');
+      wrapper.unmount();
+
+      api.route = { query: { market: 'nl', field: 'item_name' } };
+      wrapper = mountTab();
+      await flushPromises();
+      expect(api.submissionsFor!()).toBe('c-nl');
+      expect(wrapper.getComponent(AmazonAttributeForm).props('languageTag')).toBe('nl_NL');
+      wrapper.unmount();
+
+      api.route = { query: { market: 'NL', lang: 'en_GB' } };
+      wrapper = mountTab();
+      await flushPromises();
+      expect(wrapper.getComponent(AmazonAttributeForm).props('languageTag')).toBe('en_GB');
+   });
+
+   it('keeps half-typed JSON when a refetch brings the same values back (A6)', async () => {
+      const wrapper = mountTab();
+      await flushPromises();
+      await wrapper.get('[data-group="offer"]').trigger('click');
+      const field = () => wrapper.get('[data-field="purchasable_offer"]');
+      await field().get('textarea').setValue('{ nope');
+
+      // A background refetch: a new product object with equal values.
+      productRef.value = structuredClone(api.product);
+      await flushPromises();
+      expect((field().get('textarea').element as HTMLTextAreaElement).value).toBe('{ nope');
+
+      // A real change from elsewhere still replaces the form.
+      productRef.value = {
+         ...(api.product as object),
+         listing_attributes: { ...story, item_name: [{ value: 'Neu', language_tag: 'de_DE' }] }
+      };
+      await flushPromises();
+      expect((field().get('textarea').element as HTMLTextAreaElement).value).toBe('');
    });
 
    it('keeps the language the user picked when the cells arrive', async () => {

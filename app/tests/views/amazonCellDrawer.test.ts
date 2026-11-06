@@ -3,7 +3,7 @@ import type { Definition, ListingSubmissionRow } from '@/api/amazon';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import CellAmazonDrawer from '@/views/pages/ops/market/CellAmazonDrawer.vue';
-import type { Attributes } from '@edge-shared/listingCompleteness';
+import { toPropertyGroups, type Attributes } from '@edge-shared/listingCompleteness';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
@@ -31,7 +31,7 @@ const definition: Definition = {
    version: fixture.productTypeVersion.version,
    display_name: fixture.displayName,
    schema: fixture.schema,
-   property_groups: fixture.propertyGroups,
+   property_groups: toPropertyGroups(fixture.propertyGroups),
    fetched_at: '2026-11-06T00:00:00Z'
 };
 
@@ -41,6 +41,7 @@ const api = vi.hoisted(() => ({
    remove: vi.fn(),
    saveCell: vi.fn(),
    refetchCheck: vi.fn(),
+   refreshStatus: vi.fn(),
    toast: vi.fn(),
    confirm: vi.fn(),
    checkTarget: null as null | (() => string | null),
@@ -54,6 +55,7 @@ const isParentRef = ref<boolean | undefined>(false);
 const submissionsRef = ref<ListingSubmissionRow[]>([]);
 const checkRef = ref<unknown>(undefined);
 const checkUpdatedRef = ref(0);
+const checkingRef = ref(false);
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: api.toast }) }));
@@ -86,14 +88,15 @@ vi.mock('@/api/amazon', async (importOriginal) => ({
          data: checkRef,
          dataUpdatedAt: checkUpdatedRef,
          error: ref(null),
-         isFetching: ref(false),
+         isFetching: checkingRef,
          refetch: api.refetchCheck
       };
    },
    useListingSubmissions: () => ({ data: submissionsRef }),
    usePublishCell: () => ({ mutateAsync: api.publish, isPending: ref(false) }),
    useValidateCell: () => ({ mutateAsync: api.validate, isPending: ref(false) }),
-   useDeleteListing: () => ({ mutateAsync: api.remove, isPending: ref(false) })
+   useDeleteListing: () => ({ mutateAsync: api.remove, isPending: ref(false) }),
+   useRefreshCellStatus: () => ({ mutateAsync: api.refreshStatus, isPending: ref(false) })
 }));
 
 const NOW = new Date().toISOString();
@@ -190,6 +193,8 @@ beforeEach(() => {
    submissionsRef.value = [];
    checkRef.value = undefined;
    checkUpdatedRef.value = 0;
+   checkingRef.value = false;
+   api.refreshStatus.mockReset();
 });
 
 describe('CellAmazonDrawer', () => {
@@ -206,7 +211,7 @@ describe('CellAmazonDrawer', () => {
       expect(links(wrapper)).toContainEqual({
          name: 'ops-product-manage-amazon',
          params: { id: 'p1' },
-         query: { field: 'condition_type' }
+         query: { market: 'DE', lang: 'de_DE', field: 'condition_type' }
       });
       // The GTIN and the price provide the identifier and the offer: not listed.
       expect(wrapper.find('[data-missing="externally_assigned_product_identifier"]').exists()).toBe(
@@ -419,7 +424,7 @@ describe('CellAmazonDrawer', () => {
       expect(links(wrapper)).toContainEqual({
          name: 'ops-product-manage-amazon',
          params: { id: 'p1' },
-         query: { field: 'condition_type' }
+         query: { market: 'DE', lang: 'de_DE', field: 'condition_type' }
       });
    });
 
@@ -495,6 +500,90 @@ describe('CellAmazonDrawer', () => {
       const fresh = await mountDrawer();
       await action(fresh, 'check').trigger('click');
       expect(api.checkTarget!()).toBe('c1');
+   });
+
+   it('links the Amazon tab in the cell market and language (B1)', async () => {
+      cellRef.value = { ...CELL, country: 'NL', listing_language: null };
+      const attributes: Attributes = { ...story };
+      delete attributes.condition_type;
+      productRef.value = { ...PRODUCT, listing_attributes: attributes };
+      const wrapper = await mountDrawer();
+      expect(links(wrapper)).toContainEqual({
+         name: 'ops-product-manage-amazon',
+         params: { id: 'p1' },
+         query: { market: 'NL', lang: 'nl_NL', field: 'condition_type' }
+      });
+   });
+
+   it('shows the check date of the match, and only "not checked" without one (B2)', async () => {
+      // The state was written (listing_checked_at) but no catalogue check ran.
+      cellRef.value = { ...CELL, listing_match: null, listing_checked_at: NOW };
+      let wrapper = await mountDrawer();
+      expect(wrapper.text()).toContain(en.ops.amazon.cell.match.none);
+      expect(wrapper.find('[data-checked-at]').exists()).toBe(false);
+
+      cellRef.value = {
+         ...CELL,
+         listing_checked_at: '2026-11-06T12:00:00Z',
+         listing_match: {
+            asin: null,
+            restricted: false,
+            reasons: [],
+            checked_at: '2026-11-05T08:30:00Z'
+         }
+      };
+      wrapper = await mountDrawer();
+      expect(wrapper.text()).not.toContain(en.ops.amazon.cell.match.none);
+      expect(wrapper.get('[data-checked-at]').text()).toContain('2026-11-05');
+   });
+
+   it('holds Publish, Remove and Validate while a check runs (C2)', async () => {
+      cellRef.value = { ...CELL, listing_state: 'live' };
+      submissionsRef.value = [submission({ status: 'done' })];
+      checkingRef.value = true;
+      const wrapper = await mountDrawer();
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+      expect(isDisabled(wrapper, 'delete')).toBe(true);
+      expect(isDisabled(wrapper, 'validate')).toBe(true);
+
+      checkingRef.value = false;
+      await flushPromises();
+      expect(isDisabled(wrapper, 'publish')).toBe(false);
+      expect(isDisabled(wrapper, 'delete')).toBe(false);
+   });
+
+   it('Refresh status asks Amazon for a submitted or issues cell and shows the answer (C3)', async () => {
+      cellRef.value = { ...CELL, listing_state: 'ready' };
+      submissionsRef.value = [submission({ status: 'processing' })];
+      let wrapper = await mountDrawer();
+      expect(action(wrapper, 'refresh-status').exists()).toBe(false);
+
+      for (const state of ['submitted', 'issues']) {
+         cellRef.value = { ...CELL, listing_state: state };
+         wrapper = await mountDrawer();
+         expect(action(wrapper, 'refresh-status').exists()).toBe(true);
+      }
+
+      cellRef.value = { ...CELL, listing_state: 'submitted' };
+      api.refreshStatus.mockResolvedValue({
+         cell: { ...CELL, listing_state: 'live' },
+         submission: submission({ status: 'done' })
+      });
+      wrapper = await mountDrawer();
+      await action(wrapper, 'refresh-status').trigger('click');
+      await flushPromises();
+      expect(api.refreshStatus).toHaveBeenCalledWith('c1');
+      expect(wrapper.get('[data-state]').attributes('data-state')).toBe('live');
+
+      // A refused refresh says why.
+      api.refreshStatus.mockRejectedValue(new Error('amazon_throttled'));
+      cellRef.value = { ...CELL, listing_state: 'submitted' };
+      wrapper = await mountDrawer();
+      await action(wrapper, 'refresh-status').trigger('click');
+      await flushPromises();
+      expect(api.toast).toHaveBeenCalledWith(
+         expect.objectContaining({ detail: en.errors.amazon_throttled })
+      );
    });
 
    it('shows the stored match: a new product', async () => {

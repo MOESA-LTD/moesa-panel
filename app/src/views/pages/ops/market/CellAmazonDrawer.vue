@@ -17,6 +17,7 @@ import {
    useListingSubmissions,
    useProductIsParent,
    usePublishCell,
+   useRefreshCellStatus,
    useValidateCell,
    type AmazonIssue,
    type ApiConnection,
@@ -151,11 +152,18 @@ const missing = computed(() => {
 
 const fieldTitle = (attribute: string) => schema.value?.properties[attribute]?.title ?? attribute;
 
-/** The product's Amazon tab, opened on a field (an issue may name a part: `a[...]`, `a.b`). */
+/**
+ * The product's Amazon tab in this cell's market and language, opened on a field when given (an
+ * issue may name a part: `a[...]`, `a.b`).
+ */
 const amazonTab = (field?: string) => ({
    name: 'ops-product-manage-amazon',
    params: { id: cell.value?.product_id },
-   ...(field ? { query: { field: field.split(/[[.]/)[0] } } : {})
+   query: {
+      market: country.value,
+      ...(language.value ? { lang: language.value } : {}),
+      ...(field ? { field: field.split(/[[.]/)[0] } : {})
+   }
 });
 
 // --- marketplace fields, saved through the cell ---
@@ -239,7 +247,13 @@ watch(checkedAt, () => {
    invalidateTables(queryClient, ['market_cell_overview', 'listing_submission']);
 });
 
-type Match = { asin: string | null; restricted: boolean; reasons: string[] };
+/** The catalogue check: its own date (`checked_at`), not the cell's last state write. */
+type Match = {
+   asin: string | null;
+   restricted: boolean;
+   reasons: string[];
+   checked_at?: string | null;
+};
 const match = computed(
    () => (checked.value ? checked.value.match : (cell.value?.listing_match ?? null)) as Match | null
 );
@@ -292,7 +306,15 @@ const blocked = computed<Blocked | null>(() => {
 const { mutateAsync: publish, isPending: publishing } = usePublishCell();
 const { mutateAsync: validate, isPending: validating } = useValidateCell();
 const { mutateAsync: removeListing, isPending: removing } = useDeleteListing();
-const busy = computed(() => publishing.value || removing.value);
+const { mutateAsync: refreshStatus, isPending: refreshing } = useRefreshCellStatus();
+// A check writes the state too: no publish or removal runs alongside it, nor a refresh.
+const busy = computed(
+   () => publishing.value || removing.value || checking.value || refreshing.value
+);
+/** A listing Amazon has (or had) in hand: its status can be asked for now (the poll's job). */
+const canRefresh = computed(
+   () => (state.value === 'submitted' || state.value === 'issues') && !!submissions.value?.length
+);
 
 const fail = (error: unknown) =>
    toast.add({
@@ -305,6 +327,14 @@ const fail = (error: unknown) =>
 const runPublish = async () => {
    try {
       answer(await publish(props.cellId));
+   } catch (error) {
+      fail(error);
+   }
+};
+
+const runRefresh = async () => {
+   try {
+      answer(await refreshStatus(props.cellId));
    } catch (error) {
       fail(error);
    }
@@ -504,8 +534,8 @@ const askRemove = () =>
                }}
             </span>
          </template>
-         <small v-if="cell.listing_checked_at" class="text-muted-color">
-            {{ $t('ops.amazon.cell.checked_at', { date: time(cell.listing_checked_at) }) }}
+         <small v-if="match?.checked_at" data-checked-at class="text-muted-color">
+            {{ $t('ops.amazon.cell.checked_at', { date: time(match.checked_at) }) }}
          </small>
          <Message v-if="checkError" severity="error" class="w-full">
             {{ amazonErrorText(checkError) }}
@@ -598,6 +628,16 @@ const askRemove = () =>
                :disabled="notConnected || connectionLoading || busy"
                :loading="removing"
                @click="askRemove"
+            />
+            <Button
+               v-if="canRefresh"
+               data-action="refresh-status"
+               variant="outlined"
+               :icon="PrimeIcons.SYNC"
+               :label="$t('ops.amazon.cell.refresh_status')"
+               :disabled="notConnected || connectionLoading || busy"
+               :loading="refreshing"
+               @click="runRefresh"
             />
          </span>
          <small v-if="blocked" data-blocked class="text-muted-color">{{

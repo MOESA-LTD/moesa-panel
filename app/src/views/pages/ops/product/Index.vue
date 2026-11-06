@@ -269,7 +269,11 @@ const dialogRef = useDialogRef();
                      :icon="PrimeIcons.AMAZON"
                      :label="
                         selected.length
-                           ? $t('ops.amazon.bulk.open_count', { count: selected.length })
+                           ? $t(
+                                'ops.amazon.bulk.open_count',
+                                { count: selected.length },
+                                selected.length
+                             )
                            : $t('ops.amazon.bulk.open')
                      "
                      :disabled="!transferCustomer"

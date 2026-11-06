@@ -374,7 +374,7 @@
       "market_cell_compliance_red": "Kırmızı hücre planlanamaz ve yayına alınamaz; nedeniyle çıkarın.",
       "market_cell_live_incomplete": "Yayın için platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı ve onaylı içerik (L-G1) gerekir.",
       "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
-      "market_cell_listing_server_only": "Listeleme durumunu yalnız Amazon bağlantısı günceller.",
+      "market_cell_listing_server_only": "İlan durumunu yalnız Amazon bağlantısı günceller.",
       "platform_account_api_server_only": "Amazon bağlantısı, hesap bağlanarak kurulur.",
       "incident_customer_missing": "Olayın müşterisi bulunamadı.",
       "incident_immutable_field": "Olayın kodu, müşterisi ve ailesi değiştirilemez.",
@@ -416,7 +416,7 @@
       "amazon_unavailable": "Amazon şu an erişilemiyor. Daha sonra tekrar deneyin.",
       "amazon_throttled": "Amazon istekleri sınırlıyor. Biraz sonra tekrar deneyin.",
       "amazon_rate_limited": "Amazon’a çok fazla istek gönderildi. Biraz sonra tekrar deneyin.",
-      "amazon_marketplace_unsupported": "Bu ülke Amazon listeleri için desteklenmiyor.",
+      "amazon_marketplace_unsupported": "Bu ülke Amazon ilanları için desteklenmiyor.",
       "amazon_schema_missing": "Bu ürün tipinin Amazon şeması henüz mevcut değil.",
       "amazon_schema_checksum": "İndirilen Amazon şeması bütünlük denetimini geçemedi. Tekrar deneyin.",
       "amazon_schema_invalid": "Amazon şeması okunamadı.",
@@ -427,11 +427,11 @@
       "amazon_state_replayed": "Bu Amazon bağlantı isteği daha önce kullanılmış. Baştan başlayın.",
       "amazon_callback_invalid": "Amazon’un yanıtı eksikti. Baştan başlayın.",
       "listing_incomplete": "Zorunlu Amazon alanları eksik.",
-      "listing_image_missing": "Listenin bir görseli bulunamadı.",
+      "listing_image_missing": "İlanın bir görseli bulunamadı.",
       "listing_image_url_not_public": "Amazon’un indirebilmesi için görseller herkese açık bir adresten sunulmalı.",
       "listing_cell_not_found": "Bu Amazon hücresi bulunamadı.",
       "listing_product_type_missing": "Önce bir Amazon ürün tipi seçin.",
-      "listing_language_missing": "Bu ülke için bir liste dili gerekli.",
+      "listing_language_missing": "Bu ülke için bir ilan dili gerekli.",
       "listing_submission_not_found": "Bu hücre için henüz bir şey gönderilmedi.",
       "platform_account_not_found": "Platform hesabı bulunamadı.",
       "invalid_request": "İstek geçerli değil.",
@@ -439,7 +439,9 @@
       "forbidden": "Bunu yapmaya yetkiniz yok.",
       "tenant_not_allowed": "Bu şirkette işlem yapmaya yetkiniz yok.",
       "method_not_allowed": "Bu istek yöntemine izin verilmiyor.",
-      "not_found": "Bulunamadı."
+      "not_found": "Bulunamadı.",
+      "listing_in_progress": "Amazon bu ilanın son gönderimini hâlâ işliyor.",
+      "platform_account_connected": "Bu hesabı başka bir müşteriye taşımadan önce Amazon bağlantısını kesin."
    },
    "account": {
       "logout": "Çıkış yap",
@@ -730,8 +732,8 @@
       "change_request": "Değişiklik talebi",
       "change_request_product": "Değişiklik talebi ürünü",
       "transfer": "Aktarım",
-      "listing": "Listeleme",
-      "listing_submission": "Listeleme gönderimi"
+      "listing": "İlan",
+      "listing_submission": "İlan gönderimi"
    },
    "dashboard": {
       "notifications": {
@@ -2305,15 +2307,15 @@
             "value_clear": "Değeri temizle"
          },
          "cell": {
-            "title": "Amazon listesi",
-            "open": "Amazon listesini aç",
+            "title": "Amazon ilanı",
+            "open": "Amazon ilanını aç",
             "connection": "Amazon bağlantısı",
             "not_connected": "Müşteri bir Amazon hesabı bağlamamış.",
             "completeness": "Doluluk",
             "missing_none": "Eksik alan yok.",
             "missing_link": "{field} alanını doldur",
             "marketplace": "Pazaryeri",
-            "listing_language": "Liste dili",
+            "listing_language": "İlan dili",
             "fulfillment_channel": "Gönderim",
             "fulfillment": {
                "fbm": "Satıcı gönderimi (FBM)",
@@ -2336,13 +2338,13 @@
             "update": "Amazon’da güncelle",
             "validate": "Amazon ile doğrula",
             "validated": {
-               "VALID": "Amazon bu listeyi kabul ediyor.",
-               "INVALID": "Amazon bu listede sorun bildiriyor."
+               "VALID": "Amazon bu ilanı kabul ediyor.",
+               "INVALID": "Amazon bu ilanda sorun bildiriyor."
             },
             "delete": "Amazon’dan kaldır",
-            "delete_confirm": "Bu liste Amazon’dan kaldırılsın mı?",
+            "delete_confirm": "Bu ilan Amazon’dan kaldırılsın mı?",
             "checked_at": "Kontrol: {date}",
-            "state": "Liste durumu",
+            "state": "İlan durumu",
             "state_unknown": "Bilinmeyen durum",
             "open_platforms": "Müşterinin platform hesaplarını aç",
             "product_type_missing": "Ürünün henüz bir Amazon ürün tipi yok.",
@@ -2354,10 +2356,11 @@
                "not_connected": "Önce müşterinin Amazon hesabını bağlayın.",
                "product_type": "Önce ürünün Amazon ürün tipini seçin.",
                "missing": "Önce eksik alanları doldurun.",
-               "unchecked": "Listeyi hazır işaretlemek için Kontrol et’i çalıştırın.",
+               "unchecked": "İlanı hazır işaretlemek için Kontrol et’i çalıştırın.",
                "submitted": "Amazon son gönderimi hâlâ işliyor.",
                "unsaved": "Önce pazaryeri alanlarını kaydedin."
-            }
+            },
+            "refresh_status": "Durumu yenile"
          },
          "connect": {
             "button": "Amazon’u bağla",
@@ -2375,7 +2378,7 @@
          },
          "bulk": {
             "open": "Amazon’da yayınla",
-            "open_count": "{count} ürünü Amazon’da yayınla",
+            "open_count": "{count} ürünü Amazon’da yayınla | {count} ürünü Amazon’da yayınla",
             "title": "Amazon’da yayınla",
             "country": "Ülke",
             "submit": "Yayınla",
@@ -2648,7 +2651,7 @@
       },
       "listing_state": {
          "draft": "Zorunlu Amazon alanları hâlâ eksik.",
-         "ready": "Zorunlu Amazon alanlarının hepsi dolu; liste yayınlanabilir.",
+         "ready": "Zorunlu Amazon alanlarının hepsi dolu; ilan yayınlanabilir.",
          "submitted": "Amazon’a gönderildi; Amazon’un işlemesi bekleniyor.",
          "live": "Amazon ürünü listeliyor ve satın alınabiliyor.",
          "issues": "Amazon düzeltilmesi gereken sorunlar bildirdi."

@@ -5,7 +5,7 @@ import { useTenantKey } from '@/api/useTenantKey';
 import { allValues } from '@/lib/enumValues';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
-import type { AmazonSchema } from '@edge-shared/listingCompleteness';
+import { MARKETPLACE_IDS, type AmazonSchema } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -73,22 +73,26 @@ export const AMAZON_LANGUAGE_TAGS = [
    'en_GB'
 ] as const;
 
-/** Amazon's marketplace id of each country (EU stores; sellingpartner docs "Marketplace IDs"). */
-export const MARKETPLACE_IDS: Record<(typeof AMAZON_COUNTRIES)[number], string> = {
-   DE: 'A1PA6795UKMFR9',
-   FR: 'A13V1IB3VIYZZH',
-   IT: 'APJ6JRA9NG5V4',
-   ES: 'A1RKKUPIHCS9HS',
-   NL: 'A1805IZSGTT6HS',
-   PL: 'A1C3SOZRARQ6R3',
-   SE: 'A2NODRKZP88ZB9',
-   BE: 'AMEN7PMS3EDWL',
-   GB: 'A1F83G8C2ARO7P'
-};
-
-/** The marketplace id of a country, or null for one Amazon is not published to. */
+/**
+ * The marketplace id of a country, or null for one Amazon is not published to. The ids come from
+ * the one map the edge functions use (`@edge-shared/listingCompleteness` MARKETPLACE_IDS).
+ */
 export const marketplaceIdFor = (country: string): string | null =>
    (MARKETPLACE_IDS as Record<string, string | undefined>)[country.toUpperCase()] ?? null;
+
+/**
+ * Cells in a stable order: the EU country order of AMAZON_COUNTRIES (unknown countries last),
+ * then id. The product's Amazon tab works in the first one unless a link names its market.
+ */
+export const orderAmazonCells = <C extends { id: string; country: string }>(
+   cells: readonly C[]
+) => {
+   const rank = (country: string) => {
+      const at = (AMAZON_COUNTRIES as readonly string[]).indexOf(country.toUpperCase());
+      return at === -1 ? AMAZON_COUNTRIES.length : at;
+   };
+   return [...cells].sort((a, b) => rank(a.country) - rank(b.country) || a.id.localeCompare(b.id));
+};
 
 // --- schemas ---
 
@@ -126,9 +130,10 @@ export const definitionSchema = z.object({
       required: z.array(z.string()).optional(),
       allOf: z.array(z.unknown()).optional()
    }),
-   property_groups: z.record(
-      z.string(),
+   // Amazon's order, as an array (046): the form lists the groups in this order.
+   property_groups: z.array(
       z.object({
+         key: z.string(),
          title: z.string(),
          description: z.string().optional(),
          propertyNames: z.array(z.string())
@@ -172,7 +177,9 @@ export const checkResultSchema = z.object({
       .object({
          asin: z.string().nullable(),
          restricted: z.boolean(),
-         reasons: z.array(z.string())
+         reasons: z.array(z.string()),
+         /** When this check asked Amazon. */
+         checked_at: z.string().nullable().optional()
       })
       .nullable(),
    state: listingStateSchema
@@ -362,26 +369,59 @@ export const validateCell = (cellId: string): Promise<ValidateResult> =>
 export const publishCell = (cellId: string): Promise<CellPublication> =>
    listing({ action: 'publish', cell_id: cellId }, cellAndSubmissionSchema);
 
+/** Asks Amazon for the cell's latest submission now (the poll does it every 10 minutes). */
+export const refreshCellStatus = (cellId: string): Promise<CellPublication> =>
+   listing({ action: 'status', cell_id: cellId }, cellAndSubmissionSchema);
+
 /** Takes the listing down; resolves to the cell and the delete submission. */
 export const deleteListing = (cellId: string): Promise<CellPublication> =>
    listing({ action: 'delete', cell_id: cellId }, cellAndSubmissionSchema);
 
-/** The function takes at most 50 products per call. */
-const BULK_BATCH = 50;
+/** The function takes at most 10 products per call. */
+export const BULK_BATCH = 10;
 
-/** Publishes the products' cells in the country, 50 products per call, in order. */
+const bulkAnswerSchema = z.object({
+   results: z.array(bulkResultSchema),
+   /** The products the call did not start (its time budget ran out): sent again. */
+   remaining: z.array(z.string()).optional().default([])
+});
+
+/**
+ * Publishes the products' cells in the country, 10 products per call, in order, until the
+ * function has started every one (it answers what its time budget left in `remaining`). A call
+ * that fails keeps the results so far and reports every product not done yet as failed with the
+ * call's error code; it never throws.
+ */
 export async function publishBulk(productIds: string[], country: string): Promise<BulkResult[]> {
    const results: BulkResult[] = [];
-   for (let start = 0; start < productIds.length; start += BULK_BATCH) {
-      const { results: batch } = await listing(
-         {
-            action: 'publish_bulk',
-            product_ids: productIds.slice(start, start + BULK_BATCH),
-            country
-         },
-         z.object({ results: z.array(bulkResultSchema) })
+   let queue = [...productIds];
+   const failRest = (code: string) => {
+      results.push(
+         ...queue.map((product_id) => ({
+            product_id,
+            cell_id: null,
+            result: 'error' as const,
+            code
+         }))
       );
-      results.push(...batch);
+      return results;
+   };
+   while (queue.length) {
+      const batch = queue.slice(0, BULK_BATCH);
+      let answer: z.infer<typeof bulkAnswerSchema>;
+      try {
+         answer = await listing(
+            { action: 'publish_bulk', product_ids: batch, country },
+            bulkAnswerSchema
+         );
+      } catch (error) {
+         return failRest(error instanceof AmazonApiError ? error.code : 'internal_error');
+      }
+      results.push(...answer.results);
+      const remaining = answer.remaining.filter((id) => batch.includes(id));
+      // A call that started nothing would loop for ever.
+      if (remaining.length === batch.length) return failRest('internal_error');
+      queue = [...remaining, ...queue.slice(batch.length)];
    }
    return results;
 }
@@ -494,7 +534,7 @@ export type ProductAmazonCell = Pick<
    'id' | 'country' | 'listing_language' | 'price' | 'currency'
 >;
 
-/** The product's Amazon cells, oldest first (the tab works in the first one's marketplace). */
+/** The product's Amazon cells, in orderAmazonCells' order (the tab works in the first one's marketplace). */
 export function useProductAmazonCells(productId: MaybeRefOrGetter<string | null>) {
    const tenantKey = useTenantKey();
    return useQuery({
@@ -510,10 +550,9 @@ export function useProductAmazonCells(productId: MaybeRefOrGetter<string | null>
             .select('id, country, listing_language, price, currency')
             .eq('product_id', toValue(productId)!)
             .eq('platform_id', 'amazon')
-            .order('created_at')
             .abortSignal(signal)
             .throwOnError();
-         return data;
+         return orderAmazonCells(data);
       },
       enabled: computed(() => !!toValue(productId))
    });
@@ -609,6 +648,7 @@ function useListingMutation<A, R>(mutationFn: (args: A) => Promise<R>) {
 export const usePublishCell = () => useListingMutation(publishCell);
 export const useValidateCell = () => useMutation({ mutationFn: validateCell });
 export const useDeleteListing = () => useListingMutation(deleteListing);
+export const useRefreshCellStatus = () => useListingMutation(refreshCellStatus);
 export const usePublishBulk = () =>
    useListingMutation(({ productIds, country }: { productIds: string[]; country: string }) =>
       publishBulk(productIds, country)

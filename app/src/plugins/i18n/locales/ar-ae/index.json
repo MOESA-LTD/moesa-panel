@@ -670,7 +670,9 @@
       "forbidden": "You are not allowed to do this.",
       "tenant_not_allowed": "You are not allowed to act in this company.",
       "method_not_allowed": "This request method is not allowed.",
-      "not_found": "Not found."
+      "not_found": "Not found.",
+      "listing_in_progress": "Amazon is still processing the last submission of this listing.",
+      "platform_account_connected": "Disconnect Amazon before moving this account to another customer."
    },
    "route": {
       "label": {
@@ -2357,7 +2359,8 @@
                "unchecked": "Run Check to mark the listing ready.",
                "submitted": "Amazon is still processing the last submission.",
                "unsaved": "Save the marketplace fields first."
-            }
+            },
+            "refresh_status": "Refresh status"
          },
          "connect": {
             "button": "Connect Amazon",

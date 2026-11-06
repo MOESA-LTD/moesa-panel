@@ -7,7 +7,8 @@ import {
    languageTag,
    missingAttributes,
    serverProvided,
-   toDefinitionRow
+   toDefinitionRow,
+   toPropertyGroups
 } from '@edge-shared/listingCompleteness';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -26,8 +27,9 @@ const DE = { marketplaceId: 'A1PA6795UKMFR9', languageTag: 'de_DE' };
 
 describe('listingCompleteness from the app (@edge-shared)', () => {
    it('counts the missing fields of an empty product per group', () => {
-      const missing = missingAttributes(fixture.schema, fixture.propertyGroups, {}, DE);
-      expect(groupMissingCounts(missing, fixture.propertyGroups)).toEqual({
+      const groups = toPropertyGroups(fixture.propertyGroups);
+      const missing = missingAttributes(fixture.schema, groups, {}, DE);
+      expect(groupMissingCounts(missing, groups)).toEqual({
          product_identity: 3,
          offer: 1,
          images: 1,

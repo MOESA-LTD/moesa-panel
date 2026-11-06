@@ -42,8 +42,10 @@ const emit = defineEmits<{
 }>();
 
 const schema = computed(() => amazonSchemaOf(props.definition));
+// The groups in Amazon's order (an array, 046), and each by its key.
 const groups = computed(() => props.definition.property_groups);
-const groupKeys = computed(() => Object.keys(groups.value));
+const groupKeys = computed(() => groups.value.map(({ key }) => key));
+const groupByKey = computed(() => new Map(groups.value.map((group) => [group.key, group])));
 
 const optionsFor = (languageTag: string) => ({
    marketplaceId: props.definition.marketplace_id,
@@ -82,12 +84,13 @@ watch(groupKeys, (keys) => {
 
 /** The selected group's attributes that the schema has and does not hide. */
 const fields = computed(() =>
-   (selectedGroup.value ? (groups.value[selectedGroup.value]?.propertyNames ?? []) : []).flatMap(
-      (name) => {
-         const property = schema.value.properties[name];
-         return property && !property.hidden ? [{ name, property }] : [];
-      }
-   )
+   (selectedGroup.value
+      ? (groupByKey.value.get(selectedGroup.value)?.propertyNames ?? [])
+      : []
+   ).flatMap((name) => {
+      const property = schema.value.properties[name];
+      return property && !property.hidden ? [{ name, property }] : [];
+   })
 );
 
 const root = ref<HTMLElement | null>(null);
@@ -241,7 +244,7 @@ const ISSUE_SEVERITY = {
                      }"
                      @click="selectedGroup = key"
                   >
-                     <span v-text="groups[key]!.title" />
+                     <span v-text="groupByKey.get(key)!.title" />
                      <Badge
                         v-if="missingCounts[key]"
                         data-missing

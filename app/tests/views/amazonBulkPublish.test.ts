@@ -196,7 +196,15 @@ describe('product list: publish selected to Amazon', () => {
          { id: 'p2', customer_id: 'k1', sku: 'B', display_name: 'b' }
       ]);
       expect(button().attributes('disabled')).toBeUndefined();
-      expect(button().text()).toBe(en.ops.amazon.bulk.open_count.replace('{count}', '2'));
+      expect(button().text()).toBe('Publish 2 products to Amazon');
+
+      // One product reads in the singular (B3).
+      await select([{ id: 'p1', customer_id: 'k1', sku: 'A', display_name: 'a' }]);
+      expect(button().text()).toBe('Publish 1 product to Amazon');
+      await select([
+         { id: 'p1', customer_id: 'k1', sku: 'A', display_name: 'a' },
+         { id: 'p2', customer_id: 'k1', sku: 'B', display_name: 'b' }
+      ]);
 
       await button().trigger('click');
       const dialog = wrapper.getComponent({ name: 'AmazonBulkPublish' });

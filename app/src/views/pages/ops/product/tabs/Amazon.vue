@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
+   AMAZON_LANGUAGE_TAGS,
    amazonErrorText,
+   orderAmazonCells,
    useDefinition,
    useListingSubmissions,
    useProductAmazonCells,
@@ -21,9 +23,11 @@ import { ToastSeverity } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 
 // The product's Amazon content: its Amazon product type and the attribute values in Amazon's own
-// shape, filled against the type's schema. The tab works in the marketplace of the product's first
-// Amazon cell (DE without one) and shows the issues of that cell's latest submission. A link may
-// name a field to open (`?field=<attribute>`), e.g. from the cell drawer.
+// shape, filled against the type's schema. The tab works in one Amazon cell's marketplace and
+// shows the issues of that cell's latest submission: the cell of the market a link names
+// (`?market=<country>`), else the first cell in the EU country order (DE, FR, IT, ES, NL, PL, SE,
+// BE, GB, then id; DE without a cell). A link may also name the language (`?lang=<xx_YY>`) and a
+// field to open (`?field=<attribute>`), as the cell drawer's links do.
 const props = defineProps<{ id: string }>();
 
 /** The locale of the schema's titles and descriptions (Amazon's own text). */
@@ -36,7 +40,13 @@ const authStore = useAuthStore();
 
 const { data: product } = productResource.useOne(() => props.id);
 const { data: cells } = useProductAmazonCells(() => props.id);
-const cell = computed(() => cells.value?.[0] ?? null);
+const queryText = (name: string) =>
+   typeof route.query[name] === 'string' ? (route.query[name] as string) : null;
+const market = computed(() => queryText('market')?.toUpperCase() ?? null);
+const cell = computed(() => {
+   const ordered = orderAmazonCells(cells.value ?? []);
+   return ordered.find(({ country }) => country === market.value) ?? ordered[0] ?? null;
+});
 const country = computed(() => cell.value?.country ?? DEFAULT_COUNTRY);
 const customerId = computed(() => product.value?.customer_id ?? null);
 const canEdit = computed(
@@ -98,13 +108,24 @@ const isDirty = computed(
 );
 // The product loading after the tab, or refetched after another tab saved it, replaces the values
 // unless they were edited here (compared with what was saved before).
+// A refetch that brings the same values back (a new but equal object) changes nothing, so local
+// text that does not parse yet (a JSON field) is kept.
 watch(savedAttributes, (saved, before) => {
+   if (_isEqual(saved, before)) return;
    if (_isEqual(attributes.value, before)) loadSaved(saved);
 });
 
-// The first Amazon cell's language, until the user picks one.
-const languagePicked = ref(false);
-const languageTag = ref(defaultLanguageTag(country.value, cell.value?.listing_language) ?? 'de_DE');
+// The language a link names, else the working cell's language, until the user picks one.
+const linkedLanguage = computed(() => {
+   const tag = queryText('lang');
+   return tag && (AMAZON_LANGUAGE_TAGS as readonly string[]).includes(tag) ? tag : null;
+});
+const languagePicked = ref(!!linkedLanguage.value);
+const languageTag = ref(
+   linkedLanguage.value ??
+      defaultLanguageTag(country.value, cell.value?.listing_language) ??
+      'de_DE'
+);
 watch(cell, (first) => {
    if (languagePicked.value) return;
    languageTag.value =
@@ -114,6 +135,7 @@ const pickLanguage = (tag: string) => {
    languagePicked.value = true;
    languageTag.value = tag;
 };
+watch(linkedLanguage, (tag) => tag && pickLanguage(tag));
 
 const provided = computed(() =>
    product.value ? serverProvided(product.value, cell.value ?? {}) : []
@@ -129,9 +151,7 @@ const schemaMoved = computed(
 const { data: submissions } = useListingSubmissions(() => cell.value?.id ?? null);
 const issues = computed(() => submissions.value?.[0]?.issues ?? []);
 
-const focusField = computed(() =>
-   typeof route.query.field === 'string' ? route.query.field : null
-);
+const focusField = computed(() => queryText('field'));
 
 // --- save ---
 const { mutateAsync: saveProduct, isPending: isSubmitting } = productResource.useSave();
