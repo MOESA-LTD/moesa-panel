@@ -1493,7 +1493,7 @@ BEGIN
         v_decisions := v_decisions || v_added;
     END LOOP;
 
-    IF (v_report ->> 'unresolved')::INT <> 0 THEN
+    IF (v_report ->> 'unresolved')::INT IS DISTINCT FROM 0 THEN
         RAISE EXCEPTION 'story 10: % conflicts left undecided', v_report ->> 'unresolved';
     END IF;
 
@@ -1501,8 +1501,8 @@ BEGIN
         v_tenant, v_europe, v_krn, 'copy', decisions => v_decisions, dry_run => FALSE, report_hash => v_report ->> 'report_hash'
     ));
 
-    IF v_run.tenant_id IS DISTINCT FROM v_europe OR v_run.mode <> 'copy' OR v_run.path <> 'copy'
-       OR v_run.files_status <> 'pending' OR jsonb_array_length(v_run.files) = 0 THEN
+    IF v_run.tenant_id IS DISTINCT FROM v_europe OR v_run.mode IS DISTINCT FROM 'copy' OR v_run.path IS DISTINCT FROM 'copy'
+       OR v_run.files_status IS DISTINCT FROM 'pending' OR coalesce(jsonb_array_length(v_run.files), 0) = 0 THEN
         RAISE EXCEPTION 'story 10: the copy is not a pending copy into MOESA Europe (%, %, %)', v_run.mode, v_run.path, v_run.files_status;
     END IF;
 
@@ -1510,8 +1510,8 @@ BEGIN
         RAISE EXCEPTION 'story 10: the copy has no KRN in MOESA Europe';
     END IF;
 
-    IF cardinality(v_run.audit_transaction_ids) = 0
-       OR EXISTS (SELECT 1 FROM unnest(v_run.audit_transaction_ids) a WHERE NOT public.audit_transfer_locked(a)) THEN
+    IF coalesce(cardinality(v_run.audit_transaction_ids), 0) = 0
+       OR EXISTS (SELECT 1 FROM unnest(v_run.audit_transaction_ids) a WHERE public.audit_transfer_locked(a) IS NOT TRUE) THEN
         RAISE EXCEPTION 'story 10: an audit transaction of the copy could be reverted';
     END IF;
 END;
