@@ -2301,7 +2301,8 @@
             "json_invalid": "Bu geçerli bir JSON değil.",
             "issue_link": "{field} alanına git",
             "product_type_empty": "Alanlarını doldurmak için Amazon ürün tipini seçin.",
-            "provided": "Yayınlarken üründen veya pazar hücresinden doldurulur."
+            "provided": "Yayınlarken üründen veya pazar hücresinden doldurulur.",
+            "value_clear": "Değeri temizle"
          },
          "cell": {
             "title": "Amazon listesi",

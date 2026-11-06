@@ -2301,7 +2301,8 @@
             "json_invalid": "This is not valid JSON.",
             "issue_link": "Go to {field}",
             "product_type_empty": "Choose the Amazon product type to fill in its fields.",
-            "provided": "Filled in on publishing, from the product or the market cell."
+            "provided": "Filled in on publishing, from the product or the market cell.",
+            "value_clear": "Clear the value"
          },
          "cell": {
             "title": "Amazon listing",

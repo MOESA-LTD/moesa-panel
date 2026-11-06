@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { mediaResource, thumbPath, type MediaRow } from '@/api/media';
-import MediaPickerDialog from '@/components/service-components/media/MediaPickerDialog.vue';
-import MediaThumb from '@/components/service-components/media/MediaThumb.vue';
 import type { Attributes, PropertySchema } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import {
@@ -15,6 +12,7 @@ import {
    writeValue,
    type Entry
 } from './amazonForm';
+import AmazonImageSlot from './AmazonImageSlot.vue';
 
 // One attribute of the Amazon form, in the control its schema calls for. Every edit goes through
 // writeValue: the entries of the other languages stay as they are. An attribute that takes several
@@ -31,6 +29,8 @@ const props = defineProps<{
    /** The media library the image slots offer: the product's customer and tenant. */
    customerId?: string | null;
    tenantId?: string | null;
+   /** Changes when the form's values are replaced (reset, reload), dropping unsaved local text. */
+   resetKey?: number;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [attributes: Attributes] }>();
 
@@ -59,15 +59,17 @@ const entryAt = (index: number): Entry | undefined =>
    readValue(props.modelValue, props.name, { languageTag: props.languageTag, index });
 const valueAt = (index: number) => entryAt(index)?.[key.value];
 
-const write = (index: number, value: unknown) =>
-   emit(
-      'update:modelValue',
-      writeValue(props.modelValue, props.name, value, {
-         languageTag: props.languageTag,
-         languageTagged: languageTagged.value,
-         index
-      })
-   );
+const write = (index: number, value: unknown) => {
+   const next = writeValue(props.modelValue, props.name, value, {
+      languageTag: props.languageTag,
+      languageTagged: languageTagged.value,
+      index
+   });
+   emit('update:modelValue', next);
+};
+
+/** A unique input id per entry: the label points at the first one. */
+const slotId = (id: string, index: number) => (index === 0 ? id : `${id}-${index}`);
 const writeKey = (index: number, value: unknown) => write(index, { [key.value]: value });
 
 // A measure's unit is kept here until its value is entered: a lone unit is no entry.
@@ -82,14 +84,13 @@ const writeMeasure = (index: number, value: unknown, unit: unknown) => {
 // JSON text is kept while it does not parse; it is written once it is an object.
 const jsonTexts = ref<Record<number, string>>({});
 const jsonErrors = ref<Record<number, boolean>>({});
-watch(
-   () => props.languageTag,
-   () => {
-      jsonTexts.value = {};
-      jsonErrors.value = {};
-      pickedUnits.value = {};
-   }
-);
+const clearLocal = () => {
+   jsonTexts.value = {};
+   jsonErrors.value = {};
+   pickedUnits.value = {};
+};
+// Local text and units belong to what was shown: a language switch or a form reset drops them.
+watch(() => [props.languageTag, props.resetKey], clearLocal);
 const jsonAt = (index: number) => {
    if (index in jsonTexts.value) return jsonTexts.value[index];
    const content = contentOf(entryAt(index));
@@ -115,22 +116,10 @@ const jsonError = computed(() =>
    Object.values(jsonErrors.value).some(Boolean) ? i18n.t('ops.amazon.tab.json_invalid') : undefined
 );
 
-// An image slot holds one library file as `media:<id>`; the server copies it to a public URL.
-const MEDIA_PREFIX = 'media:';
-const location = computed(() => {
-   const value = valueAt(0);
+/** The media_location of an image slot's entry, or null. */
+const locationAt = (index: number) => {
+   const value = valueAt(index);
    return typeof value === 'string' ? value : null;
-});
-const mediaId = computed(() =>
-   location.value?.startsWith(MEDIA_PREFIX) ? location.value.slice(MEDIA_PREFIX.length) : null
-);
-const { data: media } = mediaResource.useOne(() =>
-   control.value === 'image' ? mediaId.value : null
-);
-const pickerOpen = ref(false);
-const onPicked = (rows: { id: string | null }[]) => {
-   const id = rows[0]?.id;
-   if (id) writeKey(0, `${MEDIA_PREFIX}${id}`);
 };
 </script>
 
@@ -147,7 +136,7 @@ const onPicked = (rows: { id: string | null }[]) => {
             <template v-for="index in slots" :key="index">
                <InputText
                   v-if="control === 'text'"
-                  :id="index === 0 ? slotProps.id : undefined"
+                  :id="slotId(slotProps.id, index)"
                   :modelValue="(valueAt(index) as string | undefined) ?? ''"
                   :maxlength="field.maxLength"
                   :disabled="readonly"
@@ -156,7 +145,7 @@ const onPicked = (rows: { id: string | null }[]) => {
                />
                <Textarea
                   v-else-if="control === 'textarea'"
-                  :id="index === 0 ? slotProps.id : undefined"
+                  :id="slotId(slotProps.id, index)"
                   :modelValue="(valueAt(index) as string | undefined) ?? ''"
                   :maxlength="field.maxLength"
                   :disabled="readonly"
@@ -167,7 +156,7 @@ const onPicked = (rows: { id: string | null }[]) => {
                />
                <InputNumber
                   v-else-if="control === 'number'"
-                  :inputId="index === 0 ? slotProps.id : undefined"
+                  :inputId="slotId(slotProps.id, index)"
                   :modelValue="(valueAt(index) as number | undefined) ?? null"
                   :min="field.minimum"
                   :max="field.maximum"
@@ -179,7 +168,7 @@ const onPicked = (rows: { id: string | null }[]) => {
                />
                <Select
                   v-else-if="control === 'select'"
-                  :inputId="index === 0 ? slotProps.id : undefined"
+                  :inputId="slotId(slotProps.id, index)"
                   :modelValue="valueAt(index) ?? null"
                   :options="valueOptions"
                   optionLabel="label"
@@ -189,16 +178,29 @@ const onPicked = (rows: { id: string | null }[]) => {
                   fluid
                   @update:modelValue="writeKey(index, $event)"
                />
-               <ToggleSwitch
-                  v-else-if="control === 'boolean'"
-                  :inputId="index === 0 ? slotProps.id : undefined"
-                  :modelValue="valueAt(index) === true"
-                  :disabled="readonly"
-                  @update:modelValue="writeKey(index, $event)"
-               />
+               <span v-else-if="control === 'boolean'" class="flex items-center gap-2">
+                  <ToggleSwitch
+                     :inputId="slotId(slotProps.id, index)"
+                     :modelValue="valueAt(index) === true"
+                     :disabled="readonly"
+                     @update:modelValue="writeKey(index, $event)"
+                  />
+                  <!-- Unset differs from "no": a set answer can be taken back. -->
+                  <Button
+                     v-if="!readonly && valueAt(index) !== undefined"
+                     data-action="boolean-clear"
+                     variant="text"
+                     severity="secondary"
+                     size="small"
+                     :icon="PrimeIcons.TIMES"
+                     :title="$t('ops.amazon.tab.value_clear')"
+                     :aria-label="$t('ops.amazon.tab.value_clear')"
+                     @click="write(index, null)"
+                  />
+               </span>
                <div v-else-if="control === 'measure'" class="flex gap-2">
                   <InputNumber
-                     :inputId="index === 0 ? slotProps.id : undefined"
+                     :inputId="slotId(slotProps.id, index)"
                      :modelValue="(valueAt(index) as number | undefined) ?? null"
                      :min="field.minimum"
                      :maxFractionDigits="field.type === 'integer' ? 0 : 6"
@@ -217,44 +219,19 @@ const onPicked = (rows: { id: string | null }[]) => {
                      @update:modelValue="writeMeasure(index, valueAt(index) ?? null, $event)"
                   />
                </div>
-               <div v-else-if="control === 'image'" class="flex items-center gap-3">
-                  <MediaThumb
-                     :path="media ? thumbPath(media as MediaRow) : null"
-                     :mimeType="media?.mime_type ?? null"
-                     :alt="media?.file_name ?? null"
-                     :size="64"
-                  />
-                  <span
-                     class="min-w-0 flex-1 truncate text-sm"
-                     :title="location ?? undefined"
-                     v-text="media?.file_name ?? location ?? ''"
-                  />
-                  <template v-if="!readonly">
-                     <Button
-                        :id="slotProps.id"
-                        data-action="image-pick"
-                        variant="outlined"
-                        size="small"
-                        :icon="PrimeIcons.IMAGES"
-                        :label="$t('ops.amazon.tab.image_pick')"
-                        @click="pickerOpen = true"
-                     />
-                     <Button
-                        v-if="location"
-                        data-action="image-clear"
-                        variant="text"
-                        severity="secondary"
-                        size="small"
-                        :icon="PrimeIcons.TIMES"
-                        :title="$t('ops.amazon.tab.image_clear')"
-                        :aria-label="$t('ops.amazon.tab.image_clear')"
-                        @click="write(0, null)"
-                     />
-                  </template>
-               </div>
+               <AmazonImageSlot
+                  v-else-if="control === 'image'"
+                  :location="locationAt(index)"
+                  :inputId="slotId(slotProps.id, index)"
+                  :readonly
+                  :customerId
+                  :tenantId
+                  @pick="writeKey(index, `media:${$event}`)"
+                  @clear="write(index, null)"
+               />
                <Textarea
                   v-else
-                  :id="index === 0 ? slotProps.id : undefined"
+                  :id="slotId(slotProps.id, index)"
                   :modelValue="jsonAt(index)"
                   :invalid="!!jsonErrors[index]"
                   :disabled="readonly"
@@ -276,14 +253,5 @@ const onPicked = (rows: { id: string | null }[]) => {
          <span v-if="provided" v-text="$t('ops.amazon.tab.provided')" />
          <span v-if="property.description" v-text="property.description" />
       </span>
-      <MediaPickerDialog
-         v-if="control === 'image' && !readonly"
-         v-model:visible="pickerOpen"
-         :customerId="customerId ?? null"
-         :tenantId="tenantId ?? null"
-         :multiple="false"
-         :kinds="['image']"
-         @picked="onPicked"
-      />
    </div>
 </template>

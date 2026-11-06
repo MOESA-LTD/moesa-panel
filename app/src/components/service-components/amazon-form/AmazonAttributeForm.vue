@@ -33,6 +33,8 @@ const props = defineProps<{
    tenantId?: string | null;
    /** An attribute to open (its group) and focus once shown, e.g. from a link. */
    focusField?: string | null;
+   /** Changes when the values are replaced from outside (reset, reload): fields drop local text. */
+   resetKey?: number;
 }>();
 const emit = defineEmits<{
    'update:modelValue': [attributes: Attributes];
@@ -129,7 +131,17 @@ const issueTarget = (issue: AmazonIssue) => {
    const base = baseAttribute(name);
    return groupOf(groups.value, base) ? base : null;
 };
-const fieldTitle = (name: string) => schema.value.properties[name]?.title ?? name;
+/** The issues with the field each leads to (and its title), worked out once per issue. */
+const issueRows = computed(() =>
+   (props.issues ?? []).map((issue) => {
+      const target = issueTarget(issue);
+      return {
+         issue,
+         target,
+         title: target ? (schema.value.properties[target]?.title ?? target) : null
+      };
+   })
+);
 const ISSUE_SEVERITY = {
    ERROR: 'error',
    WARNING: 'warn',
@@ -190,22 +202,24 @@ const ISSUE_SEVERITY = {
          />
       </div>
 
-      <ul v-if="issues?.length" class="flex flex-col gap-2">
-         <li v-for="(issue, index) in issues" :key="`${issue.code}-${index}`" data-issue>
+      <ul v-if="issueRows.length" class="flex flex-col gap-2">
+         <li
+            v-for="({ issue, target, title }, index) in issueRows"
+            :key="`${issue.code}-${index}`"
+            data-issue
+         >
             <Message :severity="ISSUE_SEVERITY[issue.severity]" size="small">
                <span class="flex flex-wrap items-center gap-2">
                   <span class="font-mono text-xs" v-text="issue.code" />
                   <span v-text="issue.message" />
                   <Button
-                     v-if="issueTarget(issue)"
+                     v-if="target"
                      data-issue-link
                      variant="link"
                      size="small"
                      class="!p-0"
-                     :label="
-                        $t('ops.amazon.tab.issue_link', { field: fieldTitle(issueTarget(issue)!) })
-                     "
-                     @click="jumpTo(issueTarget(issue)!)"
+                     :label="$t('ops.amazon.tab.issue_link', { field: title })"
+                     @click="jumpTo(target)"
                   />
                </span>
             </Message>
@@ -251,6 +265,7 @@ const ISSUE_SEVERITY = {
                :readonly
                :customerId
                :tenantId
+               :resetKey
                @update:modelValue="emit('update:modelValue', $event)"
             />
          </section>

@@ -85,21 +85,35 @@ const savedAttributes = computed(
    () => (product.value?.listing_attributes ?? {}) as unknown as Attributes
 );
 const attributes = ref<Attributes>(_cloneDeep(savedAttributes.value));
+/** Bumped whenever the values are replaced from the product, so fields drop unsaved local text. */
+const resetKey = ref(0);
+const loadSaved = (saved: Attributes) => {
+   attributes.value = _cloneDeep(saved);
+   resetKey.value += 1;
+};
 const isDirty = computed(
    () =>
       !_isEqual(attributes.value, savedAttributes.value) ||
       productType.value !== (product.value?.amazon_product_type ?? null)
 );
-// A refetched product (another tab saved it) replaces the values unless they were edited here.
-watch(savedAttributes, (saved) => {
-   if (!isDirty.value) attributes.value = _cloneDeep(saved);
+// The product loading after the tab, or refetched after another tab saved it, replaces the values
+// unless they were edited here (compared with what was saved before).
+watch(savedAttributes, (saved, before) => {
+   if (_isEqual(attributes.value, before)) loadSaved(saved);
 });
 
+// The first Amazon cell's language, until the user picks one.
+const languagePicked = ref(false);
 const languageTag = ref(defaultLanguageTag(country.value, cell.value?.listing_language) ?? 'de_DE');
 watch(cell, (first) => {
+   if (languagePicked.value) return;
    languageTag.value =
       defaultLanguageTag(country.value, first?.listing_language) ?? languageTag.value;
 });
+const pickLanguage = (tag: string) => {
+   languagePicked.value = true;
+   languageTag.value = tag;
+};
 
 const provided = computed(() =>
    product.value ? serverProvided(product.value, cell.value ?? {}) : []
@@ -123,13 +137,13 @@ const focusField = computed(() =>
 const { mutateAsync: saveProduct, isPending: isSubmitting } = productResource.useSave();
 
 const reset = () => {
-   attributes.value = _cloneDeep(savedAttributes.value);
+   loadSaved(savedAttributes.value);
    productType.value = product.value?.amazon_product_type ?? null;
    typeInput.value = productType.value;
 };
 
 const submit = async () => {
-   if (!canEdit.value || !productType.value || !definition.value) return;
+   if (!product.value || !canEdit.value || !productType.value || !definition.value) return;
    try {
       // Only the Amazon columns: saveRow updates by id and sends nothing else.
       const row = {
@@ -139,7 +153,7 @@ const submit = async () => {
          listing_attributes: attributes.value
       } as unknown as ResourceInput<'product'>;
       const saved = (await saveProduct(row)) as ProductRow;
-      attributes.value = _cloneDeep((saved.listing_attributes ?? {}) as unknown as Attributes);
+      loadSaved((saved.listing_attributes ?? {}) as unknown as Attributes);
       toast.add({
          life: 3000,
          severity: ToastSeverity.SUCCESS,
@@ -156,7 +170,7 @@ const submit = async () => {
    <FormBox
       v-if="product"
       :readonly="!canEdit"
-      :dirty="isDirty && !!definition"
+      :dirty="isDirty && !!product && !!definition"
       :submitting="isSubmitting"
       :submitText="$t('ops.amazon.tab.save')"
       @submit="submit"
@@ -199,7 +213,9 @@ const submit = async () => {
             </Message>
             <AmazonAttributeForm
                v-model="attributes"
-               v-model:languageTag="languageTag"
+               :languageTag
+               :resetKey
+               @update:languageTag="pickLanguage"
                :definition
                :provided
                :readonly="!canEdit"

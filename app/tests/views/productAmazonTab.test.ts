@@ -6,12 +6,12 @@ import en from '@/plugins/i18n/locales/en/index.json';
 import Amazon from '@/views/pages/ops/product/tabs/Amazon.vue';
 import type { Attributes } from '@edge-shared/listingCompleteness';
 import i18n, { i18NPlugin } from '@plugins/i18n';
-import { flushPromises, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
 const seed = (file: string) =>
@@ -67,22 +67,29 @@ vi.mock('@/api/media/signedUrls', async () => {
    const { computed } = await import('vue');
    return { useSignedUrl: () => computed(() => undefined) };
 });
+// Reactive stand-ins, so a test can let the product or the cells arrive after the tab mounted.
+const productRef = ref<unknown>(null);
+const cellsRef = ref<unknown[]>([]);
+
 vi.mock('@/api/product', async (importOriginal) => ({
    ...(await importOriginal<typeof import('@/api/product')>()),
    productResource: {
-      useOne: () => ({ data: ref(api.product) }),
+      useOne: () => ({ data: productRef }),
       useSave: () => ({ mutateAsync: api.save, isPending: ref(false) })
    }
 }));
 vi.mock('@/api/amazon', async (importOriginal) => ({
    ...(await importOriginal<typeof import('@/api/amazon')>()),
-   useProductAmazonCells: () => ({ data: ref(api.cells) }),
+   useProductAmazonCells: () => ({ data: cellsRef }),
    useProductTypeSearch: () => ({ data: ref([]), isFetching: ref(false) }),
    useDefinition: () => ({ data: ref(api.definition), isFetching: ref(false), error: ref(null) }),
    useListingSubmissions: () => ({ data: ref(api.submissions) })
 }));
 
 const plugins = [i18NPlugin, PrimeVue, ToastService];
+
+// The stand-in refs are shared: an earlier test's tab must not react to a later test's changes.
+enableAutoUnmount(afterEach);
 
 type FormProps = {
    modelValue?: Attributes;
@@ -259,6 +266,33 @@ describe('AmazonAttributeForm', () => {
       expect(field.contains(document.activeElement)).toBe(true);
    });
 
+   it('a boolean can be cleared back to unset', async () => {
+      const wrapper = mountForm({ modelValue: { is_fragile: [{ value: false }] } });
+      await groupButton(wrapper, 'product_details').trigger('click');
+      await wrapper.get('[data-field="is_fragile"] [data-action="boolean-clear"]').trigger('click');
+      expect(lastModel(wrapper)).toEqual({});
+      expect(wrapper.find('[data-field="color"] [data-action="boolean-clear"]').exists()).toBe(
+         false
+      );
+   });
+
+   it('gives each entry of a multi-entry field its own input id', async () => {
+      const wrapper = mountForm({
+         modelValue: {
+            bullet_point: [
+               { value: 'One', language_tag: 'de_DE' },
+               { value: 'Two', language_tag: 'de_DE' }
+            ]
+         }
+      });
+      await groupButton(wrapper, 'product_details').trigger('click');
+      const ids = wrapper
+         .findAll('[data-field="bullet_point"] input')
+         .map((input) => input.attributes('id'));
+      expect(ids).toHaveLength(3);
+      expect(new Set(ids).size).toBe(3);
+   });
+
    it('is read-only without the right to edit', () => {
       const wrapper = mount(AmazonAttributeForm, {
          props: {
@@ -297,8 +331,11 @@ describe('the product Amazon tab', () => {
       };
    });
 
-   const mountTab = () =>
-      mount(Amazon, { attachTo: document.body, props: { id: 'p1' }, global: { plugins } });
+   const mountTab = () => {
+      productRef.value = api.product;
+      cellsRef.value = api.cells;
+      return mount(Amazon, { attachTo: document.body, props: { id: 'p1' }, global: { plugins } });
+   };
 
    it('shows the schema-moved notice', async () => {
       api.product = { ...(api.product as object), amazon_schema_version: 'OLD' };
@@ -363,5 +400,71 @@ describe('the product Amazon tab', () => {
       await flushPromises();
       expect(wrapper.text()).toContain('Newest issue');
       expect(wrapper.text()).not.toContain('Old issue');
+   });
+
+   it('takes the stored values of a product that loads after the tab, and saves them all', async () => {
+      const stored = {
+         ...(api.product as { listing_attributes: Attributes }).listing_attributes,
+         item_name: [
+            { value: 'Mop', language_tag: 'en_GB' },
+            { value: 'Wischmopp', language_tag: 'de_DE' }
+         ]
+      };
+      const loaded = { ...(api.product as object), listing_attributes: stored };
+      api.product = null;
+      const wrapper = mountTab();
+      await flushPromises();
+      expect(wrapper.find('form').exists()).toBe(false);
+
+      productRef.value = loaded;
+      await flushPromises();
+      expect(inputValue(wrapper, 'item_name')).toBe('Wischmopp');
+      expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined();
+
+      await wrapper.get('[data-field="item_name"] input').setValue('Mopp');
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+
+      expect(api.save).toHaveBeenCalledWith(
+         expect.objectContaining({
+            listing_attributes: {
+               ...stored,
+               item_name: [
+                  { value: 'Mop', language_tag: 'en_GB' },
+                  { value: 'Mopp', language_tag: 'de_DE' }
+               ]
+            }
+         })
+      );
+   });
+
+   it('a reset drops JSON text that did not parse', async () => {
+      const wrapper = mountTab();
+      await flushPromises();
+      await wrapper.get('[data-field="item_name"] input').setValue('Mop');
+      await wrapper.get('[data-group="offer"]').trigger('click');
+      const field = () => wrapper.get('[data-field="purchasable_offer"]');
+      await field().get('textarea').setValue('{ nope');
+      expect(field().text()).toContain('This is not valid JSON.');
+
+      await wrapper.get('form').trigger('reset');
+      await flushPromises();
+
+      expect((field().get('textarea').element as HTMLTextAreaElement).value).toBe('');
+      expect(field().text()).not.toContain('This is not valid JSON.');
+   });
+
+   it('keeps the language the user picked when the cells arrive', async () => {
+      const wrapper = mountTab();
+      await flushPromises();
+      const form = wrapper.getComponent(AmazonAttributeForm);
+      form.vm.$emit('update:languageTag', 'en_GB');
+      await flushPromises();
+
+      cellsRef.value = [
+         { id: 'cell1', country: 'FR', listing_language: null, price: null, currency: null }
+      ];
+      await flushPromises();
+      expect(form.props('languageTag')).toBe('en_GB');
    });
 });
