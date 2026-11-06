@@ -504,11 +504,287 @@ BEGIN
 END;
 $$;
 
+-- Moves a story order one status at a time to p_to, the way purchase_order_guard (030) would let
+-- it: the next status (pi_approved goes straight to in_production at a deposit rate of 0), or
+-- cancelled. Before each step it checks what the guard checks on entering that status (lines;
+-- the PI document and total; 30 "ok" items and the PI figures equal to
+-- private.purchase_order_figures; a paid deposit or balance), then makes the step in one UPDATE
+-- under the rules bypass, so the PI check is dated p_checked_at instead of now(); the bypass also
+-- keeps the story loadable once spec_sheet_required_from has passed (the spec sheets of the lines
+-- are the m7 checks' business). The checker is the step's actor, as the guard would set it.
+CREATE FUNCTION private.story_po_walk (
+    p_id UUID,
+    p_to public.purchase_order_status,
+    p_checked_at TIMESTAMPTZ DEFAULT NULL
+) RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_statuses public.purchase_order_status[] := enum_range(NULL::public.purchase_order_status);
+    v_po public.purchase_order;
+    v_next public.purchase_order_status;
+    v_figures RECORD;
+BEGIN
+    LOOP
+        SELECT * INTO v_po FROM public.purchase_order po WHERE po.id = p_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'story: no purchase order %', p_id;
+        END IF;
+
+        EXIT WHEN v_po.status = p_to;
+
+        IF v_po.status IN ('closed', 'cancelled') OR (p_to <> 'cancelled' AND v_po.status > p_to) THEN
+            RAISE EXCEPTION 'story: order % cannot go from % to %', p_id, v_po.status, p_to;
+        END IF;
+
+        v_next := CASE WHEN p_to = 'cancelled' THEN 'cancelled'
+                       WHEN v_po.status = 'pi_approved' AND v_po.deposit_rate = 0 THEN 'in_production'
+                       ELSE v_statuses[array_position(v_statuses, v_po.status) + 1] END;
+
+        IF v_next = 'sent' AND NOT EXISTS (SELECT 1 FROM public.purchase_order_line l WHERE l.purchase_order_id = p_id) THEN
+            RAISE EXCEPTION 'story: order % has no lines', p_id;
+        ELSIF v_next = 'pi_received' AND (v_po.pi_document_id IS NULL OR v_po.pi_total IS NULL) THEN
+            RAISE EXCEPTION 'story: order % has no PI document or total', p_id;
+        ELSIF v_next = 'pi_approved' THEN
+            SELECT f.subtotal, f.total, f.deposit, f.balance INTO v_figures
+            FROM private.purchase_order_figures(p_id, v_po.tenant_id) f;
+
+            IF p_checked_at IS NULL
+               OR (SELECT count(*) FROM jsonb_each(v_po.pi_check) e WHERE e.value = '"ok"'::JSONB) < 30
+               OR ROW(v_po.pi_subtotal, v_po.pi_total, v_po.pi_deposit_amount, v_po.pi_balance_amount)
+                  IS DISTINCT FROM ROW(v_figures.subtotal, v_figures.total, v_figures.deposit, v_figures.balance) THEN
+                RAISE EXCEPTION 'story: the PI of order % is not checked, or its figures differ', p_id;
+            END IF;
+        ELSIF v_next IN ('deposit_paid', 'balance_paid') AND NOT EXISTS (
+            SELECT 1 FROM public.purchase_order_payment p
+            WHERE p.purchase_order_id = p_id AND p.paid_on IS NOT NULL
+              AND p.kind = CASE WHEN v_next = 'deposit_paid' THEN 'deposit' ELSE 'balance' END::public.payment_kind
+        ) THEN
+            RAISE EXCEPTION 'story: order % has no paid payment for %', p_id, v_next;
+        END IF;
+
+        PERFORM private.story_bypass(TRUE);
+
+        UPDATE public.purchase_order po
+        SET status = v_next,
+            pi_checked_by = CASE WHEN v_next = 'pi_approved' THEN auth.uid() ELSE po.pi_checked_by END,
+            pi_checked_at = CASE WHEN v_next = 'pi_approved' THEN p_checked_at ELSE po.pi_checked_at END
+        WHERE po.id = p_id;
+
+        PERFORM private.story_bypass(FALSE);
+    END LOOP;
+END;
+$$;
+
+-- The supplier's PI of a story order (a sent order; no bypass needed): the pi document with the
+-- fixed id p_id, its number, and the order's figures from private.purchase_order_figures. An
+-- approved PI also carries the 30 "ok" checklist items and every amount; any other PI only its
+-- total, p_total_offset off the recalculated one.
+CREATE FUNCTION private.story_po_pi (
+    p_id UUID,
+    p_po_id UUID,
+    p_status public.document_status,
+    p_issued_on DATE,
+    p_total_offset NUMERIC DEFAULT 0
+) RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_po public.purchase_order;
+    v_approved BOOLEAN := p_status = 'approved';
+BEGIN
+    SELECT * INTO v_po FROM public.purchase_order po WHERE po.id = p_po_id;
+
+    IF NOT FOUND OR v_po.status <> 'sent' THEN
+        RAISE EXCEPTION 'story: the PI of % needs a sent order', p_po_id;
+    END IF;
+
+    PERFORM private.story_doc(p_id, 'purchase_order', p_po_id, v_po.customer_id, 'pi', 1, p_status, p_issued_on);
+
+    UPDATE public.purchase_order po
+    SET pi_document_id = p_id,
+        pi_number = 'PI-' || to_char(p_issued_on, 'YYMMDD') || '-' || right(p_po_id::TEXT, 2),
+        pi_subtotal = CASE WHEN v_approved THEN f.subtotal END,
+        pi_total = f.total + p_total_offset,
+        pi_deposit_amount = CASE WHEN v_approved THEN f.deposit END,
+        pi_balance_amount = CASE WHEN v_approved THEN f.balance END,
+        pi_check = CASE WHEN v_approved
+                        THEN (SELECT jsonb_object_agg(g::TEXT, to_jsonb('ok'::TEXT)) FROM generate_series(1, 30) g)
+                        ELSE '{}'::JSONB END
+    FROM private.purchase_order_figures(p_po_id, v_po.tenant_id) f
+    WHERE po.id = p_po_id;
+END;
+$$;
+
+-- Step 05 (5 days ago): purchase orders in every status and the gates that need a PI, as baris in
+-- MOESA LTD. The orders come first, so that the step's audit transaction is named after the
+-- purchase_order table. Each order is inserted as a draft (the code trigger forces it), walked by
+-- story_po_walk, its PI from story_po_pi; codes follow the insert order (THO 001-011, KRN 001).
+-- Order ids 5eed0005-…-NN, lines …-1NN, PI documents …-2NN, PSI reports …-3NN, gate approvals
+-- …-4NN. Every line whose product has a signed or approved spec sheet cites it; THO-MOP40-4P (no
+-- spec: the draft's "missing spec"), THO-TIPS-6-50 (a draft spec only) and THO-CONES-200 have
+-- none, which needs none before spec_sheet_required_from (they are on sale or ordering).
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('baris@moesa-panel.test', 'MOESA LTD');
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.tenant_id = v_tenant AND c.code = 'THO');
+    v_krn UUID := '5eed0002-0000-4000-8000-000000000001';
+    v_tr1 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'TR1');
+    v_cn1 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'CN1');
+    v_id1 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'ID1');
+    v_mop UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-MOP40-2P');
+    v_tips50 UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-TIPS-6-50');
+    v_cones100 UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-CONES-100');
+    v_mop_spec UUID := (SELECT d.id FROM public.document d
+                        WHERE d.tenant_id = v_tenant AND d.entity_type = 'product' AND d.entity_id = v_mop
+                          AND d.type = 'spec_sheet' AND d.version = 2 AND d.status = 'signed');
+    v_variant UUID := '5eed0004-0000-4000-8000-000000000002';
+    v_reorder UUID := '5eed0004-0000-4000-8000-000000000003';
+    v_cones UUID := '5eed0004-0000-4000-8000-000000000005';
+    v_pi RECORD;
+    v_rows INT;
+BEGIN
+    IF v_tho IS NULL OR v_tr1 IS NULL OR v_cn1 IS NULL OR v_id1 IS NULL OR v_mop IS NULL OR v_tips50 IS NULL
+       OR v_cones100 IS NULL OR v_mop_spec IS NULL THEN
+        RAISE EXCEPTION 'story 05: a customer, supplier, product or the mop spec of seed.sql is missing';
+    END IF;
+
+    -- Twelve orders, created over the last months. Incoterm and deposit rate come from the
+    -- supplier (30 %), except the order without a deposit.
+    INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, project_id, currency, deposit_rate,
+                                       ready_on, tolerance_pct, created_at)
+    SELECT ('5eed0005-0000-4000-8000-0000000000' || x.nn)::UUID, v_tenant, coalesce(x.customer, v_tho), x.supplier,
+           x.project, x.currency, x.deposit_rate, current_date + x.ready_in, x.tolerance,
+           now() - make_interval(days => x.age)
+    FROM (VALUES ('01', NULL::UUID, v_tr1, NULL::UUID, 'USD', NULL::NUMERIC, NULL::INT, NULL::NUMERIC, 3),
+                 ('02', NULL, v_cn1, NULL, 'USD', NULL, 60, NULL, 9),
+                 ('03', NULL, v_tr1, NULL, 'USD', NULL, 50, NULL, 16),
+                 ('04', NULL, v_cn1, v_reorder, 'USD', NULL, 45, NULL, 22),
+                 ('05', NULL, v_tr1, v_variant, 'USD', NULL, 30, NULL, 24),
+                 ('06', NULL, v_cn1, NULL, 'USD', NULL, 12, NULL, 45),
+                 ('07', NULL, v_id1, NULL, 'USD', NULL, -5, NULL, 60),
+                 ('08', NULL, v_tr1, NULL, 'USD', NULL, -20, 2, 75),
+                 ('09', NULL, v_id1, v_cones, 'USD', NULL, -68, NULL, 110),
+                 ('10', NULL, v_id1, NULL, 'USD', NULL, NULL, NULL, 30),
+                 ('11', NULL, v_tr1, NULL, 'USD', 0, 20, NULL, 40),
+                 ('12', v_krn, v_tr1, NULL, 'EUR', NULL, 40, NULL, 7))
+         x (nn, customer, supplier, project, currency, deposit_rate, ready_in, tolerance, age)
+    ORDER BY x.nn;
+
+    -- One line each.
+    INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, customer_id, position, product_id,
+                                            quantity, unit_price, spec_document_id)
+    SELECT ('5eed0005-0000-4000-8000-0000000001' || x.nn)::UUID, v_tenant,
+           ('5eed0005-0000-4000-8000-0000000000' || x.nn)::UUID, coalesce(x.customer, v_tho), 1, x.product, x.quantity,
+           x.unit_price, x.spec
+    FROM (VALUES ('01', NULL::UUID, '5eed0003-0000-4000-8000-000000000002'::UUID, 500, 3.50, NULL::UUID),
+                 ('02', NULL, '5eed0003-0000-4000-8000-000000000004', 1000, 0.85, '5eed0003-0000-4000-8000-000000000024'),
+                 ('03', NULL, v_mop, 2000, 1.90, v_mop_spec),
+                 ('04', NULL, v_tips50, 5000, 0.48, NULL),
+                 ('05', NULL, '5eed0003-0000-4000-8000-000000000001', 800, 2.70, '5eed0003-0000-4000-8000-000000000022'),
+                 ('06', NULL, v_tips50, 3000, 0.48, NULL),
+                 ('07', NULL, v_cones100, 4000, 0.62, '5eed0003-0000-4000-8000-000000000025'),
+                 ('08', NULL, v_mop, 1000, 1.90, v_mop_spec),
+                 ('09', NULL, v_cones100, 2000, 0.62, '5eed0003-0000-4000-8000-000000000025'),
+                 ('10', NULL, '5eed0003-0000-4000-8000-000000000005', 1000, 1.15, NULL),
+                 ('11', NULL, v_mop, 1500, 1.90, v_mop_spec),
+                 ('12', v_krn, '5eed0003-0000-4000-8000-000000000008', 300, 6.40, '5eed0003-0000-4000-8000-000000000032'))
+         x (nn, customer, product, quantity, unit_price, spec);
+
+    -- Everything but the draft is sent; the cancelled order is cancelled once sent.
+    PERFORM private.story_po_walk(('5eed0005-0000-4000-8000-0000000000' || nn)::UUID, 'sent')
+    FROM unnest(ARRAY['02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']) nn;
+
+    PERFORM private.story_po_walk('5eed0005-0000-4000-8000-000000000010', 'cancelled');
+
+    -- The PIs: 03's is in but 12.40 off and unchecked; the others are approved, checked on the
+    -- given day (04: thirteen days ago, the day before the reorder's G3).
+    PERFORM private.story_po_pi('5eed0005-0000-4000-8000-000000000203', '5eed0005-0000-4000-8000-000000000003', 'draft',
+                                current_date - 4, 12.40);
+    PERFORM private.story_po_walk('5eed0005-0000-4000-8000-000000000003', 'pi_received');
+
+    FOR v_pi IN
+        SELECT * FROM (VALUES ('04', 15, 13), ('05', 14, 10), ('06', 40, 38), ('07', 55, 52), ('08', 70, 68),
+                              ('09', 90, 85), ('11', 35, 32)) x (nn, issued_ago, checked_ago)
+    LOOP
+        PERFORM private.story_po_pi(('5eed0005-0000-4000-8000-0000000002' || v_pi.nn)::UUID,
+                                    ('5eed0005-0000-4000-8000-0000000000' || v_pi.nn)::UUID, 'approved',
+                                    current_date - v_pi.issued_ago);
+        PERFORM private.story_po_walk(('5eed0005-0000-4000-8000-0000000000' || v_pi.nn)::UUID, 'pi_approved',
+                                      now() - make_interval(days => v_pi.checked_ago));
+    END LOOP;
+
+    -- Payments: the deposit and balance amounts are the approved PI's. 04's deposit is due in
+    -- three days; 07's balance was due ten days ago and is unpaid (the overdue payment); the
+    -- customer paid 08's balance, the company its freight; 09 is paid in full; 11 has no deposit.
+    INSERT INTO public.purchase_order_payment (tenant_id, purchase_order_id, kind, amount, currency, planned_on, paid_on,
+                                               paid_by, notes)
+    SELECT v_tenant, po.id, x.kind::public.payment_kind,
+           CASE x.kind WHEN 'deposit' THEN po.pi_deposit_amount WHEN 'balance' THEN po.pi_balance_amount ELSE x.amount END,
+           po.currency, current_date + x.planned_in, current_date + x.paid_in, x.paid_by::public.payment_payer, x.notes
+    FROM (VALUES ('04', 'deposit', NULL::NUMERIC, 3, NULL::INT, 'company', NULL::TEXT),
+                 ('05', 'deposit', NULL, -9, -8, 'company', NULL),
+                 ('05', 'balance', NULL, 35, NULL, 'company', NULL),
+                 ('06', 'deposit', NULL, -36, -35, 'company', NULL),
+                 ('06', 'balance', NULL, 15, NULL, 'company', NULL),
+                 ('07', 'deposit', NULL, -51, -50, 'company', NULL),
+                 ('07', 'balance', NULL, -10, NULL, 'company', NULL),
+                 ('08', 'deposit', NULL, -67, -66, 'company', NULL),
+                 ('08', 'balance', NULL, -13, -12, 'customer', NULL),
+                 ('08', 'other', 850.00, -14, -12, 'company', 'Navlun (freight)'),
+                 ('09', 'deposit', NULL, -84, -83, 'company', NULL),
+                 ('09', 'balance', NULL, -66, -65, 'company', NULL),
+                 ('11', 'balance', NULL, 25, NULL, 'company', NULL))
+         x (nn, kind, amount, planned_in, paid_in, paid_by, notes)
+    JOIN public.purchase_order po ON po.id = ('5eed0005-0000-4000-8000-0000000000' || x.nn)::UUID;
+
+    -- Production updates of the order in production, before it is anywhere else.
+    INSERT INTO public.purchase_order_update (tenant_id, purchase_order_id, happened_on, note)
+    VALUES (v_tenant, '5eed0005-0000-4000-8000-000000000006', current_date - 6, 'Aktif karbon dolumu başladı, ilk 800 adet hazır'),
+           (v_tenant, '5eed0005-0000-4000-8000-000000000006', current_date - 2, 'Dolum %70, ambalaj malzemesi depoda');
+
+    -- The walks to the final statuses (11 has no deposit step).
+    PERFORM private.story_po_walk(('5eed0005-0000-4000-8000-0000000000' || x.nn)::UUID, x.st::public.purchase_order_status)
+    FROM (VALUES ('05', 'deposit_paid'), ('06', 'in_production'), ('07', 'ready'), ('08', 'balance_paid'),
+                 ('09', 'closed'), ('11', 'in_production')) x (nn, st);
+
+    -- PSI reports: approved on the order in production, only a draft on the ready one (the PSI
+    -- warning before its balance).
+    PERFORM private.story_doc('5eed0005-0000-4000-8000-000000000306', 'purchase_order',
+                              '5eed0005-0000-4000-8000-000000000006', v_tho, 'psi_report', 1, 'approved', current_date - 3);
+    PERFORM private.story_doc('5eed0005-0000-4000-8000-000000000307', 'purchase_order',
+                              '5eed0005-0000-4000-8000-000000000007', v_tho, 'psi_report', 1, 'draft', NULL);
+
+    -- The gates that need a PI, by the real rules (the bypass is off again), oldest first. The
+    -- cones project then closes, its last gate passed.
+    PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000403', v_cones, 'G3', now() - interval '80 days',
+                                    ARRAY['5eed0005-0000-4000-8000-000000000209'::UUID]);
+    PERFORM private.story_pass_gate(NULL, v_cones, 'G4', now() - interval '70 days');
+    PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000405', v_cones, 'G5', now() - interval '60 days');
+    PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000402', v_reorder, 'G3', now() - interval '12 days',
+                                    ARRAY['5eed0005-0000-4000-8000-000000000204'::UUID]);
+    PERFORM private.story_pass_gate('5eed0005-0000-4000-8000-000000000401', v_variant, 'G3', now() - interval '6 days',
+                                    ARRAY['5eed0005-0000-4000-8000-000000000205'::UUID]);
+
+    UPDATE public.project SET status = 'closed' WHERE id = v_cones AND current_phase = 'closed';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'story 05: the cones project did not reach its closed phase';
+    END IF;
+
+    PERFORM private.story_end('5 days');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),
 private.story_doc (UUID, public.document_entity, UUID, UUID, public.document_type, INT, public.document_status, DATE, TEXT, UUID),
-private.story_pass_gate (UUID, UUID, public.gate_code, TIMESTAMPTZ, UUID[]);
+private.story_pass_gate (UUID, UUID, public.gate_code, TIMESTAMPTZ, UUID[]),
+private.story_po_walk (UUID, public.purchase_order_status, TIMESTAMPTZ),
+private.story_po_pi (UUID, UUID, public.document_status, DATE, NUMERIC);
 
 -- The last block: no step may leave the rules bypass on, and no claims outlive the story.
 DO $$

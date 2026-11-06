@@ -111,9 +111,9 @@ VALUES
     ('project', 'status', 'all', NULL),
     ('project_task', 'status', 'all', NULL),
     -- Task 5: purchase orders.
-    ('purchase_order', 'status', 'pending', NULL),
-    ('purchase_order_payment', 'kind', 'pending', NULL),
-    ('purchase_order_payment', 'paid_by', 'pending', NULL),
+    ('purchase_order', 'status', 'all', NULL),
+    ('purchase_order_payment', 'kind', 'all', NULL),
+    ('purchase_order_payment', 'paid_by', 'all', NULL),
     -- Task 6: shipments.
     ('shipment', 'status', 'pending', NULL),
     ('shipment', 'mode', 'pending', NULL),
@@ -223,20 +223,21 @@ SELECT 'm5.a0_only' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE pr
 SELECT 'feed.step04_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'project' AND now()::DATE - created_at::DATE > 7);
 -- m5.gate_states: each story project's passed gates (in position order) and the gate it waits on
 SELECT 'm5.gate_states', x.nn FROM (VALUES
-    ('01', 'G1,PL_G1', 'PL_G2'), ('02', 'G2', 'G3'), ('03', '', 'G3'), ('04', '', 'G2'), ('05', 'G1,G2', 'G3'),
+    ('01', 'G1,PL_G1', 'PL_G2'), ('02', 'G2,G3', 'G4'), ('03', 'G3', 'G4'), ('04', '', 'G2'), ('05', 'G1,G2,G3,G4,G5', NULL),
     ('06', '', 'G1'), ('07', '', 'G5'), ('08', '', 'PL_G1'), ('09', '', 'G1')) x (nn, passed, waits)
 WHERE (SELECT coalesce(string_agg(g.code::TEXT, ',' ORDER BY g.position) FILTER (WHERE g.status = 'passed'), '')
        FROM public.project_gate g WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID) IS DISTINCT FROM x.passed
    OR (SELECT g.code::TEXT FROM public.project_gate g WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND g.status <> 'passed' ORDER BY g.position LIMIT 1) IS DISTINCT FROM x.waits;
-SELECT 'm5.project_states', x.nn FROM (VALUES ('04', 'on_hold'), ('06', 'cancelled'), ('09', 'closed'), ('01', 'active'), ('02', 'active'), ('03', 'active'), ('05', 'active'), ('07', 'active'), ('08', 'active')) x (nn, st)
+SELECT 'm5.project_states', x.nn FROM (VALUES ('04', 'on_hold'), ('06', 'cancelled'), ('09', 'closed'), ('01', 'active'), ('02', 'active'), ('03', 'active'), ('05', 'closed'), ('07', 'active'), ('08', 'active')) x (nn, st)
 WHERE NOT EXISTS (SELECT 1 FROM public.project p WHERE p.id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND p.status = x.st::public.project_status);
--- m5.waiting_days: the private label project has waited on PL_G2 since PL_G1 passed nine days ago
-SELECT 'm5.waiting_days' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE project_id = '5eed0004-0000-4000-8000-000000000001' AND gate_code = 'PL_G2' AND waiting_days BETWEEN 8 AND 10);
--- m5.passed_with_evidence: every passed gate of a story project passed the real rules: approval document of that gate, approval date, no open blocking task up to the phase it closes
+-- m5.waiting_days: the private label project has waited on PL_G2 since PL_G1 passed nine days ago (two days' margin)
+SELECT 'm5.waiting_days' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE project_id = '5eed0004-0000-4000-8000-000000000001' AND gate_code = 'PL_G2' AND waiting_days BETWEEN 7 AND 11);
+-- m5.passed_with_evidence: every passed gate of a story project passed the real rules, in the past: approval document of that gate and approval date where it needs them, no open blocking task up to the phase it closes
 SELECT 'm5.passed_with_evidence', g.project_id || ' ' || g.code FROM public.project_gate g
 LEFT JOIN public.document d ON d.id = g.approval_document_id AND d.type = 'gate_approval' AND d.entity_type = 'project_gate' AND d.entity_id = g.id AND d.status = 'signed'
 WHERE g.project_id::TEXT LIKE '5eed0004-%' AND g.status = 'passed'
-  AND ((g.needs_customer_approval AND (d.id IS NULL OR g.customer_approved_on IS NULL OR g.passed_at > now() - interval '1 day'))
+  AND (g.passed_at IS NULL OR g.passed_at > now() - interval '1 day'
+       OR (g.needs_customer_approval AND (d.id IS NULL OR g.customer_approved_on IS NULL))
        OR EXISTS (SELECT 1 FROM public.project_task t WHERE t.project_id = g.project_id AND t.blocks_gate AND t.status <> 'done' AND t.phase <= public.phase_before(g.code)));
 -- m5.story_tasks: the dashboard task states sit on non-blocking tasks of the variant and reorder projects, so later gate passes keep them
 SELECT 'm5.story_tasks', x.k FROM (VALUES ('overdue'), ('due_soon'), ('blocked'), ('doing_unassigned'), ('done')) x (k)
@@ -246,5 +247,56 @@ WHERE NOT EXISTS (SELECT 1 FROM public.project_task t WHERE t.project_id IN ('5e
                  WHEN 'blocked' THEN t.status = 'blocked'
                  WHEN 'doing_unassigned' THEN t.status = 'doing' AND t.assignee_id IS NULL
                  ELSE t.status = 'done' END);
+
+-- Task 5: purchase orders and the gates that need a PI (core.bypass_off is the story's last block, not a check)
+SELECT 'm7.missing_spec' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000001' AND status = 'draft' AND cardinality(spec_missing_line_ids) > 0);
+SELECT 'm7.pi_differs' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000003' AND pi_total IS DISTINCT FROM system_total);
+SELECT 'm7.balance_overdue' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_purchase_order WHERE purchase_order_id = '5eed0005-0000-4000-8000-000000000007' AND balance_planned_on < current_date);
+SELECT 'm7.psi_missing' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000007' AND NOT has_approved_psi);
+SELECT 'm7.deposit_zero' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order WHERE id = '5eed0005-0000-4000-8000-000000000011' AND deposit_rate = 0 AND status = 'in_production');
+SELECT 'm7.production_updates' WHERE (SELECT count(*) FROM public.purchase_order_update WHERE purchase_order_id = '5eed0005-0000-4000-8000-000000000006') < 2;
+SELECT 'm7.second_customer' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.customer c ON c.id = o.customer_id WHERE c.code = 'KRN' AND o.status = 'sent');
+SELECT 'box.po_action', s FROM unnest(ARRAY['sent', 'pi_received', 'pi_approved']) s WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_purchase_order WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s);
+SELECT 'box.po_production', s FROM unnest(ARRAY['deposit_paid', 'in_production', 'ready', 'balance_paid']) s WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_purchase_order WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s);
+SELECT 'm5.reorder_on_g4' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE project_id = '5eed0004-0000-4000-8000-000000000003' AND gate_code = 'G4' AND waiting_days >= 10);
+SELECT 'box.gates_team' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE tenant_id = pg_temp.moesa() AND NOT needs_management AND NOT needs_customer_approval);
+SELECT 'm5.closed_project' WHERE NOT EXISTS (SELECT 1 FROM public.project WHERE id = '5eed0004-0000-4000-8000-000000000005' AND status = 'closed' AND current_phase = 'closed');
+SELECT 'm5.variant_g3_passed' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE project_id = '5eed0004-0000-4000-8000-000000000002' AND code = 'G3' AND status = 'passed');
+SELECT 'feed.step05_last_week' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'purchase_order' AND now()::DATE - created_at::DATE BETWEEN 2 AND 7);
+-- m7.po_states: each story order's status and project
+SELECT 'm7.po_states', x.nn FROM (VALUES
+    ('01', 'draft', NULL), ('02', 'sent', NULL), ('03', 'pi_received', NULL), ('04', 'pi_approved', '03'), ('05', 'deposit_paid', '02'),
+    ('06', 'in_production', NULL), ('07', 'ready', NULL), ('08', 'balance_paid', NULL), ('09', 'closed', '05'), ('10', 'cancelled', NULL),
+    ('11', 'in_production', NULL), ('12', 'sent', NULL)) x (nn, st, project)
+WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o WHERE o.id = ('5eed0005-0000-4000-8000-0000000000' || x.nn)::UUID AND o.status = x.st::public.purchase_order_status
+    AND o.project_id IS NOT DISTINCT FROM ('5eed0004-0000-4000-8000-0000000000' || x.project)::UUID);
+-- m7.spec_cited: every story line whose product has a signed or approved spec sheet cites one (the draft's MOP40-4P line has none to cite)
+SELECT 'm7.spec_cited', o.id FROM public.purchase_order_line l JOIN public.purchase_order o ON o.id = l.purchase_order_id
+WHERE o.id::TEXT LIKE '5eed0005-%' AND l.spec_document_id IS NULL AND EXISTS (SELECT 1 FROM public.product_evidence e WHERE e.product_id = l.product_id AND e.has_signed_spec);
+-- m7.pi_approved: every story order from pi_approved on has an approved PI document of its own, 30 "ok" items, a checker in the past and PI figures equal to the recalculated ones
+SELECT 'm7.pi_approved', o.id FROM public.purchase_order_overview o
+LEFT JOIN public.document d ON d.id = o.pi_document_id AND d.type = 'pi' AND d.status = 'approved' AND d.entity_type = 'purchase_order' AND d.entity_id = o.id
+WHERE o.id::TEXT LIKE '5eed0005-%' AND o.status >= 'pi_approved' AND o.status <> 'cancelled'
+  AND (d.id IS NULL OR (SELECT count(*) FROM jsonb_each(o.pi_check) e WHERE e.value = '"ok"'::JSONB) <> 30 OR o.pi_checked_by IS NULL OR o.pi_checked_at > now() - interval '2 days'
+       OR ROW(o.pi_subtotal, o.pi_total, o.pi_deposit_amount, o.pi_balance_amount) IS DISTINCT FROM ROW(o.system_subtotal, o.system_total, o.system_deposit, o.system_balance));
+-- m7.pi_checker: baris checked the reorder's PI thirteen days ago (two days' margin); the differing PI is still a draft, unchecked
+SELECT 'm7.pi_checker' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.user u ON u.id = o.pi_checked_by WHERE o.id = '5eed0005-0000-4000-8000-000000000004' AND u.email = 'baris@moesa-panel.test' AND o.pi_checked_at BETWEEN now() - interval '15 days' AND now() - interval '11 days')
+   OR NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.document d ON d.id = o.pi_document_id WHERE o.id = '5eed0005-0000-4000-8000-000000000003' AND d.status = 'draft' AND o.pi_checked_at IS NULL);
+-- m7.payments: who paid what, and what is still open
+SELECT 'm7.payments', x.k FROM (VALUES ('05_deposit'), ('07_balance_open'), ('08_balance_customer'), ('08_freight'), ('09_all_paid'), ('11_no_deposit')) x (k)
+WHERE NOT CASE x.k
+    WHEN '05_deposit' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000005' AND p.kind = 'deposit' AND p.paid_on = current_date - 8 AND p.paid_by = 'company')
+    WHEN '07_balance_open' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000007' AND p.kind = 'balance' AND p.planned_on = current_date - 10 AND p.paid_on IS NULL)
+    WHEN '08_balance_customer' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000008' AND p.kind = 'balance' AND p.paid_on = current_date - 12 AND p.paid_by = 'customer')
+    WHEN '08_freight' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000008' AND p.kind = 'other')
+    WHEN '09_all_paid' THEN (SELECT count(*) FILTER (WHERE p.paid_on IS NOT NULL) = count(*) AND count(*) >= 2 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000009')
+    ELSE NOT EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000011' AND p.kind = 'deposit') END;
+-- m7.psi_docs: an approved PSI report on the order in production, only a draft one on the ready order
+SELECT 'm7.psi_docs' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000006' AND has_approved_psi)
+   OR NOT EXISTS (SELECT 1 FROM public.document WHERE entity_type = 'purchase_order' AND entity_id = '5eed0005-0000-4000-8000-000000000007' AND type = 'psi_report' AND status = 'draft');
+-- m5.g3_pi: each G3 of a story project passed on the PI of that project's approved order
+SELECT 'm5.g3_pi', x.nn FROM (VALUES ('02', '05'), ('03', '04'), ('05', '09')) x (nn, po)
+WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g JOIN public.purchase_order o ON o.id = ('5eed0005-0000-4000-8000-0000000000' || x.po)::UUID AND o.project_id = g.project_id
+    WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND g.code = 'G3' AND g.status = 'passed' AND o.pi_document_id = ANY (g.evidence_document_ids));
 
 ROLLBACK;
