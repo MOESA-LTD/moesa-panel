@@ -1,6 +1,7 @@
 // Product Type Definitions API (2020-09-01): search, definition and the schema download behind its
 // pre-signed link. Rows follow `listingCompleteness.toDefinitionRow`, the cache table's shape.
 import { AmazonError, type Deps, type SpapiCall } from '../_shared/amazon.ts';
+import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 import { crypto } from '../_shared/deps.ts';
 import {
    type DefinitionRow,
@@ -16,7 +17,6 @@ export type DefinitionKey = { marketplaceId: string; productType: string; locale
 
 const hex = (bytes: Uint8Array) =>
    Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-const base64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 
 /**
  * Downloads a schema document from its pre-signed link (no Amazon token goes with it) and checks
@@ -44,7 +44,7 @@ export async function downloadSchema(
 
    const digest = new Uint8Array(await crypto.subtle.digest('MD5', bytes));
    const expected = checksum.trim();
-   if (expected.toLowerCase() !== hex(digest) && expected !== base64(digest))
+   if (expected.toLowerCase() !== hex(digest) && expected !== encodeBase64(digest))
       throw new AmazonError('amazon_schema_checksum', 502);
 
    try {
@@ -91,6 +91,14 @@ export async function searchProductTypes(
    }));
 }
 
+/** The row is stored under the key it was asked for, whatever marketplace the answer names first. */
+const withKey = (row: DefinitionRow, key: DefinitionKey): DefinitionRow => ({
+   ...row,
+   marketplace_id: key.marketplaceId,
+   product_type: key.productType,
+   locale: key.locale
+});
+
 /** getDefinitionsProductType (LISTING requirements) and its downloaded, checked schema, as a row. */
 export async function fetchDefinition(
    call: SpapiCall,
@@ -108,7 +116,7 @@ export async function fetchDefinition(
       }
    });
    const link = 'link' in meta.schema ? meta.schema : undefined;
-   if (!link) return toDefinitionRow(meta, undefined, key.locale);
+   if (!link) return withKey(toDefinitionRow(meta, undefined, key.locale), key);
    const schema = await downloadSchema(link.link, link.checksum, deps);
-   return toDefinitionRow(meta, schema, key.locale);
+   return withKey(toDefinitionRow(meta, schema, key.locale), key);
 }

@@ -34,6 +34,10 @@ const TABLE = 'amazon_product_type_definition';
 const PERMISSION: Requirement = [['update', 'product']];
 /** A cached schema older than this is re-fetched by the weekly refresh. */
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+/** One refresh run handles at most this many rows, oldest first; the rest wait for the next run. */
+const REFRESH_BATCH = 20;
+/** No new row is started after this long, well inside the Edge Function wall-clock limit. */
+const REFRESH_BUDGET_MS = 100_000;
 
 type Db = SupabaseClient<Database>;
 
@@ -149,14 +153,22 @@ const refresh = async (d: HandlerDeps) => {
    const env = d.env();
    if (env.env === 'sandbox') return json({ refreshed: 0, sandbox: true });
 
-   const now = (d.amazon.now ?? Date.now)();
+   const clock = d.amazon.now ?? Date.now;
+   const started = clock();
    const admin = d.admin();
-   const { data: stale, error } = await admin
+   const {
+      data: stale,
+      count,
+      error
+   } = await admin
       .from(TABLE)
-      .select('marketplace_id, product_type, locale')
-      .lt('fetched_at', new Date(now - STALE_AFTER_MS).toISOString());
+      .select('marketplace_id, product_type, locale', { count: 'exact' })
+      .lt('fetched_at', new Date(started - STALE_AFTER_MS).toISOString())
+      .order('fetched_at', { ascending: true })
+      .limit(REFRESH_BATCH);
    if (error) throw error;
-   if (!stale?.length) return json({ refreshed: 0, failed: 0, sandbox: false });
+   const total = count ?? stale?.length ?? 0;
+   if (!stale?.length) return json({ refreshed: 0, failed: 0, remaining: 0, sandbox: false });
 
    const { data: latest, error: accountError } = await admin
       .from('customer_platform_account')
@@ -175,27 +187,32 @@ const refresh = async (d: HandlerDeps) => {
    let failed = 0;
    await withRevocation(admin, account.id, async () => {
       for (const row of stale) {
+         if (clock() - started >= REFRESH_BUDGET_MS) break;
          const key = {
             marketplaceId: row.marketplace_id,
             productType: row.product_type,
             locale: row.locale,
             sellerId: account.sellerId
          };
+         let fresh: DefinitionRow;
          try {
-            await store(admin, await fetchDefinition(call, key, d.amazon), now);
-            refreshed += 1;
+            fresh = await fetchDefinition(call, key, d.amazon);
          } catch (error) {
-            // A revoked grant ends the run; any other failure keeps the old row for next week.
+            // A revoked grant ends the run; any other Amazon failure keeps the old row for next week.
             if (error instanceof AmazonAuthError) throw error;
             const code = error instanceof AmazonError ? error.code : 'internal_error';
             console.error(
                `amazon-schema refresh failed: ${row.product_type} ${row.marketplace_id} ${row.locale} ${code}`
             );
             failed += 1;
+            continue;
          }
+         // A database error ends the run: the rows after it would fail the same way.
+         await store(admin, fresh, clock());
+         refreshed += 1;
       }
    });
-   return json({ refreshed, failed, sandbox: false });
+   return json({ refreshed, failed, remaining: total - refreshed - failed, sandbox: false });
 };
 
 const isRefresh = async (req: Request) => {

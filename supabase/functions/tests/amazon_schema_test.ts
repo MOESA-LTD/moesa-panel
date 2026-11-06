@@ -78,7 +78,7 @@ const fixtureRow = (): DefinitionRow => toDefinitionRow(fixture, undefined, 'en_
 
 type Op = [method: string, args: unknown[]];
 type Query = { table: string; ops: Op[] };
-type Result = { data: unknown; error: unknown };
+type Result = { data: unknown; error: unknown; count?: number };
 
 const has = (query: Query, method: string) => query.ops.some(([name]) => name === method);
 const arg = (query: Query, method: string, column: string) =>
@@ -317,10 +317,23 @@ Deno.test(
          deps({ env: () => PROD, admin: () => db, amazon })
       );
       assertEquals(res.status, 200);
-      assertEquals(await res.json(), { refreshed: 1, failed: 0, sandbox: false });
+      assertEquals(await res.json(), { refreshed: 1, failed: 0, remaining: 0, sandbox: false });
 
       const select = queries[0];
       assertEquals(arg(select, 'lt', 'fetched_at'), '2026-10-30T04:00:00.000Z');
+      assert(
+         select.ops.some(
+            ([m, a]) =>
+               m === 'order' &&
+               a[0] === 'fetched_at' &&
+               (a[1] as { ascending: boolean }).ascending === true
+         ),
+         'oldest first'
+      );
+      assert(
+         select.ops.some(([m, a]) => m === 'limit' && a[0] === 20),
+         'at most 20 rows a run'
+      );
       const account = queries[1];
       assertEquals(arg(account, 'eq', 'api_connection'), 'connected');
       assert(account.ops.some(([m, a]) => m === 'order' && a[0] === 'authorized_at'));
@@ -330,6 +343,131 @@ Deno.test(
       assertEquals(written.fetched_at, '2026-11-06T04:00:00.000Z');
    }
 );
+
+/** A production refresh over `stale` rows (`count` stale in all); `upsert` answers each write. */
+const productionRefresh = async (opts: {
+   stale: Array<{ marketplace_id: string; product_type: string; locale: string }>;
+   count: number;
+   answerMarketplace?: string;
+   upsert?: () => Result;
+   /** ms the clock moves on each schema download. */
+   downloadMs?: number;
+}) => {
+   clearTokenCache();
+   const body = JSON.stringify(fixture.schema);
+   const checksum = encodeHex(await md5(body));
+   let clock = Date.parse('2026-11-06T04:00:00Z');
+   const { deps: amazon } = fakeFetch({
+      'https://sellingpartnerapi-eu.amazon.com/definitions/2020-09-01/productTypes/LUGGAGE': () =>
+         Response.json({
+            ...sandboxAnswer(checksum),
+            marketplaceIds: [opts.answerMarketplace ?? DE]
+         }),
+      [SCHEMA_URL]: () => {
+         clock += opts.downloadMs ?? 0;
+         return new Response(body);
+      }
+   });
+   amazon.now = () => clock;
+   const { db, queries } = fakeDb(
+      (query) => {
+         if (query.table === 'amazon_product_type_definition' && has(query, 'upsert'))
+            return opts.upsert?.() ?? { data: null, error: null };
+         if (query.table === 'amazon_product_type_definition')
+            return { data: opts.stale, count: opts.count, error: null };
+         if (has(query, 'limit'))
+            return { data: [{ customer_id: 'c1', tenant_id: 't1' }], error: null };
+         return {
+            data: {
+               id: 'acc-1',
+               tenant_id: 't1',
+               customer_id: 'c1',
+               seller_id: 'S1',
+               api_connection: 'connected'
+            },
+            error: null
+         };
+      },
+      () => ({ data: 'Atzr|vault', error: null })
+   );
+   const res = await handler(
+      refresh(`Bearer ${SERVICE_KEY}`),
+      deps({ env: () => PROD, admin: () => db, amazon })
+   );
+   const upserts = queries
+      .filter((q) => has(q, 'upsert'))
+      .map((q) => (q.ops.find(([m]) => m === 'upsert')![1] as [Record<string, unknown>])[0]);
+   return { res, upserts };
+};
+
+const LUGGAGE_ROW = (marketplace_id: string, locale = 'en_GB') => ({
+   marketplace_id,
+   product_type: 'LUGGAGE',
+   locale
+});
+
+Deno.test(
+   'refresh stops starting rows after its time budget and reports the remaining',
+   async () => {
+      const { res, upserts } = await productionRefresh({
+         stale: [LUGGAGE_ROW(DE), LUGGAGE_ROW(FR, 'fr_FR'), LUGGAGE_ROW('APJ6JRA9NG5V4', 'it_IT')],
+         count: 25,
+         downloadMs: 60_000
+      });
+      assertEquals(res.status, 200);
+      // Row 1 starts at 0 s, row 2 at 60 s, row 3 would start at 120 s > 100 s.
+      assertEquals(await res.json(), { refreshed: 2, failed: 0, remaining: 23, sandbox: false });
+      assertEquals(
+         upserts.map((row) => row.marketplace_id),
+         [DE, FR]
+      );
+   }
+);
+
+Deno.test(
+   'refresh writes the key of the stale row, whatever marketplace the answer names',
+   async () => {
+      const { res, upserts } = await productionRefresh({
+         stale: [LUGGAGE_ROW(FR, 'fr_FR')],
+         count: 1,
+         answerMarketplace: DE
+      });
+      assertEquals(res.status, 200);
+      assertEquals(
+         [upserts[0].marketplace_id, upserts[0].product_type, upserts[0].locale],
+         [FR, 'LUGGAGE', 'fr_FR']
+      );
+   }
+);
+
+Deno.test('refresh aborts on a database error instead of counting a failed row', async () => {
+   const errorLog = console.error;
+   console.error = () => {};
+   try {
+      const { res, upserts } = await productionRefresh({
+         stale: [LUGGAGE_ROW(DE), LUGGAGE_ROW(FR, 'fr_FR')],
+         count: 2,
+         upsert: () => ({ data: null, error: { code: 'XX000', message: 'disk full' } })
+      });
+      assertEquals(res.status, 500);
+      assertEquals((await res.json()).message, 'internal_error');
+      assertEquals(upserts.length, 1, 'no write after the failed one');
+   } finally {
+      console.error = errorLog;
+   }
+});
+
+Deno.test('a user route without a JWT is refused by withAuthorization', async () => {
+   const { authorize: _fake, ...real } = deps();
+   const res = await handler(
+      new Request(
+         'http://localhost/amazon-schema?action=search&keywords=x&country=DE&customer_id=00000000-0000-4000-8000-000000000001'
+      ),
+      real
+   );
+   assertEquals(res.status, 401);
+   assertEquals((await res.json()).message, 'unauthorized');
+});
 
 Deno.test('definition in sandbox serves the fixture row for every marketplace', async () => {
    const { db } = fakeDb(() => ({ data: [fixtureRow()], error: null }));
