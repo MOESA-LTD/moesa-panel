@@ -208,7 +208,8 @@ const openTransfer = async () => {
 };
 
 // Publish to Amazon: the selected products, one customer's like a transfer (the customer's Amazon
-// account publishes them). The dialog keeps its products while open, so the result table stays.
+// account publishes them). The dialog keeps its own copy of the products, so the selection is
+// cleared and the result table stays.
 const bulkHint = computed(() => {
    if (!selected.value.length) return t('ops.amazon.bulk.open_disabled_empty');
    return transferCustomer.value ? null : t('ops.amazon.bulk.open_disabled_mixed');
@@ -219,6 +220,8 @@ const openBulk = () => {
    if (!transferCustomer.value) return;
    bulkProducts.value = [...selected.value];
    bulkOpen.value = true;
+   // As after a transfer: the next action starts from a new selection.
+   selected.value = [];
 };
 
 const dialogRef = useDialogRef();

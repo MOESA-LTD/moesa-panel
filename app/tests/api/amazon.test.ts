@@ -21,6 +21,8 @@ import {
    searchProductTypes,
    submissionSchema,
    useCellCheck,
+   useDefinition,
+   useProductIsParent,
    useListingSubmissions,
    usePublishCell,
    validateCell
@@ -39,6 +41,7 @@ const mock = vi.hoisted(() => ({
    cache: null as unknown,
    fromCalls: [] as unknown[][],
    rows: null as unknown,
+   count: null as number | null,
    tenant: 't1' as string | null
 }));
 
@@ -51,7 +54,8 @@ vi.mock('@/lib/supabase', () => ({
             {},
             {
                get: (_target, method: string) => {
-                  if (method === 'throwOnError') return () => Promise.resolve({ data: mock.rows });
+                  if (method === 'throwOnError')
+                     return () => Promise.resolve({ data: mock.rows, count: mock.count });
                   if (method === 'then') return undefined;
                   return (...rest: unknown[]) => {
                      mock.fromCalls.push([
@@ -120,6 +124,7 @@ beforeEach(() => {
    mock.fromCalls.length = 0;
    mock.cache = null;
    mock.rows = null;
+   mock.count = null;
    mock.tenant = 't1';
 });
 
@@ -423,6 +428,56 @@ describe('hooks', () => {
       mock.invoke.mockClear();
       await run(() => useCellCheck(() => null));
       expect(mock.invoke).not.toHaveBeenCalled();
+   });
+
+   it('a publish does not run the check again', async () => {
+      mock.invoke.mockImplementation((_name: string, init: { body?: { action?: string } }) =>
+         Promise.resolve({
+            data:
+               init.body?.action === 'check'
+                  ? { missing: [], match: null, state: 'ready' }
+                  : { cell: cellRow, submission: submissionRow },
+            error: null
+         })
+      );
+      const { result } = await run(() => ({
+         check: useCellCheck(() => 'c1'),
+         publish: usePublishCell()
+      }));
+      const checks = () =>
+         mock.invoke.mock.calls.filter(([, init]) => init.body?.action === 'check').length;
+      expect(checks()).toBe(1);
+
+      await result.publish.mutateAsync('c1');
+      await flushPromises();
+      expect(mock.invoke.mock.calls.some(([, init]) => init.body?.action === 'publish')).toBe(true);
+      expect(checks()).toBe(1);
+   });
+
+   it('useDefinition leaves its error to the reader (silent)', async () => {
+      mock.cache = null;
+      mock.invoke.mockResolvedValue({ data: null, error: new Error('down') });
+      const { queryClient } = await run(() =>
+         useDefinition({
+            productType: 'LUGGAGE',
+            country: 'DE',
+            locale: 'en_GB',
+            customerId: 'cu1'
+         })
+      );
+      const [query] = queryClient.getQueryCache().getAll();
+      expect(query!.meta).toEqual({ silent: true });
+   });
+
+   it('useProductIsParent counts the products that name it as parent', async () => {
+      mock.count = 2;
+      const { result } = await run(() => useProductIsParent(() => 'p1'));
+      expect(result.data.value).toBe(true);
+      expect(mock.fromCalls).toContainEqual(['eq', 'parent_id', 'p1']);
+
+      mock.count = 0;
+      const { result: single } = await run(() => useProductIsParent(() => 'p2'));
+      expect(single.data.value).toBe(false);
    });
 
    it('useListingSubmissions reads the cell newest first and parses the issues', async () => {

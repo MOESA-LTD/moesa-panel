@@ -28,9 +28,10 @@ export const appErrorHandler = async (error: any) => {
    };
 
    await nextTick(async () => {
-      // A PostgREST refusal carries the class name only; its message is the useful part.
+      // A PostgREST or Amazon function refusal carries the class name only; its message (the
+      // code, with an errors.<code> text) is the useful part.
       const summary =
-         error.name === 'PostgrestError'
+         error.name === 'PostgrestError' || error.name === 'AmazonApiError'
             ? i18n.t('errors.request_failed')
             : classified
               ? translate(error.name || error.status)

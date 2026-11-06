@@ -43,12 +43,14 @@ const api = vi.hoisted(() => ({
    refetchCheck: vi.fn(),
    toast: vi.fn(),
    confirm: vi.fn(),
-   checkTarget: null as null | (() => string | null)
+   checkTarget: null as null | (() => string | null),
+   accountsFilter: null as null | (() => unknown)
 }));
 
 const cellRef = ref<Record<string, unknown> | null>(null);
 const productRef = ref<Record<string, unknown> | null>(null);
-const accountsRef = ref<Record<string, unknown>[]>([]);
+const accountsRef = ref<Record<string, unknown>[] | undefined>([]);
+const isParentRef = ref<boolean | undefined>(false);
 const submissionsRef = ref<ListingSubmissionRow[]>([]);
 const checkRef = ref<unknown>(undefined);
 const checkUpdatedRef = ref(0);
@@ -72,7 +74,11 @@ vi.mock('@/api/product', async (importOriginal) => ({
 }));
 vi.mock('@/api/amazon', async (importOriginal) => ({
    ...(await importOriginal<typeof import('@/api/amazon')>()),
-   useAmazonAccounts: () => ({ data: accountsRef }),
+   useAmazonAccounts: (filter: MaybeRefOrGetter<unknown>) => {
+      api.accountsFilter = () => toValue(filter);
+      return { data: accountsRef };
+   },
+   useProductIsParent: () => ({ data: isParentRef }),
    useDefinition: () => ({ data: ref(definition), error: ref(null), isFetching: ref(false) }),
    useCellCheck: (cellId: MaybeRefOrGetter<string | null>) => {
       api.checkTarget = () => toValue(cellId);
@@ -180,6 +186,7 @@ beforeEach(() => {
    cellRef.value = { ...CELL };
    productRef.value = { ...PRODUCT };
    accountsRef.value = [{ ...ACCOUNT }];
+   isParentRef.value = false;
    submissionsRef.value = [];
    checkRef.value = undefined;
    checkUpdatedRef.value = 0;
@@ -219,6 +226,69 @@ describe('CellAmazonDrawer', () => {
       const german = await mountDrawer();
       expect(german.find('[data-missing]').exists()).toBe(false);
       expect(german.text()).toContain(en.ops.amazon.cell.missing_none);
+   });
+
+   it('counts the identifier and the offer of a variation parent as provided (R7)', async () => {
+      // A parent: no GTIN, no price; its children carry them.
+      productRef.value = { ...PRODUCT, gtin: null };
+      cellRef.value = { ...CELL, price: null, currency: null };
+      const child = await mountDrawer();
+      for (const field of ['externally_assigned_product_identifier', 'purchasable_offer'])
+         expect(child.find(`[data-missing="${field}"]`).exists()).toBe(
+            field.startsWith('external')
+         );
+
+      isParentRef.value = true;
+      const parent = await mountDrawer();
+      expect(parent.find('[data-missing]').exists()).toBe(false);
+      expect(isDisabled(parent, 'publish')).toBe(false);
+
+      // Not known yet: no list and no publish.
+      isParentRef.value = undefined;
+      const loading = await mountDrawer();
+      expect(loading.find('[data-missing]').exists()).toBe(false);
+      expect(loading.text()).not.toContain(en.ops.amazon.cell.missing_none);
+      expect(isDisabled(loading, 'publish')).toBe(true);
+   });
+
+   it('gives no connection verdict while the accounts load', async () => {
+      accountsRef.value = undefined;
+      cellRef.value = { ...CELL, listing_state: 'live' };
+      const wrapper = await mountDrawer();
+      expect(wrapper.get('[data-state]').attributes('data-state')).toBe('live');
+      expect(wrapper.find('[data-api-connection]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain(en.ops.amazon.cell.not_connected);
+      expect(wrapper.find('[data-blocked]').exists()).toBe(false);
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+   });
+
+   it('shows the stored state when the accounts may not be read', async () => {
+      ability.update([
+         { action: 'manage', subject: 'market_cell' },
+         { action: 'create', subject: 'listing_submission' },
+         { action: 'select', subject: 'product' }
+      ]);
+      accountsRef.value = [];
+      cellRef.value = { ...CELL, listing_state: 'live' };
+      const wrapper = await mountDrawer();
+      expect(api.accountsFilter!()).toBeNull();
+      expect(wrapper.get('[data-state]').attributes('data-state')).toBe('live');
+      expect(wrapper.text()).not.toContain(en.ops.amazon.cell.not_connected);
+      // The function decides on the connection.
+      expect(isDisabled(wrapper, 'publish')).toBe(false);
+   });
+
+   it('names a submission kind or status it does not know as unknown', async () => {
+      submissionsRef.value = [
+         submission({
+            kind: 'retract',
+            status: 'archived'
+         } as unknown as Partial<ListingSubmissionRow>)
+      ];
+      const wrapper = await mountDrawer();
+      const entry = wrapper.get('[data-submission="s1"]');
+      expect(entry.text()).toContain(en.ops.amazon.submission.kind.unknown);
+      expect(entry.text()).toContain(en.ops.amazon.submission.status.unknown);
    });
 
    it('Publish is disabled until connected and ready', async () => {

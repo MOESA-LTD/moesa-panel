@@ -15,9 +15,11 @@ import {
    useDefinition,
    useDeleteListing,
    useListingSubmissions,
+   useProductIsParent,
    usePublishCell,
    useValidateCell,
    type AmazonIssue,
+   type ApiConnection,
    type CellPublication,
    type ListingState,
    type ListingSubmissionRow,
@@ -55,7 +57,7 @@ const SCHEMA_LOCALE = 'en_GB';
 /** A check older than this runs again when the drawer opens. */
 const CHECK_STALE_MS = 60 * 60 * 1000;
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
 const ability = useAbility();
@@ -69,12 +71,23 @@ const canEditCell = computed(() => ability.can('update', 'market_cell'));
 const { data: cellData } = marketCellResource.useOne(() => props.cellId);
 const cell = computed(() => cellData.value ?? null);
 const { data: product } = productResource.useOne(() => cell.value?.product_id ?? null);
+const { data: isParent } = useProductIsParent(() => cell.value?.product_id ?? null);
+// Without the right to read the accounts the connection is not known here: the stored state is
+// shown and the function decides. While they load there is no verdict either.
+const canReadAccounts = computed(() => ability.can('select', 'customer_platform_account'));
 const { data: accounts } = useAmazonAccounts(() =>
-   cell.value ? { customerId: cell.value.customer_id } : null
+   cell.value && canReadAccounts.value ? { customerId: cell.value.customer_id } : null
 );
 const account = computed(() => accounts.value?.[0] ?? null);
-const apiConnection = computed(() => account.value?.api_connection ?? 'none');
+/** The account's connection; null while it is not known (loading, or not readable). */
+const apiConnection = computed<ApiConnection | null>(() =>
+   canReadAccounts.value && accounts.value ? (account.value?.api_connection ?? 'none') : null
+);
 const connected = computed(() => apiConnection.value === 'connected');
+/** Known not to be connected (N2). */
+const notConnected = computed(() => apiConnection.value !== null && !connected.value);
+/** The connection is still being read. */
+const connectionLoading = computed(() => canReadAccounts.value && !accounts.value);
 
 /**
  * The state a publish, a removal or a check answered, until the cell is loaded again (with the
@@ -93,7 +106,7 @@ const state = computed(
    () =>
       shownListingState(
          answeredState.value ?? cell.value?.listing_state ?? null,
-         connected.value
+         !notConnected.value
       ) ?? 'draft'
 );
 
@@ -116,9 +129,13 @@ const { data: definition, error: definitionError } = useDefinition(() =>
 );
 const schema = computed(() => (definition.value ? amazonSchemaOf(definition.value) : null));
 
-/** The required fields still missing (the server's rule: the GTIN and the price provide some); null while unknown. */
+/**
+ * The required fields still missing, by the server's rule (the GTIN and the price provide some, and
+ * a variation parent has the identifier and the offer provided, R7); null while unknown.
+ */
 const missing = computed(() => {
    if (!definition.value || !schema.value || !product.value || !cell.value) return null;
+   if (isParent.value === undefined) return null;
    if (!marketplaceId.value || !language.value) return null;
    return missingAttributes(
       schema.value,
@@ -127,7 +144,7 @@ const missing = computed(() => {
       {
          marketplaceId: marketplaceId.value,
          languageTag: language.value,
-         provided: serverProvided(product.value, cell.value)
+         provided: serverProvided(product.value, cell.value, { isParent: isParent.value })
       }
    );
 });
@@ -250,6 +267,11 @@ const ISSUE_SEVERITY: Record<AmazonIssue['severity'], string> = {
    INFO: 'info',
    unknown: 'secondary'
 };
+/** A submission's kind or status; a value the app does not know reads as unknown. */
+const submissionText = (part: 'kind' | 'status', value: string) =>
+   te(`ops.amazon.submission.${part}.${value}`)
+      ? t(`ops.amazon.submission.${part}.${value}`)
+      : t(`ops.amazon.submission.${part}.unknown`);
 const time = (value: string | null | undefined) =>
    value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '';
 
@@ -258,7 +280,7 @@ const time = (value: string | null | undefined) =>
 type Blocked = 'not_connected' | 'product_type' | 'missing' | 'unsaved' | 'submitted' | 'unchecked';
 /** Why Publish is held back, the first reason first; null when it may go. */
 const blocked = computed<Blocked | null>(() => {
-   if (!connected.value) return 'not_connected';
+   if (notConnected.value) return 'not_connected';
    if (!productType.value) return 'product_type';
    if (missing.value?.length) return 'missing';
    if (fieldsDirty.value) return 'unsaved';
@@ -336,6 +358,7 @@ const askRemove = () =>
          <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.connection') }}</h3>
          <span class="flex flex-wrap items-center gap-2">
             <Tag
+               v-if="apiConnection"
                data-api-connection
                :value="$t(`ops.amazon.api_connection.${apiConnection}`)"
                :severity="
@@ -353,7 +376,7 @@ const askRemove = () =>
                {{ $t('ops.amazon.connect.seller_id', { id: account.seller_id }) }}
             </small>
          </span>
-         <Message v-if="!connected" severity="warn" class="w-full">
+         <Message v-if="notConnected" severity="warn" class="w-full">
             {{ $t('ops.amazon.cell.not_connected') }}
             <RouterLink
                :to="{ name: 'ops-customer-manage-platforms', params: { id: cell.customer_id } }"
@@ -514,11 +537,11 @@ const askRemove = () =>
          >
             <span class="flex flex-wrap items-center gap-2">
                <span class="font-semibold">
-                  {{ $t(`ops.amazon.submission.kind.${submission.kind}`) }}
+                  {{ submissionText('kind', submission.kind) }}
                </span>
                <Tag
-                  :value="$t(`ops.amazon.submission.status.${submission.status}`)"
-                  :severity="STATUS_SEVERITY[submission.status]"
+                  :value="submissionText('status', submission.status)"
+                  :severity="STATUS_SEVERITY[submission.status] ?? 'secondary'"
                />
                <small class="text-muted-color">{{ time(submission.created_at) }}</small>
             </span>
@@ -554,7 +577,7 @@ const askRemove = () =>
                data-action="validate"
                variant="outlined"
                :label="$t('ops.amazon.cell.validate')"
-               :disabled="!connected || !productType || busy"
+               :disabled="notConnected || connectionLoading || !productType || busy"
                :loading="validating"
                @click="runValidate"
             />
@@ -562,7 +585,7 @@ const askRemove = () =>
                data-action="publish"
                :icon="PrimeIcons.AMAZON"
                :label="$t(listed ? 'ops.amazon.cell.update' : 'ops.amazon.cell.publish')"
-               :disabled="blocked !== null || missing === null || busy"
+               :disabled="blocked !== null || missing === null || connectionLoading || busy"
                :loading="publishing"
                @click="runPublish"
             />
@@ -572,7 +595,7 @@ const askRemove = () =>
                variant="outlined"
                severity="danger"
                :label="$t('ops.amazon.cell.delete')"
-               :disabled="!connected || busy"
+               :disabled="notConnected || connectionLoading || busy"
                :loading="removing"
                @click="askRemove"
             />
@@ -583,7 +606,7 @@ const askRemove = () =>
          <Message v-if="sent" data-published severity="info" class="w-full">
             {{
                $t('ops.amazon.cell.published', {
-                  status: $t(`ops.amazon.submission.status.${sent.status}`)
+                  status: submissionText('status', sent.status)
                })
             }}
          </Message>

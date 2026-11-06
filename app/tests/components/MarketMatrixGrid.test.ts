@@ -109,7 +109,7 @@ describe('MarketMatrixGrid', () => {
       const badge = (
          state: string | null,
          extra: Partial<MarketCellOverviewRow> = {},
-         connected?: string[]
+         connected?: string[] | null
       ) => {
          const amazon = {
             ...CELLS[2]!,
@@ -149,6 +149,10 @@ describe('MarketMatrixGrid', () => {
       // N2: a customer whose account is not connected shows draft whatever the stored state.
       expect(badge('live', {}, []).attributes('data-listing-state')).toBe('draft');
       expect(badge('live', {}, ['k1']).attributes('data-listing-state')).toBe('live');
+      // Accounts still loading: no verdict yet, so no listing badge.
+      expect(badge('live', {}, null).exists()).toBe(false);
+      // Accounts not readable (unset): the stored state.
+      expect(badge('live', {}, undefined).attributes('data-listing-state')).toBe('live');
    });
 
    it('warns of a red compliance', () => {

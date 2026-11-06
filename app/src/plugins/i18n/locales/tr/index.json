@@ -2339,8 +2339,8 @@
                "VALID": "Amazon bu listeyi kabul ediyor.",
                "INVALID": "Amazon bu listede sorun bildiriyor."
             },
-            "delete": "Amazon’dan sil",
-            "delete_confirm": "Bu liste Amazon’dan silinsin mi?",
+            "delete": "Amazon’dan kaldır",
+            "delete_confirm": "Bu liste Amazon’dan kaldırılsın mı?",
             "checked_at": "Kontrol: {date}",
             "state": "Liste durumu",
             "state_unknown": "Bilinmeyen durum",
@@ -2400,7 +2400,7 @@
             "kind": {
                "create": "Oluşturma",
                "update": "Güncelleme",
-               "delete": "Kaldırma",
+               "delete": "Amazon’dan kaldır",
                "unknown": "Diğer"
             },
             "status": {

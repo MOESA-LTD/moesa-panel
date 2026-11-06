@@ -2339,8 +2339,8 @@
                "VALID": "Amazon accepts this listing.",
                "INVALID": "Amazon reports problems with this listing."
             },
-            "delete": "Delete from Amazon",
-            "delete_confirm": "Delete this listing from Amazon?",
+            "delete": "Remove from Amazon",
+            "delete_confirm": "Remove this listing from Amazon?",
             "checked_at": "Checked {date}",
             "state": "Listing state",
             "state_unknown": "Unknown state",
@@ -2400,7 +2400,7 @@
             "kind": {
                "create": "Create",
                "update": "Update",
-               "delete": "Removal",
+               "delete": "Remove from Amazon",
                "unknown": "Other"
             },
             "status": {

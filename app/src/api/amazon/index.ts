@@ -463,20 +463,24 @@ export function useDefinition(args: MaybeRefOrGetter<DefinitionArgs | null>) {
       ),
       queryFn: () => fetchDefinition(toValue(args)!),
       enabled: computed(() => !!toValue(args)),
-      staleTime: READ_STALE_MS
+      staleTime: READ_STALE_MS,
+      // Its readers (the product's Amazon tab, the cell drawer) show the error in place.
+      meta: { silent: true }
    });
 }
+
+/**
+ * The key of a cell's check. It is not under a table, so writes (a publish, a removal) do not
+ * call Amazon again; the check runs when asked.
+ */
+export const cellCheckKey = (tenantId: string | null, cellId: string | null) =>
+   [...queryKeys.tenant(tenantId), 'amazon_listing_check', { id: cellId }] as const;
 
 /** The cell's completeness against the schema and its Amazon match (writes the state, so not on focus). */
 export function useCellCheck(cellId: MaybeRefOrGetter<string | null>) {
    const tenantKey = useTenantKey();
    return useQuery({
-      queryKey: computed(() =>
-         queryKeys.list(tenantKey.value, 'market_cell', {
-            view: 'listing_check',
-            id: toValue(cellId)
-         })
-      ),
+      queryKey: computed(() => cellCheckKey(tenantKey.value, toValue(cellId))),
       queryFn: () => checkCell(toValue(cellId)!),
       enabled: computed(() => !!toValue(cellId)),
       refetchOnWindowFocus: false,
@@ -545,6 +549,29 @@ export function useAmazonAccounts(filter: MaybeRefOrGetter<{ customerId?: string
          return data;
       },
       enabled: computed(() => !!toValue(filter))
+   });
+}
+
+/**
+ * Whether the product is a variation parent (another product names it as its parent): a parent
+ * sends no identifier and no offer, so those count as provided (R7, serverProvided).
+ */
+export function useProductIsParent(productId: MaybeRefOrGetter<string | null | undefined>) {
+   const tenantKey = useTenantKey();
+   return useQuery({
+      queryKey: computed(() =>
+         queryKeys.list(tenantKey.value, 'product', { view: 'is_parent', id: toValue(productId) })
+      ),
+      queryFn: async ({ signal }) => {
+         const { count } = await supabase
+            .from('product')
+            .select('id', { count: 'exact', head: true })
+            .eq('parent_id', toValue(productId)!)
+            .abortSignal(signal)
+            .throwOnError();
+         return (count ?? 0) > 0;
+      },
+      enabled: computed(() => !!toValue(productId))
    });
 }
 

@@ -201,6 +201,13 @@ describe('product list: publish selected to Amazon', () => {
       await button().trigger('click');
       const dialog = wrapper.getComponent({ name: 'AmazonBulkPublish' });
       expect(dialog.props('productIds')).toEqual(['p1', 'p2']);
+      // The selection is cleared, as after a transfer; the dialog keeps its products.
+      await nextTick();
+      expect(table.props('selection')).toEqual([]);
+      expect(wrapper.getComponent({ name: 'AmazonBulkPublish' }).props('productIds')).toEqual([
+         'p1',
+         'p2'
+      ]);
       expect(wrapper.get('[data-dialog]').attributes('data-dialog')).toBe(en.ops.amazon.bulk.title);
    });
 
