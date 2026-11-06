@@ -949,11 +949,13 @@ BEGIN
                  ('203', '05', 'bill_of_lading', 'signed', -30), ('204', '06', 'customs', 'draft', NULL),
                  ('205', '08', 'delivery_receipt', 'signed', -4), ('206', '11', 'delivery_receipt', 'signed', -33)) x (nn, ship, type, st, issued_in);
 
-    -- The walks (01 stays planned). 07's deadline is CN1's 48 hours after yesterday's delivery;
-    -- ID1 has no notice time, so 09's is set: 48 hours after its delivery, already past.
+    -- The walks (01 stays planned). 07's dispute is still running with three days left (a margin
+    -- of at least two days, whatever the hour); ID1 has no notice time, so 09's deadline is set:
+    -- 48 hours after its delivery, already past.
     PERFORM private.story_shipment_walk(('5eed0006-0000-4000-8000-0000000000' || x.nn)::UUID, x.st::public.shipment_status)
     FROM (VALUES ('02', 'booked'), ('03', 'loaded'), ('04', 'in_transit'), ('05', 'in_transit'), ('06', 'at_customs'),
-                 ('07', 'delivered'), ('10', 'cancelled')) x (nn, st);
+                 ('10', 'cancelled')) x (nn, st);
+    PERFORM private.story_shipment_walk('5eed0006-0000-4000-8000-000000000007', 'delivered', now() + INTERVAL '3 days');
     PERFORM private.story_shipment_walk('5eed0006-0000-4000-8000-000000000008', 'accepted', NULL, current_date - 3);
     PERFORM private.story_shipment_walk('5eed0006-0000-4000-8000-000000000009', 'disputed',
                                         now() - INTERVAL '4 days' + INTERVAL '48 hours');

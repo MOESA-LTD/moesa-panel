@@ -303,7 +303,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.project_gate g JOIN public.purchase_order
 SELECT 'box.shipments_in_transit', s FROM unnest(ARRAY['loaded', 'in_transit', 'at_customs']) s WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s);
 SELECT 'box.shipments_late' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE shipment_id = '5eed0006-0000-4000-8000-000000000005' AND overdue);
 SELECT 'm8.eta_ahead' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_shipment WHERE shipment_id = '5eed0006-0000-4000-8000-000000000004' AND NOT overdue);
-SELECT 'm8.dispute_running' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at > now());
+SELECT 'm8.dispute_running' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at >= now() + interval '2 days');
 SELECT 'm8.events' WHERE (SELECT count(*) FROM public.shipment_event WHERE shipment_id = '5eed0006-0000-4000-8000-000000000005') < 3;
 SELECT 'm7.partially_received' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_line l WHERE l.purchase_order_id = '5eed0005-0000-4000-8000-000000000008'
    AND (SELECT sum(sl.quantity) FROM public.shipment_line sl JOIN public.shipment s ON s.id = sl.shipment_id AND s.status = 'accepted' WHERE sl.purchase_order_line_id = l.id) < l.quantity);
@@ -333,9 +333,9 @@ WHERE s.id::TEXT LIKE '5eed0006-%' AND s.status = 'accepted'
        OR nullif(btrim(s.accepted_by), '') IS NULL
        OR NOT EXISTS (SELECT 1 FROM public.document d WHERE d.entity_type = 'shipment' AND d.entity_id = s.id AND d.type = 'delivery_receipt' AND d.status = 'signed'));
 SELECT 'm8.accepted_on' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000008' AND accepted_on = current_date - 3 AND delivered_at < now() - interval '4 days');
--- m8.delivered: delivered yesterday, its deadline the CN1 notice time (48 h) after the delivery
-SELECT 'm8.delivered' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at = delivered_at + interval '48 hours' AND delivered_at BETWEEN now() - interval '2 days' AND now() - interval '12 hours');
-SELECT 'm8.disputed' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000009' AND has_damage AND delivered_at IS NOT NULL AND dispute_deadline_at IS NOT NULL);
+-- m8.delivered: delivered yesterday, its dispute deadline three days ahead
+SELECT 'm8.delivered' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at BETWEEN now() + interval '2 days 12 hours' AND now() + interval '3 days 12 hours' AND delivered_at BETWEEN now() - interval '2 days' AND now() - interval '12 hours');
+SELECT 'm8.disputed' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000009' AND has_damage AND delivered_at IS NOT NULL AND dispute_deadline_at = delivered_at + interval '48 hours' AND dispute_deadline_at < now());
 -- m8.booked: the booked shipment's confirmation and dates; the loaded one leaves tomorrow
 SELECT 'm8.booked' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000002' AND booking_confirmed_on = current_date - 2 AND etd = current_date + 5 AND eta = current_date + 30)
    OR NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000003' AND etd = current_date + 1 AND eta = current_date + 28);
