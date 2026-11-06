@@ -27,8 +27,24 @@ const BUCKET = 'media';
 
 // The media files the story's media rows point at. `id` is the media row's fixed UUID (it also
 // occurs in seed_story.sql), `file` the source under supabase/seed_files/ (or the generated
-// 12 MB PDF), `upload` the published file name, `thumb` an optional thumbnail source.
-export const MEDIA = Object.freeze([]);
+// 12 MB PDF), `upload` the published file name, `thumb` an optional thumbnail source. Every file
+// goes under MOESA LTD's folder: KRN is a customer of MOESA LTD, not a tenant.
+const media = (nn, file, upload, mime, thumb) =>
+   Object.freeze({ id: `5eed0009-0000-4000-8000-0000000000${nn}`, file, upload, mime, thumb });
+export const MEDIA = Object.freeze([
+   media('01', 'photo-1.png', 'mop-primary.png', 'image/png', 'thumb-1.webp'), // THO-MOP40-2P primary image
+   media('02', 'photo-2.png', 'mop-gallery.png', 'image/png'), // THO-MOP40-2P gallery, no thumbnail
+   media('03', 'photo-3.png', 'production.png', 'image/png', 'thumb-3.webp'), // PO-006 production photo
+   media('04', 'photo-2.png', 'damage.png', 'image/png', 'thumb-2.webp'), // SHP-009 damage photo
+   media('05', 'sample.pdf', 'pi.pdf', 'application/pdf'), // the file of PO-011's PI
+   media('06', 'sample.pdf', 'artwork.pdf', 'application/pdf'), // CR-005 attachment, tech pack, packing list
+   media('07', 'sample.mp4', 'demo.mp4', 'video/mp4'), // THO-TIPS-6-50 gallery video
+   media('08', 'photo-3.png', 'orphan.png', 'image/png'), // linked nowhere
+   media('09', 'photo-1.png', 'catalogue.png', 'image/png', 'thumb-1.webp'), // shared: THO and KRN products
+   media('10', 'photo-2.png', 'vase.png', 'image/png', 'thumb-2.webp'), // KRN-VASE-01 primary image
+   media('11', GENERATED_BIG_PDF, 'big-catalogue.pdf', 'application/pdf'), // 12 MB: over Trading's 5 MB cap
+   media('12', 'sample.pdf', 'certificate.pdf', 'application/pdf'), // shared: CN1's certificate (a supplier's)
+]);
 
 // Runs a command in the repo root and returns its stdout; throws with its stderr on failure.
 // The supabase CLI may be a .cmd shim on Windows, which Node only starts through a shell.
@@ -116,7 +132,6 @@ function assertMediaIdsIn(storySql) {
 }
 
 async function uploadMedia(apiUrl, serviceRoleKey, tenantId) {
-   if (!MEDIA.length) return;
    const appRequire = createRequire(path.join(ROOT, 'app', 'package.json'));
    const { createClient } = appRequire('@supabase/supabase-js');
    const storage = createClient(apiUrl, serviceRoleKey, {
@@ -137,29 +152,30 @@ async function uploadMedia(apiUrl, serviceRoleKey, tenantId) {
    }
 }
 
-export async function main() {
-   const { apiUrl, serviceRoleKey } = localKeys();
+// The steps are injectable so the test can prove the KRN guard stops the run before any upload.
+export async function main({ keys = localKeys, sql = psql, upload = uploadMedia, exit = process.exit } = {}) {
+   const { apiUrl, serviceRoleKey } = keys();
 
-   if (Number(psql(`SELECT count(*) FROM public.customer WHERE code = 'KRN'`).trim()) > 0) {
+   if (Number(sql(`SELECT count(*) FROM public.customer WHERE code = 'KRN'`).trim()) > 0) {
       console.error('seed-story: already loaded (customer KRN exists). Run "supabase db reset" first.');
-      process.exit(1);
+      return exit(1);
    }
 
    assertSeedFiles();
    const storySql = readFileSync(STORY_SQL, 'utf8');
    assertMediaIdsIn(storySql);
 
-   const tenantId = psql(`SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD'`).trim();
+   const tenantId = sql(`SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD'`).trim();
    if (!tenantId) throw new Error('tenant MOESA LTD not found; is the small seed loaded?');
 
-   await uploadMedia(apiUrl, serviceRoleKey, tenantId);
-   psql(storySql, { singleTransaction: true });
+   await upload(apiUrl, serviceRoleKey, tenantId);
+   sql(storySql, { singleTransaction: true });
 
    const checkSql = readFileSync(CHECK_SQL, 'utf8');
-   const failures = parseCheckRows(psql(checkSql));
+   const failures = parseCheckRows(sql(checkSql));
    if (failures.length) {
       for (const line of failures) console.log(line);
-      process.exit(1);
+      return exit(1);
    }
    console.log(`seed-story: ok (${countChecks(checkSql)} checks)`);
 }

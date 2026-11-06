@@ -132,10 +132,10 @@ VALUES
     ('change_request', 'urgency', 'all', NULL),
     ('change_request', 'change_kinds', 'all', NULL),
     -- Task 9: documents and media.
-    ('document', 'type', 'pending', NULL),
-    ('document', 'status', 'pending', NULL),
-    ('document', 'entity_type', 'pending', NULL),
-    ('media_link', 'role', 'pending', NULL),
+    ('document', 'type', 'all', NULL),
+    ('document', 'status', 'all', NULL),
+    ('document', 'entity_type', 'all', NULL),
+    ('media_link', 'role', 'all', NULL),
     -- Not covered.
     ('project_gate', 'code', 'exempt', 'G0-G7 come from the project trigger, every project has all'),
     ('project', 'current_phase', 'exempt', 'derived from the gates'),
@@ -468,4 +468,62 @@ SELECT 'dates.weekday', x.k FROM (
     ) x (k, d)
 WHERE x.d IS NULL OR extract(isodow FROM x.d) >= 6;
 
+-- Task 9: media with real files, the remaining documents, the 12 MB edge
+-- m19.objects: every media row of MOESA LTD has its file (and its thumbnail, when it names one) in Storage
+SELECT 'm19.objects', m.id::TEXT FROM public.media m WHERE m.tenant_id = pg_temp.moesa()
+  AND (NOT EXISTS (SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'media' AND o.name = m.storage_path)
+       OR (m.thumbnail_path IS NOT NULL AND NOT EXISTS (SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'media' AND o.name = m.thumbnail_path)));
+-- m19.kinds: images, PDFs and videos
+SELECT 'm19.kinds', k FROM unnest(ARRAY['image/png', 'application/pdf', 'video/mp4']) k WHERE NOT EXISTS (SELECT 1 FROM public.media WHERE tenant_id = pg_temp.moesa() AND mime_type = k);
+-- m19.thumb_and_none: an image without a thumbnail and a file with one
+SELECT 'm19.thumb_and_none' WHERE NOT EXISTS (SELECT 1 FROM public.media WHERE tenant_id = pg_temp.moesa() AND thumbnail_path IS NULL AND mime_type LIKE 'image/%')
+   OR NOT EXISTS (SELECT 1 FROM public.media WHERE tenant_id = pg_temp.moesa() AND thumbnail_path IS NOT NULL);
+-- m19.rows: each story media row, its customer (none for the shared ones), its file and whether it has a thumbnail
+SELECT 'm19.rows', x.nn FROM (VALUES
+    ('01', 'THO', 'mop-primary.png', TRUE), ('02', 'THO', 'mop-gallery.png', FALSE), ('03', 'THO', 'production.png', TRUE), ('04', 'THO', 'damage.png', TRUE),
+    ('05', 'THO', 'pi.pdf', FALSE), ('06', 'THO', 'artwork.pdf', FALSE), ('07', 'THO', 'demo.mp4', FALSE), ('08', 'THO', 'orphan.png', FALSE),
+    ('09', NULL, 'catalogue.png', TRUE), ('10', 'KRN', 'vase.png', TRUE), ('11', 'THO', 'big-catalogue.pdf', FALSE), ('12', NULL, 'certificate.pdf', FALSE)) x (nn, customer, file, thumb)
+WHERE NOT EXISTS (SELECT 1 FROM public.media m LEFT JOIN public.customer c ON c.id = m.customer_id
+    WHERE m.id = ('5eed0009-0000-4000-8000-0000000000' || x.nn)::UUID AND m.tenant_id = pg_temp.moesa() AND c.code IS NOT DISTINCT FROM x.customer
+      AND m.file_name = x.file AND m.storage_path = pg_temp.moesa() || '/' || m.id || '/' || x.file AND (m.thumbnail_path IS NOT NULL) = x.thumb);
+-- m19.links: each link of the story and its role (MOP40-2P primary and gallery, the production and damage photos, the attachments, the mp4, the shared and KRN photos)
+SELECT 'm19.links', x.nn || ' ' || x.kind || ' ' || x.ref FROM (VALUES
+    ('01', 'product', 'THO-MOP40-2P', 'primary_image'), ('02', 'product', 'THO-MOP40-2P', 'gallery'),
+    ('03', 'purchase_order', '5eed0005-0000-4000-8000-000000000006', 'evidence_photo'), ('04', 'shipment', '5eed0006-0000-4000-8000-000000000009', 'evidence_photo'),
+    ('06', 'change_request', '5eed0008-0000-4000-8000-000000000015', 'attachment'), ('07', 'product', 'THO-TIPS-6-50', 'gallery'),
+    ('09', 'product', 'THO-CONES-100', 'gallery'), ('09', 'product', 'KRN-VASE-01', 'gallery'), ('10', 'product', 'KRN-VASE-01', 'primary_image'),
+    ('11', 'product', 'THO-MOP60-2P', 'attachment')) x (nn, kind, ref, role)
+WHERE NOT EXISTS (SELECT 1 FROM public.media_link l
+    WHERE l.media_id = ('5eed0009-0000-4000-8000-0000000000' || x.nn)::UUID AND l.tenant_id = pg_temp.moesa() AND l.entity_type = x.kind::public.document_entity
+      AND l.role = x.role::public.media_role
+      AND l.entity_id = CASE x.kind WHEN 'product' THEN (SELECT p.id FROM public.product p WHERE p.tenant_id = pg_temp.moesa() AND p.sku = x.ref) ELSE x.ref::UUID END);
+-- m19.shared_two_customers: the shared catalogue photo (no customer) shows on THO's and KRN's products
+SELECT 'm19.shared_two_customers' WHERE NOT EXISTS (SELECT 1 FROM public.media m WHERE m.id = '5eed0009-0000-4000-8000-000000000009' AND m.customer_id IS NULL AND (SELECT count(*) FROM public.media_link l WHERE l.media_id = m.id) >= 2);
+-- m19.unlinked: the orphan PNG has no link and no document (management may delete it)
+SELECT 'm19.unlinked' WHERE NOT EXISTS (SELECT 1 FROM public.media m WHERE m.id = '5eed0009-0000-4000-8000-000000000008' AND NOT EXISTS (SELECT 1 FROM public.media_link l WHERE l.media_id = m.id)
+    AND NOT EXISTS (SELECT 1 FROM public.document d WHERE d.media_id = m.id));
+-- m19.cited_by_document: the PI PDF is the file of PO-011's own approved PI document, next to its Drive link
+SELECT 'm19.cited_by_document' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.purchase_order o ON o.pi_document_id = d.id
+    WHERE d.media_id = '5eed0009-0000-4000-8000-000000000005' AND o.id = '5eed0005-0000-4000-8000-000000000011' AND d.type = 'pi' AND d.status = 'approved' AND d.url IS NOT NULL);
+-- m19.oversized_edge: THO's 12 MB PDF, within MOESA LTD's cap and above MOESA Trading GmbH's 5 MB
+SELECT 'm19.oversized_edge' WHERE NOT EXISTS (SELECT 1 FROM public.media WHERE id = '5eed0009-0000-4000-8000-000000000011' AND size_bytes > 5 * 1024 * 1024 AND size_bytes <= 25 * 1024 * 1024
+    AND size_bytes <= private.media_max_bytes(pg_temp.moesa()) AND size_bytes > private.media_max_bytes(pg_temp.tenant('MOESA Trading GmbH')));
+-- m4.file_kinds: Drive only, media only and both
+SELECT 'm4.file_kinds', k FROM unnest(ARRAY['drive', 'media', 'both']) k
+   WHERE NOT EXISTS (SELECT 1 FROM public.document d WHERE d.tenant_id = pg_temp.moesa() AND CASE k WHEN 'drive' THEN d.url IS NOT NULL AND d.media_id IS NULL WHEN 'media' THEN d.url IS NULL AND d.media_id IS NOT NULL ELSE d.url IS NOT NULL AND d.media_id IS NOT NULL END);
+-- m4.step09_docs: the documents of step 09 (type, record, version, status, file); the supplier's certificate has no customer, cites the shared PDF and supersedes its v1
+SELECT 'm4.step09_docs', x.nn FROM (VALUES
+    ('01', 'tech_pack', 'product', 1, 'draft', '06', TRUE), ('02', 'sample_report', 'product', 1, 'approved', NULL, TRUE),
+    ('03', 'po', 'purchase_order', 1, 'signed', NULL, TRUE), ('04', 'technical_file', 'product', 1, 'approved', NULL, TRUE),
+    ('05', 'other', 'incident', 1, 'draft', NULL, TRUE), ('06', 'certificate', 'supplier', 2, 'signed', '12', TRUE),
+    ('07', 'other', 'market_cell', 1, 'draft', NULL, TRUE), ('08', 'other', 'project', 1, 'signed', NULL, TRUE),
+    ('09', 'packing_list', 'shipment', 1, 'approved', '06', FALSE)) x (nn, type, kind, version, status, media, has_url)
+WHERE NOT EXISTS (SELECT 1 FROM public.document d
+    WHERE d.id = ('5eed0009-0000-4000-8000-0000000002' || x.nn)::UUID AND d.tenant_id = pg_temp.moesa() AND d.type = x.type::public.document_type
+      AND d.entity_type = x.kind::public.document_entity AND d.version = x.version AND d.status = x.status::public.document_status
+      AND d.media_id IS NOT DISTINCT FROM ('5eed0009-0000-4000-8000-0000000000' || x.media)::UUID AND (d.url IS NOT NULL) = x.has_url
+      AND (d.customer_id IS NULL) = (x.kind = 'supplier'))
+   OR (x.nn = '06' AND NOT EXISTS (SELECT 1 FROM public.document d WHERE d.id = '5eed0002-0000-4000-8000-000000000008' AND d.status = 'superseded'));
+-- feed.step09_older: the media step lies in the feed's "older" band
+SELECT 'feed.step09_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'media' AND now()::DATE - created_at::DATE > 7);
 ROLLBACK;

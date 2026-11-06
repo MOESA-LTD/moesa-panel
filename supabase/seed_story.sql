@@ -1332,6 +1332,120 @@ BEGIN
 END;
 $$;
 
+-- The media row of a file scripts/seed-story.mjs uploaded (the fixed id p_id, from its MEDIA list)
+-- in the request's tenant: the file <tenant>/<id>/<p_file_name>, and the thumbnail
+-- <tenant>/<id>/thumb/thumb.webp when it was uploaded too. media_check_file takes the type and
+-- size from Storage's record, so they are left to it. p_customer_id NULL is a shared file.
+CREATE FUNCTION private.story_media (p_id UUID, p_customer_id UUID, p_title TEXT, p_file_name TEXT) RETURNS UUID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_folder TEXT := private.requested_tenant() || '/' || p_id || '/';
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'media' AND o.name = v_folder || p_file_name) THEN
+        RAISE EXCEPTION 'story: media % not uploaded', p_id;
+    END IF;
+
+    INSERT INTO public.media (id, tenant_id, customer_id, storage_path, thumbnail_path, file_name, title)
+    VALUES (p_id, private.requested_tenant(), p_customer_id, v_folder || p_file_name,
+            (SELECT o.name FROM storage.objects o WHERE o.bucket_id = 'media' AND o.name = v_folder || 'thumb/thumb.webp'),
+            p_file_name, p_title);
+
+    RETURN p_id;
+END;
+$$;
+
+-- Step 09 (30 days ago): the media library and the documents of the kinds the earlier steps left
+-- out, as baris in MOESA LTD. The media rows come first, so that the step's audit transaction is
+-- named after the media table; every file was uploaded by the script before this file ran (media
+-- ids 5eed0009-…-NN, documents …-2NN). THO's files go only to THO's records and documents; the
+-- catalogue photo (09) and the certificate PDF (12) have no customer, so the photo shows on THO's
+-- and KRN's products and the PDF backs a supplier's certificate (a supplier's document has no
+-- customer, so it may cite no customer's file). The 12 MB catalogue (11) fits MOESA LTD's 25 MB
+-- cap and not MOESA Trading GmbH's 5 MB: the transfer's media_too_large edge.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('baris@moesa-panel.test', 'MOESA LTD');
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.code = 'THO' AND c.tenant_id = private.requested_tenant());
+    v_krn UUID := (SELECT c.id FROM public.customer c WHERE c.code = 'KRN' AND c.tenant_id = private.requested_tenant());
+    v_cn1 UUID := (SELECT s.id FROM public.supplier s WHERE s.code = 'CN1' AND s.tenant_id = private.requested_tenant());
+    v_mop40_2p UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-MOP40-2P' AND p.tenant_id = private.requested_tenant());
+    v_mop40_3p UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-MOP40-3P' AND p.tenant_id = private.requested_tenant());
+    v_mop60_2p UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-MOP60-2P' AND p.tenant_id = private.requested_tenant());
+    v_tips50 UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = private.requested_tenant());
+    v_cones100 UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-CONES-100' AND p.tenant_id = private.requested_tenant());
+    v_cones200 UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'THO-CONES-200' AND p.tenant_id = private.requested_tenant());
+    v_vase UUID := (SELECT p.id FROM public.product p WHERE p.sku = 'KRN-VASE-01' AND p.tenant_id = private.requested_tenant());
+    v_rows INT;
+BEGIN
+    IF v_tho IS NULL OR v_krn IS NULL OR v_cn1 IS NULL OR v_mop40_2p IS NULL OR v_mop40_3p IS NULL OR v_mop60_2p IS NULL
+       OR v_tips50 IS NULL OR v_cones100 IS NULL OR v_cones200 IS NULL OR v_vase IS NULL THEN
+        RAISE EXCEPTION 'story 09: a seed or story row is missing';
+    END IF;
+
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000001', v_tho, 'Mop 40 cm, 2''li paket: ana görsel', 'mop-primary.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000002', v_tho, 'Mop 40 cm, 2''li paket: detay', 'mop-gallery.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000003', v_tho, 'Üretim hattı fotoğrafı', 'production.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000004', v_tho, 'Teslimatta hasarlı koliler', 'damage.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000005', v_tho, 'Proforma fatura (PDF)', 'pi.pdf');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000006', v_tho, 'Ambalaj baskı dosyası', 'artwork.pdf');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000007', v_tho, 'Uç seti kullanım videosu', 'demo.mp4');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000008', v_tho, 'Kullanılmayan çekim', 'orphan.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000009', NULL, 'Ortak katalog fotoğrafı', 'catalogue.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000010', v_krn, 'Vazo: ana görsel', 'vase.png');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000011', v_tho, 'Ürün kataloğu (yüksek çözünürlük)', 'big-catalogue.pdf');
+    PERFORM private.story_media('5eed0009-0000-4000-8000-000000000012', NULL, 'Tedarikçi sertifikası (PDF)', 'certificate.pdf');
+
+    -- The links; 08 (the orphan) and the PDFs that only documents cite (05, 12) stay unlinked.
+    INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role, position)
+    VALUES (v_tenant, '5eed0009-0000-4000-8000-000000000001', 'product', v_mop40_2p, 'primary_image', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000002', 'product', v_mop40_2p, 'gallery', 1),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000003', 'purchase_order', '5eed0005-0000-4000-8000-000000000006', 'evidence_photo', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000004', 'shipment', '5eed0006-0000-4000-8000-000000000009', 'evidence_photo', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000006', 'change_request', '5eed0008-0000-4000-8000-000000000015', 'attachment', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000007', 'product', v_tips50, 'gallery', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000009', 'product', v_cones100, 'gallery', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000010', 'product', v_vase, 'primary_image', 0),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000009', 'product', v_vase, 'gallery', 1),
+           (v_tenant, '5eed0009-0000-4000-8000-000000000011', 'product', v_mop60_2p, 'attachment', 0);
+
+    -- PO-011's approved PI (step 05, the order's pi_document_id, v1) gains the PDF next to its Drive
+    -- link: the "both" kind, and the file a document cites. A v2 would supersede the order's own PI.
+    UPDATE public.document SET media_id = '5eed0009-0000-4000-8000-000000000005'
+    WHERE id = (SELECT o.pi_document_id FROM public.purchase_order o WHERE o.id = '5eed0005-0000-4000-8000-000000000011');
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'story 09: PO-011 has no PI document';
+    END IF;
+
+    -- The document types, records and file kinds the earlier steps left out.
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000201', 'product', v_mop40_3p, v_tho, 'tech_pack', 1, 'draft',
+                              current_date - 31, 'https://drive.google.com/example/5eed0009-0000-4000-8000-000000000201',
+                              '5eed0009-0000-4000-8000-000000000006');
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000202', 'product', v_cones200, v_tho, 'sample_report', 1, 'approved',
+                              current_date - 45);
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000203', 'purchase_order', '5eed0005-0000-4000-8000-000000000002', v_tho,
+                              'po', 1, 'signed', current_date - 6);
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000204', 'product', v_tips50, v_tho, 'technical_file', 1, 'approved',
+                              current_date - 60);
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000205', 'incident', '5eed0008-0000-4000-8000-000000000002', v_tho,
+                              'other', 1, 'draft', current_date - 3);
+    -- CN1's renewed certificate supersedes the one of step 02; a supplier's, so the shared PDF.
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000206', 'supplier', v_cn1, NULL, 'certificate', 2, 'signed',
+                              current_date - 30, 'https://drive.google.com/example/5eed0009-0000-4000-8000-000000000206',
+                              '5eed0009-0000-4000-8000-000000000012');
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000207', 'market_cell', '5eed0007-0000-4000-8000-000000000005', v_tho,
+                              'other', 1, 'draft', current_date - 2);
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000208', 'project', '5eed0004-0000-4000-8000-000000000003', v_tho,
+                              'other', 1, 'signed', current_date - 20);
+    -- The packing list of SHP-008, a scan in the library only: the "media only" kind.
+    PERFORM private.story_doc('5eed0009-0000-4000-8000-000000000209', 'shipment', '5eed0006-0000-4000-8000-000000000008', v_tho,
+                              'packing_list', 1, 'approved', current_date - 12, NULL, '5eed0009-0000-4000-8000-000000000006');
+
+    PERFORM private.story_end('30 days');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),
@@ -1342,7 +1456,8 @@ private.story_po_pi (UUID, UUID, public.document_status, DATE, NUMERIC),
 private.story_shipment_walk (UUID, public.shipment_status, TIMESTAMPTZ, DATE),
 private.story_cell (UUID, TEXT, TEXT, TEXT, public.market_cell_status[], JSONB),
 private.story_incident (UUID, public.incident_family, TEXT, public.incident_severity, TIMESTAMPTZ, public.document_entity, UUID, TEXT, TEXT, JSONB),
-private.story_cr (UUID, public.change_request_source, public.change_request_urgency, public.change_kind[], TEXT, TEXT, TEXT, TEXT, JSONB, TEXT[]);
+private.story_cr (UUID, public.change_request_source, public.change_request_urgency, public.change_kind[], TEXT, TEXT, TEXT, TEXT, JSONB, TEXT[]),
+private.story_media (UUID, UUID, TEXT, TEXT);
 
 -- The last block: no step may leave the rules bypass on, and no claims outlive the story.
 DO $$

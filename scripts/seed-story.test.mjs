@@ -1,10 +1,10 @@
 // Unit tests of the pure parts of seed-story.mjs: node --test scripts/seed-story.test.mjs
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { bigPdf, countChecks, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
+import { bigPdf, countChecks, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
 
 test('bigPdf is sample.pdf padded with comment lines to exactly 12 MiB', () => {
    const sample = readFileSync(path.join(ROOT, 'supabase', 'seed_files', 'sample.pdf'));
@@ -34,10 +34,47 @@ test('check rows become FAIL lines; checks are counted by their leading SELECT',
    assert.equal(countChecks('BEGIN;\n  SELECT 1;\nSELECT 1;\nSELECT 2 FROM t\n  WHERE x;\n'), 2);
 });
 
-test('MEDIA ids are story-step UUIDs and upload names are unique per id', () => {
+test('MEDIA lists the step 09 files: unique ids, existing sources, one generated 12 MB PDF', () => {
+   assert.equal(MEDIA.length, 12);
    for (const m of MEDIA) {
-      assert.match(m.id, /^5eed00\d\d-0000-4000-8000-0000000000\d\d$/);
+      assert.match(m.id, /^5eed0009-0000-4000-8000-0000000000\d\d$/);
       assert.ok(m.file && m.upload && m.mime);
+      assert.doesNotMatch(m.upload, /\//);
+      if (m.file !== '<generated:12MB>') assert.ok(existsSync(path.join(ROOT, 'supabase', 'seed_files', m.file)), m.file);
+      if (m.thumb) assert.ok(existsSync(path.join(ROOT, 'supabase', 'seed_files', m.thumb)), m.thumb);
    }
    assert.equal(new Set(MEDIA.map((m) => m.id)).size, MEDIA.length);
+   assert.deepEqual(MEDIA.filter((m) => m.file === '<generated:12MB>').map((m) => m.id), ['5eed0009-0000-4000-8000-000000000011']);
+   const storySql = readFileSync(path.join(ROOT, 'supabase', 'seed_story.sql'), 'utf8');
+   for (const m of MEDIA) assert.ok(storySql.includes(m.id), `${m.id} missing from seed_story.sql`);
+});
+
+test('the KRN guard stops the run before any upload or story SQL', async () => {
+   assert.ok(MEDIA.length > 0, 'the guard is only meaningful with files to upload');
+   const queries = [];
+   let uploads = 0;
+   const exited = [];
+   const original = console.error;
+   console.error = () => {};
+   try {
+      await main({
+         keys: () => ({ apiUrl: 'http://127.0.0.1:1', serviceRoleKey: 'unused' }),
+         sql: (text) => {
+            queries.push(text);
+            return '1\n';
+         },
+         upload: async () => {
+            uploads += 1;
+         },
+         exit: (code) => {
+            exited.push(code);
+         },
+      });
+   } finally {
+      console.error = original;
+   }
+   assert.deepEqual(exited, [1]);
+   assert.equal(uploads, 0);
+   assert.equal(queries.length, 1);
+   assert.match(queries[0], /code = 'KRN'/);
 });
