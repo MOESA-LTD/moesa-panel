@@ -28,6 +28,15 @@ The story will not load twice. If customer KRN exists, the script stops before i
 anything, and the SQL has the same guard. After a failed or partial run, run
 `supabase db reset` and start again.
 
+A failed run leaves two things behind. The uploaded files stay in Storage after the SQL rolls
+back; after a reset a rerun upserts them, so nothing piles up. And `pnpm dev:supabase-reset` stops
+before it regenerates the types when the story or a check fails, so fix the failure and run the
+types step (`pnpm dev:supabase-types`) by hand or reset again.
+
+The story and the smoke check run as two transactions. The script reads the database date before
+the story and hands it to the check (`story.today`), so a run that crosses 00:00 UTC does not fail
+the date checks. The script also refuses to run unless the API URL is `127.0.0.1` or `localhost`.
+
 ## What each user sees
 
 Every demo account uses the password `Demo1234!`.
@@ -70,7 +79,7 @@ the smoke check asks the server for each one (`m21.*`).
 
 | Refusal | How to get it |
 |---|---|
-| `transfer_product_in_use` | Move only the product THO-CONES-100 out of MOESA LTD, for example into MOESA Europe. It is on a closed project, a closed order and market cells. The rehearsal lists those links under "Links that stay in the source", and the panel keeps the Transfer button disabled. The server's own refusal is `transfer_product_in_use`. |
+| `transfer_product_in_use` | Move only the product THO-CONES-100 out of MOESA LTD, for example into MOESA Europe. It is on a closed project, a closed order and market cells. The rehearsal lists those links under "Links that stay in the source", and the panel keeps the Transfer button disabled, so you never reach the server's own refusal `transfer_product_in_use` from the UI (the smoke check asks the server directly). |
 | `transfer_files_pending` | As baris, transfer MOESA Europe's copy of KRN onward, for example into MOESA Trading GmbH. The check looks at the transfer's target company and target customer. akif on the same path gets `transfer_owner_required` first. In the panel, the target picker lists the refused company as disabled, with the reason. A second copy of KRN from MOESA LTD into Europe is not refused. It shows the GTIN and code conflicts instead. |
 | `transfer_owner_required` | akif (management, not owner) calls `transfer_customer` into MOESA Trading GmbH. The panel's target picker never lists Trading for him. |
 | `media_too_large` | baris copies THO into MOESA Trading GmbH. The 12 MB catalogue goes over Trading's 5 MB cap. The cap is read from the root company, so the setting sits on Trading. |
