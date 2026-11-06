@@ -105,11 +105,11 @@ VALUES
     ('product', 'status', 'all', NULL),
     ('product', 'compliance_status', 'all', NULL),
     -- Task 4: customer lifecycle, projects and tasks.
-    ('customer', 'status', 'pending', NULL),
-    ('project', 'type', 'pending', NULL),
-    ('project', 'path', 'pending', NULL),
-    ('project', 'status', 'pending', NULL),
-    ('project_task', 'status', 'pending', NULL),
+    ('customer', 'status', 'all', NULL),
+    ('project', 'type', 'all', NULL),
+    ('project', 'path', 'all', NULL),
+    ('project', 'status', 'all', NULL),
+    ('project_task', 'status', 'all', NULL),
     -- Task 5: purchase orders.
     ('purchase_order', 'status', 'pending', NULL),
     ('purchase_order_payment', 'kind', 'pending', NULL),
@@ -206,5 +206,45 @@ SELECT 'm4.no_spec' WHERE EXISTS (SELECT 1 FROM public.document d JOIN public.pr
    OR NOT EXISTS (SELECT 1 FROM public.product p WHERE p.sku = 'THO-MOP40-4P' AND p.tenant_id = pg_temp.moesa());
 SELECT 'm4.draft_spec' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = pg_temp.moesa() AND d.type = 'spec_sheet' AND d.status = 'draft');
 SELECT 'feed.step03_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'product' AND now()::DATE - created_at::DATE > 7);
+
+-- Task 4: projects, phases, gates without a PI rule, tasks
+SELECT 'core.encoding' WHERE NOT EXISTS (SELECT 1 FROM public.project WHERE id = '5eed0004-0000-4000-8000-000000000001' AND display_name = U&'OKAEI f\0131r\00E7a private label');
+SELECT 'm5.pilot_on_g1' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending g WHERE g.project_display_name = 'Mop ailesi çok ülke pilotu' AND g.gate_code = 'G1' AND g.needs_management);
+SELECT 'm5.pilot_blocking_task' WHERE NOT EXISTS (SELECT 1 FROM public.project_task t JOIN public.project p ON p.id = t.project_id WHERE p.display_name = 'Mop ailesi çok ülke pilotu' AND t.blocks_gate AND t.status <> 'done' AND t.phase <= public.phase_before('G1'));
+SELECT 'm5.pl_passed_with_approval' WHERE (SELECT count(*) FROM public.project_gate g WHERE g.project_id = '5eed0004-0000-4000-8000-000000000001' AND g.status = 'passed' AND (NOT g.needs_customer_approval OR g.approval_document_id IS NOT NULL)) < 2;
+SELECT 'm5.task_states', s FROM unnest(ARRAY['todo', 'doing', 'done', 'blocked']::public.task_status[]) s WHERE NOT EXISTS (SELECT 1 FROM public.project_task WHERE tenant_id = pg_temp.moesa() AND status = s);
+SELECT 'm5.task_unassigned' WHERE NOT EXISTS (SELECT 1 FROM public.project_task t JOIN public.project p ON p.id = t.project_id AND p.status = 'active' WHERE t.tenant_id = pg_temp.moesa() AND t.assignee_id IS NULL AND t.status <> 'done');
+SELECT 'box.tasks_overdue' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_task_due WHERE tenant_id = pg_temp.moesa() AND overdue);
+SELECT 'box.tasks_due_soon' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_task_due WHERE tenant_id = pg_temp.moesa() AND NOT overdue AND days_left BETWEEN 0 AND 5);
+SELECT 'box.gates_management' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE tenant_id = pg_temp.moesa() AND needs_management);
+SELECT 'box.gates_customer' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE tenant_id = pg_temp.moesa() AND NOT needs_management AND needs_customer_approval);
+SELECT 'm1.closed_with_project' WHERE NOT EXISTS (SELECT 1 FROM public.customer c JOIN public.project p ON p.customer_id = c.id WHERE c.code = 'CLS' AND c.status = 'closed' AND p.status = 'closed');
+SELECT 'm5.a0_only' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE project_id = '5eed0004-0000-4000-8000-000000000008' AND code = 'PL_G1' AND status = 'pending');
+SELECT 'feed.step04_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'project' AND now()::DATE - created_at::DATE > 7);
+-- m5.gate_states: each story project's passed gates (in position order) and the gate it waits on
+SELECT 'm5.gate_states', x.nn FROM (VALUES
+    ('01', 'G1,PL_G1', 'PL_G2'), ('02', 'G2', 'G3'), ('03', '', 'G3'), ('04', '', 'G2'), ('05', 'G1,G2', 'G3'),
+    ('06', '', 'G1'), ('07', '', 'G5'), ('08', '', 'PL_G1'), ('09', '', 'G1')) x (nn, passed, waits)
+WHERE (SELECT coalesce(string_agg(g.code::TEXT, ',' ORDER BY g.position) FILTER (WHERE g.status = 'passed'), '')
+       FROM public.project_gate g WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID) IS DISTINCT FROM x.passed
+   OR (SELECT g.code::TEXT FROM public.project_gate g WHERE g.project_id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND g.status <> 'passed' ORDER BY g.position LIMIT 1) IS DISTINCT FROM x.waits;
+SELECT 'm5.project_states', x.nn FROM (VALUES ('04', 'on_hold'), ('06', 'cancelled'), ('09', 'closed'), ('01', 'active'), ('02', 'active'), ('03', 'active'), ('05', 'active'), ('07', 'active'), ('08', 'active')) x (nn, st)
+WHERE NOT EXISTS (SELECT 1 FROM public.project p WHERE p.id = ('5eed0004-0000-4000-8000-0000000000' || x.nn)::UUID AND p.status = x.st::public.project_status);
+-- m5.waiting_days: the private label project has waited on PL_G2 since PL_G1 passed nine days ago
+SELECT 'm5.waiting_days' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_gate_pending WHERE project_id = '5eed0004-0000-4000-8000-000000000001' AND gate_code = 'PL_G2' AND waiting_days BETWEEN 8 AND 10);
+-- m5.passed_with_evidence: every passed gate of a story project passed the real rules: approval document of that gate, approval date, no open blocking task up to the phase it closes
+SELECT 'm5.passed_with_evidence', g.project_id || ' ' || g.code FROM public.project_gate g
+LEFT JOIN public.document d ON d.id = g.approval_document_id AND d.type = 'gate_approval' AND d.entity_type = 'project_gate' AND d.entity_id = g.id AND d.status = 'signed'
+WHERE g.project_id::TEXT LIKE '5eed0004-%' AND g.status = 'passed'
+  AND ((g.needs_customer_approval AND (d.id IS NULL OR g.customer_approved_on IS NULL OR g.passed_at > now() - interval '1 day'))
+       OR EXISTS (SELECT 1 FROM public.project_task t WHERE t.project_id = g.project_id AND t.blocks_gate AND t.status <> 'done' AND t.phase <= public.phase_before(g.code)));
+-- m5.story_tasks: the dashboard task states sit on non-blocking tasks of the variant and reorder projects, so later gate passes keep them
+SELECT 'm5.story_tasks', x.k FROM (VALUES ('overdue'), ('due_soon'), ('blocked'), ('doing_unassigned'), ('done')) x (k)
+WHERE NOT EXISTS (SELECT 1 FROM public.project_task t WHERE t.project_id IN ('5eed0004-0000-4000-8000-000000000002', '5eed0004-0000-4000-8000-000000000003') AND NOT t.blocks_gate
+    AND CASE x.k WHEN 'overdue' THEN t.status = 'todo' AND t.due_on = current_date - 3
+                 WHEN 'due_soon' THEN t.status = 'todo' AND t.due_on = current_date + 2
+                 WHEN 'blocked' THEN t.status = 'blocked'
+                 WHEN 'doing_unassigned' THEN t.status = 'doing' AND t.assignee_id IS NULL
+                 ELSE t.status = 'done' END);
 
 ROLLBACK;

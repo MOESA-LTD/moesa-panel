@@ -328,10 +328,187 @@ BEGIN
 END;
 $$;
 
+-- Passes a gate of a story project at p_passed_at, by the real rules (project_gate_guard ignores
+-- the bypass): first the blocking tasks the guard counts against this gate (blocks_gate, phase up
+-- to the one the gate closes) go from todo to done (a blocking task the story set to doing or
+-- blocked is refused, not completed); then, when the gate needs the customer's approval, a signed
+-- gate_approval document of that gate with the fixed id p_id, issued and approved on the pass
+-- date (p_id is NULL exactly for a gate without customer approval, G4); then one UPDATE of the
+-- gate, so the guard and project_gate_advance run as for pass_gate. p_evidence becomes the gate's
+-- evidence_document_ids (G3: the PI of a pi_approved order of the project).
+CREATE FUNCTION private.story_pass_gate (
+    p_id UUID,
+    p_project_id UUID,
+    p_gate public.gate_code,
+    p_passed_at TIMESTAMPTZ,
+    p_evidence UUID[] DEFAULT '{}'
+) RETURNS VOID LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_gate public.project_gate;
+    v_customer UUID := (SELECT p.customer_id FROM public.project p WHERE p.id = p_project_id);
+BEGIN
+    SELECT * INTO v_gate FROM public.project_gate g WHERE g.project_id = p_project_id AND g.code = p_gate;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'story: project % has no gate %', p_project_id, p_gate;
+    END IF;
+
+    IF v_gate.needs_customer_approval IS DISTINCT FROM (p_id IS NOT NULL) THEN
+        RAISE EXCEPTION 'story: gate % of % takes an approval document id exactly when it needs the customer''s approval',
+            p_gate, p_project_id;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public.project_task t
+        WHERE t.project_id = p_project_id AND t.blocks_gate AND t.status IN ('doing', 'blocked')
+          AND t.phase <= public.phase_before(p_gate)
+    ) THEN
+        RAISE EXCEPTION 'story: a blocking task before gate % of % is doing or blocked', p_gate, p_project_id;
+    END IF;
+
+    UPDATE public.project_task t
+    SET status = 'done'
+    WHERE t.project_id = p_project_id AND t.blocks_gate AND t.status = 'todo'
+      AND t.phase <= public.phase_before(p_gate);
+
+    IF v_gate.needs_customer_approval THEN
+        PERFORM private.story_doc(p_id, 'project_gate', v_gate.id, v_customer, 'gate_approval', 1, 'signed',
+                                  p_passed_at::DATE);
+    END IF;
+
+    UPDATE public.project_gate g
+    SET status = 'passed',
+        passed_at = p_passed_at,
+        customer_approved_on = CASE WHEN v_gate.needs_customer_approval THEN p_passed_at::DATE END,
+        approval_document_id = p_id,
+        evidence_document_ids = coalesce(p_evidence, '{}')
+    WHERE g.id = v_gate.id;
+
+    IF NOT EXISTS (SELECT 1 FROM public.project_gate g WHERE g.id = v_gate.id AND g.status = 'passed') THEN
+        RAISE EXCEPTION 'story: % not passed', p_gate;
+    END IF;
+END;
+$$;
+
+-- Step 04 (25 days ago): projects, their gates without a PI rule, and tasks, as koordinator in
+-- MOESA LTD. The projects come first, so that the step's audit transaction is named after the
+-- project table. created_at is set in the past, before each project's first pass, so the
+-- dashboard's waiting days follow a real timeline. G3 and later (they need a PI) pass in step 05;
+-- the pilot of seed.sql is not touched (it waits on G1 with its blocking task todo).
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('koordinator@moesa-panel.test', 'MOESA LTD');
+    v_coordinator UUID := (SELECT u.id FROM public.user u WHERE u.email = 'koordinator@moesa-panel.test');
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.tenant_id = v_tenant AND c.code = 'THO');
+    v_krn UUID := '5eed0002-0000-4000-8000-000000000001';
+    v_cls UUID := '5eed0002-0000-4000-8000-000000000004';
+    v_tips50 UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-TIPS-6-50');
+    v_cones100 UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-CONES-100');
+    v_pl UUID := '5eed0004-0000-4000-8000-000000000001';
+    v_variant UUID := '5eed0004-0000-4000-8000-000000000002';
+    v_reorder UUID := '5eed0004-0000-4000-8000-000000000003';
+    v_revision UUID := '5eed0004-0000-4000-8000-000000000004';
+    v_cones UUID := '5eed0004-0000-4000-8000-000000000005';
+    v_cancelled UUID := '5eed0004-0000-4000-8000-000000000006';
+    v_closed UUID := '5eed0004-0000-4000-8000-000000000009';
+    v_rows INT;
+BEGIN
+    IF v_coordinator IS NULL OR v_tho IS NULL OR v_tips50 IS NULL OR v_cones100 IS NULL THEN
+        RAISE EXCEPTION 'story 04: koordinator, THO, THO-TIPS-6-50 or THO-CONES-100 is missing';
+    END IF;
+
+    -- Nine projects: every type, path, package edge and status. Codes, starting phases, gates
+    -- and the first checklists come from the triggers.
+    INSERT INTO public.project (id, tenant_id, customer_id, display_name, type, path, packages, coordinator_id,
+                                created_at)
+    VALUES (v_pl, v_tenant, v_tho, 'OKAEI fırça private label', 'npi', 'b_private_label', ARRAY['A2', 'C'],
+            v_coordinator, now() - interval '30 days'),
+           (v_variant, v_tenant, v_tho, 'MOP40 3''lü varyant', 'variant', NULL, ARRAY['A1'], v_coordinator,
+            now() - interval '25 days'),
+           (v_reorder, v_tenant, v_tho, 'Karbon filtre tekrar siparişi', 'reorder', NULL, ARRAY['A1'], v_coordinator,
+            now() - interval '20 days'),
+           (v_revision, v_tenant, v_tho, 'CONES-100 ambalaj revizyonu', 'revision', NULL, ARRAY['A1'], v_coordinator,
+            now() - interval '18 days'),
+           (v_cones, v_tenant, v_tho, 'Cones ilk sipariş', 'npi', 'a_sourcing', ARRAY['A1'], v_coordinator,
+            now() - interval '130 days'),
+           (v_cancelled, v_tenant, v_tho, 'Mop 60 iptal', 'npi', 'a_sourcing', ARRAY['A1'], v_coordinator,
+            now() - interval '60 days'),
+           ('5eed0004-0000-4000-8000-000000000007', v_tenant, v_tho, 'THO lojistik Q1', 'npi', 'a_sourcing', ARRAY['B'],
+            v_coordinator, now() - interval '10 days'),
+           ('5eed0004-0000-4000-8000-000000000008', v_tenant, v_krn, 'Konsept vazo', 'npi', 'b_private_label',
+            ARRAY['A0'], v_coordinator, now() - interval '14 days'),
+           (v_closed, v_tenant, v_cls, 'CLS eski proje', 'npi', 'a_sourcing', ARRAY['A1'], v_coordinator,
+            now() - interval '200 days');
+
+    INSERT INTO public.project_product (project_id, product_id, tenant_id)
+    VALUES (v_pl, '5eed0003-0000-4000-8000-000000000006', v_tenant),
+           (v_variant, '5eed0003-0000-4000-8000-000000000001', v_tenant),
+           (v_reorder, v_tips50, v_tenant),
+           (v_revision, v_cones100, v_tenant),
+           (v_cones, v_cones100, v_tenant),
+           (v_cancelled, '5eed0003-0000-4000-8000-000000000003', v_tenant),
+           ('5eed0004-0000-4000-8000-000000000008', '5eed0003-0000-4000-8000-000000000009', v_tenant);
+
+    -- The passes, oldest first; each approval document is 5eed0004-…-2N. G2 needs signed specs:
+    -- THO-CONES-100 and THO-MOP40-3P have them since step 03.
+    PERFORM private.story_pass_gate('5eed0004-0000-4000-8000-000000000021', v_cones, 'G1', now() - interval '120 days');
+    PERFORM private.story_pass_gate('5eed0004-0000-4000-8000-000000000022', v_cones, 'G2', now() - interval '100 days');
+    PERFORM private.story_pass_gate('5eed0004-0000-4000-8000-000000000023', v_pl, 'G1', now() - interval '20 days');
+    PERFORM private.story_pass_gate('5eed0004-0000-4000-8000-000000000024', v_variant, 'G2', now() - interval '15 days');
+    PERFORM private.story_pass_gate('5eed0004-0000-4000-8000-000000000025', v_pl, 'PL_G1', now() - interval '9 days');
+
+    -- The dashboard's task states, on non-blocking P3 tasks of the variant and the reorder, so
+    -- the G3 passes of step 05 leave them as they are: overdue, due in two days, blocked, doing
+    -- without an assignee, done.
+    UPDATE public.project_task t
+    SET due_on = x.due_on, status = x.status::public.task_status,
+        assignee_id = CASE WHEN x.assigned THEN v_coordinator END
+    FROM (VALUES (v_variant, 10, current_date - 3, 'todo', TRUE),
+                 (v_variant, 30, current_date + 2, 'todo', TRUE),
+                 (v_reorder, 40, NULL::DATE, 'blocked', TRUE),
+                 (v_reorder, 30, NULL::DATE, 'doing', FALSE),
+                 (v_reorder, 10, NULL::DATE, 'done', TRUE)) x (project_id, position, due_on, status, assigned)
+    WHERE t.project_id = x.project_id AND t.phase = 'P3' AND t.position = x.position AND NOT t.blocks_gate;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    IF v_rows <> 5 THEN
+        RAISE EXCEPTION 'story 04: the task states changed % rows, not 5', v_rows;
+    END IF;
+
+    -- Status changes come after the passes (a pass needs an active project).
+    UPDATE public.project SET status = 'on_hold' WHERE id = v_revision;
+    UPDATE public.project SET status = 'cancelled' WHERE id = v_cancelled;
+    UPDATE public.project SET status = 'closed' WHERE id = v_closed;
+
+    PERFORM private.story_end('25 days');
+END;
+$$;
+
+-- Step 04, second part: baris closes CLS, now that its only project is closed.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('baris@moesa-panel.test', 'MOESA LTD');
+    v_rows INT;
+BEGIN
+    UPDATE public.customer SET status = 'closed'
+    WHERE id = '5eed0002-0000-4000-8000-000000000004' AND tenant_id = v_tenant;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'story 04: closing CLS changed % rows', v_rows;
+    END IF;
+
+    PERFORM private.story_end('25 days');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),
-private.story_doc (UUID, public.document_entity, UUID, UUID, public.document_type, INT, public.document_status, DATE, TEXT, UUID);
+private.story_doc (UUID, public.document_entity, UUID, UUID, public.document_type, INT, public.document_status, DATE, TEXT, UUID),
+private.story_pass_gate (UUID, UUID, public.gate_code, TIMESTAMPTZ, UUID[]);
 
 -- The last block: no step may leave the rules bypass on, and no claims outlive the story.
 DO $$
