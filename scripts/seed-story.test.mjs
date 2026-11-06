@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { bigPdf, countChecks, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
+import { bigPdf, countChecks, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
 
 test('bigPdf is sample.pdf padded with comment lines to exactly 12 MiB', () => {
    const sample = readFileSync(path.join(ROOT, 'supabase', 'seed_files', 'sample.pdf'));
@@ -40,11 +40,11 @@ test('MEDIA lists the step 09 files: unique ids, existing sources, one generated
       assert.match(m.id, /^5eed0009-0000-4000-8000-0000000000\d\d$/);
       assert.ok(m.file && m.upload && m.mime);
       assert.doesNotMatch(m.upload, /\//);
-      if (m.file !== '<generated:12MB>') assert.ok(existsSync(path.join(ROOT, 'supabase', 'seed_files', m.file)), m.file);
+      if (m.file !== GENERATED_BIG_PDF) assert.ok(existsSync(path.join(ROOT, 'supabase', 'seed_files', m.file)), m.file);
       if (m.thumb) assert.ok(existsSync(path.join(ROOT, 'supabase', 'seed_files', m.thumb)), m.thumb);
    }
    assert.equal(new Set(MEDIA.map((m) => m.id)).size, MEDIA.length);
-   assert.deepEqual(MEDIA.filter((m) => m.file === '<generated:12MB>').map((m) => m.id), ['5eed0009-0000-4000-8000-000000000011']);
+   assert.deepEqual(MEDIA.filter((m) => m.file === GENERATED_BIG_PDF).map((m) => m.id), ['5eed0009-0000-4000-8000-000000000011']);
    const storySql = readFileSync(path.join(ROOT, 'supabase', 'seed_story.sql'), 'utf8');
    for (const m of MEDIA) assert.ok(storySql.includes(m.id), `${m.id} missing from seed_story.sql`);
 });

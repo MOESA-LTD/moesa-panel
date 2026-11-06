@@ -1446,6 +1446,77 @@ BEGIN
 END;
 $$;
 
+-- Step 10 (today): akif (management in MOESA LTD and MOESA Europe) copies KRN into MOESA Europe
+-- through the real public.transfer_customer, as the panel does: rehearsals until every conflict
+-- has a decision, then the run on the last rehearsal's report_hash. The decision of each conflict
+-- the rehearsal lists without one: gtin → clear_gtin (the copy's GTINs stay with MOESA LTD's
+-- products), code → new_code, media_link → demote, anything else → map onto the existing row.
+-- No client copies the files afterwards, so the transfer keeps files_status 'pending': Europe's
+-- KRN shows the pending-files notice, and transferring it onward is refused
+-- (transfer_files_pending). No story_end: the transfer's audit transactions stay at now(), and the
+-- feed shows them as cannot be reverted (audit_transfer_locked). The transfer row's id comes from
+-- the RPC; it is found by its source and target customer.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('akif@moesa-panel.test', 'MOESA LTD');
+    v_europe UUID := (SELECT t.id FROM public.tenant t WHERE t.display_name = 'MOESA Europe');
+    v_krn UUID := (SELECT c.id FROM public.customer c WHERE c.code = 'KRN' AND c.tenant_id = private.requested_tenant());
+    v_decisions JSONB := '{}';
+    v_added JSONB;
+    v_report JSONB;
+    v_round INT := 0;
+    v_run public.transfer;
+BEGIN
+    IF v_europe IS NULL OR v_krn IS NULL THEN
+        RAISE EXCEPTION 'story 10: MOESA Europe or KRN is missing';
+    END IF;
+
+    LOOP
+        v_report := public.transfer_customer(v_tenant, v_europe, v_krn, 'copy', decisions => v_decisions);
+
+        SELECT coalesce(jsonb_object_agg(c ->> 'key', CASE c ->> 'kind'
+                   WHEN 'gtin' THEN '{"action": "clear_gtin"}'::JSONB
+                   WHEN 'code' THEN '{"action": "new_code"}'::JSONB
+                   WHEN 'media_link' THEN '{"action": "demote"}'::JSONB
+                   ELSE jsonb_build_object('action', 'map', 'target_id', c -> 'existing_id')
+               END), '{}')
+        INTO v_added
+        FROM jsonb_array_elements(v_report -> 'conflicts') c
+        WHERE NOT (c -> 'actions') ? coalesce(v_decisions -> (c ->> 'key') ->> 'action', '');
+
+        EXIT WHEN v_added = '{}';
+
+        v_round := v_round + 1;
+        IF v_round > 5 THEN
+            RAISE EXCEPTION 'story 10: the rehearsals still add decisions after 5 rounds';
+        END IF;
+        v_decisions := v_decisions || v_added;
+    END LOOP;
+
+    IF (v_report ->> 'unresolved')::INT <> 0 THEN
+        RAISE EXCEPTION 'story 10: % conflicts left undecided', v_report ->> 'unresolved';
+    END IF;
+
+    v_run := jsonb_populate_record(NULL::public.transfer, public.transfer_customer(
+        v_tenant, v_europe, v_krn, 'copy', decisions => v_decisions, dry_run => FALSE, report_hash => v_report ->> 'report_hash'
+    ));
+
+    IF v_run.tenant_id IS DISTINCT FROM v_europe OR v_run.mode <> 'copy' OR v_run.path <> 'copy'
+       OR v_run.files_status <> 'pending' OR jsonb_array_length(v_run.files) = 0 THEN
+        RAISE EXCEPTION 'story 10: the copy is not a pending copy into MOESA Europe (%, %, %)', v_run.mode, v_run.path, v_run.files_status;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.id = v_run.target_customer_id AND c.tenant_id = v_europe AND c.code = 'KRN') THEN
+        RAISE EXCEPTION 'story 10: the copy has no KRN in MOESA Europe';
+    END IF;
+
+    IF cardinality(v_run.audit_transaction_ids) = 0
+       OR EXISTS (SELECT 1 FROM unnest(v_run.audit_transaction_ids) a WHERE NOT public.audit_transfer_locked(a)) THEN
+        RAISE EXCEPTION 'story 10: an audit transaction of the copy could be reverted';
+    END IF;
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),

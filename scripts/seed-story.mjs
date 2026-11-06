@@ -22,7 +22,7 @@ const STORY_SQL = path.join(ROOT, 'supabase', 'seed_story.sql');
 const CHECK_SQL = path.join(ROOT, 'supabase', 'seed_story.check.sql');
 const MAX_SEED_FILE_BYTES = 500 * 1024;
 const BIG_PDF_BYTES = 12 * 1024 * 1024;
-const GENERATED_BIG_PDF = '<generated:12MB>';
+export const GENERATED_BIG_PDF = '<generated:12MB>';
 const BUCKET = 'media';
 
 // The media files the story's media rows point at. `id` is the media row's fixed UUID (it also

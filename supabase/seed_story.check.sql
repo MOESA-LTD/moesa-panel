@@ -13,6 +13,8 @@
 --                               'story_check_succeeded'; the write is undone either way.
 --   pg_temp.enum_gaps(tbl, col) the values of an enum column (or enum array column) of
 --                               public.<tbl> that no MOESA LTD row holds.
+--   pg_temp.refusal_as, pg_temp.move_error, pg_temp.copy_error (Task 10) the transfer refusal
+--                               a user meets, asked of the server's own logic (see there).
 --
 -- story_enum_column classifies every enum column of every public base table:
 --   all      every value must occur in MOESA LTD (checked by enum.gap);
@@ -526,4 +528,118 @@ WHERE NOT EXISTS (SELECT 1 FROM public.document d
    OR (x.nn = '06' AND NOT EXISTS (SELECT 1 FROM public.document d WHERE d.id = '5eed0002-0000-4000-8000-000000000008' AND d.status = 'superseded'));
 -- feed.step09_older: the media step lies in the feed's "older" band
 SELECT 'feed.step09_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'media' AND now()::DATE - created_at::DATE > 7);
+-- Task 10: the copy of KRN into MOESA Europe, the refused-move situations
+-- The probe helpers set the claims and headers of the user who meets the situation, ask the
+-- server's own refusal logic, put the caller's claims and headers back and return what the server
+-- said: a refusal code (NULL when none), or the error of a real run that error_of undid
+-- ('story_check_succeeded' when it ran).
+CREATE FUNCTION pg_temp.restore_actor (p_claims TEXT, p_headers TEXT) RETURNS VOID LANGUAGE plpgsql AS $$
+BEGIN
+    PERFORM set_config('request.jwt.claims', coalesce(p_claims, ''), TRUE);
+    PERFORM set_config('request.headers', coalesce(p_headers, ''), TRUE);
+END;
+$$;
+
+-- private.transfer_refusal(p_source, p_target, 'copy', p_customer_id) as p_email in p_source.
+CREATE FUNCTION pg_temp.refusal_as (p_email TEXT, p_source TEXT, p_target TEXT, p_customer_id UUID) RETURNS TEXT LANGUAGE plpgsql AS $$
+DECLARE
+    v_claims TEXT := current_setting('request.jwt.claims', TRUE);
+    v_headers TEXT := current_setting('request.headers', TRUE);
+    v_refusal TEXT;
+BEGIN
+    PERFORM pg_temp.act_as(p_email, p_source);
+    v_refusal := private.transfer_refusal(pg_temp.tenant(p_source), pg_temp.tenant(p_target), 'copy', p_customer_id);
+    PERFORM pg_temp.restore_actor(v_claims, v_headers);
+    RETURN v_refusal;
+END;
+$$;
+
+-- The error of a real product-only move of p_sku (of customer p_customer_code) from p_source to
+-- p_target as p_email, on the dry run's report_hash.
+CREATE FUNCTION pg_temp.move_error (p_email TEXT, p_source TEXT, p_target TEXT, p_customer_code TEXT, p_sku TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
+DECLARE
+    v_claims TEXT := current_setting('request.jwt.claims', TRUE);
+    v_headers TEXT := current_setting('request.headers', TRUE);
+    v_source UUID := pg_temp.tenant(p_source);
+    v_target UUID := pg_temp.tenant(p_target);
+    v_customer UUID := (SELECT c.id FROM public.customer c WHERE c.code = p_customer_code AND c.tenant_id = pg_temp.tenant(p_source));
+    v_products UUID[] := ARRAY(SELECT p.id FROM public.product p WHERE p.sku = p_sku AND p.tenant_id = pg_temp.tenant(p_source));
+    v_hash TEXT;
+    v_error TEXT;
+BEGIN
+    PERFORM pg_temp.act_as(p_email, p_source);
+    v_hash := public.transfer_customer(v_source, v_target, v_customer, 'move', product_ids => v_products) ->> 'report_hash';
+    v_error := pg_temp.error_of(format(
+        'SELECT public.transfer_customer(%L::UUID, %L::UUID, %L::UUID, %L, dry_run => FALSE, report_hash => %L, product_ids => %L::UUID[])',
+        v_source, v_target, v_customer, 'move', v_hash, v_products));
+    PERFORM pg_temp.restore_actor(v_claims, v_headers);
+    RETURN v_error;
+END;
+$$;
+
+-- The error of a real copy of customer p_customer_code from p_source to p_target as p_email, on
+-- the dry run's report_hash: only the GTIN conflicts are cleared (the only kind a copy into a
+-- tenant without that customer meets; any other stays undecided, and the run says so).
+CREATE FUNCTION pg_temp.copy_error (p_email TEXT, p_source TEXT, p_target TEXT, p_customer_code TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
+DECLARE
+    v_claims TEXT := current_setting('request.jwt.claims', TRUE);
+    v_headers TEXT := current_setting('request.headers', TRUE);
+    v_source UUID := pg_temp.tenant(p_source);
+    v_target UUID := pg_temp.tenant(p_target);
+    v_customer UUID := (SELECT c.id FROM public.customer c WHERE c.code = p_customer_code AND c.tenant_id = pg_temp.tenant(p_source));
+    v_decisions JSONB;
+    v_hash TEXT;
+    v_error TEXT;
+BEGIN
+    PERFORM pg_temp.act_as(p_email, p_source);
+    v_decisions := (
+        SELECT coalesce(jsonb_object_agg(c ->> 'key', '{"action": "clear_gtin"}'::JSONB), '{}')
+        FROM jsonb_array_elements(public.transfer_customer(v_source, v_target, v_customer, 'copy') -> 'conflicts') c
+        WHERE c ->> 'kind' = 'gtin'
+    );
+    v_hash := public.transfer_customer(v_source, v_target, v_customer, 'copy', decisions => v_decisions) ->> 'report_hash';
+    v_error := pg_temp.error_of(format(
+        'SELECT public.transfer_customer(%L::UUID, %L::UUID, %L::UUID, %L, decisions => %L::JSONB, dry_run => FALSE, report_hash => %L)',
+        v_source, v_target, v_customer, 'copy', v_decisions, v_hash));
+    PERFORM pg_temp.restore_actor(v_claims, v_headers);
+    RETURN v_error;
+END;
+$$;
+
+-- m21.copy_pending: akif's copy of KRN from MOESA LTD into MOESA Europe (Europe's own KRN row), path copy, its files listed and not copied (no client copies them)
+SELECT 'm21.copy_pending' WHERE NOT EXISTS (SELECT 1 FROM public.transfer t
+    JOIN public.customer c ON c.id = t.customer_id AND c.code = 'KRN' AND c.tenant_id = pg_temp.moesa()
+    JOIN public.customer e ON e.id = t.target_customer_id AND e.code = 'KRN' AND e.tenant_id = pg_temp.tenant('MOESA Europe')
+    WHERE t.tenant_id = pg_temp.tenant('MOESA Europe') AND t.source_tenant_id = pg_temp.moesa() AND t.mode = 'copy' AND t.path = 'copy'
+      AND t.files_status = 'pending' AND jsonb_array_length(t.files) > 0
+      AND t.started_by = (SELECT u.id FROM public.user u WHERE u.email = 'akif@moesa-panel.test'));
+-- m21.only_transfer: that copy is the story's only transfer (THO is never transferred; nothing transfers into Europe's KRN again)
+SELECT 'm21.only_transfer', t.id::TEXT FROM public.transfer t JOIN public.customer c ON c.id = t.customer_id
+   WHERE c.code <> 'KRN' OR t.tenant_id <> pg_temp.tenant('MOESA Europe') OR (SELECT count(*) FROM public.transfer) <> 1;
+-- m21.gtin_cleared: the stored report has GTIN conflicts, each decided clear_gtin, and none left undecided
+SELECT 'm21.gtin_cleared', coalesce(x.key, '(no transfer or no conflict)') FROM (VALUES (1)) one (n)
+   LEFT JOIN public.transfer t ON t.tenant_id = pg_temp.tenant('MOESA Europe')
+   LEFT JOIN LATERAL (SELECT c ->> 'key' AS key, c ->> 'kind' AS kind FROM jsonb_array_elements(t.report -> 'conflicts') c) x ON TRUE
+   WHERE (x.key IS NULL OR (x.kind = 'gtin' AND t.decisions -> x.key ->> 'action' IS DISTINCT FROM 'clear_gtin')
+          OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(t.report -> 'conflicts') g WHERE g ->> 'kind' = 'gtin')
+          OR (t.report ->> 'unresolved')::INT <> 0);
+-- m21.not_revertable: the copy's audit transactions lie in MOESA Europe and each shows as "cannot be reverted" in the feed
+SELECT 'm21.not_revertable', coalesce(a::TEXT, '(no transfer or no audit transaction)') FROM (VALUES (1)) one (n)
+   LEFT JOIN public.transfer t ON t.tenant_id = pg_temp.tenant('MOESA Europe') LEFT JOIN LATERAL unnest(t.audit_transaction_ids) a ON TRUE
+   WHERE (a IS NULL OR NOT public.audit_transfer_locked(a)
+      OR NOT EXISTS (SELECT 1 FROM public.audit_transaction x WHERE x.id = a AND x.tenant_id = pg_temp.tenant('MOESA Europe')));
+-- m21.files_pending (situation): baris (owner of both companies) transferring Europe's copy of KRN onward into MOESA Trading GmbH meets transfer_files_pending (keyed on the transfer's target tenant and customer)
+SELECT 'm21.files_pending', coalesce(r, '(allowed)') FROM pg_temp.refusal_as('baris@moesa-panel.test', 'MOESA Europe', 'MOESA Trading GmbH',
+    (SELECT c.id FROM public.customer c WHERE c.code = 'KRN' AND c.tenant_id = pg_temp.tenant('MOESA Europe'))) r
+   WHERE r IS DISTINCT FROM 'transfer_files_pending';
+-- m21.owner_required (situation): akif (management, not owner) transferring THO into MOESA Trading GmbH
+SELECT 'm21.owner_required', coalesce(r, '(allowed)') FROM pg_temp.refusal_as('akif@moesa-panel.test', 'MOESA LTD', 'MOESA Trading GmbH',
+    (SELECT c.id FROM public.customer c WHERE c.code = 'THO' AND c.tenant_id = pg_temp.moesa())) r
+   WHERE r IS DISTINCT FROM 'transfer_owner_required';
+-- m21.product_in_use (situation): a product-only move of THO-CONES-100 (closed project, closed order, market cells) into MOESA Europe
+SELECT 'm21.product_in_use', e FROM pg_temp.move_error('akif@moesa-panel.test', 'MOESA LTD', 'MOESA Europe', 'THO', 'THO-CONES-100') e
+   WHERE e NOT LIKE '%transfer_product_in_use%';
+-- m21.media_too_large (situation): baris copying THO into MOESA Trading GmbH, whose 5 MB cap the 12 MB catalogue exceeds
+SELECT 'm21.media_too_large', e FROM pg_temp.copy_error('baris@moesa-panel.test', 'MOESA LTD', 'MOESA Trading GmbH', 'THO') e
+   WHERE e NOT LIKE '%media_too_large%';
 ROLLBACK;
