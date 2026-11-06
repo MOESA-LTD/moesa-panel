@@ -169,7 +169,11 @@ VALUES
     ('change_request', 'affected_gate_code', 'exempt', 'a sample of gates is enough'),
     ('media_link', 'entity_type', 'exempt', 'media links go to products, orders, shipments and change requests'),
     ('permission', 'command', 'exempt', 'reference data, not tenant rows'),
-    ('permission', 'kind', 'exempt', 'reference data, not tenant rows');
+    ('permission', 'kind', 'exempt', 'reference data, not tenant rows'),
+    ('market_cell', 'listing_state', 'exempt', 'Task 12 sets it to all'),
+    ('customer_platform_account', 'api_connection', 'exempt', 'revoked comes only from Amazon (invalid_grant)'),
+    ('listing_submission', 'kind', 'exempt', 'API-driven; the story holds create'),
+    ('listing_submission', 'status', 'exempt', 'API-driven; the story holds done, invalid and processing');
 
 -- core.cast: the tenants and users the story runs as
 SELECT 'core.cast', n FROM unnest(ARRAY['MOESA LTD', 'MOESA Europe', 'MOESA Trading GmbH']) n WHERE pg_temp.tenant(n) IS NULL;

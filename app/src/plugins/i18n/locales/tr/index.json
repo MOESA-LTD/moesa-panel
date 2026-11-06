@@ -374,6 +374,8 @@
       "market_cell_compliance_red": "Kırmızı hücre planlanamaz ve yayına alınamaz; nedeniyle çıkarın.",
       "market_cell_live_incomplete": "Yayın için platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı ve onaylı içerik (L-G1) gerekir.",
       "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
+      "market_cell_listing_server_only": "Listeleme durumunu yalnız Amazon bağlantısı günceller.",
+      "platform_account_api_server_only": "Amazon bağlantısı, hesap bağlanarak kurulur.",
       "incident_customer_missing": "Olayın müşterisi bulunamadı.",
       "incident_immutable_field": "Olayın kodu, müşterisi ve ailesi değiştirilemez.",
       "incident_type_invalid": "Bir Y10 kart kodu seçin (ör. OL-09).",
@@ -696,7 +698,9 @@
       "incident_deadline": "Olay süre sınırı",
       "change_request": "Değişiklik talebi",
       "change_request_product": "Değişiklik talebi ürünü",
-      "transfer": "Aktarım"
+      "transfer": "Aktarım",
+      "listing": "Listeleme",
+      "listing_submission": "Listeleme gönderimi"
    },
    "dashboard": {
       "notifications": {

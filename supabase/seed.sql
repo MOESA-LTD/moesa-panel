@@ -126,7 +126,8 @@ BEGIN
     JOIN public.permission p
         ON p.group_name IN ('ops_setting', 'document', 'supplier', 'customer', 'product', 'project',
                             'purchase_order', 'shipment', 'market_matrix', 'incident',
-                            'change_request', 'media', 'transfer', 'branch', 'user', 'role', 'audit_log')
+                            'change_request', 'media', 'transfer', 'listing', 'branch', 'user', 'role',
+                            'audit_log')
        AND (r.display_name = 'management'
             OR NOT (p.group_name = 'ops_setting' AND p.command = 'update'
                     OR p.group_name IN ('role', 'user') AND p.command <> 'select'

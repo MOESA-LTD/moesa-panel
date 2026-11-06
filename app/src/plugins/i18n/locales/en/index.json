@@ -173,7 +173,9 @@
       "incident_deadline": "Incident deadline",
       "change_request": "Change request",
       "change_request_product": "Change request product",
-      "transfer": "Transfer"
+      "transfer": "Transfer",
+      "listing": "Listing",
+      "listing_submission": "Listing submission"
    },
    "input": {
       "select_or_write": "Select or Write"
@@ -506,6 +508,8 @@
       "market_cell_compliance_red": "A red cell cannot be planned or live; remove it with the reason.",
       "market_cell_live_incomplete": "Live needs the platform ID, platform SKU, price, currency, stock source and approved content (L-G1).",
       "market_cell_status_order": "The cell cannot move to this status from its current one (S05).",
+      "market_cell_listing_server_only": "Only the Amazon connection updates the listing state.",
+      "platform_account_api_server_only": "The Amazon connection is set by connecting the account.",
       "incident_customer_missing": "The incident's customer was not found.",
       "incident_immutable_field": "An incident's code, customer and family cannot change.",
       "incident_type_invalid": "Choose a Y10 card code (e.g. OL-09).",
