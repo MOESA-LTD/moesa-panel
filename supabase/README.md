@@ -34,7 +34,8 @@ Every demo account uses the password `Demo1234!`.
 
 - **baris@moesa-panel.test**: owner of MOESA LTD and MOESA Trading GmbH.
   - Every dashboard box has rows. The market box's customer switch shows THO and KRN.
-  - The notifications are grouped into today, yesterday, last week and older.
+  - The notifications have entries in today, yesterday, last week and older. At its default
+    narrow size the box lists only the first four, so "older" appears once the box is set to wide.
   - The Media page has PNG, PDF and MP4 previews, plus an orphan PNG that can be deleted.
   - Trading's `media_max_mb` setting is 5 MB. THO's 12 MB catalogue goes over it.
 - **akif@moesa-panel.test**: management in MOESA LTD and MOESA Europe.
@@ -45,8 +46,9 @@ Every demo account uses the password `Demo1234!`.
   - The refused transfers below.
 - **koordinator@moesa-panel.test**: coordinator in MOESA LTD.
   - Projects, tasks, market cells and shipments.
-  - The pilot project "Mop ailesi çok ülke pilotu" waits on G1, and a blocking task stops G1
-    from being passed.
+  - The pilot project "Mop ailesi çok ülke pilotu" waits on G1. Passing G1 is refused first
+    because it has no customer approval date or document. With both in place, its blocking task
+    refuses it (`gate_blocked_by_task`).
 
 ### Values that change on every reset
 
@@ -68,8 +70,8 @@ the smoke check asks the server for each one (`m21.*`).
 
 | Refusal | How to get it |
 |---|---|
-| `transfer_product_in_use` | Move only the product THO-CONES-100 out of MOESA LTD, for example into MOESA Europe. It is on a closed project, a closed order and market cells. The rehearsal lists it under "left behind", and the run is refused. |
-| `transfer_files_pending` | As baris, transfer MOESA Europe's copy of KRN onward, for example into MOESA Trading GmbH. The check looks at the transfer's target company and target customer. akif on the same path gets `transfer_owner_required` first. A second copy of KRN from MOESA LTD into Europe is not refused. It shows the GTIN and code conflicts instead. |
+| `transfer_product_in_use` | Move only the product THO-CONES-100 out of MOESA LTD, for example into MOESA Europe. It is on a closed project, a closed order and market cells. The rehearsal lists those links under "Links that stay in the source", and the panel keeps the Transfer button disabled. The server's own refusal is `transfer_product_in_use`. |
+| `transfer_files_pending` | As baris, transfer MOESA Europe's copy of KRN onward, for example into MOESA Trading GmbH. The check looks at the transfer's target company and target customer. akif on the same path gets `transfer_owner_required` first. In the panel, the target picker lists the refused company as disabled, with the reason. A second copy of KRN from MOESA LTD into Europe is not refused. It shows the GTIN and code conflicts instead. |
 | `transfer_owner_required` | akif (management, not owner) calls `transfer_customer` into MOESA Trading GmbH. The panel's target picker never lists Trading for him. |
 | `media_too_large` | baris copies THO into MOESA Trading GmbH. The 12 MB catalogue goes over Trading's 5 MB cap. The cap is read from the root company, so the setting sits on Trading. |
 
