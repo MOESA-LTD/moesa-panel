@@ -4,7 +4,8 @@
 // In order: reads the local keys (supabase status), refuses to run when customer KRN exists
 // (before any upload), checks the sample files and the media ids, uploads the media files to the
 // local Storage bucket at <tenant id>/<media id>/…, runs supabase/seed_story.sql in one
-// transaction, then runs supabase/seed_story.check.sql and fails on any row it returns.
+// transaction, then runs supabase/seed_story.check.sql (with story.today set to the date the story
+// began, so a run across midnight UTC stays consistent) and fails on any row it returns.
 //
 // SQL always goes to psql in the database container on stdin, so no host path is mounted and
 // the script behaves the same in Git Bash, PowerShell and Linux.
@@ -169,10 +170,14 @@ export async function main({ keys = localKeys, sql = psql, upload = uploadMedia,
    if (!tenantId) throw new Error('tenant MOESA LTD not found; is the small seed loaded?');
 
    await upload(apiUrl, serviceRoleKey, tenantId);
+   // The story's "today" is the database date before its transaction begins; the check reads it
+   // (story.today), so a run that crosses 00:00 UTC does not fail the date checks.
+   const storyDate = sql('SELECT current_date').trim();
+   if (!/^\d{4}-\d{2}-\d{2}$/.test(storyDate)) throw new Error(`unexpected database date: ${storyDate}`);
    sql(storySql, { singleTransaction: true });
 
    const checkSql = readFileSync(CHECK_SQL, 'utf8');
-   const failures = parseCheckRows(sql(checkSql));
+   const failures = parseCheckRows(sql(`SET story.today = '${storyDate}';\n${checkSql}`));
    if (failures.length) {
       for (const line of failures) console.log(line);
       return exit(1);

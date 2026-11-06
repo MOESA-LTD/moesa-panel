@@ -24,6 +24,12 @@
 -- A column nobody classified (a later migration added it) fails enum.unlisted.
 
 BEGIN;
+-- Today as the story saw it: the script sets story.today (the date before the story's transaction
+-- began) so a run across midnight UTC does not fail the date checks; run by hand it is current_date.
+CREATE FUNCTION pg_temp.today () RETURNS DATE LANGUAGE sql STABLE AS $$
+    SELECT coalesce(nullif(current_setting('story.today', TRUE), '')::date, current_date);
+$$;
+
 
 CREATE FUNCTION pg_temp.tenant (p_name TEXT) RETURNS UUID LANGUAGE sql STABLE AS $$
     SELECT t.id FROM public.tenant t WHERE t.display_name = p_name;
@@ -179,7 +185,7 @@ SELECT 'enum.gap', x.tbl || '.' || x.col || '=' || g FROM story_enum_column x, p
 
 -- Task 2: customers, suppliers, settings
 SELECT 'm1.tho_contract' WHERE NOT EXISTS (SELECT 1 FROM public.customer c JOIN public.document d ON d.id = c.contract_document_id AND d.type = 'contract' AND d.status = 'signed'
-  WHERE c.code = 'THO' AND c.tenant_id = pg_temp.moesa() AND c.contract_accepted_on <= current_date - 2 AND c.restricted_drive_url IS NOT NULL AND c.eu_responsible_person IS NOT NULL);
+  WHERE c.code = 'THO' AND c.tenant_id = pg_temp.moesa() AND c.contract_accepted_on <= pg_temp.today() - 2 AND c.restricted_drive_url IS NOT NULL AND c.eu_responsible_person IS NOT NULL);
 SELECT 'm1.contract_missing', k FROM unnest(ARRAY['LEA', 'KRN']) k WHERE NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.code = k AND c.tenant_id = pg_temp.moesa() AND c.contract_accepted_on IS NULL);
 SELECT 'm1.packages', p FROM unnest(ARRAY['A0', 'A2', 'D']) p WHERE NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.tenant_id = pg_temp.moesa() AND p = ANY (c.packages));
 SELECT 'm1.contacts' WHERE (SELECT count(*) FROM public.customer_contact x JOIN public.customer c ON c.id = x.customer_id WHERE c.code = 'THO' AND c.tenant_id = pg_temp.moesa() AND NOT x.can_approve) < 3;
@@ -213,7 +219,7 @@ SELECT 'box.unsigned_skus' WHERE NOT EXISTS (SELECT 1 FROM public.product_eviden
 SELECT 'box.incomplete_compliance' WHERE NOT EXISTS (SELECT 1 FROM public.product_evidence e WHERE e.tenant_id = pg_temp.moesa() AND e.sku = 'THO-MOP40-3P' AND e.status NOT IN ('archived', 'concept') AND NOT e.compliance_complete)
    OR NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND customer_code = 'THO' AND active_sku_count > compliance_complete_count);
 SELECT 'm4.tips_compliance_docs' WHERE (SELECT count(DISTINCT d.type) FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = pg_temp.moesa() AND d.type IN ('sds', 'doc_of_conformity', 'test_report') AND d.is_signed AND d.status IN ('signed', 'approved')) < 3;
-SELECT 'm4.old_certificate' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-CONES-100' AND p.tenant_id = pg_temp.moesa() AND d.type = 'certificate' AND d.status = 'signed' AND d.is_signed AND d.issued_on < current_date - 365);
+SELECT 'm4.old_certificate' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-CONES-100' AND p.tenant_id = pg_temp.moesa() AND d.type = 'certificate' AND d.status = 'signed' AND d.is_signed AND d.issued_on < pg_temp.today() - 365);
 SELECT 'm4.no_spec' WHERE EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-MOP40-4P' AND p.tenant_id = pg_temp.moesa() AND d.type = 'spec_sheet')
    OR NOT EXISTS (SELECT 1 FROM public.product p WHERE p.sku = 'THO-MOP40-4P' AND p.tenant_id = pg_temp.moesa());
 SELECT 'm4.draft_spec' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id AND d.entity_type = 'product' WHERE p.sku = 'THO-TIPS-6-50' AND p.tenant_id = pg_temp.moesa() AND d.type = 'spec_sheet' AND d.status = 'draft');
@@ -254,8 +260,8 @@ WHERE g.project_id::TEXT LIKE '5eed0004-%' AND g.status = 'passed'
 -- m5.story_tasks: the dashboard task states sit on non-blocking tasks of the variant and reorder projects, so later gate passes keep them
 SELECT 'm5.story_tasks', x.k FROM (VALUES ('overdue'), ('due_soon'), ('blocked'), ('doing_unassigned'), ('done')) x (k)
 WHERE NOT EXISTS (SELECT 1 FROM public.project_task t WHERE t.project_id IN ('5eed0004-0000-4000-8000-000000000002', '5eed0004-0000-4000-8000-000000000003') AND NOT t.blocks_gate
-    AND CASE x.k WHEN 'overdue' THEN t.status = 'todo' AND t.due_on = current_date - 3
-                 WHEN 'due_soon' THEN t.status = 'todo' AND t.due_on = current_date + 2
+    AND CASE x.k WHEN 'overdue' THEN t.status = 'todo' AND t.due_on = pg_temp.today() - 3
+                 WHEN 'due_soon' THEN t.status = 'todo' AND t.due_on = pg_temp.today() + 2
                  WHEN 'blocked' THEN t.status = 'blocked'
                  WHEN 'doing_unassigned' THEN t.status = 'doing' AND t.assignee_id IS NULL
                  ELSE t.status = 'done' END);
@@ -263,7 +269,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.project_task t WHERE t.project_id IN ('5e
 -- Task 5: purchase orders and the gates that need a PI (core.bypass_off is the story's last block, not a check)
 SELECT 'm7.missing_spec' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000001' AND status = 'draft' AND cardinality(spec_missing_line_ids) > 0);
 SELECT 'm7.pi_differs' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000003' AND pi_total IS DISTINCT FROM system_total);
-SELECT 'm7.balance_overdue' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_purchase_order WHERE purchase_order_id = '5eed0005-0000-4000-8000-000000000007' AND balance_planned_on < current_date);
+SELECT 'm7.balance_overdue' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_purchase_order WHERE purchase_order_id = '5eed0005-0000-4000-8000-000000000007' AND balance_planned_on < pg_temp.today());
 SELECT 'm7.psi_missing' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order_overview WHERE id = '5eed0005-0000-4000-8000-000000000007' AND NOT has_approved_psi);
 SELECT 'm7.deposit_zero' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order WHERE id = '5eed0005-0000-4000-8000-000000000011' AND deposit_rate = 0 AND status = 'in_production');
 SELECT 'm7.production_updates' WHERE (SELECT count(*) FROM public.purchase_order_update WHERE purchase_order_id = '5eed0005-0000-4000-8000-000000000006') < 2;
@@ -296,9 +302,9 @@ SELECT 'm7.pi_checker' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o J
 -- m7.payments: who paid what, and what is still open
 SELECT 'm7.payments', x.k FROM (VALUES ('05_deposit'), ('07_balance_open'), ('08_balance_customer'), ('08_freight'), ('09_all_paid'), ('11_no_deposit')) x (k)
 WHERE NOT CASE x.k
-    WHEN '05_deposit' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000005' AND p.kind = 'deposit' AND p.paid_on = current_date - 8 AND p.paid_by = 'company')
-    WHEN '07_balance_open' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000007' AND p.kind = 'balance' AND p.planned_on = current_date - 10 AND p.paid_on IS NULL)
-    WHEN '08_balance_customer' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000008' AND p.kind = 'balance' AND p.paid_on = current_date - 12 AND p.paid_by = 'customer')
+    WHEN '05_deposit' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000005' AND p.kind = 'deposit' AND p.paid_on = pg_temp.today() - 8 AND p.paid_by = 'company')
+    WHEN '07_balance_open' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000007' AND p.kind = 'balance' AND p.planned_on = pg_temp.today() - 10 AND p.paid_on IS NULL)
+    WHEN '08_balance_customer' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000008' AND p.kind = 'balance' AND p.paid_on = pg_temp.today() - 12 AND p.paid_by = 'customer')
     WHEN '08_freight' THEN EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000008' AND p.kind = 'other')
     WHEN '09_all_paid' THEN (SELECT count(*) FILTER (WHERE p.paid_on IS NOT NULL) = count(*) AND count(*) >= 2 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000009')
     ELSE NOT EXISTS (SELECT 1 FROM public.purchase_order_payment p WHERE p.purchase_order_id = '5eed0005-0000-4000-8000-000000000011' AND p.kind = 'deposit') END;
@@ -344,13 +350,13 @@ WHERE s.id::TEXT LIKE '5eed0006-%' AND s.status = 'accepted'
   AND (s.quantity_matches IS NOT TRUE OR s.has_damage IS NOT FALSE OR s.accepted_on IS NULL OR s.delivered_at IS NULL OR s.accepted_on < s.delivered_at::DATE
        OR nullif(btrim(s.accepted_by), '') IS NULL
        OR NOT EXISTS (SELECT 1 FROM public.document d WHERE d.entity_type = 'shipment' AND d.entity_id = s.id AND d.type = 'delivery_receipt' AND d.status = 'signed'));
-SELECT 'm8.accepted_on' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000008' AND accepted_on = current_date - 3 AND delivered_at < now() - interval '4 days');
+SELECT 'm8.accepted_on' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000008' AND accepted_on = pg_temp.today() - 3 AND delivered_at < now() - interval '4 days');
 -- m8.delivered: delivered yesterday, its dispute deadline three days ahead
 SELECT 'm8.delivered' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000007' AND dispute_deadline_at BETWEEN now() + interval '2 days 12 hours' AND now() + interval '3 days 12 hours' AND delivered_at BETWEEN now() - interval '2 days' AND now() - interval '12 hours');
 SELECT 'm8.disputed' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000009' AND has_damage AND delivered_at IS NOT NULL AND dispute_deadline_at = delivered_at + interval '48 hours' AND dispute_deadline_at < now());
 -- m8.booked: the booked shipment's confirmation and dates; the loaded one leaves tomorrow
-SELECT 'm8.booked' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000002' AND booking_confirmed_on = current_date - 2 AND etd = current_date + 5 AND eta = current_date + 30)
-   OR NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000003' AND etd = current_date + 1 AND eta = current_date + 28);
+SELECT 'm8.booked' WHERE NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000002' AND booking_confirmed_on = pg_temp.today() - 2 AND etd = pg_temp.today() + 5 AND eta = pg_temp.today() + 30)
+   OR NOT EXISTS (SELECT 1 FROM public.shipment WHERE id = '5eed0006-0000-4000-8000-000000000003' AND etd = pg_temp.today() + 1 AND eta = pg_temp.today() + 28);
 -- m8.docs: the shipment documents of step 06
 SELECT 'm8.docs', x.nn FROM (VALUES ('201', '04', 'packing_list', 'draft'), ('202', '04', 'commercial_invoice', 'signed'), ('203', '05', 'bill_of_lading', 'signed'),
     ('204', '06', 'customs', 'draft'), ('205', '08', 'delivery_receipt', 'signed'), ('206', '11', 'delivery_receipt', 'signed')) x (nn, ship, type, st)
@@ -385,7 +391,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.market_cell m JOIN public.product p ON p.
 SELECT 'm9.live_listed', m.id FROM public.market_cell m
 WHERE m.id::TEXT LIKE '5eed0007-%' AND m.status IN ('live', 'suppressed', 'stopped')
   AND (nullif(btrim(m.platform_product_id), '') IS NULL OR nullif(btrim(m.platform_sku), '') IS NULL OR m.price IS NULL OR m.currency IS NULL
-       OR m.stock_source IS NULL OR m.content_status <> 'approved' OR m.launched_on IS NULL OR m.launched_on > current_date);
+       OR m.stock_source IS NULL OR m.content_status <> 'approved' OR m.launched_on IS NULL OR m.launched_on > pg_temp.today());
 -- m9.reasons: stock sources and the notes of the cells that need them
 SELECT 'm9.reasons', x.nn FROM (VALUES ('01', 'customer_warehouse'), ('02', 'pan_eu'), ('08', '3pl'), ('12', 'platform')) x (nn, src)
 WHERE NOT EXISTS (SELECT 1 FROM public.market_cell WHERE id = ('5eed0007-0000-4000-8000-0000000000' || x.nn)::UUID AND stock_source = x.src::public.stock_source)
@@ -457,12 +463,12 @@ SELECT 'm10.cr_states', x.k FROM (VALUES ('11_products'), ('11_due_ahead'), ('12
 WHERE NOT CASE x.k
     WHEN '11_products' THEN coalesce((SELECT array_agg(p.sku::TEXT ORDER BY p.sku) FROM public.change_request_product rp JOIN public.product p ON p.id = rp.product_id
                              WHERE rp.change_request_id = '5eed0008-0000-4000-8000-000000000011') = ARRAY['THO-MOP40-2P', 'THO-MOP40-3P'], FALSE)
-    WHEN '11_due_ahead' THEN EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE change_request_id = '5eed0008-0000-4000-8000-000000000011' AND NOT overdue AND decision_due_on >= current_date + 2)
-    WHEN '12_overdue' THEN EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE change_request_id = '5eed0008-0000-4000-8000-000000000012' AND overdue AND decision_due_on = current_date - 2)
+    WHEN '11_due_ahead' THEN EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE change_request_id = '5eed0008-0000-4000-8000-000000000011' AND NOT overdue AND decision_due_on >= pg_temp.today() + 2)
+    WHEN '12_overdue' THEN EXISTS (SELECT 1 FROM public.dashboard_change_request WHERE change_request_id = '5eed0008-0000-4000-8000-000000000012' AND overdue AND decision_due_on = pg_temp.today() - 2)
     WHEN '13_customer_approval' THEN EXISTS (SELECT 1 FROM public.change_request r JOIN public.document d ON d.id = r.customer_approval_document_id
                                              JOIN public.user u ON u.id = r.company_approved_by AND u.email = 'akif@moesa-panel.test'
                                              JOIN public.project_gate g ON g.project_id = r.project_id AND g.code = r.affected_gate_code AND g.status = 'passed' AND g.needs_customer_approval
-                                             WHERE r.id = '5eed0008-0000-4000-8000-000000000013' AND r.affected_gate_code = 'PL_G1' AND r.customer_approved_on = current_date - 3
+                                             WHERE r.id = '5eed0008-0000-4000-8000-000000000013' AND r.affected_gate_code = 'PL_G1' AND r.customer_approved_on = pg_temp.today() - 3
                                                AND r.company_approved_on IS NOT NULL AND d.type = 'change_request' AND d.status = 'signed'
                                                AND d.entity_type = 'change_request' AND d.entity_id = r.id)
     ELSE EXISTS (SELECT 1 FROM public.change_request WHERE id = '5eed0008-0000-4000-8000-000000000014' AND nullif(btrim(decision_note), '') IS NOT NULL AND closed_on IS NOT NULL) END;

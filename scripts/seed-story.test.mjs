@@ -78,3 +78,40 @@ test('the KRN guard stops the run before any upload or story SQL', async () => {
    assert.equal(queries.length, 1);
    assert.match(queries[0], /code = 'KRN'/);
 });
+
+test('the check runs with the story date the database had before the story began', async () => {
+   const calls = [];
+   const logs = [];
+   const original = console.log;
+   console.log = (line) => logs.push(line);
+   try {
+      await main({
+         keys: () => ({ apiUrl: 'http://127.0.0.1:1', serviceRoleKey: 'unused' }),
+         sql: (text, opts) => {
+            calls.push({ text, opts });
+            if (text.startsWith('SELECT count(*) FROM public.customer')) return '0\n';
+            if (text.startsWith('SELECT id FROM public.tenant')) return 'tenant-id\n';
+            if (text === 'SELECT current_date') return '2026-11-06\n';
+            return '';
+         },
+         upload: async () => {},
+         exit: (code) => {
+            throw new Error(`exit ${code}`);
+         },
+      });
+   } finally {
+      console.log = original;
+   }
+   const story = calls.findIndex((c) => c.opts?.singleTransaction);
+   assert.ok(calls.findIndex((c) => c.text === 'SELECT current_date') < story, 'date read before the story');
+   assert.match(calls.at(-1).text, /^SET story\.today = '2026-11-06';\n/);
+   assert.ok(calls.indexOf(calls.at(-1)) > story);
+   assert.match(logs.join('\n'), /ok \(\d+ checks\)/);
+});
+
+test('the check SQL derives every date from pg_temp.today(), never current_date directly', () => {
+   const sql = readFileSync(path.join(ROOT, 'supabase', 'seed_story.check.sql'), 'utf8');
+   const uses = sql.split(/\r?\n/).filter((l) => /current_date/.test(l) && !l.trimStart().startsWith('--'));
+   assert.equal(uses.length, 1, uses.join('\n'));
+   assert.match(uses[0], /coalesce\(nullif\(current_setting\('story\.today'/);
+});
