@@ -1111,7 +1111,7 @@ SET
    search_path = '' AS $$
 DECLARE
     v_tenant UUID := private.requested_tenant();
-    v_customer UUID := private.entity_customer(p_entity_type, p_entity_id, private.requested_tenant());
+    v_customer UUID := private.entity_customer(p_entity_type, p_entity_id, v_tenant);
     v_rec public.incident := jsonb_populate_record(NULL::public.incident, p_fields);
 BEGIN
     IF v_customer IS NULL THEN
@@ -1205,8 +1205,10 @@ BEGIN
                                      customer_approved)
     VALUES (v_tenant, '5eed0008-0000-4000-8000-000000000002', now() - INTERVAL '3 days', 'Taşıyıcı sigortasına hasar dosyası açıldı.',
             'Taşıyıcı sigorta birimi (e-posta)', 'Hasar bedeli sigortadan karşılanacak', 350, 'EUR', 'carrier_insurance', TRUE);
+    -- The customer is told within the s2 notice time (due at the end of the opening business day,
+    -- UTC), whatever time of day the story runs.
     UPDATE public.incident
-    SET management_notified_at = opened_at + INTERVAL '1 hour', customer_notified_at = opened_at + INTERVAL '2 hours'
+    SET management_notified_at = opened_at + INTERVAL '1 hour', customer_notified_at = least(opened_at + INTERVAL '2 hours', customer_notice_due_at)
     WHERE id = '5eed0008-0000-4000-8000-000000000002';
     UPDATE public.incident SET status = 'contained', current_state = 'Hasarlı koliler ayrıldı, sigorta süreci sürüyor'
     WHERE id = '5eed0008-0000-4000-8000-000000000002';
@@ -1233,7 +1235,7 @@ BEGIN
         'Tedarikçinin PI toplamı sipariş tutarından farklı; onaylı varyant fiyatları da etkileniyor.',
         jsonb_build_object('reported_by', 'Satın alma (e-posta)', 'affected_parties', ARRAY['customer', 'supplier']));
     UPDATE public.incident
-    SET management_notified_at = opened_at + INTERVAL '30 minutes', customer_notified_at = opened_at + INTERVAL '2 hours'
+    SET management_notified_at = opened_at + INTERVAL '30 minutes', customer_notified_at = least(opened_at + INTERVAL '2 hours', customer_notice_due_at)
     WHERE id = '5eed0008-0000-4000-8000-000000000005';
     UPDATE public.incident SET status = 'contained', immediate_action = 'Siparişler PI düzeltilene kadar bekletiliyor'
     WHERE id = '5eed0008-0000-4000-8000-000000000005';

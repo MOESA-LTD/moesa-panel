@@ -416,9 +416,9 @@ SELECT 'm10.notified', i.id::TEXT FROM public.incident i
 WHERE i.id::TEXT LIKE '5eed0008-%' AND i.status <> 'open' AND i.severity IN ('s1', 's2')
   AND (i.management_notified_at IS NULL OR i.management_notified_at < i.opened_at OR i.customer_notified_at IS NULL OR i.customer_notified_at > i.customer_notice_due_at)
 UNION ALL
-SELECT 'm10.closed', i.id::TEXT FROM public.incident i
-WHERE i.id IN ('5eed0008-0000-4000-8000-000000000003', '5eed0008-0000-4000-8000-000000000007')
-  AND (i.status <> 'closed' OR i.outcome IS NULL OR i.root_cause IS NULL OR nullif(btrim(i.preventive_action), '') IS NULL OR i.closed_on IS NULL OR i.closed_by IS NULL);
+SELECT 'm10.closed', x.nn FROM (VALUES ('03'), ('07')) x (nn)
+WHERE NOT EXISTS (SELECT 1 FROM public.incident i WHERE i.id = ('5eed0008-0000-4000-8000-0000000000' || x.nn)::UUID AND i.status = 'closed'
+    AND i.outcome IS NOT NULL AND i.root_cause IS NOT NULL AND nullif(btrim(i.preventive_action), '') IS NOT NULL AND i.closed_on IS NOT NULL AND i.closed_by IS NOT NULL);
 -- m5.rolled_back: the variant's G3 was rolled back through the OT-04 incident; the project is back in the phase G3 closes
 SELECT 'm5.rolled_back' WHERE NOT EXISTS (SELECT 1 FROM public.project_gate WHERE project_id = '5eed0004-0000-4000-8000-000000000002' AND code = 'G3' AND status = 'rolled_back'
        AND rolled_back_incident_id = '5eed0008-0000-4000-8000-000000000005' AND nullif(btrim(rolled_back_reason), '') IS NOT NULL)
