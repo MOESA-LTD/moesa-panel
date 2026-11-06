@@ -107,3 +107,17 @@ Deno.test({
       assertEquals(result.schema.link.resource, 'https://schema-url');
    }
 });
+
+Deno.test({
+   name: 'sandbox: searchDefinitionsProductTypes answers LUGGAGE through amazon-schema',
+   ignore: !live,
+   fn: async () => {
+      const { searchProductTypes } = await import('../amazon-schema/schema.ts');
+      const { spapi } = sandbox();
+      const productTypes = await searchProductTypes(spapi, 'luggage', 'A1PA6795UKMFR9');
+      assert(
+         productTypes.some((type) => type.name === 'LUGGAGE' && type.displayName === 'Luggage'),
+         `LUGGAGE is listed: ${JSON.stringify(productTypes)}`
+      );
+   }
+});

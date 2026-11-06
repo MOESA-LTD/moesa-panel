@@ -254,6 +254,11 @@ verify_jwt = true
 [functions.create-account]
 verify_jwt = true
 
+# The weekly cron call (047) carries the service key, not a user JWT: the function checks it
+# with assertServiceCall, and user calls with withAuthorization.
+[functions.amazon-schema]
+verify_jwt = false
+
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true

@@ -2,6 +2,7 @@
 // bucket and a retrying request function. Secrets (client secret, refresh and access tokens) stay
 // in this module: errors carry a code, a status, Amazon's errors and a request id, nothing else.
 import { HttpError } from './http.ts';
+import { languageTag } from './listingCompleteness.ts';
 
 export type AmazonEnv = {
    env: 'sandbox' | 'production';
@@ -80,20 +81,24 @@ export function spapiHost(env: AmazonEnv, sandboxRegionOverride?: Region): strin
 
 type Marketplace = { marketplaceId: string; languageTag: string; currency: string };
 
-const marketplace = (marketplaceId: string, languageTag: string, currency: string): Marketplace =>
-   Object.freeze({ marketplaceId, languageTag, currency });
+/** The default language comes from `listingCompleteness.languageTag`, its single source. */
+const marketplace = (country: string, marketplaceId: string, currency: string): Marketplace => {
+   const tag = languageTag(country);
+   if (!tag) throw new Error(`no default language for marketplace country ${country}`);
+   return Object.freeze({ marketplaceId, languageTag: tag, currency });
+};
 
 /** The EU marketplaces of the `amazon` platform, by country. */
 export const EU_MARKETPLACES: Readonly<Record<string, Marketplace>> = Object.freeze({
-   DE: marketplace('A1PA6795UKMFR9', 'de_DE', 'EUR'),
-   FR: marketplace('A13V1IB3VIYZZH', 'fr_FR', 'EUR'),
-   IT: marketplace('APJ6JRA9NG5V4', 'it_IT', 'EUR'),
-   ES: marketplace('A1RKKUPIHCS9HS', 'es_ES', 'EUR'),
-   NL: marketplace('A1805IZSGTT6HS', 'nl_NL', 'EUR'),
-   PL: marketplace('A1C3SOZRARQ6R3', 'pl_PL', 'PLN'),
-   SE: marketplace('A2NODRKZP88ZB9', 'sv_SE', 'SEK'),
-   BE: marketplace('AMEN7PMS3EDWL', 'fr_BE', 'EUR'),
-   GB: marketplace('A1F83G8C2ARO7P', 'en_GB', 'GBP')
+   DE: marketplace('DE', 'A1PA6795UKMFR9', 'EUR'),
+   FR: marketplace('FR', 'A13V1IB3VIYZZH', 'EUR'),
+   IT: marketplace('IT', 'APJ6JRA9NG5V4', 'EUR'),
+   ES: marketplace('ES', 'A1RKKUPIHCS9HS', 'EUR'),
+   NL: marketplace('NL', 'A1805IZSGTT6HS', 'EUR'),
+   PL: marketplace('PL', 'A1C3SOZRARQ6R3', 'PLN'),
+   SE: marketplace('SE', 'A2NODRKZP88ZB9', 'SEK'),
+   BE: marketplace('BE', 'AMEN7PMS3EDWL', 'EUR'),
+   GB: marketplace('GB', 'A1F83G8C2ARO7P', 'GBP')
 });
 
 export function marketplaceFor(country: string): Marketplace {
