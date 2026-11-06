@@ -409,7 +409,37 @@
       "market_cell_duplicate": "Bu ürünün bu platform ve ülke için zaten bir hücresi var.",
       "market_cell_product_customer": "Ürün başka bir müşteriye ait.",
       "market_cell_project_customer": "Proje başka bir müşteriye ait.",
-      "market_cell_price_currency": "Fiyatın para birimi olmalı."
+      "market_cell_price_currency": "Fiyatın para birimi olmalı.",
+      "amazon_not_connected": "Müşteri bir Amazon hesabı bağlamamış.",
+      "amazon_connection_revoked": "Amazon bağlantısı geri çekildi. Hesabı yeniden bağlayın.",
+      "amazon_auth_failed": "Amazon yetkilendirmeyi reddetti. Hesabı yeniden bağlayın.",
+      "amazon_unavailable": "Amazon şu an erişilemiyor. Daha sonra tekrar deneyin.",
+      "amazon_throttled": "Amazon istekleri sınırlıyor. Biraz sonra tekrar deneyin.",
+      "amazon_rate_limited": "Amazon’a çok fazla istek gönderildi. Biraz sonra tekrar deneyin.",
+      "amazon_marketplace_unsupported": "Bu ülke Amazon listeleri için desteklenmiyor.",
+      "amazon_schema_missing": "Bu ürün tipinin Amazon şeması henüz mevcut değil.",
+      "amazon_schema_checksum": "İndirilen Amazon şeması bütünlük denetimini geçemedi. Tekrar deneyin.",
+      "amazon_schema_invalid": "Amazon şeması okunamadı.",
+      "amazon_request_invalid": "Amazon isteği reddetti.",
+      "amazon_not_found": "Amazon bu öğeyi tanımıyor.",
+      "amazon_unconfigured": "Amazon sunucuda yapılandırılmamış.",
+      "amazon_state_invalid": "Amazon bağlantı isteğinin süresi doldu ya da geçerli değil. Baştan başlayın.",
+      "amazon_state_replayed": "Bu Amazon bağlantı isteği daha önce kullanılmış. Baştan başlayın.",
+      "amazon_callback_invalid": "Amazon’un yanıtı eksikti. Baştan başlayın.",
+      "listing_incomplete": "Zorunlu Amazon alanları eksik.",
+      "listing_image_missing": "Listenin bir görseli bulunamadı.",
+      "listing_image_url_not_public": "Amazon’un indirebilmesi için görseller herkese açık bir adresten sunulmalı.",
+      "listing_cell_not_found": "Bu Amazon hücresi bulunamadı.",
+      "listing_product_type_missing": "Önce bir Amazon ürün tipi seçin.",
+      "listing_language_missing": "Bu ülke için bir liste dili gerekli.",
+      "listing_submission_not_found": "Bu hücre için henüz bir şey gönderilmedi.",
+      "platform_account_not_found": "Platform hesabı bulunamadı.",
+      "invalid_request": "İstek geçerli değil.",
+      "unauthorized": "Devam etmek için yeniden giriş yapın.",
+      "forbidden": "Bunu yapmaya yetkiniz yok.",
+      "tenant_not_allowed": "Bu şirkette işlem yapmaya yetkiniz yok.",
+      "method_not_allowed": "Bu istek yöntemine izin verilmiyor.",
+      "not_found": "Bulunamadı."
    },
    "account": {
       "logout": "Çıkış yap",
@@ -2228,6 +2258,116 @@
             "retry": "Dosyaları yeniden kopyala",
             "notice": "Bu müşteriye yapılan bir aktarımın dosyaları eksik."
          }
+      },
+      "amazon": {
+         "state": {
+            "draft": "Taslak",
+            "ready": "Hazır",
+            "submitted": "Gönderildi",
+            "live": "Yayında",
+            "issues": "Sorunlu"
+         },
+         "api_connection": {
+            "none": "Bağlı değil",
+            "connected": "Bağlı",
+            "revoked": "İptal edildi"
+         },
+         "platform": {
+            "api_connection": "Amazon bağlantısı",
+            "authorized_at": "Bağlanma tarihi"
+         },
+         "tab": {
+            "title": "Amazon",
+            "product_type": "Amazon ürün tipi",
+            "product_type_search": "Ürün tipi ara",
+            "product_type_none": "Eşleşen ürün tipi yok.",
+            "schema_version": "Şema sürümü {version}",
+            "schema_moved": "Amazon bu ürün tipini {version} sürümüne taşıdı. Girdiğiniz değerler korundu; eksik işaretli alanları kontrol edin.",
+            "language": "Dil",
+            "next_missing": "Sonraki eksik alan",
+            "completeness": "Zorunlu {total} alanın {filled} tanesi dolu",
+            "groups": "Alan grupları",
+            "badge": {
+               "required": "Zorunlu",
+               "conditional": "Duruma göre zorunlu",
+               "optional": "İsteğe bağlı"
+            },
+            "image_pick": "Görsel seç",
+            "image_clear": "Görseli kaldır",
+            "save": "Amazon içeriğini kaydet",
+            "values_kept": "Daha önce girilen değerler korunur.",
+            "json_invalid": "Bu geçerli bir JSON değil."
+         },
+         "cell": {
+            "title": "Amazon listesi",
+            "open": "Amazon listesini aç",
+            "connection": "Amazon bağlantısı",
+            "not_connected": "Müşteri bir Amazon hesabı bağlamamış.",
+            "completeness": "Doluluk",
+            "missing_none": "Eksik alan yok.",
+            "missing_link": "{field} alanını doldur",
+            "marketplace": "Pazaryeri",
+            "listing_language": "Liste dili",
+            "fulfillment_channel": "Gönderim",
+            "fulfillment": {
+               "fbm": "Satıcı gönderimi (FBM)",
+               "fba": "Amazon gönderimi (FBA)"
+            },
+            "match": {
+               "found": "Mevcut bir Amazon ürünüyle eşleşti ({asin})",
+               "new": "Eşleşme yok: yeni ürün oluşturulacak",
+               "none": "Henüz kontrol edilmedi"
+            },
+            "restriction": {
+               "none": "Satış kısıtı yok",
+               "restricted": "Satış kısıtlı: {reasons}"
+            },
+            "history": "Gönderimler",
+            "history_empty": "Henüz bir şey gönderilmedi.",
+            "issue_general": "Genel",
+            "check": "Kontrol et",
+            "publish": "Yayınla",
+            "update": "Amazon’da güncelle",
+            "validate": "Amazon ile doğrula",
+            "validated": {
+               "VALID": "Amazon bu listeyi kabul ediyor.",
+               "INVALID": "Amazon bu listede sorun bildiriyor."
+            },
+            "delete": "Amazon’dan sil",
+            "delete_confirm": "Bu liste Amazon’dan silinsin mi?",
+            "checked_at": "Kontrol: {date}"
+         },
+         "connect": {
+            "button": "Amazon’u bağla",
+            "reconnect": "Amazon’u yeniden bağla",
+            "disconnect": "Amazon bağlantısını kes",
+            "connected_on": "{date} tarihinde bağlandı",
+            "sandbox_note": "Test modu: bağlantı simüle edilir, satıcıdan onay istenmez.",
+            "result": {
+               "connected": "Amazon bağlandı.",
+               "error": "Amazon bağlanamadı."
+            }
+         },
+         "bulk": {
+            "open": "Amazon’da yayınla",
+            "open_count": "{count} ürünü Amazon’da yayınla",
+            "title": "Amazon’da yayınla",
+            "country": "Ülke",
+            "submit": "Yayınla",
+            "col": {
+               "sku": "SKU",
+               "name": "Ürün",
+               "result": "Sonuç",
+               "detail": "Ayrıntı"
+            },
+            "result": {
+               "submitted": "Gönderildi",
+               "skipped_no_cell": "Atlandı: bu ülkede Amazon hücresi yok",
+               "skipped_incomplete": "Atlandı: zorunlu alanlar eksik",
+               "invalid": "Amazon reddetti",
+               "error": "Başarısız"
+            }
+         }
       }
    },
    "glossary": {
@@ -2461,6 +2601,18 @@
          "deadline": "Termin, booking ya da yayın tarihi.",
          "supplier": "Başka tedarikçi; yeni spec sheet ve altın numune.",
          "content": "Listing içeriği; [[L-G1]] yeniden."
+      },
+      "listing_state": {
+         "draft": "Zorunlu Amazon alanları hâlâ eksik.",
+         "ready": "Zorunlu Amazon alanlarının hepsi dolu; liste yayınlanabilir.",
+         "submitted": "Amazon’a gönderildi; Amazon’un işlemesi bekleniyor.",
+         "live": "Amazon ürünü listeliyor ve satın alınabiliyor.",
+         "issues": "Amazon düzeltilmesi gereken sorunlar bildirdi."
+      },
+      "api_connection": {
+         "none": "Müşteri bir Amazon hesabı bağlamamış.",
+         "connected": "Müşterinin Amazon hesabı bağlı.",
+         "revoked": "Müşteri yetkiyi geri çekti; devam etmek için yeniden bağlayın."
       }
    },
    "status_actions": {

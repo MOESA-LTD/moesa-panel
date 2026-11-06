@@ -689,7 +689,37 @@
       "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer.",
       "transfer_not_found": "Transfer not found.",
       "transfer_files_pending": "The files of an earlier transfer into this customer are not all copied yet. Finish that transfer first: \"Retry file copy\" on the customer's page.",
-      "request_failed": "Request failed"
+      "request_failed": "Request failed",
+      "amazon_not_connected": "The customer has not connected an Amazon account.",
+      "amazon_connection_revoked": "The Amazon connection was withdrawn. Connect the account again.",
+      "amazon_auth_failed": "Amazon refused the authorisation. Connect the account again.",
+      "amazon_unavailable": "Amazon is not reachable right now. Try again later.",
+      "amazon_throttled": "Amazon is limiting requests. Try again in a moment.",
+      "amazon_rate_limited": "Too many requests to Amazon. Try again in a moment.",
+      "amazon_marketplace_unsupported": "This country is not supported for Amazon listings.",
+      "amazon_schema_missing": "The Amazon schema for this product type is not available yet.",
+      "amazon_schema_checksum": "The downloaded Amazon schema failed its integrity check. Try again.",
+      "amazon_schema_invalid": "The Amazon schema could not be read.",
+      "amazon_request_invalid": "Amazon rejected the request.",
+      "amazon_not_found": "Amazon does not know this item.",
+      "amazon_unconfigured": "Amazon is not configured on the server.",
+      "amazon_state_invalid": "The Amazon connection request expired or is not valid. Start again.",
+      "amazon_state_replayed": "This Amazon connection request was already used. Start again.",
+      "amazon_callback_invalid": "Amazon’s answer was incomplete. Start again.",
+      "listing_incomplete": "Required Amazon fields are missing.",
+      "listing_image_missing": "An image of the listing could not be found.",
+      "listing_image_url_not_public": "Images must be served from a public address before Amazon can fetch them.",
+      "listing_cell_not_found": "This Amazon cell was not found.",
+      "listing_product_type_missing": "Choose an Amazon product type first.",
+      "listing_language_missing": "This country needs a listing language.",
+      "listing_submission_not_found": "Nothing has been submitted for this cell yet.",
+      "platform_account_not_found": "The platform account was not found.",
+      "invalid_request": "The request is not valid.",
+      "unauthorized": "Sign in again to continue.",
+      "forbidden": "You are not allowed to do this.",
+      "tenant_not_allowed": "You are not allowed to act in this company.",
+      "method_not_allowed": "This request method is not allowed.",
+      "not_found": "Not found."
    },
    "account": {
       "profile": {
@@ -2228,6 +2258,116 @@
          },
          "open_count": "Transfer {count}…",
          "open_disabled_empty": "Select products first."
+      },
+      "amazon": {
+         "state": {
+            "draft": "Draft",
+            "ready": "Ready",
+            "submitted": "Submitted",
+            "live": "Live",
+            "issues": "Issues"
+         },
+         "api_connection": {
+            "none": "Not connected",
+            "connected": "Connected",
+            "revoked": "Revoked"
+         },
+         "platform": {
+            "api_connection": "Amazon connection",
+            "authorized_at": "Connected on"
+         },
+         "tab": {
+            "title": "Amazon",
+            "product_type": "Amazon product type",
+            "product_type_search": "Search product types",
+            "product_type_none": "No product type matches.",
+            "schema_version": "Schema version {version}",
+            "schema_moved": "Amazon changed this product type to version {version}. Your values are kept; check the fields marked missing.",
+            "language": "Language",
+            "next_missing": "Next missing field",
+            "completeness": "{filled} of {total} required fields filled",
+            "groups": "Field groups",
+            "badge": {
+               "required": "Required",
+               "conditional": "Required if applicable",
+               "optional": "Optional"
+            },
+            "image_pick": "Choose image",
+            "image_clear": "Remove image",
+            "save": "Save Amazon content",
+            "values_kept": "Values already entered are kept.",
+            "json_invalid": "This is not valid JSON."
+         },
+         "cell": {
+            "title": "Amazon listing",
+            "open": "Open Amazon listing",
+            "connection": "Amazon connection",
+            "not_connected": "The customer has not connected an Amazon account.",
+            "completeness": "Completeness",
+            "missing_none": "No field is missing.",
+            "missing_link": "Fill in {field}",
+            "marketplace": "Marketplace",
+            "listing_language": "Listing language",
+            "fulfillment_channel": "Fulfilment",
+            "fulfillment": {
+               "fbm": "Merchant fulfilled (FBM)",
+               "fba": "Fulfilled by Amazon (FBA)"
+            },
+            "match": {
+               "found": "Matches an existing Amazon product ({asin})",
+               "new": "No match: a new product will be created",
+               "none": "Not checked yet"
+            },
+            "restriction": {
+               "none": "No selling restriction",
+               "restricted": "Selling is restricted: {reasons}"
+            },
+            "history": "Submissions",
+            "history_empty": "Nothing has been submitted yet.",
+            "issue_general": "General",
+            "check": "Check",
+            "publish": "Publish",
+            "update": "Update on Amazon",
+            "validate": "Validate with Amazon",
+            "validated": {
+               "VALID": "Amazon accepts this listing.",
+               "INVALID": "Amazon reports problems with this listing."
+            },
+            "delete": "Delete from Amazon",
+            "delete_confirm": "Delete this listing from Amazon?",
+            "checked_at": "Checked {date}"
+         },
+         "connect": {
+            "button": "Connect Amazon",
+            "reconnect": "Reconnect Amazon",
+            "disconnect": "Disconnect Amazon",
+            "connected_on": "Connected on {date}",
+            "sandbox_note": "Test mode: the connection is simulated and no seller consent is asked.",
+            "result": {
+               "connected": "Amazon is connected.",
+               "error": "Amazon could not be connected."
+            }
+         },
+         "bulk": {
+            "open": "Publish to Amazon",
+            "open_count": "Publish {count} products to Amazon",
+            "title": "Publish to Amazon",
+            "country": "Country",
+            "submit": "Publish",
+            "col": {
+               "sku": "SKU",
+               "name": "Product",
+               "result": "Result",
+               "detail": "Detail"
+            },
+            "result": {
+               "submitted": "Submitted",
+               "skipped_no_cell": "Skipped: no Amazon cell in this country",
+               "skipped_incomplete": "Skipped: required fields are missing",
+               "invalid": "Rejected by Amazon",
+               "error": "Failed"
+            }
+         }
       }
    },
    "glossary": {
@@ -2461,6 +2601,18 @@
          "deadline": "Ready date, booking or launch date.",
          "supplier": "Another supplier; a new spec sheet and golden sample.",
          "content": "Listing content; L-G1 again."
+      },
+      "listing_state": {
+         "draft": "Required Amazon fields are still missing.",
+         "ready": "All required Amazon fields are filled; the listing can be published.",
+         "submitted": "Sent to Amazon; waiting for Amazon to process it.",
+         "live": "Amazon lists the product and it can be bought.",
+         "issues": "Amazon reported problems that must be fixed."
+      },
+      "api_connection": {
+         "none": "The customer has not connected an Amazon account.",
+         "connected": "The customer’s Amazon account is connected.",
+         "revoked": "The customer withdrew the authorisation; connect again to continue."
       }
    },
    "status_actions": {
