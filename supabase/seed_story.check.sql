@@ -13,6 +13,7 @@
 --                               'story_check_succeeded'; the write is undone either way.
 --   pg_temp.enum_gaps(tbl, col) the values of an enum column (or enum array column) of
 --                               public.<tbl> that no MOESA LTD row holds.
+--   pg_temp.has_rows(tbl)       whether public.<tbl> has a MOESA LTD row.
 --   pg_temp.refusal_as, pg_temp.move_error, pg_temp.copy_error (Task 10) the transfer refusal
 --                               a user meets, asked of the server's own logic (see there).
 --
@@ -85,6 +86,15 @@ BEGIN
             RETURN NEXT v_value;
         END IF;
     END LOOP;
+END;
+$$;
+
+CREATE FUNCTION pg_temp.has_rows (p_tbl TEXT) RETURNS BOOLEAN LANGUAGE plpgsql AS $$
+DECLARE
+    v_found BOOLEAN;
+BEGIN
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE tenant_id = $1)', p_tbl) INTO v_found USING pg_temp.moesa();
+    RETURN v_found;
 END;
 $$;
 
@@ -642,4 +652,14 @@ SELECT 'm21.product_in_use', e FROM pg_temp.move_error('akif@moesa-panel.test', 
 -- m21.media_too_large (situation): baris copying THO into MOESA Trading GmbH, whose 5 MB cap the 12 MB catalogue exceeds
 SELECT 'm21.media_too_large', e FROM pg_temp.copy_error('baris@moesa-panel.test', 'MOESA LTD', 'MOESA Trading GmbH', 'THO') e
    WHERE e NOT LIKE '%media_too_large%';
+-- Task 11: nothing left pending, the feed's bands, the guide pages
+-- enum.pending: every enum column is covered (all) or exempt with a reason; none waits on a task
+SELECT 'enum.pending', tbl || '.' || col FROM story_enum_column WHERE rule = 'pending';
+-- feed.bands: the notifications box groups the feed into today, yesterday, last week and older; each band has entries
+SELECT 'feed.bands', b FROM unnest(ARRAY['today', 'yesterday', 'last_week', 'older']) b WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_notification_feed WHERE tenant_id = pg_temp.moesa() AND since = b);
+-- guide.page: every business page of PAGE_GUIDES (app/src/constants/guide.ts) has rows in MOESA LTD; the dashboard page is the box.* checks and feed.bands
+SELECT 'guide.page', p FROM (VALUES ('setting', 'setting'), ('customer', 'customer'), ('supplier', 'supplier'), ('product', 'product'), ('project', 'project'),
+   ('document', 'document'), ('media', 'media'), ('purchase_order', 'purchase_order'), ('shipment', 'shipment'), ('market_matrix', 'market_cell'),
+   ('incident', 'incident'), ('change_request', 'change_request')) v (p, tbl)
+   WHERE NOT pg_temp.has_rows(tbl);
 ROLLBACK;
