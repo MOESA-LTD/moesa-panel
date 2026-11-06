@@ -264,9 +264,15 @@ verify_jwt = false
 [functions.amazon-auth]
 verify_jwt = false
 
-# Users call it with their JWT; amazon-poll calls the status action with the service key (also a valid JWT).
+# Users call it with their JWT (checked by the gateway and by withAuthorization); amazon-poll
+# does not call it: it imports the status logic from _shared/listingStatus.ts.
 [functions.amazon-listing]
 verify_jwt = true
+
+# The 10-minute cron call (047) carries the service key, not a user JWT: the function checks it
+# with assertServiceCall. No user route.
+[functions.amazon-poll]
+verify_jwt = false
 
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
