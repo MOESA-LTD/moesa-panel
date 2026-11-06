@@ -21,10 +21,23 @@ export type AmazonSchema = {
    required?: string[];
    allOf?: unknown[];
 };
-export type PropertyGroups = Record<
+/** Amazon's property groups as its API answers them: an object keyed by group, in Amazon's order. */
+export type RawPropertyGroups = Record<
    string,
    { title: string; description?: string; propertyNames: string[] }
 >;
+/** One property group, with its key. */
+export type PropertyGroup = {
+   key: string;
+   title: string;
+   description?: string;
+   propertyNames: string[];
+};
+/**
+ * The property groups as stored and read: an array in Amazon's order (a jsonb object would
+ * reorder the keys, and the form lists the groups in this order).
+ */
+export type PropertyGroups = PropertyGroup[];
 export type Attributes = Record<string, unknown[]>;
 export type CompletenessOptions = {
    marketplaceId: string;
@@ -49,7 +62,7 @@ export type GetDefinitionResponse = {
    requirements?: string;
    requirementsEnforced?: string;
    productTypeVersion: { version: string; latest?: boolean; releaseCandidate?: boolean };
-   propertyGroups: PropertyGroups;
+   propertyGroups: RawPropertyGroups;
    schema: AmazonSchema | SchemaLink;
    metaSchema?: SchemaLink;
 };
@@ -182,8 +195,12 @@ const unfilled = (
    );
 };
 
+/** Amazon's property groups as an ordered array (an object's own keys keep their order in JS). */
+export const toPropertyGroups = (raw: RawPropertyGroups): PropertyGroups =>
+   Object.entries(raw ?? {}).map(([key, group]) => ({ key, ...group }));
+
 const groupOf = (groups: PropertyGroups, attribute: string) =>
-   Object.keys(groups).find((key) => groups[key].propertyNames.includes(attribute)) ?? null;
+   groups.find((group) => group.propertyNames.includes(attribute))?.key ?? null;
 
 /**
  * The required attributes not filled for this marketplace and language, sorted by name, each with
@@ -205,9 +222,7 @@ export function groupMissingCounts(
    missing: readonly MissingField[],
    groups: PropertyGroups
 ): Record<string, number> {
-   const counts: Record<string, number> = Object.fromEntries(
-      Object.keys(groups).map((key) => [key, 0])
-   );
+   const counts: Record<string, number> = Object.fromEntries(groups.map(({ key }) => [key, 0]));
    for (const { group } of missing) {
       if (group !== null && Object.hasOwn(counts, group)) counts[group] += 1;
    }
@@ -259,6 +274,23 @@ export function serverProvided(
    return provided;
 }
 
+/**
+ * Amazon's marketplace id of each EU country the panel publishes to (sellingpartner docs
+ * "Marketplace IDs"), in the panel's country order. The one map: _shared/amazon.ts and the app
+ * read it from here.
+ */
+export const MARKETPLACE_IDS: Readonly<Record<string, string>> = Object.freeze({
+   DE: 'A1PA6795UKMFR9',
+   FR: 'A13V1IB3VIYZZH',
+   IT: 'APJ6JRA9NG5V4',
+   ES: 'A1RKKUPIHCS9HS',
+   NL: 'A1805IZSGTT6HS',
+   PL: 'A1C3SOZRARQ6R3',
+   SE: 'A2NODRKZP88ZB9',
+   BE: 'AMEN7PMS3EDWL',
+   GB: 'A1F83G8C2ARO7P'
+});
+
 /** The default listing language of each EU Amazon marketplace, by country code. */
 export const DEFAULT_LANGUAGE_TAGS: Readonly<Record<string, string>> = Object.freeze({
    DE: 'de_DE',
@@ -307,6 +339,6 @@ export function toDefinitionRow(
       version: meta.productTypeVersion.version,
       display_name: meta.displayName ?? null,
       schema: resolved,
-      property_groups: meta.propertyGroups
+      property_groups: toPropertyGroups(meta.propertyGroups)
    };
 }

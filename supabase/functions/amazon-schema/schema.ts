@@ -1,8 +1,7 @@
 // Product Type Definitions API (2020-09-01): search, definition and the schema download behind its
 // pre-signed link. Rows follow `listingCompleteness.toDefinitionRow`, the cache table's shape.
 import { AmazonError, type Deps, type SpapiCall } from '../_shared/amazon.ts';
-import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
-import { crypto } from '../_shared/deps.ts';
+import { crypto, encodeBase64 } from '../_shared/deps.ts';
 import {
    type DefinitionRow,
    type GetDefinitionResponse,

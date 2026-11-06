@@ -9,6 +9,8 @@ import type {
    GetDefinitionResponse
 } from '../_shared/listingCompleteness.ts';
 import { handler, type HandlerDeps } from '../amazon-schema/index.ts';
+import { buildAbility, isAuthorized } from '../_shared/auth.ts';
+import { HttpError } from '../_shared/http.ts';
 import {
    downloadSchema,
    fetchDefinition,
@@ -146,7 +148,10 @@ Deno.test(
    () => {
       const row = toDefinitionRow(sandboxAnswer(), fixture.schema, 'en_GB');
       assertEquals(row.version, 'UHqSqmb4FNUk=');
-      assertEquals(row.property_groups.product_identity.title, 'Product Identity');
+      assertEquals(row.property_groups[0], {
+         key: 'product_identity',
+         ...sandboxAnswer().propertyGroups.product_identity
+      });
       assertEquals(row.display_name, 'Luggage');
       assertEquals(row.marketplace_id, DE);
       assertEquals(row.locale, 'en_GB');
@@ -456,6 +461,37 @@ Deno.test('refresh aborts on a database error instead of counting a failed row',
       console.error = errorLog;
    }
 });
+
+Deno.test(
+   'a user without update on product is refused with 403 and nothing is read (A5)',
+   async () => {
+      // The real permission check of withAuthorization (buildAbility + isAuthorized), fed with the
+      // permissions of a read-only user instead of a live session.
+      const readOnly = buildAbility([
+         { command: 'select', resource_name: 'public.product' },
+         { command: 'select', resource_name: 'public.market_cell' }
+      ]);
+      const { db, queries } = fakeDb(() => ({ data: [fixtureRow()], error: null }));
+      const { deps: amazon, calls } = fakeFetch({});
+      const res = await handler(
+         get(
+            'action=definition&product_type=LUGGAGE&country=DE&customer_id=00000000-0000-4000-8000-000000000001'
+         ),
+         deps({
+            admin: () => db,
+            userDb: () => db,
+            amazon,
+            authorize: (_req, required, run) => {
+               if (!isAuthorized(readOnly, required)) throw new HttpError(403, 'forbidden');
+               return run({ tenantId: 'tenant-1', userId: 'user-1' });
+            }
+         })
+      );
+      assertEquals(res.status, 403);
+      assertEquals((await res.json()).message, 'forbidden');
+      assertEquals([queries.length, calls.length], [0, 0]);
+   }
+);
 
 Deno.test('a user route without a JWT is refused by withAuthorization', async () => {
    const { authorize: _fake, ...real } = deps();

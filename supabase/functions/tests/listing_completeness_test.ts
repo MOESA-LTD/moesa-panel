@@ -8,12 +8,15 @@ import {
    type GetDefinitionResponse,
    groupMissingCounts,
    languageTag,
+   MARKETPLACE_IDS,
    missingAttributes,
    type PropertyGroups,
    requiredAttributes,
    serverProvided,
-   toDefinitionRow
+   toDefinitionRow,
+   toPropertyGroups
 } from '../_shared/listingCompleteness.ts';
+import { EU_MARKETPLACES } from '../_shared/amazon.ts';
 
 const readJson = async (name: string) =>
    JSON.parse(await Deno.readTextFile(new URL(`../../seed_files/amazon/${name}`, import.meta.url)));
@@ -23,7 +26,7 @@ const fixture: GetDefinitionResponse & { schema: AmazonSchema } = await readJson
 );
 const story: Attributes = await readJson('LUGGAGE.attributes.json');
 const schema = fixture.schema;
-const groups: PropertyGroups = fixture.propertyGroups;
+const groups: PropertyGroups = toPropertyGroups(fixture.propertyGroups);
 
 const DE: CompletenessOptions = { marketplaceId: 'A1PA6795UKMFR9', languageTag: 'de_DE' };
 const WITH_GTIN: CompletenessOptions = {
@@ -218,8 +221,41 @@ Deno.test('toDefinitionRow converts the fixture envelope with its inline schema'
    assertEquals(row.locale, 'en_GB');
    assertEquals(row.version, 'UHqSqmb4FNUk=');
    assertEquals(row.display_name, 'Luggage');
-   assertEquals(row.property_groups.product_identity.title, 'Product Identity');
+   assertEquals(row.property_groups[0].title, 'Product Identity');
    assertEquals(row.schema, fixture.schema);
+});
+
+Deno.test(
+   'toDefinitionRow keeps the property groups in the order Amazon gives, as an array',
+   () => {
+      const row = toDefinitionRow(fixture);
+      assertEquals(
+         row.property_groups.map((group) => group.key),
+         ['product_identity', 'offer', 'images', 'product_details', 'variations']
+      );
+      assertEquals(row.property_groups[0], {
+         key: 'product_identity',
+         ...fixture.propertyGroups.product_identity
+      });
+   }
+);
+
+Deno.test('one marketplace id map serves the server and the app', () => {
+   assertEquals(
+      Object.fromEntries(Object.entries(EU_MARKETPLACES).map(([c, m]) => [c, m.marketplaceId])),
+      MARKETPLACE_IDS
+   );
+   assertEquals(Object.keys(MARKETPLACE_IDS), [
+      'DE',
+      'FR',
+      'IT',
+      'ES',
+      'NL',
+      'PL',
+      'SE',
+      'BE',
+      'GB'
+   ]);
 });
 
 Deno.test('toDefinitionRow takes the downloaded schema when the answer carries a link', () => {
