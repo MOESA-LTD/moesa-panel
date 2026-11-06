@@ -46,14 +46,16 @@
 --   amazon_account_connect     stores the token (skipped when NULL, as in sandbox) and sets
 --                              connected, authorized_at = now() and the seller id
 --   amazon_account_disconnect  'none' clears the connection and deletes the token; 'revoked'
---                              (Amazon answered invalid_grant) keeps them
+--                              (Amazon answered invalid_grant) deletes the token too and keeps
+--                              authorized_at and seller_id: no credential lingers
 --   listing_set_state          the cell's listing_state, listing_checked_at = now() and, when
 --                              given, listing_match; the parent cell then mirrors its children
 --   listing_apply_submission   Amazon's answer for a submission, applied to it and to its cell
 --   listing_parent_cell        the cell of the product's parent in the same platform and country,
 --                              inserted (as a candidate) when missing; NULL without a parent
--- A missing row raises no_data_found (P0002) with a plain message: these are server errors, never
--- shown to a user.
+-- A missing row raises no_data_found (P0002), a NULL listing state invalid_parameter_value (22023),
+-- with a plain message: these are server errors, never shown to a user. Deleting a platform
+-- account (directly or by cascade) deletes its token (platform_account_forget_token).
 --
 -- R2's walk (listing_apply_submission). The cell's status moves only through 034's transitions,
 -- one UPDATE per step, each passing market_cell_z_guard (the rules are not bypassed):
@@ -62,7 +64,7 @@
 --      submission's SKU, listing_state and listing_checked_at; with issues, open_issue := 'Amazon: '
 --      and the first three messages joined with '; '; with any other state, an 'Amazon: ' open
 --      issue is cleared unless the cell is suppressed (which needs it);
---   3. accepted, or live: planned → preparing → uploaded; preparing → uploaded; a candidate (or a
+--   3. accepted, or live, unless the state is issues (issues never move the status): planned → preparing → uploaded; preparing → uploaded; a candidate (or a
 --      paused, stopped, removed cell) does not move;
 --   4. live: uploaded or suppressed → live, only with the listing data and approved content (L-G1,
 --      as the guard asks); otherwise the status stays and listing_state is live anyway;
@@ -272,6 +274,22 @@ REVOKE ALL ON FUNCTION private.amazon_token (UUID) FROM PUBLIC, anon, authentica
 
 REVOKE ALL ON FUNCTION private.amazon_token_set (UUID, TEXT) FROM PUBLIC, anon, authenticated;
 
+-- A deleted account (directly or by its customer's cascade) leaves no token in Vault.
+CREATE OR REPLACE FUNCTION private.platform_account_forget_token () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    PERFORM private.amazon_token_set(OLD.id, NULL);
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER platform_account_forget_token
+AFTER DELETE ON public.customer_platform_account FOR EACH ROW
+EXECUTE FUNCTION private.platform_account_forget_token ();
+
+REVOKE ALL ON FUNCTION private.platform_account_forget_token () FROM PUBLIC, anon, authenticated;
+
 -- The parent's cell mirrors the worst listing state of its children's cells in the same platform
 -- and country (R7): issues < draft < ready < submitted < live. Nothing happens without a parent,
 -- a parent cell or a child with a state.
@@ -364,9 +382,7 @@ BEGIN
         RAISE EXCEPTION 'platform account % not found', p_account_id USING ERRCODE = 'no_data_found';
     END IF;
 
-    IF p_state = 'none' THEN
-        PERFORM private.amazon_token_set(p_account_id, NULL);
-    END IF;
+    PERFORM private.amazon_token_set(p_account_id, NULL);
 END;
 $$;
 
@@ -374,6 +390,10 @@ CREATE OR REPLACE FUNCTION public.listing_set_state (p_cell_id UUID, p_listing_s
 SET
    search_path = '' AS $$
 BEGIN
+    IF p_listing_state IS NULL THEN
+        RAISE EXCEPTION 'listing state must not be null' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+
     UPDATE public.market_cell m
     SET listing_state = p_listing_state,
         listing_checked_at = now(),
@@ -403,6 +423,10 @@ DECLARE
     v_cell public.market_cell;
     v_messages TEXT;
 BEGIN
+    IF p_listing_state IS NULL THEN
+        RAISE EXCEPTION 'listing state must not be null' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+
     -- 1. The submission.
     UPDATE public.listing_submission s
     SET status = p_status,
@@ -444,8 +468,8 @@ BEGIN
     WHERE m.id = v_cell.id
     RETURNING * INTO v_cell;
 
-    -- 3. Accepted, or live: up to uploaded, one legal step at a time.
-    IF p_status = 'accepted' OR p_listing_state = 'live' THEN
+    -- 3. Accepted, or live: up to uploaded, one legal step at a time. Issues win over accepted.
+    IF (p_status = 'accepted' OR p_listing_state = 'live') AND p_listing_state <> 'issues' THEN
         IF v_cell.status = 'planned' THEN
             UPDATE public.market_cell m SET status = 'preparing' WHERE m.id = v_cell.id RETURNING * INTO v_cell;
         END IF;

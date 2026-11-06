@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- UPDATEs. What it writes is rolled back.
 BEGIN;
 
-SELECT plan(45);
+SELECT plan(52);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -29,17 +29,17 @@ FROM (VALUES
               WHERE c.code = 'THO' AND a.platform_id = 'amazon'))
 ) AS x (k, v);
 
--- The four cells, as postgres: PL preparing (later complete), SE planned, BE a candidate, GB
--- uploaded without a price.
+-- The five cells, as postgres: PL preparing (later complete), SE planned, BE a candidate, GB
+-- uploaded without a price, NL planned (accepted with issues).
 INSERT INTO public.market_cell (tenant_id, customer_id, product_id, platform_id, country)
 SELECT current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.mop')::UUID, 'amazon', c
-FROM unnest(ARRAY['PL', 'SE', 'BE', 'GB']) AS c;
+FROM unnest(ARRAY['PL', 'SE', 'BE', 'GB', 'NL']) AS c;
 
 SELECT set_config('test.cell_' || lower(m.country), m.id::TEXT, TRUE)
 FROM public.market_cell m
 WHERE m.product_id = current_setting('test.mop')::UUID AND m.platform_id = 'amazon';
 
-UPDATE public.market_cell SET status = 'planned' WHERE id IN (current_setting('test.cell_pl')::UUID, current_setting('test.cell_se')::UUID, current_setting('test.cell_gb')::UUID);
+UPDATE public.market_cell SET status = 'planned' WHERE id IN (current_setting('test.cell_pl')::UUID, current_setting('test.cell_se')::UUID, current_setting('test.cell_gb')::UUID, current_setting('test.cell_nl')::UUID);
 UPDATE public.market_cell SET status = 'preparing' WHERE id IN (current_setting('test.cell_pl')::UUID, current_setting('test.cell_gb')::UUID);
 UPDATE public.market_cell SET status = 'uploaded', platform_sku = 'THO-MOP40-2P', platform_product_id = 'B07N4M94X4',
     currency = 'GBP', stock_source = 'platform', content_status = 'approved'
@@ -53,7 +53,7 @@ DECLARE
     s RECORD;
     new_id UUID;
 BEGIN
-    FOR s IN SELECT * FROM (VALUES ('preparing', 'pl'), ('planned', 'se'), ('candidate', 'be'), ('complete', 'pl'), ('no_price', 'gb'), ('issues', 'be')) AS v (k, cell) LOOP
+    FOR s IN SELECT * FROM (VALUES ('preparing', 'pl'), ('planned', 'se'), ('candidate', 'be'), ('complete', 'pl'), ('no_price', 'gb'), ('issues', 'nl')) AS v (k, cell) LOOP
         INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_' || s.cell)::UUID, 'create', 'THO-MOP40-2P', 'A1C3SOZRARQ6R3', '{}')
         RETURNING id INTO new_id;
@@ -158,7 +158,30 @@ SET LOCAL ROLE service_role;
 SELECT lives_ok($$ SELECT public.amazon_account_disconnect(current_setting('test.acct')::UUID, 'none') $$, 'disconnect');
 SELECT is(public.amazon_account_token(current_setting('test.acct')::UUID), NULL, 'disconnect none removes the token');
 
--- 31–39. Applying submissions (R2).
+-- 31–32. Revoked: the state and the seller id stay, the token goes.
+SELECT 1 FROM public.amazon_account_connect(current_setting('test.acct')::UUID, 'Atzr|again', 'A3TEST');
+SELECT public.amazon_account_disconnect(current_setting('test.acct')::UUID, 'revoked');
+SELECT ok(
+    (SELECT api_connection = 'revoked' AND seller_id = 'A3TEST' FROM public.customer_platform_account WHERE id = current_setting('test.acct')::UUID),
+    'disconnect revoked keeps the seller id'
+);
+SELECT is(public.amazon_account_token(current_setting('test.acct')::UUID), NULL, 'disconnect revoked removes the token');
+
+-- 33–34. A NULL listing state is refused.
+SELECT throws_ok(
+    $$ SELECT public.listing_apply_submission(current_setting('test.sub_planned')::UUID, 'accepted', NULL, '[]', NULL, NULL) $$,
+    '22023',
+    NULL,
+    'apply refuses a NULL listing state'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_set_state(current_setting('test.cell_se')::UUID, NULL, NULL) $$,
+    '22023',
+    NULL,
+    'set_state refuses a NULL listing state'
+);
+
+-- 35–45. Applying submissions (R2).
 SELECT is(
     (public.listing_apply_submission(current_setting('test.sub_preparing')::UUID, 'accepted', 'f1dc2914-75dd-11ea-bc55-0242ac130003', '[]', 'submitted', NULL)).status,
     'uploaded',
@@ -189,13 +212,15 @@ SELECT is(
 SELECT is((SELECT listing_state FROM public.market_cell WHERE id = current_setting('test.cell_gb')::UUID), 'live', 'its listing_state is live anyway');
 SELECT matches(
     (public.listing_apply_submission(
-        current_setting('test.sub_issues')::UUID, 'done', NULL,
+        current_setting('test.sub_issues')::UUID, 'accepted', 's6',
         '[{"code":"90220","message":"''size'' is required but not supplied.","severity":"ERROR","attributeNames":["size"]}]',
         'issues', NULL
     )).open_issue,
     '^Amazon: ''size'' is required',
-    'issues write open_issue and keep the status'
+    'issues write open_issue'
 );
+SELECT is((SELECT status::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_nl')::UUID), 'planned', 'accepted with issues keeps the status');
+SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_nl')::UUID), 'issues', 'accepted with issues is in issues');
 SELECT is((SELECT platform_product_id FROM public.market_cell WHERE id = current_setting('test.cell_pl')::UUID), 'B07N4M94X4', 'the ASIN fills the platform product id');
 
 -- The parent case: a parent product with one child, the child's cell on amazon DE.
@@ -225,7 +250,7 @@ SELECT set_config('test.sub_child', s.id::TEXT, TRUE) FROM s;
 
 SET LOCAL ROLE service_role;
 
--- 40–41.
+-- 46–47.
 SELECT isnt(public.listing_parent_cell(current_setting('test.child_cell')::UUID), NULL, 'the parent cell is created');
 
 SELECT 1 FROM public.listing_apply_submission(
@@ -240,7 +265,7 @@ SELECT is(
 
 RESET ROLE;
 
--- 42–44. The registry, the bucket, the coordinator.
+-- 48–50. The registry, the bucket, the coordinator.
 SELECT ok(
     EXISTS (SELECT 1 FROM private.transfer_registry WHERE table_name = 'listing_submission' AND parent_table = 'market_cell'),
     'listing_submission is registered'
@@ -258,7 +283,14 @@ SELECT ok(
     'the coordinator may publish'
 );
 
--- 45. A connected account inserted by a transfer (the flag raised as 040's test does).
+-- 51. Deleting the account deletes its token.
+SET LOCAL ROLE service_role;
+SELECT 1 FROM public.amazon_account_connect(current_setting('test.acct')::UUID, 'Atzr|third', 'A3TEST');
+RESET ROLE;
+DELETE FROM public.customer_platform_account WHERE id = current_setting('test.acct')::UUID;
+SELECT is((SELECT count(*) FROM vault.secrets WHERE name = 'amazon:' || current_setting('test.acct'))::INT, 0, 'a deleted account leaves no secret');
+
+-- 52. A connected account inserted by a transfer (the flag raised as 040's test does).
 INSERT INTO public.customer (tenant_id, code, display_name, commercial_model)
 VALUES (current_setting('test.moesa')::UUID, 'ZZA', 'Zed Amazon', 'trading_partner');
 
