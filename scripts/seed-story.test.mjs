@@ -189,8 +189,8 @@ test('amazonStoryPrelude embeds both fixture files and the seller id', () => {
    assert.ok(prelude.includes(`set_config('story.amazon_definition', $fx$${definition}$fx$, FALSE)`));
    assert.ok(prelude.includes(`set_config('story.amazon_attributes', $fx$${attributes}$fx$, FALSE)`));
    assert.ok(prelude.includes(`set_config('story.amazon_seller_id', 'A1TESTSELLER', FALSE)`));
-   assert.ok(amazonStoryPrelude(ROOT, {}).includes(`'SANDBOX-SELLER'`));
-   assert.ok(amazonStoryPrelude(ROOT, { AMAZON_SPAPI_SELLER_ID: '  ' }).includes(`'SANDBOX-SELLER'`));
+   assert.ok(amazonStoryPrelude(ROOT, {}).includes(`'SANDBOX_SELLER'`));
+   assert.ok(amazonStoryPrelude(ROOT, { AMAZON_SPAPI_SELLER_ID: '  ' }).includes(`'SANDBOX_SELLER'`));
    assert.throws(() => amazonStoryPrelude(ROOT, { AMAZON_SPAPI_SELLER_ID: "x'); DROP TABLE y; --" }), /seller id/);
 });
 

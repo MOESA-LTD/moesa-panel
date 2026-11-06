@@ -199,8 +199,9 @@ export function readEnvFile(file) {
 
 // The statements step 11 reads its Amazon data from: the R3 fixture (definition and the mop's
 // attributes) and the seller id, as session settings the story SQL picks up with current_setting.
-// The seller id is the Edge Functions' AMAZON_SPAPI_SELLER_ID, else a sandbox placeholder; no
-// token is stored, because the sandbox uses the self-authorized one.
+// The seller id is the Edge Functions' AMAZON_SPAPI_SELLER_ID, else SANDBOX_SELLER, the placeholder
+// amazon-auth's sandbox connect stores too; no token is stored, because the sandbox uses the
+// self-authorized one.
 export function amazonStoryPrelude(root, env) {
    const dir = path.join(root, 'supabase', 'seed_files', 'amazon');
    const read = (name) => {
@@ -209,7 +210,7 @@ export function amazonStoryPrelude(root, env) {
       if (text.includes('$fx$')) throw new Error(`${name} contains the quote tag $fx$`);
       return text;
    };
-   const sellerId = env.AMAZON_SPAPI_SELLER_ID?.trim() || 'SANDBOX-SELLER';
+   const sellerId = env.AMAZON_SPAPI_SELLER_ID?.trim() || 'SANDBOX_SELLER';
    if (!/^[A-Za-z0-9_-]+$/.test(sellerId)) throw new Error('AMAZON_SPAPI_SELLER_ID is not a usable seller id');
    return `SELECT set_config('story.amazon_definition', $fx$${read('LUGGAGE.A1PA6795UKMFR9.en_GB.json')}$fx$, FALSE);
 SELECT set_config('story.amazon_attributes', $fx$${read('LUGGAGE.attributes.json')}$fx$, FALSE);
