@@ -56,7 +56,8 @@ const optionOf = (value: unknown) => options.value.find((o) => o.value === value
                role="img"
             />
          </template>
-         <span v-else>{{ placeholder }}</span>
+         <!-- A non-breaking space keeps the row's height when there is no value and no placeholder. -->
+         <span v-else :class="{ 'p-placeholder': placeholder }">{{ placeholder || ' ' }}</span>
       </template>
       <template #option="{ option }">
          <div>

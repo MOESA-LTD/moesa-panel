@@ -182,6 +182,13 @@ onMounted(() => {
 
    &--fluid {
       @apply flex-col justify-center;
+
+      /* A wrapped field is only as wide as its content, so an empty Select (no value, no
+         placeholder) collapses to its arrow. Give text-like fields a floor; checkbox, switch and
+         radio fields keep their natural width. */
+      &:not(:has(.p-checkbox, .p-toggleswitch, .p-radiobutton)) {
+         @apply min-w-[12rem];
+      }
    }
 
    &:not(&--fluid) {
