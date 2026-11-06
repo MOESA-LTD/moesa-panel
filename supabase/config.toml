@@ -259,6 +259,11 @@ verify_jwt = true
 [functions.amazon-schema]
 verify_jwt = false
 
+# Amazon's OAuth redirect (amazon-auth/callback) carries no JWT: the signed state is its credential.
+# connect/disconnect verify the user JWT in code with withAuthorization.
+[functions.amazon-auth]
+verify_jwt = false
+
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true
