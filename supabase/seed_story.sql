@@ -229,6 +229,105 @@ BEGIN
 END;
 $$;
 
+-- Step 03 (35 days ago): products, their specs and product documents, as baris in MOESA LTD. The
+-- products come first, so that the step's audit transaction is named after the product table.
+DO $$
+DECLARE
+    v_tenant UUID := private.story_begin('baris@moesa-panel.test', 'MOESA LTD');
+    v_tho UUID := (SELECT c.id FROM public.customer c WHERE c.tenant_id = v_tenant AND c.code = 'THO');
+    v_krn UUID := '5eed0002-0000-4000-8000-000000000001';
+    v_tr1 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'TR1');
+    v_cn1 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'CN1');
+    v_cn2 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'CN2');
+    v_id1 UUID := (SELECT s.id FROM public.supplier s WHERE s.tenant_id = v_tenant AND s.code = 'ID1');
+    v_tr3 UUID := '5eed0002-0000-4000-8000-000000000006';
+    v_mop UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-MOP40-2P');
+    v_tips50 UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-TIPS-6-50');
+    v_cones100 UUID := (SELECT p.id FROM public.product p WHERE p.tenant_id = v_tenant AND p.sku = 'THO-CONES-100');
+    v_p01 UUID := '5eed0003-0000-4000-8000-000000000001';
+    v_p03 UUID := '5eed0003-0000-4000-8000-000000000003';
+    v_p04 UUID := '5eed0003-0000-4000-8000-000000000004';
+    v_p08 UUID := '5eed0003-0000-4000-8000-000000000008';
+    gtin TEXT;
+BEGIN
+    IF v_tho IS NULL OR v_tr1 IS NULL OR v_cn1 IS NULL OR v_cn2 IS NULL OR v_id1 IS NULL OR v_mop IS NULL
+       OR v_tips50 IS NULL OR v_cones100 IS NULL THEN
+        RAISE EXCEPTION 'story 03: a customer, supplier or product of seed.sql is missing';
+    END IF;
+
+    -- A typo in a GTIN fails the story here, loudly. 4260696025930 is the one left over: no
+    -- product needs it.
+    FOREACH gtin IN ARRAY ARRAY['4260696025855', '4260696025862', '4260696025879', '4260696025886', '4260696025893',
+                                '4260696025909', '4260696025916', '4260696025923', '4260696025930'] LOOP
+        IF NOT private.gtin_valid(gtin) THEN
+            RAISE EXCEPTION 'story: invalid GTIN %', gtin;
+        END IF;
+    END LOOP;
+
+    -- Nine products: every status and compliance level. The parent of the variants is the
+    -- on-sale mop. The old mop is inserted as archived (the unique GTIN index ignores archived
+    -- rows), so it reuses the GTIN of the live one; its supplier TR3 is suspended.
+    INSERT INTO public.product (id, tenant_id, customer_id, parent_id, sku, display_name, variant_label, brand, gtin,
+                                supplier_id, status, compliance_status)
+    VALUES (v_p01, v_tenant, v_tho, v_mop, 'THO-MOP40-3P', 'Pamuk mop bezi 40 cm, 3''lü', '3''lü', 'OKAEI',
+            '4260696025855', v_tr1, 'development', 'partial'),
+           ('5eed0003-0000-4000-8000-000000000002', v_tenant, v_tho, v_mop, 'THO-MOP40-4P',
+            'Pamuk mop bezi 40 cm, 4''lü', '4''lü', 'OKAEI', '4260696025862', v_tr1, 'development', 'none'),
+           (v_p03, v_tenant, v_tho, NULL, 'THO-MOP60-2P', 'Pamuk mop bezi 60 cm, 2''li', NULL, 'OKAEI',
+            '4260696025879', v_tr1, 'concept', 'none'),
+           (v_p04, v_tenant, v_tho, NULL, 'THO-TIPS-6-100', 'Aktif karbon filtre 6 mm, 100''lü', NULL, 'OKAEI',
+            '4260696025886', v_cn1, 'approved', 'none'),
+           ('5eed0003-0000-4000-8000-000000000005', v_tenant, v_tho, NULL, 'THO-CONES-200', 'Cones 200''lü', NULL,
+            'OKAEI', '4260696025893', v_id1, 'ordering', 'partial'),
+           ('5eed0003-0000-4000-8000-000000000006', v_tenant, v_tho, NULL, 'THO-BRUSH-1', 'Temizlik fırçası', NULL,
+            'OKAEI Pro', '4260696025909', v_cn2, 'paused', 'partial'),
+           ('5eed0003-0000-4000-8000-000000000007', v_tenant, v_tho, NULL, 'THO-MOP40-2P-OLD',
+            'Pamuk mop bezi 40 cm, 2''li (eski)', NULL, 'OKAEI', '4260696025800', v_tr3, 'archived', 'none'),
+           (v_p08, v_tenant, v_krn, NULL, 'KRN-VASE-01', 'Seramik vazo, 24 cm', NULL, 'Kernhaus', '4260696025916',
+            v_tr1, 'on_sale', 'complete'),
+           ('5eed0003-0000-4000-8000-000000000009', v_tenant, v_krn, NULL, 'KRN-VASE-02', 'Seramik vazo, 32 cm', NULL,
+            'Kernhaus', '4260696025923', v_tr1, 'concept', 'none');
+
+    -- The mop: full dimensions, weights and pallet data. The activated carbon filter: hazmat.
+    UPDATE public.product
+    SET unit_dims_mm = '400x300x15', unit_net_g = 180, pack_dims_mm = '410x310x30', pack_gross_g = 400,
+        carton_pack_qty = 20, carton_dims_mm = '620x420x330', carton_net_kg = 7.2, carton_gross_kg = 8.4,
+        pallet_carton_qty = 48, pallet_type = 'EUR'
+    WHERE id = v_mop;
+
+    UPDATE public.product SET is_hazmat = TRUE, hs_code = '8421.39', origin_country = 'China' WHERE id = v_tips50;
+
+    -- Spec sheets and other product documents. v1 of the mop spec is superseded by the v2 of
+    -- seed.sql (inserted directly, so document_supersede has nothing to do).
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000021', 'product', v_mop, v_tho, 'spec_sheet', 1,
+                              'superseded', current_date - 150);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000022', 'product', v_p01, v_tho, 'spec_sheet', 1,
+                              'signed', current_date - 20);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000023', 'product', v_tips50, v_tho, 'spec_sheet', 1,
+                              'draft', NULL);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000024', 'product', v_p04, v_tho, 'spec_sheet', 1,
+                              'approved', current_date - 25);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000025', 'product', v_cones100, v_tho, 'spec_sheet', 1,
+                              'signed', current_date - 100);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000026', 'product', v_cones100, v_tho, 'certificate', 1,
+                              'signed', current_date - 400);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000027', 'product', v_tips50, v_tho, 'sds', 1,
+                              'approved', current_date - 90);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000028', 'product', v_tips50, v_tho, 'doc_of_conformity',
+                              1, 'approved', current_date - 90);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000029', 'product', v_tips50, v_tho, 'test_report', 1,
+                              'approved', current_date - 90);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000030', 'product', v_cones100, v_tho, 'label_artwork',
+                              1, 'approved', current_date - 60);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000031', 'product', v_p03, v_tho, 'spec_sheet', 1,
+                              'draft', NULL);
+    PERFORM private.story_doc('5eed0003-0000-4000-8000-000000000032', 'product', v_p08, v_krn, 'spec_sheet', 1,
+                              'signed', current_date - 30);
+
+    PERFORM private.story_end('35 days');
+END;
+$$;
+
 DROP FUNCTION private.story_begin (TEXT, TEXT),
 private.story_bypass (BOOLEAN),
 private.story_end (INTERVAL),

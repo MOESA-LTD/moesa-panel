@@ -102,8 +102,8 @@ VALUES
     ('customer_platform_account', 'access', 'all', NULL),
     ('supplier', 'status', 'all', NULL),
     -- Task 3: products.
-    ('product', 'status', 'pending', NULL),
-    ('product', 'compliance_status', 'pending', NULL),
+    ('product', 'status', 'all', NULL),
+    ('product', 'compliance_status', 'all', NULL),
     -- Task 4: customer lifecycle, projects and tasks.
     ('customer', 'status', 'pending', NULL),
     ('project', 'type', 'pending', NULL),
@@ -144,7 +144,7 @@ VALUES
     ('incident', 'outcome', 'exempt', 'only some closed incidents carry one'),
     ('incident', 'root_cause', 'exempt', 'free choice per incident, no screen depends on each value'),
     ('incident', 'affected_parties', 'exempt', 'free choice per incident, no screen depends on each value'),
-    ('incident', 'entity_type', 'exempt', 'open-ended exemption: incident.entity_type is a free choice per incident, no screen depends on each value'),
+    ('incident', 'entity_type', 'exempt', 'which kinds of record (order, shipment, project, ...) the incidents hang on is not checked; only the incident rows themselves are'),
     ('incident_deadline', 'kind', 'exempt', 'a sample of deadlines is enough'),
     ('incident_log', 'cost_payer', 'exempt', 'a sample of cost lines is enough'),
     ('change_request', 'cost_payer', 'exempt', 'a sample is enough'),
@@ -166,7 +166,7 @@ WHERE s.nspname = 'public' AND c.relkind IN ('r', 'p') AND a.attnum > 0 AND NOT 
 SELECT 'enum.gap', x.tbl || '.' || x.col || '=' || g FROM story_enum_column x, pg_temp.enum_gaps(x.tbl, x.col) g WHERE x.rule = 'all';
 
 -- Task 2: customers, suppliers, settings
-SELECT 'm1.tho_contract' WHERE NOT EXISTS (SELECT 1 FROM public.customer c JOIN public.document d ON d.id = c.contract_document_id AND d.type = 'contract'
+SELECT 'm1.tho_contract' WHERE NOT EXISTS (SELECT 1 FROM public.customer c JOIN public.document d ON d.id = c.contract_document_id AND d.type = 'contract' AND d.status = 'signed'
   WHERE c.code = 'THO' AND c.tenant_id = pg_temp.moesa() AND c.contract_accepted_on <= current_date - 2 AND c.restricted_drive_url IS NOT NULL AND c.eu_responsible_person IS NOT NULL);
 SELECT 'm1.contract_missing', k FROM unnest(ARRAY['LEA', 'KRN']) k WHERE NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.code = k AND c.tenant_id = pg_temp.moesa() AND c.contract_accepted_on IS NULL);
 SELECT 'm1.packages', p FROM unnest(ARRAY['A0', 'A2', 'D']) p WHERE NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.tenant_id = pg_temp.moesa() AND p = ANY (c.packages));
@@ -174,9 +174,28 @@ SELECT 'm1.contacts' WHERE (SELECT count(*) FROM public.customer_contact x JOIN 
 SELECT 'm1.default_warehouse' WHERE NOT EXISTS (SELECT 1 FROM public.customer_warehouse w JOIN public.customer c ON c.id = w.customer_id WHERE c.code = 'THO' AND c.tenant_id = pg_temp.moesa() AND NOT w.is_default);
 SELECT 'm1.brand_pending' WHERE NOT EXISTS (SELECT 1 FROM public.customer_brand WHERE tenant_id = pg_temp.moesa() AND name = 'OKAEI Pro' AND registration_status = 'pending');
 SELECT 'm2.contacts', s FROM unnest(ARRAY['TR1', 'CN1']) s WHERE NOT EXISTS (SELECT 1 FROM public.supplier_contact x JOIN public.supplier p ON p.id = x.supplier_id WHERE p.code = s AND p.tenant_id = pg_temp.moesa());
+SELECT 'm1.krn' WHERE NOT EXISTS (SELECT 1 FROM public.customer c WHERE c.code = 'KRN' AND c.tenant_id = pg_temp.moesa() AND c.country = 'Austria')
+   OR NOT EXISTS (SELECT 1 FROM public.customer_warehouse w JOIN public.customer c ON c.id = w.customer_id WHERE c.code = 'KRN' AND c.tenant_id = pg_temp.moesa() AND w.city = 'Wien')
+   OR (SELECT count(*) FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id WHERE c.code = 'KRN' AND c.tenant_id = pg_temp.moesa() AND a.platform_id IN ('bol', 'kaufland')) <> 2;
+SELECT 'm2.tr1_terms' WHERE NOT EXISTS (SELECT 1 FROM public.supplier WHERE tenant_id = pg_temp.moesa() AND code = 'TR1' AND storage_fee_rule IS NOT NULL AND late_payment_penalty IS NOT NULL);
+SELECT 'm2.supplier_states', s.c FROM (VALUES ('CN3', 'candidate'), ('TR3', 'suspended')) s (c, st) WHERE NOT EXISTS (SELECT 1 FROM public.supplier p WHERE p.tenant_id = pg_temp.moesa() AND p.code = s.c AND p.status = s.st::public.supplier_status);
 SELECT 'm2.documents' WHERE (SELECT count(DISTINCT d.type) FROM public.document d WHERE d.tenant_id = pg_temp.moesa() AND d.entity_type = 'supplier' AND d.type IN ('certificate', 'contract')) < 2;
 SELECT 'm2.rating' WHERE NOT EXISTS (SELECT 1 FROM public.supplier WHERE tenant_id = pg_temp.moesa() AND code = 'CN1' AND rating = 2 AND last_audit_on IS NOT NULL);
 SELECT 'core.trading_media_cap' WHERE (SELECT value FROM public.setting WHERE tenant_id = pg_temp.tenant('MOESA Trading GmbH') AND key = 'media_max_mb') IS DISTINCT FROM '5'::JSONB;
 SELECT 'feed.step02_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'customer' AND now()::DATE - created_at::DATE > 7);
+
+-- Task 3: products, specs, product documents
+SELECT 'm3.variant_tree' WHERE (SELECT count(*) FROM public.product c JOIN public.product p ON p.id = c.parent_id WHERE p.sku = 'THO-MOP40-2P' AND p.tenant_id = pg_temp.moesa()) < 2;
+SELECT 'm3.archived_reuses_gtin' WHERE (SELECT count(*) FROM public.product WHERE gtin = '4260696025800' AND tenant_id = pg_temp.moesa()) < 2;
+SELECT 'm3.hazmat' WHERE NOT EXISTS (SELECT 1 FROM public.product WHERE sku = 'THO-TIPS-6-50' AND tenant_id = pg_temp.moesa() AND is_hazmat AND hs_code IS NOT NULL AND origin_country IS NOT NULL);
+SELECT 'm3.dimensions' WHERE NOT EXISTS (SELECT 1 FROM public.product WHERE sku = 'THO-MOP40-2P' AND tenant_id = pg_temp.moesa() AND unit_dims_mm IS NOT NULL AND carton_dims_mm IS NOT NULL AND pallet_carton_qty IS NOT NULL);
+SELECT 'm3.second_customer' WHERE (SELECT count(*) FROM public.product p JOIN public.customer c ON c.id = p.customer_id WHERE c.code = 'KRN' AND c.tenant_id = pg_temp.moesa()) < 2;
+SELECT 'm4.spec_superseded' WHERE NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id WHERE p.sku = 'THO-MOP40-2P' AND d.type = 'spec_sheet' AND d.version = 1 AND d.status = 'superseded')
+   OR NOT EXISTS (SELECT 1 FROM public.document d JOIN public.product p ON p.id = d.entity_id WHERE p.sku = 'THO-MOP40-2P' AND d.type = 'spec_sheet' AND d.version = 2 AND d.status = 'signed');
+SELECT 'm3.evidence_mix' WHERE NOT EXISTS (SELECT 1 FROM public.product_evidence e JOIN public.product p ON p.id = e.product_id WHERE p.sku = 'THO-TIPS-6-50' AND NOT e.has_signed_spec)
+   OR NOT EXISTS (SELECT 1 FROM public.product_evidence e JOIN public.product p ON p.id = e.product_id WHERE p.sku = 'THO-MOP40-3P' AND e.has_signed_spec);
+SELECT 'box.unsigned_skus' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND unsigned_sku_count > 0);
+SELECT 'box.incomplete_compliance' WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_product_evidence WHERE tenant_id = pg_temp.moesa() AND active_sku_count > compliance_complete_count);
+SELECT 'feed.step03_older' WHERE NOT EXISTS (SELECT 1 FROM public.audit_transaction WHERE tenant_id = pg_temp.moesa() AND table_name = 'product' AND now()::DATE - created_at::DATE > 7);
 
 ROLLBACK;
