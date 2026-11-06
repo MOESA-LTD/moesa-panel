@@ -73,6 +73,8 @@ Deno.test('empty strings and empty arrays are not filled', () => {
    );
    assertEquals(attributeFilled(undefined, DE), false);
    assertEquals(attributeFilled('x', DE), false);
+   assertEquals(attributeFilled([{ unit: 'grams' }], DE), false);
+   assertEquals(attributeFilled([{ value: 350, unit: 'grams' }], DE), true);
    assertEquals(attributeFilled([{ value: false }], DE), true);
    assertEquals(attributeFilled([{ value: 0 }], DE), true);
    assertEquals(attributeFilled([{ media_location: 'media:x' }], DE), true);
@@ -178,7 +180,7 @@ Deno.test(
 Deno.test('languageTag prefers the cell language, else the marketplace default', () => {
    assertEquals(languageTag('DE', null), 'de_DE');
    assertEquals(languageTag('DE', 'en_GB'), 'en_GB');
-   assertEquals(languageTag('BE', undefined), 'nl_BE');
+   assertEquals(languageTag('BE', undefined), 'fr_BE');
    assertEquals(languageTag('SE', ''), 'sv_SE');
    assertEquals(languageTag('GB', null), 'en_GB');
    assertEquals(languageTag('US', null), null);

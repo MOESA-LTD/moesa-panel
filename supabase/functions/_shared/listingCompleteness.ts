@@ -70,8 +70,11 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const isSchema = (value: unknown): value is AmazonSchema =>
    isObject(value) && isObject(value.properties);
 
-/** Keys that scope an entry rather than carry its content. */
-const SELECTOR_KEYS = new Set(['marketplace_id', 'language_tag']);
+/**
+ * Entry keys that do not carry content on their own: the selectors that scope an entry, and the
+ * `unit` of a measure (a unit without its value is not an answer).
+ */
+const NON_CONTENT_KEYS = new Set(['marketplace_id', 'language_tag', 'unit']);
 
 /** A leaf with content: a non-blank string, a number, a boolean, or a container holding one. */
 const hasContent = (value: unknown): boolean => {
@@ -86,7 +89,7 @@ const hasContent = (value: unknown): boolean => {
 /**
  * True when `values` is an array with at least one entry for this marketplace (or none named)
  * and this language (or none named) that holds a non-blank leaf (`value`, `media_location`,
- * `currency`, ...). Empty strings, empty arrays and null do not count.
+ * `currency`, ...). Empty strings, empty arrays, null and a lone `unit` do not count.
  */
 export function attributeFilled(values: unknown, opts: CompletenessOptions): boolean {
    if (!Array.isArray(values)) return false;
@@ -95,7 +98,7 @@ export function attributeFilled(values: unknown, opts: CompletenessOptions): boo
       if (entry.marketplace_id != null && entry.marketplace_id !== opts.marketplaceId) return false;
       if (entry.language_tag != null && entry.language_tag !== opts.languageTag) return false;
       return Object.entries(entry).some(
-         ([key, leaf]) => !SELECTOR_KEYS.has(key) && hasContent(leaf)
+         ([key, leaf]) => !NON_CONTENT_KEYS.has(key) && hasContent(leaf)
       );
    });
 }
@@ -167,6 +170,18 @@ export function requiredAttributes(
       .sort((a, b) => a.attribute.localeCompare(b.attribute));
 }
 
+/** The required attributes that are neither provided nor filled. */
+const unfilled = (
+   required: RequiredAttribute[],
+   attributes: Attributes,
+   opts: CompletenessOptions
+) => {
+   const provided = new Set(opts.provided ?? []);
+   return required.filter(
+      ({ attribute }) => !provided.has(attribute) && !attributeFilled(attributes[attribute], opts)
+   );
+};
+
 const groupOf = (groups: PropertyGroups, attribute: string) =>
    Object.keys(groups).find((key) => groups[key].propertyNames.includes(attribute)) ?? null;
 
@@ -180,13 +195,9 @@ export function missingAttributes(
    attributes: Attributes,
    opts: CompletenessOptions
 ): MissingField[] {
-   const provided = new Set(opts.provided ?? []);
-   return requiredAttributes(schema, attributes)
-      .filter(
-         ({ attribute }) =>
-            !provided.has(attribute) && !attributeFilled(attributes[attribute], opts)
-      )
-      .map(({ attribute, reason }) => ({ attribute, group: groupOf(groups, attribute), reason }));
+   return unfilled(requiredAttributes(schema, attributes), attributes, opts).map(
+      ({ attribute, reason }) => ({ attribute, group: groupOf(groups, attribute), reason })
+   );
 }
 
 /** Missing fields per property group; every group is present (0 when complete). Ungrouped fields are not counted. */
@@ -209,8 +220,11 @@ export function completeness(
    attributes: Attributes,
    opts: CompletenessOptions
 ): { required: number; filled: number } {
-   const required = requiredAttributes(schema, attributes).length;
-   return { required, filled: required - missingAttributes(schema, {}, attributes, opts).length };
+   const required = requiredAttributes(schema, attributes);
+   return {
+      required: required.length,
+      filled: required.length - unfilled(required, attributes, opts).length
+   };
 }
 
 const isBlank = (value: unknown) =>
@@ -240,7 +254,7 @@ export const DEFAULT_LANGUAGE_TAGS: Readonly<Record<string, string>> = Object.fr
    NL: 'nl_NL',
    PL: 'pl_PL',
    SE: 'sv_SE',
-   BE: 'nl_BE',
+   BE: 'fr_BE',
    GB: 'en_GB'
 });
 

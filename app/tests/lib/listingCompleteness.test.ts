@@ -45,7 +45,7 @@ describe('listingCompleteness from the app (@edge-shared)', () => {
    });
 
    it('shares the language default and the definition row with the server', () => {
-      expect(languageTag('BE', null)).toBe('nl_BE');
+      expect(languageTag('BE', null)).toBe('fr_BE');
       expect(toDefinitionRow(fixture).version).toBe('UHqSqmb4FNUk=');
    });
 });
