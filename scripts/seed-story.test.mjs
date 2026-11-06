@@ -115,3 +115,19 @@ test('the check SQL derives every date from pg_temp.today(), never current_date 
    assert.equal(uses.length, 1, uses.join('\n'));
    assert.match(uses[0], /coalesce\(nullif\(current_setting\('story\.today'/);
 });
+
+test('the guide.page check lists every business page of GUIDE_PAGES (app/src/constants/guide.ts)', () => {
+   const guide = readFileSync(path.join(ROOT, 'app', 'src', 'constants', 'guide.ts'), 'utf8');
+   const list = guide.match(/export const GUIDE_PAGES = \[([\s\S]*?)\] as const/)?.[1];
+   assert.ok(list, 'GUIDE_PAGES not found in guide.ts');
+   const pages = [...list.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((page) => page !== 'dashboard');
+   assert.ok(pages.length > 0);
+
+   const sql = readFileSync(path.join(ROOT, 'supabase', 'seed_story.check.sql'), 'utf8');
+   const check = sql.match(/^SELECT 'guide\.page'[\s\S]*?\) v \(p, tbl\)/m)?.[0];
+   assert.ok(check, "the 'guide.page' check not found in seed_story.check.sql");
+   const checked = [...check.matchAll(/\('([a-z_]+)', '[a-z_]+'\)/g)].map((m) => m[1]);
+
+   // A new guide page fails here until the check lists it (and the story gives it rows).
+   assert.deepEqual([...checked].sort(), [...pages].sort());
+});

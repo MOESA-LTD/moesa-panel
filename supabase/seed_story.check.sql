@@ -663,7 +663,7 @@ SELECT 'm21.media_too_large', e FROM pg_temp.copy_error('baris@moesa-panel.test'
 SELECT 'enum.pending', tbl || '.' || col FROM story_enum_column WHERE rule = 'pending';
 -- feed.bands: the notifications box groups the feed into today, yesterday, last week and older; each band has entries
 SELECT 'feed.bands', b FROM unnest(ARRAY['today', 'yesterday', 'last_week', 'older']) b WHERE NOT EXISTS (SELECT 1 FROM public.dashboard_notification_feed WHERE tenant_id = pg_temp.moesa() AND since = b);
--- guide.page: every business page of PAGE_GUIDES (app/src/constants/guide.ts) has rows in MOESA LTD; the dashboard page is the box.* checks and feed.bands
+-- guide.page: every business page of GUIDE_PAGES (app/src/constants/guide.ts) has rows in MOESA LTD; the dashboard page is the box.* checks and feed.bands
 SELECT 'guide.page', p FROM (VALUES ('setting', 'setting'), ('customer', 'customer'), ('supplier', 'supplier'), ('product', 'product'), ('project', 'project'),
    ('document', 'document'), ('media', 'media'), ('purchase_order', 'purchase_order'), ('shipment', 'shipment'), ('market_matrix', 'market_cell'),
    ('incident', 'incident'), ('change_request', 'change_request')) v (p, tbl)
