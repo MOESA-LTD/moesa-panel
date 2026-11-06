@@ -9,6 +9,7 @@
       "dev:supabase": "supabase start --ignore-health-check",
       "dev:supabase-types": "supabase gen types typescript --local > ../supabase/functions/_shared/database.types.ts",
       "dev:seed-story": "node ../scripts/seed-story.mjs",
+      "dev:amazon-probe": "cd ../supabase/functions && deno task probe",
       "dev:supabase-reset": "supabase db reset && pnpm dev:seed-story && pnpm dev:supabase-types",
       "build": "vite build",
       "preview": "vite preview",

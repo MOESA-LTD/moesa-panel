@@ -126,11 +126,126 @@ ffmpeg -f lavfi -i testsrc2=size=320x240:rate=15 -t 2 -c:v libx264 -pix_fmt yuv4
 `sample.pdf` is a one-page PDF with the text "MOESA seed sample". A small Node snippet wrote it,
 with the xref offsets computed.
 
-## Amazon schedules (pg_cron + pg_net)
+## Amazon (M22)
 
-Migration 047 schedules `amazon-poll` (every 10 minutes) and `amazon-schema-refresh` (Mondays 04:00).
-They call the Edge Functions through `private.amazon_cron_call`, which reads two Vault secrets at
-run time: `edge_function_url` (the functions base URL, no trailing path) and `edge_service_key`
-(the service role key). Locally `pnpm dev:seed-story` sets both. On the hosted project the owner
-sets the same two secrets once in the dashboard (Project, Vault); until then the jobs log
-`amazon_cron_unconfigured` and do nothing. Rotating the key means updating the secret only.
+Every Amazon call goes through the Edge Functions `amazon-schema`, `amazon-auth`,
+`amazon-listing` and `amazon-poll`. They hold all the Amazon secrets: no Amazon value is in a
+`VITE_*` variable, a response, a log line or a table column. A customer's refresh token lives in
+Vault (`amazon:<customer_platform_account id>`); the panel shows only the connection state.
+
+### Environment keys
+
+`supabase/functions/.env.example` lists them. Copy it to `supabase/functions/.env` (git-ignored)
+for local work. On the hosted project, set the same names with
+`supabase secrets set --env-file <file>`.
+
+| Key | What it is |
+|---|---|
+| `AMAZON_SPAPI_LWA_CLIENT_ID`, `AMAZON_SPAPI_LWA_CLIENT_SECRET` | The app's LWA credentials (Solution Provider Portal, the app client, "View"). Without them every function answers `amazon_unconfigured`. |
+| `AMAZON_SPAPI_REFRESH_TOKEN` | The self-authorized refresh token ("Authorize"). Only the sandbox, the probe and the live tests use it. |
+| `AMAZON_SPAPI_SELLER_ID` | The seller id a sandbox connect stores. When it is empty, the placeholder `SANDBOX_SELLER` is stored, and the story seeds the same. Production takes the seller id from OAuth. |
+| `AMAZON_SPAPI_ENV` | `sandbox` or `production`. It defaults to `sandbox`, so the hosted project must set `production` explicitly. |
+| `AMAZON_SPAPI_REGION` | `eu`, the only region the panel supports (R1). |
+| `AMAZON_SPAPI_APP_ID` | The application id (`amzn1.sp.solution.…`) the consent URL is built from. Required in production. |
+| `AMAZON_SPAPI_APP_BETA` | `true` while the app is a draft, so the consent URL carries `version=beta`. Set it to `false` once the app is published. |
+| `AMAZON_SPAPI_STATE_SECRET` | Signs the OAuth state. It needs at least 32 characters (`openssl rand -base64 32`) and is required in production. The sandbox falls back to a value derived from the service role key. |
+| `APP_URL` | The panel's base URL, where the OAuth callback redirects back to (default `http://localhost:6161`). |
+| `PUBLIC_SUPABASE_URL` | The public Supabase URL (default `http://127.0.0.1:54321`). It is the host of the OAuth `redirect_uri`, and Amazon fetches the listing images from it. In production it must be https and not a local host, else a publish is refused with `listing_image_url_not_public`. |
+
+### Sandbox and production
+
+- **Sandbox** (`AMAZON_SPAPI_ENV=sandbox`) calls the static SP-API sandbox
+  (`sandbox.sellingpartnerapi-eu.amazon.com`), which answers fixed mock responses.
+  - **Connect Amazon** connects the account at once, without a consent page. It stores no token;
+    the functions use the self-authorized `AMAZON_SPAPI_REFRESH_TOKEN`.
+  - A sandbox publish is accepted, and the next poll ends in `issues` with Amazon's canned
+    messages, for example `18027` for the image, which the drawer lists under "General". This is
+    the expected sandbox result, not a bug.
+  - "Validate with Amazon" gets the mock's ACCEPTED answer.
+- **Production** (`AMAZON_SPAPI_ENV=production`) calls `sellingpartnerapi-eu.amazon.com`, and
+  **Connect Amazon** runs the OAuth flow of a public app:
+  1. The panel calls `amazon-auth` with `connect`. The function answers with the Seller Central
+     consent URL, `https://sellercentral-europe.amazon.com/apps/authorize/consent` with
+     `application_id` and a signed `state`, plus `version=beta` while `AMAZON_SPAPI_APP_BETA=true`.
+     The state names the user, the tenant and the account.
+  2. The seller signs in to Seller Central and approves. Amazon redirects to
+     `<PUBLIC_SUPABASE_URL>/functions/v1/amazon-auth/callback` with `state`,
+     `selling_partner_id` and `spapi_oauth_code`.
+  3. The callback checks the state and exchanges the code for the refresh token with LWA. It
+     stores the token in Vault and the seller id on the account, then redirects to `APP_URL`
+     plus the page with `?amazon=connected`, or with `?amazon=error&reason=<code>`.
+  4. The callback carries no JWT (`verify_jwt = false` in `config.toml`). The signed state is its
+     only credential.
+
+### What the owner does in the Solution Provider Portal for production
+
+A sandbox app never becomes the production app. After the developer profile is approved:
+
+1. Create a second app, the **production** app, as a **public** app. Our customers are separate
+   seller accounts, and a private app can authorize only our own organisation. An unlisted
+   public app can authorize up to 25 sellers; more needs an Appstore listing.
+2. Give it the **Product Listing** role only: no restricted roles, no PII, no RDT.
+3. Register the redirect URI `<PUBLIC_SUPABASE_URL>/functions/v1/amazon-auth/callback`. For the
+   hosted project that is `https://<ref>.supabase.co/functions/v1/amazon-auth/callback`. The
+   OAuth login URI can be the panel's `APP_URL`.
+4. Put its LWA client id and secret and its application id into the hosted secrets. Also set
+   `AMAZON_SPAPI_ENV=production`, a fresh `AMAZON_SPAPI_STATE_SECRET`, `APP_URL`,
+   `PUBLIC_SUPABASE_URL`, and `AMAZON_SPAPI_APP_BETA=true` while the app is a draft (Amazon then
+   accepts consents only from the sellers authorized for the beta). Leave
+   `AMAZON_SPAPI_REFRESH_TOKEN` and `AMAZON_SPAPI_SELLER_ID` unset.
+5. After the switch, accounts connected in sandbox report "not connected", because they hold no
+   token. Each customer connects again through the consent page.
+
+### The hosted database
+
+Production is at migration 027, and the owner pushes every migration in one go. That push must
+include `046_amazon_listing_core.sql` and `047_amazon_cron.sql` with the rest. Then set the two
+Vault secrets the cron jobs read, once, in the SQL editor (or in the dashboard: Project, Vault):
+
+```sql
+select vault.create_secret('https://<ref>.supabase.co/functions/v1', 'edge_function_url');
+select vault.create_secret('<service role key>', 'edge_service_key');
+```
+
+Deploy the four functions with
+`supabase functions deploy amazon-schema amazon-auth amazon-listing amazon-poll`.
+
+### Schedules (pg_cron + pg_net)
+
+Migration 047 schedules `amazon-poll` (every 10 minutes) and `amazon-schema-refresh` (Mondays
+04:00). The jobs call `private.amazon_cron_call`, which reads the two Vault secrets at run time:
+`edge_function_url` (the functions base URL, no trailing path) and `edge_service_key` (the
+service role key). It POSTs `{}` to `<edge_function_url>/amazon-poll` or
+`<edge_function_url>/amazon-schema/refresh` with `Authorization: Bearer <edge_service_key>`.
+Those two routes accept only the service key (`assertServiceCall`). Until the secrets exist, the
+jobs log `amazon_cron_unconfigured` and do nothing. Rotating the key means updating the secret
+only.
+
+Locally, `pnpm dev:seed-story` sets both secrets. The URL is
+`http://supabase_kong_moesa-panel:8000/functions/v1`, the gateway as the database container sees
+it. To poll now instead of waiting for the cron, run
+`select private.amazon_cron_call('amazon-poll');` as `postgres` (for example in Studio's SQL
+editor).
+
+### Running the functions locally
+
+From the repo root, with `supabase/functions/.env` filled:
+
+```sh
+supabase functions serve --env-file supabase/functions/.env --no-verify-jwt
+```
+
+Then run `pnpm dev` from `app/`, and the panel talks to the served functions. The cron reaches
+them through the gateway. The story connects THO in sandbox and seeds the THO-MOP40-2P listing
+across the markets: DE live, FR issues, IT submitted, ES ready, NL draft.
+
+From `supabase/functions/`:
+
+| Command | What it does |
+|---|---|
+| `deno task test` | The mocked unit tests (no network). |
+| `deno task check` | Type-checks the functions and the tests. |
+| `deno task test:live` | The live tests against the SP-API sandbox, with `.env`. They skip cleanly when the credentials are missing. |
+| `deno task probe` | The smoke test: one LWA exchange and `getMarketplaceParticipations`. It prints `ok <n> marketplaces (sandbox, eu)` or an error code, never a secret. |
+
+`pnpm dev:amazon-probe` from `app/` runs the same probe.
