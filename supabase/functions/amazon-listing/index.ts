@@ -76,9 +76,9 @@ import {
    parseSubmission,
    patchListingsItem,
    type ProductRow,
+   providedFor,
    putListingsItem,
    requireLanguageTag,
-   serverProvided,
    skuFor,
    withNewItemAvailability
 } from './listing.ts';
@@ -205,11 +205,15 @@ const loadDefinition = async (run: Run, ctx: CellContext): Promise<DefinitionRow
    return row;
 };
 
-/** The required attributes still missing; a parent sends no identifier and no offer (R7). */
+/**
+ * The required attributes still missing; what the server fills and what the product card provides
+ * count as filled (a parent sends no identifier and no offer, R7).
+ */
 const missingFor = (definition: DefinitionRow, ctx: CellContext): MissingField[] => {
-   const provided = serverProvided(ctx.product, ctx.cell, { isParent: ctx.children.length > 0 });
+   const schema = definition.schema as AmazonSchema;
+   const provided = Object.keys(providedFor(ctx, schema).sources);
    return missingAttributes(
-      definition.schema as AmazonSchema,
+      schema,
       definition.property_groups as PropertyGroups,
       attributesOf(ctx.product),
       { marketplaceId: ctx.marketplaceId, languageTag: ctx.languageTag, provided }
@@ -358,16 +362,23 @@ const copyImages = (run: Run, ctx: CellContext) =>
       run.env.env
    );
 
-const bodyFor = (ctx: CellContext, imageUrls: Record<string, string>) =>
-   buildListingBody(ctx, attributesOf(ctx.product), imageUrls, matchedAsinOf(ctx.cell));
+const bodyFor = (ctx: CellContext, imageUrls: Record<string, string>, definition: DefinitionRow) =>
+   buildListingBody(
+      ctx,
+      attributesOf(ctx.product),
+      imageUrls,
+      matchedAsinOf(ctx.cell),
+      definition.schema as AmazonSchema
+   );
 
 const requireAccount = async (run: Run, ctx: CellContext) =>
    amazonAccountFor(run.admin, ctx.cell.customer_id, run.tenantId, run.env);
 
 const validate = async (run: Run, id: string) => {
    const ctx = await loadContext(run.admin, run.tenantId, id);
+   const definition = await loadDefinition(run, ctx);
    const account = await requireAccount(run, ctx);
-   const listingBody = bodyFor(ctx, await copyImages(run, ctx));
+   const listingBody = bodyFor(ctx, await copyImages(run, ctx), definition);
    const sandbox = run.env.env === 'sandbox';
    const call = amazonCall(run, account, true);
    const resp = await withRevocation(run.admin, account.id, () =>
@@ -407,7 +418,8 @@ const skuExists = async (
 const publishCell = async (run: Run, id: string, asParent = false): Promise<Published> => {
    // 1. Refusals: incomplete, in flight, then not connected.
    const ctx = await loadContext(run.admin, run.tenantId, id);
-   const missing = missingFor(await loadDefinition(run, ctx), ctx);
+   const definition = await loadDefinition(run, ctx);
+   const missing = missingFor(definition, ctx);
    if (missing.length) throw new HttpError(422, 'listing_incomplete', missing);
    refuseInFlight(await submissionsOf(run.admin, run.tenantId, ctx.cell.id));
    const account = await requireAccount(run, ctx);
@@ -433,7 +445,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
    // 4. A new SKU is created with its initial availability; an existing one is patched with the
    // attributes the panel owns (never the seller's stock). The request (with the parent's SKU for a
    // child) is what the submission stores and Amazon gets.
-   const listingBody = bodyFor(ctx, imageUrls);
+   const listingBody = bodyFor(ctx, imageUrls, definition);
    const call = amazonCall(run, account);
    const subs = await submissionsOf(run.admin, run.tenantId, ctx.cell.id);
    const exists = await skuExists(run, call, account, ctx, subs);

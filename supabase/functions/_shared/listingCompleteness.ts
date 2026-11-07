@@ -4,7 +4,8 @@
  * Pure and import-free on purpose: the Edge Functions (Deno) and the app (Vite, via the
  * `@edge-shared` alias) both import this file, so it may use nothing but plain TypeScript.
  * No attribute names are hard-coded here except the ones the server itself fills
- * (`serverProvided`); everything else comes from the schema.
+ * (`serverProvided`) and those derived from the product card (`providedAttributes`); everything
+ * else comes from the schema.
  */
 
 export type PropertySchema = {
@@ -272,6 +273,325 @@ export function serverProvided(
    if (!isBlank(cell.price) && !isBlank(cell.currency))
       provided.push('purchasable_offer', 'fulfillment_availability');
    return provided;
+}
+
+// --- Attributes derived from the product card ----------------------------------------------------
+
+/** The product card (M3) columns some Amazon attributes are derived from, plus the GTIN. */
+export type ProductCard = {
+   gtin?: string | null;
+   brand?: string | null;
+   unit_dims_mm?: string | null;
+   unit_net_g?: number | string | null;
+   pack_dims_mm?: string | null;
+   pack_gross_g?: number | string | null;
+   pack_qty?: number | string | null;
+   origin_country?: string | null;
+   manufacturer_art_no?: string | null;
+   is_hazmat?: boolean | null;
+};
+export type ProductCardColumn = Exclude<keyof ProductCard, 'gtin'>;
+/** Where a provided attribute comes from: the server on publish, or a product card column. */
+export type ProvidedSource = 'server' | `product.${ProductCardColumn}`;
+/**
+ * What is provided without being typed for Amazon. `sources` names every provided attribute;
+ * `attributes` holds the values derived from the product card (the server builds its own values,
+ * the identifier and the offer, on publish).
+ */
+export type ProvidedAttributes = {
+   attributes: Attributes;
+   sources: Record<string, ProvidedSource>;
+};
+export type ProvidedContext = ProvidedOptions & { marketplaceId: string; languageTag: string };
+
+type Node = Record<string, unknown>;
+type Entry = Record<string, unknown>;
+const nodeAt = (node: unknown, key: string): Node | null =>
+   isObject(node) && isObject(node[key]) ? (node[key] as Node) : null;
+
+/** The properties of an attribute's entries (`items.properties`), or null. */
+const entryPartsOf = (schema: AmazonSchema | null | undefined, name: string): Node | null =>
+   nodeAt(nodeAt(schema?.properties?.[name], 'items'), 'properties');
+
+/** The values a part allows: its `enum`, with those of its `anyOf` branches; null for any. */
+const allowedValues = (part: Node | null): unknown[] | null => {
+   if (!part) return null;
+   const values = [
+      ...(Array.isArray(part.enum) ? part.enum : []),
+      ...(Array.isArray(part.anyOf)
+         ? part.anyOf.flatMap((branch) => allowedValues(branch) ?? [])
+         : [])
+   ];
+   return values.length ? values : null;
+};
+
+const round = (value: number) => Math.round(value * 1e6) / 1e6;
+
+/** A positive number from a numeric column, else null. */
+const positive = (value: unknown): number | null => {
+   const number = typeof value === 'string' ? Number(value.replace(',', '.')) : value;
+   return typeof number === 'number' && Number.isFinite(number) && number > 0 ? number : null;
+};
+
+const text = (value: unknown): string | null =>
+   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+
+/** "120x80x40", "120×80×40", "12,5 x 8 x 4": length, width and height in mm; else null. */
+export function parseDimensions(value: unknown): [number, number, number] | null {
+   if (typeof value !== 'string') return null;
+   const parts = value.trim().split(/\s*[x×*]\s*/i);
+   if (parts.length !== 3 || !parts.every((part) => /^\d+(?:[.,]\d+)?$/.test(part))) return null;
+   const sides = parts.map((part) => positive(part));
+   return sides.every((side) => side !== null) ? (sides as [number, number, number]) : null;
+}
+
+/** Millimetres in the first unit the part allows of these (any part allows the first). */
+const LENGTH_UNITS: ReadonlyArray<[string, number]> = [
+   ['millimeters', 1],
+   ['centimeters', 10],
+   ['meters', 1000]
+];
+const WEIGHT_UNITS: ReadonlyArray<[string, number]> = [
+   ['grams', 1],
+   ['kilograms', 1000]
+];
+
+/** `{value, unit}` of an amount in the base unit, in the unit the part allows; null when none. */
+const inUnit = (
+   amount: number,
+   unitPart: Node | null,
+   units: ReadonlyArray<[string, number]>
+): { value: number; unit: string } | null => {
+   const allowed = allowedValues(unitPart);
+   const match = units.find(([unit]) => !allowed || allowed.includes(unit));
+   return match ? { value: round(amount / match[1]), unit: match[0] } : null;
+};
+
+/** The selectors an attribute's entries carry in this context. */
+const selectorsFor = (parts: Node, ctx: ProvidedContext): Entry => ({
+   ...(parts.language_tag ? { language_tag: ctx.languageTag } : {}),
+   ...(parts.marketplace_id ? { marketplace_id: ctx.marketplaceId } : {})
+});
+/** A `{value}` entry; the value must be one the schema's enum allows, if it has one. */
+const valueEntry = (parts: Node, value: unknown): Entry | null => {
+   const allowed = allowedValues(nodeAt(parts, 'value'));
+   return allowed && !allowed.includes(value) ? null : { value };
+};
+
+/** A `{value, unit}` entry of a weight in grams. */
+const weightEntry = (parts: Node, grams: number): Entry | null =>
+   parts.value ? inUnit(grams, nodeAt(parts, 'unit'), WEIGHT_UNITS) : null;
+
+/** A `{length, width, height}` entry, each `{value, unit}`, from dimensions in mm. */
+const dimensionsEntry = (parts: Node, [length, width, height]: number[]): Entry | null => {
+   const sides: Entry = {};
+   for (const [key, mm] of [
+      ['length', length],
+      ['width', width],
+      ['height', height]
+   ] as const) {
+      const part = nodeAt(parts, key);
+      const side = part
+         ? inUnit(mm, nodeAt(nodeAt(part, 'properties'), 'unit'), LENGTH_UNITS)
+         : null;
+      if (!side) return null;
+      sides[key] = side;
+   }
+   return sides;
+};
+
+/** `unit_count`: the count, typed `count` (in the language when its type is tagged). */
+const countEntry = (parts: Node, count: number, ctx: ProvidedContext): Entry | null => {
+   const typeParts = nodeAt(nodeAt(parts, 'type'), 'properties');
+   if (!typeParts) return { value: count };
+   const allowed = allowedValues(nodeAt(typeParts, 'value'));
+   if (allowed && !allowed.includes('count')) return null;
+   return {
+      value: count,
+      type: { value: 'count', ...(typeParts.language_tag ? { language_tag: ctx.languageTag } : {}) }
+   };
+};
+
+/** Country names the product card may hold instead of the ISO code (en, tr, de). */
+const COUNTRY_CODES: Readonly<Record<string, string>> = Object.freeze({
+   china: 'CN',
+   çin: 'CN',
+   türkiye: 'TR',
+   turkiye: 'TR',
+   turkey: 'TR',
+   türkei: 'TR',
+   indonesia: 'ID',
+   endonezya: 'ID',
+   indonesien: 'ID',
+   germany: 'DE',
+   almanya: 'DE',
+   deutschland: 'DE',
+   india: 'IN',
+   hindistan: 'IN',
+   indien: 'IN',
+   vietnam: 'VN',
+   poland: 'PL',
+   polonya: 'PL',
+   polen: 'PL',
+   italy: 'IT',
+   italya: 'IT',
+   italien: 'IT'
+});
+
+/** An ISO 3166 alpha-2 code from the card's origin (a code or a known name), else null. */
+const countryCode = (origin: unknown): string | null => {
+   const value = text(origin);
+   if (!value) return null;
+   if (/^[a-z]{2}$/i.test(value)) return value.toUpperCase();
+   return (
+      COUNTRY_CODES[value.toLocaleLowerCase('tr')] ?? COUNTRY_CODES[value.toLowerCase()] ?? null
+   );
+};
+
+type Derivation = {
+   column: ProductCardColumn;
+   attributes: readonly string[];
+   entry: (parts: Node, product: ProductCard, ctx: ProvidedContext) => Entry | null;
+};
+
+/**
+ * The mapping: each product card column, the Amazon attributes it fills (each only when the
+ * schema has it) and the entry it makes in the attribute's shape. A value that does not parse, or
+ * that the schema's enum or units do not allow, is not derived.
+ */
+const DERIVATIONS: readonly Derivation[] = [
+   {
+      column: 'brand',
+      attributes: ['brand'],
+      entry: (parts, { brand }) => (text(brand) ? valueEntry(parts, text(brand)) : null)
+   },
+   {
+      column: 'unit_dims_mm',
+      attributes: ['item_dimensions', 'item_length_width_height'],
+      entry: (parts, { unit_dims_mm }) => {
+         const dims = parseDimensions(unit_dims_mm);
+         return dims ? dimensionsEntry(parts, dims) : null;
+      }
+   },
+   {
+      column: 'unit_net_g',
+      attributes: ['item_weight', 'item_net_weight'],
+      entry: (parts, { unit_net_g }) => {
+         const grams = positive(unit_net_g);
+         return grams ? weightEntry(parts, grams) : null;
+      }
+   },
+   {
+      column: 'pack_dims_mm',
+      attributes: ['item_package_dimensions'],
+      entry: (parts, { pack_dims_mm }) => {
+         const dims = parseDimensions(pack_dims_mm);
+         return dims ? dimensionsEntry(parts, dims) : null;
+      }
+   },
+   {
+      column: 'pack_gross_g',
+      attributes: ['item_package_weight'],
+      entry: (parts, { pack_gross_g }) => {
+         const grams = positive(pack_gross_g);
+         return grams ? weightEntry(parts, grams) : null;
+      }
+   },
+   {
+      column: 'pack_qty',
+      attributes: ['number_of_items'],
+      entry: (parts, { pack_qty }) => {
+         const count = positive(pack_qty);
+         return count && Number.isInteger(count) ? valueEntry(parts, count) : null;
+      }
+   },
+   {
+      column: 'pack_qty',
+      attributes: ['unit_count'],
+      entry: (parts, { pack_qty }, ctx) => {
+         const count = positive(pack_qty);
+         return count && Number.isInteger(count) ? countEntry(parts, count, ctx) : null;
+      }
+   },
+   {
+      column: 'origin_country',
+      attributes: ['country_of_origin'],
+      entry: (parts, { origin_country }) => {
+         const code = countryCode(origin_country);
+         return code ? valueEntry(parts, code) : null;
+      }
+   },
+   {
+      column: 'manufacturer_art_no',
+      attributes: ['model_number', 'part_number'],
+      entry: (parts, { manufacturer_art_no }) =>
+         text(manufacturer_art_no) ? valueEntry(parts, text(manufacturer_art_no)) : null
+   },
+   {
+      // Not hazmat declares no regulation; a hazmat product's regulation is the user's to state.
+      column: 'is_hazmat',
+      attributes: ['supplier_declared_dg_hz_regulation'],
+      entry: (parts, { is_hazmat }) =>
+         is_hazmat === false ? valueEntry(parts, 'not_applicable') : null
+   }
+];
+
+/**
+ * Everything provided without being typed for Amazon, for one cell: what the server fills on
+ * publish (serverProvided: the GTIN's identifier, the offer, a parent's rules) and the attributes
+ * derived from the product card in the schema's shape, for the cell's marketplace and language.
+ * Derived values are never stored in `listing_attributes`: the server merges them under the
+ * user's values on check, validate and publish (withProvided), and the forms show them.
+ */
+export function providedAttributes(
+   product: ProductCard,
+   cell: { price?: number | string | null; currency?: string | null },
+   schema: AmazonSchema | null | undefined,
+   ctx: ProvidedContext
+): ProvidedAttributes {
+   const sources: Record<string, ProvidedSource> = {};
+   for (const name of serverProvided(product, cell, { isParent: ctx.isParent }))
+      sources[name] = 'server';
+   const attributes: Attributes = {};
+   for (const { column, attributes: names, entry } of DERIVATIONS) {
+      for (const name of names) {
+         const parts = entryPartsOf(schema, name);
+         if (!parts || Object.hasOwn(sources, name)) continue;
+         const value = entry(parts, product, ctx);
+         if (!value) continue;
+         attributes[name] = [{ ...value, ...selectorsFor(parts, ctx) }];
+         sources[name] = `product.${column}`;
+      }
+   }
+   return { attributes, sources };
+}
+
+/** An entry of this marketplace (or none named) and this language (or none named). */
+const inScope = (
+   entry: unknown,
+   opts: Pick<CompletenessOptions, 'marketplaceId' | 'languageTag'>
+) =>
+   isObject(entry) &&
+   (entry.marketplace_id == null || entry.marketplace_id === opts.marketplaceId) &&
+   (entry.language_tag == null || entry.language_tag === opts.languageTag);
+
+/**
+ * The user's attributes with the derived ones under them: a derived attribute is added only when
+ * the user has no value for this marketplace and language (the user's value wins); the entries of
+ * other marketplaces and languages are kept beside it. Returns a new object.
+ */
+export function withProvided(
+   attributes: Attributes,
+   provided: ProvidedAttributes,
+   opts: Pick<CompletenessOptions, 'marketplaceId' | 'languageTag'>
+): Attributes {
+   const next: Attributes = { ...attributes };
+   for (const [name, derived] of Object.entries(provided.attributes)) {
+      if (attributeFilled(attributes[name], opts)) continue;
+      const others = (attributes[name] ?? []).filter((entry) => !inScope(entry, opts));
+      next[name] = [...others, ...derived];
+   }
+   return next;
 }
 
 /**

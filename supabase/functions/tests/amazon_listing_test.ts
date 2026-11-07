@@ -13,6 +13,7 @@ import {
    type CellContext,
    copyListingImages,
    deriveListingState,
+   type ListingBody,
    listingPatch,
    type MarketCellRow,
    mediaRefs,
@@ -206,6 +207,57 @@ Deno.test(
       );
    }
 );
+
+// The product card's brand, pack quantity and gross weight (the fixture's derivable attributes).
+const carded = (over: Partial<ProductRow> = {}) =>
+   product({ brand: 'OKAEI', pack_qty: 2, pack_gross_g: 400, ...over } as Partial<ProductRow>);
+const { brand: _brand, ...unbranded } = storyAttributes;
+
+Deno.test('buildListingBody derives the product card attributes the schema has', () => {
+   const ctx = context({ product: carded({ unit_net_g: 180 } as Partial<ProductRow>) });
+   const body = buildListingBody(ctx, structuredClone(unbranded), urls, null, fixture.schema);
+   assertEquals(body.attributes.brand, [
+      { value: 'OKAEI', language_tag: 'de_DE', marketplace_id: DE }
+   ]);
+   assertEquals(body.attributes.number_of_items, [{ value: 2, marketplace_id: DE }]);
+   assertEquals(body.attributes.item_package_weight, [
+      { value: 400, unit: 'grams', marketplace_id: DE }
+   ]);
+   // The fixture has no item_weight: the net weight is not sent.
+   assertEquals(body.attributes.item_weight, undefined);
+   // Without the schema nothing is derived.
+   const plain = buildListingBody(ctx, structuredClone(unbranded), urls, null);
+   assertEquals(plain.attributes.brand, undefined);
+});
+
+Deno.test('buildListingBody sends the user value over the derived one', () => {
+   const attributes = {
+      ...structuredClone(storyAttributes),
+      item_package_weight: [{ value: 0.42, unit: 'kilograms' }]
+   };
+   const body = buildListingBody(
+      context({ product: carded() }),
+      attributes,
+      urls,
+      null,
+      fixture.schema
+   );
+   assertEquals(body.attributes.brand, [
+      { value: 'OKAEI', language_tag: 'de_DE', marketplace_id: DE }
+   ]);
+   assertEquals(body.attributes.item_package_weight, [
+      { value: 0.42, unit: 'kilograms', marketplace_id: DE }
+   ]);
+   // A matched ASIN sends an offer only: nothing derived.
+   const offer = buildListingBody(
+      context({ product: carded() }),
+      attributes,
+      urls,
+      'B07N4M94X4',
+      fixture.schema
+   );
+   assertEquals(offer.attributes.brand, undefined);
+});
 
 Deno.test('buildListingBody replaces media references with public URLs', () => {
    const body = buildListingBody(context(), structuredClone(storyAttributes), urls, null);
@@ -1323,6 +1375,43 @@ Deno.test('check matches the GTIN and reads restrictions in production', async (
    assertEquals(restrictions.pathname, '/listings/2021-08-01/restrictions');
    assertEquals(restrictions.searchParams.get('conditionType'), 'new_new');
    assertEquals(restrictions.searchParams.get('sellerId'), 'A2SELLER');
+});
+
+Deno.test('check counts the attributes derived from the product card as filled', async () => {
+   const state = story();
+   state.tables.customer_platform_account[0].api_connection = 'revoked';
+   state.tables.product[0] = carded({ listing_attributes: structuredClone(unbranded) });
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(
+      post({ action: 'check', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals((await res.json()).missing, []);
+
+   // Without the brand on the card it is missing again.
+   state.tables.product[0] = product({ listing_attributes: structuredClone(unbranded) });
+   const again = await handler(
+      post({ action: 'check', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   assertEquals(
+      (await again.json()).missing.map((m: { attribute: string }) => m.attribute),
+      ['brand']
+   );
+});
+
+Deno.test('validate sends the derived attributes under the user values', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   state.tables.product[0] = carded({ listing_attributes: structuredClone(unbranded) });
+   const { deps: amazon, calls } = fakeAmazon(() => Response.json(SANDBOX_INVALID));
+   await handler(
+      post({ action: 'validate', cell_id: '00000000-0000-4000-8000-00000000ce01' }),
+      deps(state, amazon)
+   );
+   const sent = (calls[0].body as ListingBody).attributes;
+   assertEquals(sent.brand, [{ value: 'OKAEI', language_tag: 'de_DE', marketplace_id: DE }]);
+   assertEquals(sent.number_of_items, [{ value: 2, marketplace_id: DE }]);
 });
 
 Deno.test('check treats a cell without a connected account as draft', async () => {

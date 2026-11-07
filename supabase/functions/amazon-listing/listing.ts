@@ -4,7 +4,14 @@ import { AmazonError, type AmazonEnv, type SpapiCall } from '../_shared/amazon.t
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
-import { type Attributes, languageTag, serverProvided } from '../_shared/listingCompleteness.ts';
+import {
+   type AmazonSchema,
+   type Attributes,
+   languageTag,
+   providedAttributes,
+   serverProvided,
+   withProvided
+} from '../_shared/listingCompleteness.ts';
 import { type AmazonIssue, listingItemPath, toIssue } from '../_shared/listingStatus.ts';
 
 export { serverProvided };
@@ -128,24 +135,36 @@ export type ListingBody = {
    attributes: Record<string, Entry[]>;
 };
 
+/** The cell's provided attributes: the server's and those derived from the product card. */
+export const providedFor = (ctx: CellContext, schema: AmazonSchema | null) =>
+   providedAttributes(ctx.product, ctx.cell, schema, {
+      marketplaceId: ctx.marketplaceId,
+      languageTag: ctx.languageTag,
+      isParent: ctx.children.length > 0
+   });
+
 /**
- * The listing body of a cell. The product's attributes are narrowed to the cell's marketplace and
- * language; the server adds the GTIN, the offer (with a price and a currency), the variation
- * attributes (R7) and the public image URLs. A matched ASIN sends an offer only. It carries no
- * fulfillment_availability: a create adds it (withNewItemAvailability), an update never does.
+ * The listing body of a cell. The product's attributes, with the ones derived from the product
+ * card under them (the user's value wins; only the attributes `schema` has), are narrowed to the
+ * cell's marketplace and language; the server adds the GTIN, the offer (with a price and a
+ * currency), the variation attributes (R7) and the public image URLs. A matched ASIN sends an
+ * offer only. It carries no fulfillment_availability: a create adds it (withNewItemAvailability),
+ * an update never does.
  */
 export function buildListingBody(
    ctx: CellContext,
    attributes: Attributes,
    imageUrls: Record<string, string>,
-   matchedAsin: string | null
+   matchedAsin: string | null,
+   schema: AmazonSchema | null = null
 ): ListingBody {
    const productType = ctx.product.amazon_product_type;
    if (!productType) throw new HttpError(422, 'listing_product_type_missing');
    const marketplace_id = ctx.marketplaceId;
 
+   const merged = withProvided(attributes, providedFor(ctx, schema), ctx);
    const attrs: Record<string, Entry[]> = {};
-   for (const [name, entries] of Object.entries(attributes)) {
+   for (const [name, entries] of Object.entries(merged)) {
       const kept = forMarketplace(entries, ctx);
       if (kept.length) attrs[name] = kept;
    }
