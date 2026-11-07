@@ -119,6 +119,14 @@ Missing required fields and fields named by Amazon issues are now edited inside 
 - Amazon attributes already on the product card are derived at check/validate/publish time and never stored in `listing_attributes`: brand, item and package dimensions and weights, number of items / unit count, country of origin, model/part number, and the dangerous-goods regulation when hazmat is false. A variation parent derives only identity attributes (brand, model/part number, origin, regulation). One shared `providedAttributes`/`withProvided` in `_shared/listingCompleteness.ts` feeds the server body, the missing lists and the forms. A value entered for a language overrides the derived one for every listing in that language ("Bu dil için farklı değer girin").
 - Parked: `validate` now answers 404 `amazon_schema_missing` before the account check when no definition exists (same as publish, untested); the story's `v_sent` uses the fixture's brand entry for every marketplace; the schema-moved warning shows only in İçerik although an İlan save also stamps the schema version; the drawer's phone layout was not checked in a browser.
 
+
+### Functions act with the user's credentials (2026-11-07, owner request)
+
+- User-triggered reads and writes in the Amazon functions now run with the caller's JWT (RLS applies, the audit names the person). The user's own acts (`listing_begin_submission`, connect/disconnect) run as the user; Amazon's outcome (`listing_apply_submission`, `listing_set_state`, `listing_settle_removal`) is written only by the service role with `p_actor`, so the audit shows the triggering user with role `amazon-listing`; the poll writes as `amazon-poll`, the OAuth callback as `amazon-auth` with the user from the signed state.
+- `listing_begin_submission` derives the SKU and marketplace from the locked cell (`private.amazon_marketplace_id`, pinned to `MARKETPLACE_IDS` by a Deno test); `listing_act_for` refuses an actor without the publish permission in the row's tenant; the service-role bypass is a positive check on both the db role and the JWT role.
+- The service role remains only for the Vault token, `readMedia`/`putListingImage` (media copy to `listing-images`), the cron poll and the schema cache refresh; a Deno guard test flags any other system client on a user path.
+- Parked minors: the guard still allows a service-role client constructed with an `amazon-poll` label inside a user-path file (only a wrong audit label); `readMedia` accepts any media path (callers pass paths read under RLS); a user can edit `market_cell.platform_sku` to another SKU of the same seller — the legitimate Check reaches the same result.
+
 ## Deferred minors
 
 ### Fixed in the final fix wave (verify)
