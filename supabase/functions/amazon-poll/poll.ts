@@ -8,6 +8,7 @@
 // issues.
 import { type AmazonEnv, AmazonError, type Deps } from '../_shared/amazon.ts';
 import { HttpError } from '../_shared/http.ts';
+import { serviceRole } from '../_shared/serviceRole.ts';
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import {
@@ -104,6 +105,7 @@ export async function pollSubmitted(
 ): Promise<PollResult> {
    const { admin, env, amazon } = deps;
    const refresh = deps.refresh ?? refreshListingStatus;
+   const service = serviceRole(admin);
    const started = now();
 
    const { data, count, error } = await admin
@@ -125,7 +127,7 @@ export async function pollSubmitted(
       if (now() - started >= POLL_BUDGET_MS) break;
       try {
          const { cell: updated, submission } = await refresh(
-            { admin, env, amazon },
+            { db: admin, service, env, amazon },
             { tenantId: cell.tenant_id, cellId: cell.id },
             { skipDone: true }
          );

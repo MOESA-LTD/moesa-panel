@@ -9,9 +9,11 @@
 //   status       { cell_id }                   -> { cell, submission }
 //   publish_bulk { product_ids (1..10), country } -> { results, remaining }
 //
-// Reads, RPCs, storage and the submission rows use the service client, always scoped by the
-// caller's tenant; a submission is written by listing_begin_submission with created_by = the
-// caller, under the cell's row lock, before Amazon is called (the cell is then submitted, so a run
+// Reads and the 046 RPCs run with the caller's JWT (the user's client: RLS scopes the reads, the
+// RPCs check the permission inside and the audit records the user); the service role
+// (_shared/serviceRole.ts) only reads the account's token, marks a revoked grant and copies the
+// images. A submission is written by listing_begin_submission with created_by = the caller,
+// under the cell's row lock, before Amazon is called (the cell is then submitted, so a run
 // that dies leaves a row the poll settles). A publish is refused while the cell's latest
 // submission is accepted or processing. The check writes its state only over the cell version it
 // read (a publish or removal meanwhile wins). A SKU Amazon does not have yet is created with
@@ -55,7 +57,8 @@ import {
    type SubmissionStatus,
    submissionsOf
 } from '../_shared/listingStatus.ts';
-import { supabaseAdmin } from '../_shared/supabaseClient.ts';
+import { type ServiceRole, serviceRole } from '../_shared/serviceRole.ts';
+import { supabaseClient, supabaseService } from '../_shared/supabaseClient.ts';
 import { type DefinitionRow, pickDefinition } from '../amazon-schema/schema.ts';
 import {
    type AmazonIssue,
@@ -98,8 +101,10 @@ export type HandlerDeps = {
    /** fetch / now / sleep for the SP-API client. */
    amazon: Partial<Deps>;
    env: () => AmazonEnv;
-   /** The service-role client: reads (scoped by tenant), RPCs, storage, the Amazon account. */
-   admin: () => Db;
+   /** The caller's client (the user's JWT, so RLS applies): every read and the 046 RPCs. */
+   db: (req: Request) => Db;
+   /** What only the service role may do (token, revoked grant, images), audited as the user. */
+   service: (userId: string) => ServiceRole;
    authorize: (
       req: Request,
       required: Requirement,
@@ -127,12 +132,19 @@ const body = z.discriminatedUnion('action', [
    })
 ]);
 
-type Run = { d: HandlerDeps; tenantId: string; userId: string; env: AmazonEnv; admin: Db };
+type Run = {
+   d: HandlerDeps;
+   tenantId: string;
+   userId: string;
+   env: AmazonEnv;
+   db: Db;
+   service: ServiceRole;
+};
 
 // --- Loading -------------------------------------------------------------------------------------
 
-const loadProduct = async (admin: Db, tenantId: string, id: string): Promise<ProductRow> => {
-   const { data, error } = await admin
+const loadProduct = async (db: Db, tenantId: string, id: string): Promise<ProductRow> => {
+   const { data, error } = await db
       .from('product')
       .select('*')
       .eq('id', id)
@@ -144,17 +156,17 @@ const loadProduct = async (admin: Db, tenantId: string, id: string): Promise<Pro
 };
 
 /** The cell, its product, the variation family (R7), marketplace, language (D5) and SKU. */
-const loadContext = async (admin: Db, tenantId: string, id: string): Promise<CellContext> => {
-   const cell = await loadListingCell(admin, tenantId, id);
+const loadContext = async (db: Db, tenantId: string, id: string): Promise<CellContext> => {
+   const cell = await loadListingCell(db, tenantId, id);
    const { marketplaceId } = marketplaceFor(cell.country);
    const languageTag = requireLanguageTag(cell.country, cell.listing_language);
-   const product = await loadProduct(admin, tenantId, cell.product_id);
+   const product = await loadProduct(db, tenantId, cell.product_id);
    if (!product.amazon_product_type) throw new HttpError(422, 'listing_product_type_missing');
 
-   const parent = product.parent_id ? await loadProduct(admin, tenantId, product.parent_id) : null;
+   const parent = product.parent_id ? await loadProduct(db, tenantId, product.parent_id) : null;
    let parentCell: MarketCellRow | null = null;
    if (parent) {
-      const { data, error } = await admin
+      const { data, error } = await db
          .from('market_cell')
          .select('*')
          .eq('tenant_id', tenantId)
@@ -165,7 +177,7 @@ const loadContext = async (admin: Db, tenantId: string, id: string): Promise<Cel
       if (error) throw error;
       parentCell = data;
    }
-   const { data: children, error } = await admin
+   const { data: children, error } = await db
       .from('product')
       .select('*')
       .eq('tenant_id', tenantId)
@@ -191,7 +203,7 @@ const attributesOf = (product: ProductRow): Attributes =>
 /** The cached definition of the product type for the cell (sandbox: the R3 fixture serves all). */
 const loadDefinition = async (run: Run, ctx: CellContext): Promise<DefinitionRow> => {
    const productType = ctx.product.amazon_product_type as string;
-   const { data, error } = await run.admin
+   const { data, error } = await run.db
       .from('amazon_product_type_definition')
       .select('*')
       .eq('product_type', productType);
@@ -223,7 +235,13 @@ const missingFor = (definition: DefinitionRow, ctx: CellContext): MissingField[]
 /** N2: a cell whose customer account is not connected is treated as draft. */
 const accountOrNull = async (run: Run, ctx: CellContext): Promise<AmazonAccount | null> => {
    try {
-      return await amazonAccountFor(run.admin, ctx.cell.customer_id, run.tenantId, run.env);
+      return await amazonAccountFor(
+         run.db,
+         run.service,
+         ctx.cell.customer_id,
+         run.tenantId,
+         run.env
+      );
    } catch (error) {
       if (error instanceof HttpError && error.message === 'amazon_not_connected') return null;
       throw error;
@@ -280,13 +298,12 @@ const beginSubmission = async (
    kind: Database['public']['Enums']['listing_submission_kind'],
    payload: ListingBody | ListingPatch | Record<string, never>
 ) => {
-   const { data, error } = await run.admin.rpc('listing_begin_submission', {
+   const { data, error } = await run.db.rpc('listing_begin_submission', {
       p_cell_id: ctx.cell.id,
       p_kind: kind,
       p_sku: ctx.sku,
       p_marketplace_id: ctx.marketplaceId,
-      p_payload: payload as unknown as Json,
-      p_created_by: run.userId
+      p_payload: payload as unknown as Json
    });
    if (error?.message === 'listing_in_progress') throw new HttpError(409, 'listing_in_progress');
    if (error) throw error;
@@ -311,7 +328,7 @@ const matchedAsinOf = (cell: MarketCellRow): string | null => {
 const JOURNEY: ListingState[] = ['submitted', 'live', 'issues'];
 
 const check = async (run: Run, id: string) => {
-   const ctx = await loadContext(run.admin, run.tenantId, id);
+   const ctx = await loadContext(run.db, run.tenantId, id);
    const missing = missingFor(await loadDefinition(run, ctx), ctx);
    const current = ctx.cell.listing_state;
    const keep = current !== null && JOURNEY.includes(current);
@@ -323,13 +340,13 @@ const check = async (run: Run, id: string) => {
    const account = await accountOrNull(run, ctx);
    if (!account) {
       const state: ListingState = keep ? (current as ListingState) : 'draft';
-      const row = await setListingState(run.admin, ctx.cell.id, state, null, version);
+      const row = await setListingState(run.db, ctx.cell.id, state, null, version);
       return json({ missing, match: null, state: row.listing_state ?? state });
    }
 
    const sandbox = run.env.env === 'sandbox';
    const call = amazonCall(run, account);
-   const match = await withRevocation(run.admin, account.id, async () => {
+   const match = await withRevocation(run.service, account.id, async () => {
       // The static sandbox has no EAN catalogue answer: there every product is new.
       const gtin = ctx.product.gtin?.trim();
       const asin = !sandbox && gtin ? await catalogAsin(call, gtin, ctx.marketplaceId) : null;
@@ -348,14 +365,15 @@ const check = async (run: Run, id: string) => {
       ...match,
       checked_at: new Date((run.d.amazon.now ?? Date.now)()).toISOString()
    };
-   const row = await setListingState(run.admin, ctx.cell.id, state, checked, version);
+   const row = await setListingState(run.db, ctx.cell.id, state, checked, version);
    return json({ missing, match: checked, state: row.listing_state ?? state });
 };
 
 /** The product's images copied to listing-images: their public URLs by media id (R5). */
 const copyImages = (run: Run, ctx: CellContext) =>
    copyListingImages(
-      run.admin,
+      run.db,
+      run.service.storage,
       run.tenantId,
       mediaRefs(attributesOf(ctx.product)),
       run.d.publicUrl(run.env),
@@ -372,16 +390,16 @@ const bodyFor = (ctx: CellContext, imageUrls: Record<string, string>, definition
    );
 
 const requireAccount = async (run: Run, ctx: CellContext) =>
-   amazonAccountFor(run.admin, ctx.cell.customer_id, run.tenantId, run.env);
+   amazonAccountFor(run.db, run.service, ctx.cell.customer_id, run.tenantId, run.env);
 
 const validate = async (run: Run, id: string) => {
-   const ctx = await loadContext(run.admin, run.tenantId, id);
+   const ctx = await loadContext(run.db, run.tenantId, id);
    const definition = await loadDefinition(run, ctx);
    const account = await requireAccount(run, ctx);
    const listingBody = bodyFor(ctx, await copyImages(run, ctx), definition);
    const sandbox = run.env.env === 'sandbox';
    const call = amazonCall(run, account, true);
-   const resp = await withRevocation(run.admin, account.id, () =>
+   const resp = await withRevocation(run.service, account.id, () =>
       putListingsItem(
          call,
          account.sellerId,
@@ -411,17 +429,17 @@ const skuExists = async (
 ) =>
    run.env.env === 'sandbox'
       ? isListed(subs, ['done'])
-      : await withRevocation(run.admin, account.id, () =>
+      : await withRevocation(run.service, account.id, () =>
            listingExists(call, account.sellerId, ctx.sku, ctx.marketplaceId)
         );
 
 const publishCell = async (run: Run, id: string, asParent = false): Promise<Published> => {
    // 1. Refusals: incomplete, in flight, then not connected.
-   const ctx = await loadContext(run.admin, run.tenantId, id);
+   const ctx = await loadContext(run.db, run.tenantId, id);
    const definition = await loadDefinition(run, ctx);
    const missing = missingFor(definition, ctx);
    if (missing.length) throw new HttpError(422, 'listing_incomplete', missing);
-   refuseInFlight(await submissionsOf(run.admin, run.tenantId, ctx.cell.id));
+   refuseInFlight(await submissionsOf(run.db, run.tenantId, ctx.cell.id));
    const account = await requireAccount(run, ctx);
 
    // 2. Images (a missing image or a non-public URL refuses before anything is written).
@@ -429,16 +447,16 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
 
    // 3. A child needs its parent's cell (created when missing) and the parent listed first (R7).
    if (ctx.parent && !asParent) {
-      const { data: parentCellId, error } = await run.admin.rpc('listing_parent_cell', {
+      const { data: parentCellId, error } = await run.db.rpc('listing_parent_cell', {
          p_cell_id: ctx.cell.id
       });
       if (error) throw error;
       if (parentCellId) {
-         const parentSubs = await submissionsOf(run.admin, run.tenantId, parentCellId);
+         const parentSubs = await submissionsOf(run.db, run.tenantId, parentCellId);
          // A parent Amazon took (accepted, still processing, or done) is not sent again.
          if (!isListed(parentSubs, ['done', 'accepted', 'processing']))
             await publishCell(run, parentCellId, true);
-         ctx.parentCell = await loadListingCell(run.admin, run.tenantId, parentCellId);
+         ctx.parentCell = await loadListingCell(run.db, run.tenantId, parentCellId);
       }
    }
 
@@ -447,7 +465,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
    // child) is what the submission stores and Amazon gets.
    const listingBody = bodyFor(ctx, imageUrls, definition);
    const call = amazonCall(run, account);
-   const subs = await submissionsOf(run.admin, run.tenantId, ctx.cell.id);
+   const subs = await submissionsOf(run.db, run.tenantId, ctx.cell.id);
    const exists = await skuExists(run, call, account, ctx, subs);
    const request = exists ? listingPatch(listingBody) : withNewItemAvailability(listingBody, ctx);
 
@@ -456,7 +474,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
 
    // 6. Amazon; any failure after the submission fails it and puts the cell in issues.
    try {
-      const resp = await withRevocation(run.admin, account.id, () =>
+      const resp = await withRevocation(run.service, account.id, () =>
          exists
             ? patchListingsItem(
                  call,
@@ -477,7 +495,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
       const state: ListingState =
          parsed.status === 'invalid' || hasError(parsed.issues) ? 'issues' : 'submitted';
       const cell = await applySubmission(
-         run.admin,
+         run.db,
          submission.id,
          parsed.status,
          parsed.submissionId ?? null,
@@ -485,11 +503,11 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
          state,
          null
       );
-      return { cell, submission: await loadSubmission(run.admin, run.tenantId, submission.id) };
+      return { cell, submission: await loadSubmission(run.db, run.tenantId, submission.id) };
    } catch (error) {
       try {
          await applySubmission(
-            run.admin,
+            run.db,
             submission.id,
             'failed',
             null,
@@ -506,15 +524,21 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
 
 /** What a delete needs: the cell, its SKU and marketplace (no product type or language). */
 const loadDeleteTarget = async (run: Run, id: string) => {
-   const cell = await loadListingCell(run.admin, run.tenantId, id);
+   const cell = await loadListingCell(run.db, run.tenantId, id);
    const { marketplaceId } = marketplaceFor(cell.country);
-   const product = await loadProduct(run.admin, run.tenantId, cell.product_id);
+   const product = await loadProduct(run.db, run.tenantId, cell.product_id);
    return { cell, marketplaceId, sku: skuFor(cell, product) };
 };
 
 const remove = async (run: Run, id: string): Promise<Response> => {
    const ctx = await loadDeleteTarget(run, id);
-   const account = await amazonAccountFor(run.admin, ctx.cell.customer_id, run.tenantId, run.env);
+   const account = await amazonAccountFor(
+      run.db,
+      run.service,
+      ctx.cell.customer_id,
+      run.tenantId,
+      run.env
+   );
    const submission = await beginSubmission(run, ctx, 'delete', {});
 
    // A delete must not walk the business status (listing_apply_submission would): the
@@ -524,11 +548,13 @@ const remove = async (run: Run, id: string): Promise<Response> => {
       amazon_submission_id?: string | null;
       issues: AmazonIssue[];
    }) => {
-      const { error } = await run.admin
-         .from('listing_submission')
-         .update({ ...patch, issues: patch.issues as unknown as Json })
-         .eq('id', submission.id)
-         .eq('tenant_id', run.tenantId);
+      const { error } = await run.db.rpc('listing_settle_removal', {
+         p_submission_id: submission.id,
+         p_status: patch.status,
+         // Every argument is sent (PostgREST resolves the function by its argument names).
+         p_amazon_submission_id: (patch.amazon_submission_id ?? null) as string,
+         p_issues: patch.issues as unknown as Json
+      });
       if (error) throw error;
    };
 
@@ -536,7 +562,7 @@ const remove = async (run: Run, id: string): Promise<Response> => {
    try {
       const call = amazonCall(run, account);
       parsed = parseSubmission(
-         await withRevocation(run.admin, account.id, () =>
+         await withRevocation(run.service, account.id, () =>
             deleteListingsItem(call, account.sellerId, ctx.sku, ctx.marketplaceId)
          )
       );
@@ -553,10 +579,10 @@ const remove = async (run: Run, id: string): Promise<Response> => {
       issues: parsed.issues
    });
    // Draft again; leaving issues clears the cell's 'Amazon: ' open issue (046).
-   if (parsed.status === 'accepted') await setListingState(run.admin, ctx.cell.id, 'draft', null);
+   if (parsed.status === 'accepted') await setListingState(run.db, ctx.cell.id, 'draft', null);
    return json({
-      cell: await loadListingCell(run.admin, run.tenantId, ctx.cell.id),
-      submission: await loadSubmission(run.admin, run.tenantId, submission.id)
+      cell: await loadListingCell(run.db, run.tenantId, ctx.cell.id),
+      submission: await loadSubmission(run.db, run.tenantId, submission.id)
    });
 };
 
@@ -564,7 +590,7 @@ const remove = async (run: Run, id: string): Promise<Response> => {
 const status = async (run: Run, id: string): Promise<Response> =>
    json(
       await refreshListingStatus(
-         { admin: run.admin, env: run.env, amazon: run.d.amazon },
+         { db: run.db, service: run.service, env: run.env, amazon: run.d.amazon },
          { tenantId: run.tenantId, cellId: id }
       )
    );
@@ -592,7 +618,7 @@ const publishBulk = async (run: Run, productIds: string[], country: string) => {
       // The first product always runs, so every call makes progress.
       if (index > 0 && now() - started >= BULK_BUDGET_MS)
          return json({ results, remaining: productIds.slice(index) });
-      const { data: found, error } = await run.admin
+      const { data: found, error } = await run.db
          .from('market_cell')
          .select('id')
          .eq('tenant_id', run.tenantId)
@@ -642,7 +668,14 @@ const route = async (req: Request, d: HandlerDeps): Promise<Response> => {
    const q = body.parse(raw);
 
    return d.authorize(req, WRITE, async ({ tenantId, userId }) => {
-      const run: Run = { d, tenantId, userId, env: d.env(), admin: d.admin() };
+      const run: Run = {
+         d,
+         tenantId,
+         userId,
+         env: d.env(),
+         db: d.db(req),
+         service: d.service(userId)
+      };
       switch (q.action) {
          case 'check':
             return check(run, q.cell_id);
@@ -670,7 +703,10 @@ export async function handler(req: Request, deps: Partial<HandlerDeps> = {}): Pr
    const d: HandlerDeps = {
       amazon: {},
       env: () => amazonEnv(),
-      admin: supabaseAdmin,
+      db: supabaseClient,
+      // The service role, for what no user may do; its writes are audited as this user.
+      service: (userId) =>
+         serviceRole(supabaseService({ role: 'amazon-listing', actorId: userId })),
       authorize: withAuthorization,
       publicUrl: (env) => deploymentUrl('PUBLIC_SUPABASE_URL', env),
       ...deps

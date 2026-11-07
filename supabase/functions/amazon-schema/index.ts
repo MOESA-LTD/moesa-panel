@@ -5,7 +5,10 @@
 //   GET  ?action=definition&product_type=&country=&locale?=&customer_id= -> the cache row
 //   POST /refresh (or { action: 'refresh' }), Bearer service key         -> { refreshed, ... }
 //
-// The cache is read as the user (every user reads it) and written only with the service client.
+// The user routes run with the caller's JWT: the cache and the Amazon account row are read as the
+// user (RLS); the service role (_shared/serviceRole.ts) only reads the account's token, marks a
+// revoked grant and writes the tenant-neutral cache (no user writes it). The refresh has no user:
+// it uses the service client, audited as amazon-schema-refresh.
 import {
    AmazonAuthError,
    AmazonError,
@@ -21,7 +24,8 @@ import type { Database, Json } from '../_shared/database.types.ts';
 import { type SupabaseClient, z } from '../_shared/deps.ts';
 import { errorResponse, HttpError, json, serve } from '../_shared/http.ts';
 import { languageTag } from '../_shared/listingCompleteness.ts';
-import { supabaseAdmin, supabaseClient } from '../_shared/supabaseClient.ts';
+import { type ServiceRole, serviceRole } from '../_shared/serviceRole.ts';
+import { supabaseClient, supabaseService } from '../_shared/supabaseClient.ts';
 import {
    type DefinitionKey,
    type DefinitionRow,
@@ -45,10 +49,12 @@ export type HandlerDeps = {
    /** fetch / now / sleep for the SP-API client and the schema download. */
    amazon: Partial<Deps>;
    env: () => AmazonEnv;
-   /** The service-role client: cache writes and the Amazon account. */
+   /** The refresh's service-role client (no user: pg_cron calls it), audited as amazon-schema-refresh. */
    admin: () => Db;
-   /** The caller's client (RLS): cache reads. */
+   /** The caller's client (RLS): cache and account reads. */
    userDb: (req: Request) => Db;
+   /** What only the service role may do on a user route, audited as the user. */
+   service: (userId: string) => ServiceRole;
    authorize: (
       req: Request,
       required: Requirement,
@@ -86,38 +92,31 @@ const toJson = (row: DefinitionRow) => ({
    property_groups: row.property_groups as unknown as Json
 });
 
-/** Writes a row with the service client; fetched_at is set so an upsert renews it. */
-const store = async (db: Db, row: DefinitionRow, now: number) => {
-   const { data, error } = await db
-      .from(TABLE)
-      .upsert(
-         { ...toJson(row), fetched_at: new Date(now).toISOString() },
-         { onConflict: 'marketplace_id,product_type,locale' }
-      )
-      .select()
-      .single();
-   if (error) throw error;
-   return data;
-};
+/** Writes a row with the service role; fetched_at is set so an upsert renews it. */
+const store = (service: ServiceRole, row: DefinitionRow, now: number) =>
+   service.storeDefinition({ ...toJson(row), fetched_at: new Date(now).toISOString() });
 
-const search = async (d: HandlerDeps, tenantId: string, q: z.infer<typeof searchQuery>) => {
+type Caller = { req: Request; tenantId: string; userId: string };
+
+const search = async (d: HandlerDeps, caller: Caller, q: z.infer<typeof searchQuery>) => {
    const { marketplaceId } = marketplaceFor(q.country);
    const env = d.env();
-   const admin = d.admin();
-   const account = await amazonAccountFor(admin, q.customer_id, tenantId, env);
+   const service = d.service(caller.userId);
+   const account = await amazonAccountFor(
+      d.userDb(caller.req),
+      service,
+      q.customer_id,
+      caller.tenantId,
+      env
+   );
    const call = spapiClient(account.refreshToken, env, d.amazon);
-   const productTypes = await withRevocation(admin, account.id, () =>
+   const productTypes = await withRevocation(service, account.id, () =>
       searchProductTypes(call, q.keywords, marketplaceId)
    );
    return json({ productTypes });
 };
 
-const definition = async (
-   req: Request,
-   d: HandlerDeps,
-   tenantId: string,
-   q: z.infer<typeof definitionQuery>
-) => {
+const definition = async (d: HandlerDeps, caller: Caller, q: z.infer<typeof definitionQuery>) => {
    const { marketplaceId } = marketplaceFor(q.country);
    const env = d.env();
    const sandbox = env.env === 'sandbox';
@@ -128,7 +127,8 @@ const definition = async (
    };
 
    // In sandbox every row of the product type may serve (pickDefinition), so all are read.
-   const base = d.userDb(req).from(TABLE).select('*').eq('product_type', key.productType);
+   const db = d.userDb(caller.req);
+   const base = db.from(TABLE).select('*').eq('product_type', key.productType);
    const { data: rows, error } = sandbox
       ? await base
       : await base.eq('marketplace_id', key.marketplaceId).eq('locale', key.locale);
@@ -139,13 +139,13 @@ const definition = async (
    // The sandbox's schema link (https://schema-url) cannot be downloaded: only the fixture serves.
    if (sandbox) throw new HttpError(404, 'amazon_schema_missing');
 
-   const admin = d.admin();
-   const account = await amazonAccountFor(admin, q.customer_id, tenantId, env);
+   const service = d.service(caller.userId);
+   const account = await amazonAccountFor(db, service, q.customer_id, caller.tenantId, env);
    const call = spapiClient(account.refreshToken, env, d.amazon);
-   const row = await withRevocation(admin, account.id, () =>
+   const row = await withRevocation(service, account.id, () =>
       fetchDefinition(call, { ...key, sellerId: account.sellerId }, d.amazon)
    );
-   return json(await store(admin, row, (d.amazon.now ?? Date.now)()));
+   return json(await store(service, row, (d.amazon.now ?? Date.now)()));
 };
 
 /** Re-fetches every row older than a week with the most recently authorized connected account. */
@@ -155,7 +155,9 @@ const refresh = async (d: HandlerDeps) => {
 
    const clock = d.amazon.now ?? Date.now;
    const started = clock();
+   // No user: the scheduled refresh reads every tenant's accounts and the whole cache.
    const admin = d.admin();
+   const service = serviceRole(admin);
    const {
       data: stale,
       count,
@@ -180,12 +182,18 @@ const refresh = async (d: HandlerDeps) => {
    if (accountError) throw accountError;
    if (!latest?.length) throw new HttpError(409, 'amazon_not_connected');
 
-   const account = await amazonAccountFor(admin, latest[0].customer_id, latest[0].tenant_id, env);
+   const account = await amazonAccountFor(
+      admin,
+      service,
+      latest[0].customer_id,
+      latest[0].tenant_id,
+      env
+   );
    const call = spapiClient(account.refreshToken, env, d.amazon);
 
    let refreshed = 0;
    let failed = 0;
-   await withRevocation(admin, account.id, async () => {
+   await withRevocation(service, account.id, async () => {
       for (const row of stale) {
          if (clock() - started >= REFRESH_BUDGET_MS) break;
          const key = {
@@ -208,7 +216,7 @@ const refresh = async (d: HandlerDeps) => {
             continue;
          }
          // A database error ends the run: the rows after it would fail the same way.
-         await store(admin, fresh, clock());
+         await store(service, fresh, clock());
          refreshed += 1;
       }
    });
@@ -232,11 +240,12 @@ const route = async (req: Request, d: HandlerDeps): Promise<Response> => {
    }
    if (req.method !== 'GET') throw new HttpError(405, 'method_not_allowed');
 
-   return d.authorize(req, PERMISSION, ({ tenantId }) => {
+   return d.authorize(req, PERMISSION, ({ tenantId, userId }) => {
       const params: Record<string, string> = {};
       new URL(req.url).searchParams.forEach((value, name) => (params[name] = value));
       const q = userQuery.parse(params);
-      return q.action === 'search' ? search(d, tenantId, q) : definition(req, d, tenantId, q);
+      const caller = { req, tenantId, userId };
+      return q.action === 'search' ? search(d, caller, q) : definition(d, caller, q);
    });
 };
 
@@ -250,8 +259,11 @@ export async function handler(req: Request, deps: Partial<HandlerDeps> = {}): Pr
    const d: HandlerDeps = {
       amazon: {},
       env: () => amazonEnv(),
-      admin: supabaseAdmin,
+      // The refresh only: no user is there (pg_cron), and the cache is tenant-neutral.
+      admin: () => supabaseService({ role: 'amazon-schema-refresh' }),
       userDb: supabaseClient,
+      // The service role on a user route (token, revoked grant, cache write), audited as the user.
+      service: (userId) => serviceRole(supabaseService({ role: 'amazon-schema', actorId: userId })),
       authorize: withAuthorization,
       serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
       ...deps

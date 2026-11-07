@@ -21,6 +21,7 @@ import { assertServiceCall } from '../_shared/auth.ts';
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
+import { serviceRole } from '../_shared/serviceRole.ts';
 
 const ENV: AmazonEnv = {
    env: 'sandbox',
@@ -545,31 +546,44 @@ Deno.test(
    'amazonAccountFor uses the self-authorized token in sandbox and refuses a revoked account',
    async () => {
       const sandbox = fakeDb(ROW);
-      assertEquals(await amazonAccountFor(sandbox.db, 'cus-1', 'ten-1', ENV), {
-         id: 'acc-1',
-         tenantId: 'ten-1',
-         customerId: 'cus-1',
-         sellerId: 'A2SELLER',
-         refreshToken: 'Atzr|self'
-      });
+      const unused = fakeDb(null);
+      assertEquals(
+         await amazonAccountFor(sandbox.db, serviceRole(unused.db), 'cus-1', 'ten-1', ENV),
+         {
+            id: 'acc-1',
+            tenantId: 'ten-1',
+            customerId: 'cus-1',
+            sellerId: 'A2SELLER',
+            refreshToken: 'Atzr|self'
+         }
+      );
       assertEquals(sandbox.filters, [
          ['customer_id', 'cus-1'],
          ['tenant_id', 'ten-1'],
          ['platform_id', 'amazon']
       ]);
-      assertEquals(sandbox.rpcs, []);
+      assertEquals([sandbox.rpcs, unused.rpcs], [[], []]);
 
-      const production = fakeDb({ ...ROW, seller_id: 'A9PROD' }, 'Atzr|vault');
-      const account = await amazonAccountFor(production.db, 'cus-1', 'ten-1', {
-         ...ENV,
-         env: 'production'
-      });
+      // The row is read with the caller's client, the token with the service role's.
+      const production = fakeDb({ ...ROW, seller_id: 'A9PROD' });
+      const vault = fakeDb(null, 'Atzr|vault');
+      const account = await amazonAccountFor(
+         production.db,
+         serviceRole(vault.db),
+         'cus-1',
+         'ten-1',
+         {
+            ...ENV,
+            env: 'production'
+         }
+      );
       assertEquals([account.sellerId, account.refreshToken], ['A9PROD', 'Atzr|vault']);
-      assertEquals(production.rpcs, [['amazon_account_token', { p_account_id: 'acc-1' }]]);
+      assertEquals(production.rpcs, []);
+      assertEquals(vault.rpcs, [['amazon_account_token', { p_account_id: 'acc-1' }]]);
 
       for (const db of [fakeDb({ ...ROW, api_connection: 'revoked' }).db, fakeDb(null).db]) {
          const error = await assertRejects(
-            () => amazonAccountFor(db, 'cus-1', 'ten-1', ENV),
+            () => amazonAccountFor(db, serviceRole(unused.db), 'cus-1', 'ten-1', ENV),
             HttpError
          );
          assertEquals([error.status, error.message], [409, 'amazon_not_connected']);
@@ -577,7 +591,11 @@ Deno.test(
 
       const noToken = fakeDb({ ...ROW, seller_id: 'A9PROD' }, null);
       const error = await assertRejects(
-         () => amazonAccountFor(noToken.db, 'cus-1', 'ten-1', { ...ENV, env: 'production' }),
+         () =>
+            amazonAccountFor(noToken.db, serviceRole(noToken.db), 'cus-1', 'ten-1', {
+               ...ENV,
+               env: 'production'
+            }),
          HttpError
       );
       assertEquals(error.message, 'amazon_not_connected');
@@ -585,7 +603,8 @@ Deno.test(
 );
 
 Deno.test('withRevocation marks the account revoked when Amazon refuses the grant', async () => {
-   const { db, rpcs } = fakeDb(ROW);
+   const { db: client, rpcs } = fakeDb(ROW);
+   const db = serviceRole(client);
 
    assertEquals(await withRevocation(db, 'acc-1', () => Promise.resolve(7)), 7);
 

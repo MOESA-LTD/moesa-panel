@@ -7,6 +7,7 @@ import type { AmazonSchema, GetDefinitionResponse } from '../_shared/listingComp
 import { toDefinitionRow } from '../_shared/listingCompleteness.ts';
 import { withAuthorization } from '../_shared/auth.ts';
 import { refreshListingStatus } from '../_shared/listingStatus.ts';
+import { serviceRole } from '../_shared/serviceRole.ts';
 import { handler, type HandlerDeps } from '../amazon-listing/index.ts';
 import {
    buildListingBody,
@@ -564,7 +565,8 @@ const rpc = (
          status: 'processing',
          issues: [],
          amazon_submission_id: null,
-         created_by: args.p_created_by,
+         // auth.uid(): the caller of the user's client, none for the service role.
+         created_by: client === 'user' ? 'user-1' : null,
          created_at: new Date(Date.parse('2026-11-06T10:00:00Z') + ids * 1000).toISOString()
       };
       state.tables.listing_submission.push(row);
@@ -592,6 +594,18 @@ const rpc = (
       )
          target.status = 'uploaded';
       return { data: { ...target }, error: null };
+   }
+   if (name === 'listing_settle_removal') {
+      const submission = state.tables.listing_submission.find(
+         (row) => row.id === args.p_submission_id
+      )!;
+      if (submission.kind !== 'delete')
+         return { data: null, error: { code: '22023', message: 'not a removal' } };
+      submission.status = args.p_status;
+      submission.issues = args.p_issues;
+      submission.amazon_submission_id =
+         args.p_amazon_submission_id ?? submission.amazon_submission_id;
+      return { data: { ...submission }, error: null };
    }
    if (name === 'listing_set_state') {
       const target = cellRow(state, args.p_cell_id as string);
@@ -647,6 +661,9 @@ const fakeDb = (state: State, client: string) => {
 
       const run = () => {
          const rows = (state.tables[table] ??= []);
+         // C9: a user never writes a submission directly (046 revokes it; the RPCs write it).
+         if (client === 'user' && table === 'listing_submission' && mode !== 'select')
+            return { data: null, error: { code: '42501', message: 'permission denied' } };
          if (mode === 'insert') {
             const inserted = (Array.isArray(payload) ? payload : [payload!]).map((row) => ({
                id: `s-${++ids}`,
@@ -818,7 +835,8 @@ const deps = (
 ): Partial<HandlerDeps> => ({
    amazon,
    env: () => ENV,
-   admin: () => fakeDb(state, 'admin'),
+   db: () => fakeDb(state, 'user'),
+   service: () => serviceRole(fakeDb(state, 'service')),
    authorize: (_req, _required, run) => run({ tenantId: TENANT, userId: 'user-1' }),
    publicUrl: () => PUBLIC_BASE,
    ...overrides
@@ -837,9 +855,10 @@ const PUT_ACCEPTED = () => Response.json(SANDBOX_ACCEPTED);
 
 Deno.test('copyListingImages copies a new image once and gives its public URL', async () => {
    const state = withMediaObject(story());
-   const db = fakeDb(state, 'admin');
+   const db = fakeDb(state, 'user');
+   const storage = fakeDb(state, 'service').storage;
    const refs = new Map([[MEDIA, ['main_product_image_locator']]]);
-   const first = await copyListingImages(db, TENANT, refs, PUBLIC_BASE, 'sandbox');
+   const first = await copyListingImages(db, storage, TENANT, refs, PUBLIC_BASE, 'sandbox');
    assertEquals(first, {
       [MEDIA]: `${PUBLIC_BASE}/storage/v1/object/public/listing-images/${TENANT}/${MEDIA}/mop-primary.png`
    });
@@ -853,7 +872,7 @@ Deno.test('copyListingImages copies a new image once and gives its public URL', 
    ]);
 
    // The object already exists: no second download or upload.
-   await copyListingImages(db, TENANT, refs, PUBLIC_BASE, 'sandbox');
+   await copyListingImages(db, storage, TENANT, refs, PUBLIC_BASE, 'sandbox');
    assertEquals(state.downloads.length, 1);
    assertEquals(state.uploads.length, 1);
 });
@@ -875,7 +894,15 @@ Deno.test(
          ['5eed0009-0000-4000-8000-00000000dead', ['swatch_product_image_locator']]
       ]);
       const error = await assertRejects(
-         () => copyListingImages(fakeDb(state, 'admin'), TENANT, refs, PUBLIC_BASE, 'sandbox'),
+         () =>
+            copyListingImages(
+               fakeDb(state, 'user'),
+               fakeDb(state, 'service').storage,
+               TENANT,
+               refs,
+               PUBLIC_BASE,
+               'sandbox'
+            ),
          HttpError
       );
       assertEquals([error.status, error.message], [422, 'listing_image_missing']);
@@ -890,7 +917,8 @@ Deno.test(
       const goneError = await assertRejects(
          () =>
             copyListingImages(
-               fakeDb(gone, 'admin'),
+               fakeDb(gone, 'user'),
+               fakeDb(gone, 'service').storage,
                TENANT,
                new Map([[MEDIA, ['main_product_image_locator']]]),
                PUBLIC_BASE,
@@ -928,8 +956,8 @@ Deno.test(
 
       assertEquals(state.inserts.length, 1);
       const insert = state.inserts[0];
-      // Only the service role writes a submission (C9), with the caller as its author.
-      assertEquals(insert.client, 'admin');
+      // The submission is written by 046's RPC as the caller (C9: never directly), its author.
+      assertEquals(insert.client, 'user');
       assertEquals(insert.row.created_by, 'user-1');
       assertEquals(insert.row.kind, 'create');
       assertEquals(insert.row.sku, 'THO-MOP40-2P');
@@ -956,7 +984,7 @@ Deno.test(
       );
 
       const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
-      assertEquals(apply.client, 'admin');
+      assertEquals(apply.client, 'user');
       assertEquals(apply.args.p_status, 'accepted');
       assertEquals(apply.args.p_listing_state, 'submitted');
    }
@@ -1249,8 +1277,8 @@ Deno.test('publish is refused while the latest submission is in flight (C2, C13)
    const raced = await handler(
       post({ action: 'publish', cell_id: CELL }),
       deps(state, amazon, {
-         admin: () => {
-            const db = fakeDb(state, 'admin');
+         db: () => {
+            const db = fakeDb(state, 'user');
             const rpcOf = db.rpc.bind(db);
             return Object.assign(db, {
                rpc: (name: string, args: Record<string, unknown>) =>
@@ -1434,8 +1462,8 @@ Deno.test('a check over a cell published meanwhile reports the stored state (C2)
    const res = await handler(
       post({ action: 'check', cell_id: CELL }),
       deps(state, amazon, {
-         admin: () => {
-            const db = fakeDb(state, 'admin');
+         db: () => {
+            const db = fakeDb(state, 'user');
             const rpcOf = db.rpc.bind(db);
             return Object.assign(db, {
                rpc: (name: string, args: Record<string, unknown>) => {
@@ -1579,7 +1607,8 @@ Deno.test('the poll skips a done submission without calling Amazon (C6)', async 
 });
 
 const statusDeps = (state: State, amazon: Partial<Deps>) => ({
-   admin: fakeDb(state, 'admin'),
+   db: fakeDb(state, 'user'),
+   service: serviceRole(fakeDb(state, 'service')),
    env: ENV,
    amazon
 });
@@ -1601,7 +1630,7 @@ Deno.test('refreshListingStatus by submission applies a live summary with its AS
    assertEquals(result.submission.status, 'done');
    const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
    assertEquals(apply.args.p_asin, 'B071VG5N9D');
-   assertEquals(apply.client, 'admin');
+   assertEquals(apply.client, 'user');
 });
 
 Deno.test('refreshListingStatus keeps an unknown SKU processing', async () => {
@@ -1678,8 +1707,12 @@ Deno.test('delete sends a delete submission and puts the cell back to draft', as
    assertEquals(res.status, 200);
    assertEquals(calls[0].method, 'DELETE');
    assertEquals(state.inserts[0].row.kind, 'delete');
-   assertEquals(state.inserts[0].client, 'admin');
+   assertEquals(state.inserts[0].client, 'user');
    assertEquals(state.tables.listing_submission[0].status, 'done');
+   // The removal is settled by 046's RPC as the user (a user never updates the row directly).
+   const settle = state.rpcs.find((r) => r.name === 'listing_settle_removal')!;
+   assertEquals([settle.client, settle.args.p_status], ['user', 'done']);
+   assertEquals(state.updates, []);
    const set = state.rpcs.find((r) => r.name === 'listing_set_state')!;
    assertEquals([set.args.p_listing_state, set.args.p_listing_match], ['draft', null]);
    // A removal from issues clears the Amazon open issue (C18; 046 does it in listing_set_state).
@@ -1887,8 +1920,8 @@ Deno.test('publish_bulk logs only the code and message of an unexpected error', 
             country: 'DE'
          }),
          deps(state, amazon, {
-            admin: () => {
-               const db = fakeDb(state, 'admin');
+            db: () => {
+               const db = fakeDb(state, 'user');
                const rpcOf = db.rpc.bind(db);
                return Object.assign(db, {
                   rpc: (name: string, args: Record<string, unknown>) => {
@@ -1950,3 +1983,56 @@ Deno.test('an unknown action is refused', async () => {
    assertEquals(res.status, 422);
    assertEquals((await res.json()).message, 'invalid_request');
 });
+
+Deno.test(
+   'the service role, made for the caller, only reads the token and marks a revoked grant',
+   async () => {
+      clearTokenCache();
+      const state = story();
+      const serviceFor: string[] = [];
+      const amazon: Partial<Deps> = {
+         fetch: () => Promise.resolve(Response.json({ error: 'invalid_grant' }, { status: 400 })),
+         now: () => Date.parse('2026-11-06T10:00:00Z'),
+         sleep: () => Promise.resolve()
+      };
+      const res = await handler(
+         post({ action: 'check', cell_id: CELL }),
+         deps(state, amazon, {
+            env: () => ({ ...ENV, env: 'production', selfRefreshToken: undefined }),
+            service: (userId) => (serviceFor.push(userId), serviceRole(fakeDb(state, 'service')))
+         })
+      );
+      assertEquals(res.status, 409);
+      assertEquals((await res.json()).message, 'amazon_connection_revoked');
+      assertEquals(serviceFor, ['user-1']);
+      assertEquals(
+         state.rpcs.filter((r) => r.client === 'service').map((r) => [r.name, r.args.p_state]),
+         [
+            ['amazon_account_token', undefined],
+            ['amazon_account_disconnect', 'revoked']
+         ]
+      );
+      assert(state.rpcs.filter((r) => r.client !== 'service').every((r) => r.client === 'user'));
+      assertEquals(state.updates, []);
+   }
+);
+
+Deno.test(
+   'a delete Amazon refuses settles the removal failed, sending every RPC argument',
+   async () => {
+      clearTokenCache();
+      const state = story();
+      cellRow(state, CELL).listing_state = 'live';
+      const { deps: amazon } = fakeAmazon(() =>
+         Response.json({ errors: [{ code: 'InternalFailure', message: 'down' }] }, { status: 400 })
+      );
+      const res = await handler(post({ action: 'delete', cell_id: CELL }), deps(state, amazon));
+      assert(res.status >= 400);
+      const settle = state.rpcs.find((r) => r.name === 'listing_settle_removal')!;
+      assertEquals(settle.client, 'user');
+      assertEquals(settle.args.p_status, 'failed');
+      // PostgREST resolves the function by its argument names: a missing key is no such function.
+      assertEquals(Object.hasOwn(settle.args, 'p_amazon_submission_id'), true);
+      assertEquals(settle.args.p_amazon_submission_id, null);
+   }
+);

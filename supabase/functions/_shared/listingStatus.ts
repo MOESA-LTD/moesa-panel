@@ -6,6 +6,7 @@ import { amazonAccountFor, withRevocation } from './amazonAccount.ts';
 import type { Database, Json } from './database.types.ts';
 import type { SupabaseClient } from './deps.ts';
 import { HttpError } from './http.ts';
+import type { ServiceRole } from './serviceRole.ts';
 
 type Db = SupabaseClient<Database>;
 type Tables = Database['public']['Tables'];
@@ -115,7 +116,9 @@ export function getListingsItem(
 }
 
 // --- Rows ----------------------------------------------------------------------------------------
-// `db` is always the service-role client; every read is scoped by the tenant explicitly.
+// `db` is the caller's client: the user's in amazon-listing (RLS scopes every read and the RPCs
+// check the user's permission inside), the labelled service client in amazon-poll (no user). The
+// tenant filters state the intent; RLS is the guard on the user path.
 
 /** The tenant's `amazon` cell; anything else is 404 listing_cell_not_found. */
 export async function loadListingCell(
@@ -219,8 +222,10 @@ export async function setListingState(
 // --- Refresh -------------------------------------------------------------------------------------
 
 export type ListingStatusDeps = {
-   /** The service-role client. */
-   admin: Db;
+   /** The caller's client (see Rows above): reads and the 046 RPCs. */
+   db: Db;
+   /** The Amazon account's token and a revoked grant. */
+   service: Pick<ServiceRole, 'accountToken' | 'revokeAccount'>;
    env: AmazonEnv;
    /** fetch / now / sleep for the SP-API client. */
    amazon?: Partial<Deps>;
@@ -252,19 +257,19 @@ export async function refreshListingStatus(
    target: ListingStatusTarget,
    options: RefreshOptions = {}
 ): Promise<{ cell: MarketCellRow; submission: ListingSubmissionRow }> {
-   const { admin, env, tenantId } = { ...deps, tenantId: target.tenantId };
+   const { db, service, env, tenantId } = { ...deps, tenantId: target.tenantId };
 
    let submission: ListingSubmissionRow;
    if (target.submissionId !== undefined) {
-      submission = await loadSubmission(admin, tenantId, target.submissionId);
+      submission = await loadSubmission(db, tenantId, target.submissionId);
       if (submission.kind === 'delete') throw new HttpError(404, 'listing_submission_not_found');
    } else {
-      await loadListingCell(admin, tenantId, target.cellId);
-      const latest = (await submissionsOf(admin, tenantId, target.cellId))[0];
+      await loadListingCell(db, tenantId, target.cellId);
+      const latest = (await submissionsOf(db, tenantId, target.cellId))[0];
       if (!latest) throw new HttpError(404, 'listing_submission_not_found');
-      submission = await loadSubmission(admin, tenantId, latest.id);
+      submission = await loadSubmission(db, tenantId, latest.id);
    }
-   const cell = await loadListingCell(admin, tenantId, submission.cell_id);
+   const cell = await loadListingCell(db, tenantId, submission.cell_id);
    if (
       submission.kind === 'delete' ||
       submission.status === 'invalid' ||
@@ -274,25 +279,25 @@ export async function refreshListingStatus(
       return { cell, submission };
    const done = submission.status === 'done';
 
-   const account = await amazonAccountFor(admin, cell.customer_id, tenantId, env);
+   const account = await amazonAccountFor(db, service, cell.customer_id, tenantId, env);
    const call = spapiClient(account.refreshToken, env, deps.amazon ?? {});
    let derived: DerivedState;
    try {
-      const item = await withRevocation(admin, account.id, () =>
+      const item = await withRevocation(service, account.id, () =>
          getListingsItem(call, account.sellerId, submission.sku, submission.marketplace_id)
       );
       derived = deriveListingState(item, submission.marketplace_id, env.env === 'sandbox');
    } catch (error) {
       if (!(error instanceof AmazonError && error.code === 'amazon_not_found')) throw error;
       // A listing Amazon had (done) and no longer knows was removed: the cell is draft again.
-      if (done) return { cell: await setListingState(admin, cell.id, 'draft', null), submission };
+      if (done) return { cell: await setListingState(db, cell.id, 'draft', null), submission };
       derived = { state: 'submitted', asin: null, issues: [] };
    }
    // Neither live nor issues for a settled submission: nothing new to say.
    if (done && derived.state === 'submitted') return { cell, submission };
 
    const updated = await applySubmission(
-      admin,
+      db,
       submission.id,
       derived.state === 'submitted' ? 'processing' : 'done',
       null,
@@ -300,5 +305,5 @@ export async function refreshListingStatus(
       derived.state,
       derived.asin
    );
-   return { cell: updated, submission: await loadSubmission(admin, tenantId, submission.id) };
+   return { cell: updated, submission: await loadSubmission(db, tenantId, submission.id) };
 }

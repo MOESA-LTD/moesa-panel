@@ -14,6 +14,7 @@ import {
    verifyState
 } from '../amazon-auth/auth.ts';
 import { handler, type HandlerDeps } from '../amazon-auth/index.ts';
+import { serviceRole } from '../_shared/serviceRole.ts';
 
 const NOW = Date.parse('2026-11-06T10:00:00Z');
 const SECRET = 'a-test-state-secret-of-at-least-32-chars';
@@ -164,6 +165,7 @@ const deps = (
    overrides: Partial<HandlerDeps> = {}
 ): Partial<HandlerDeps> => ({
    db: () => db,
+   service: () => serviceRole(db),
    env: () => ENV,
    config: () => Promise.resolve(CONFIG),
    now: () => NOW,
@@ -655,3 +657,76 @@ Deno.test('other routes and methods are refused', async () => {
    );
    assertEquals((await handler(post({ action: 'refresh' }), deps(db))).status, 422);
 });
+
+// --- Credentials ---------------------------------------------------------------------------------
+
+/** The user's client and the service role as two fakes, and whom each service was made for. */
+const split = (rows: Row[] = [amazonRow()]) => {
+   const user = fakeDb(rows);
+   const service = fakeDb(rows);
+   const serviceFor: string[] = [];
+   const overrides: Partial<HandlerDeps> = {
+      db: () => user.db,
+      service: (userId) => (serviceFor.push(userId), serviceRole(service.db))
+   };
+   return { user, service, serviceFor, overrides };
+};
+
+Deno.test(
+   'connect reads the account as the user; only the connect itself is the service role, for the user',
+   async () => {
+      const { user, service, serviceFor, overrides } = split();
+      const response = await handler(
+         post({ action: 'connect', account_id: ACCOUNT, return_to: RETURN_TO }),
+         deps(user.db, overrides)
+      );
+      assertEquals(response.status, 200);
+      assertEquals(
+         user.queries.map((q) => q.table),
+         ['customer_platform_account']
+      );
+      assertEquals(user.rpcs, []);
+      assertEquals(
+         service.rpcs.map((r) => r.name),
+         ['amazon_account_connect']
+      );
+      assertEquals(service.queries, []);
+      assertEquals(serviceFor, [USER]);
+   }
+);
+
+Deno.test('disconnect runs entirely as the user (046 checks the permission inside)', async () => {
+   const { user, service, serviceFor, overrides } = split([
+      amazonRow({ api_connection: 'connected', seller_id: 'A3SELLER' })
+   ]);
+   const response = await handler(
+      post({ action: 'disconnect', account_id: ACCOUNT }),
+      deps(user.db, overrides)
+   );
+   assertEquals(response.status, 200);
+   assertEquals(user.rpcs, [
+      { name: 'amazon_account_disconnect', args: { p_account_id: ACCOUNT, p_state: 'none' } }
+   ]);
+   assertEquals([service.rpcs, service.queries, serviceFor], [[], [], []]);
+});
+
+Deno.test(
+   'the callback, which has no user session, uses the service role for the user of the state',
+   async () => {
+      const { user, service, serviceFor, overrides } = split();
+      const lwa = fakeFetch();
+      const state = await signState(payload({ user_id: 'user-from-state' }), SECRET);
+      const response = await handler(
+         callback({ state, selling_partner_id: 'A3SELLER', spapi_oauth_code: 'ANcode' }),
+         deps(user.db, { ...overrides, env: () => PROD, fetch: lwa.fetch })
+      );
+      assertEquals(response.status, 302);
+      assert(response.headers.get('Location')?.includes('amazon=connected'));
+      assertEquals([user.rpcs, user.queries], [[], []]);
+      assertEquals(
+         service.rpcs.map((r) => r.name),
+         ['amazon_account_connect']
+      );
+      assertEquals(serviceFor, ['user-from-state']);
+   }
+);

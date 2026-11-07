@@ -26,6 +26,30 @@ export const supabaseAdmin = () =>
       options
    ));
 
+/** The functions that may label their service-role writes in the audit (046 audit_service_actor). */
+export type AuditRole =
+   | 'amazon-auth'
+   | 'amazon-listing'
+   | 'amazon-schema'
+   | 'amazon-poll'
+   | 'amazon-schema-refresh';
+
+/**
+ * A service-role client whose audited writes name the function (actor_role) and, when it acts for
+ * one, the user (actor_id). Bypasses RLS like supabaseAdmin: the user path wraps it in
+ * _shared/serviceRole.ts, which exposes only the operations no user may perform.
+ */
+export const supabaseService = (audit: { role: AuditRole; actorId?: string }) =>
+   createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
+      ...options,
+      global: {
+         headers: {
+            'x-audit-role': audit.role,
+            ...(audit.actorId ? { 'x-audit-actor': audit.actorId } : {})
+         }
+      }
+   });
+
 /** Client acting as the requesting user, so RLS applies. */
 export const supabaseClient = (req: Request) =>
    createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {

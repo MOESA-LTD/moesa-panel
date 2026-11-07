@@ -11,6 +11,7 @@ import type {
 import { handler, type HandlerDeps } from '../amazon-schema/index.ts';
 import { buildAbility, isAuthorized } from '../_shared/auth.ts';
 import { HttpError } from '../_shared/http.ts';
+import { serviceRole } from '../_shared/serviceRole.ts';
 import {
    downloadSchema,
    fetchDefinition,
@@ -480,6 +481,7 @@ Deno.test(
          deps({
             admin: () => db,
             userDb: () => db,
+            service: () => serviceRole(db),
             amazon,
             authorize: (_req, required, run) => {
                if (!isAuthorized(readOnly, required)) throw new HttpError(403, 'forbidden');
@@ -539,32 +541,45 @@ Deno.test('definition in production fetches a missing row and caches it', async 
          Response.json({ ...sandboxAnswer(checksum), marketplaceIds: [FR], locale: 'fr_FR' }),
       [SCHEMA_URL]: () => new Response(body)
    });
-   const { db: user, queries: userQueries } = fakeDb(() => ({ data: [], error: null }));
-   const { db: admin, queries } = fakeDb(
-      (query) => {
-         if (query.table === 'amazon_product_type_definition') {
-            const [row] = query.ops.find(([m]) => m === 'upsert')![1] as [DefinitionRow];
-            return { data: { ...row, fetched_at: '2026-11-06T04:00:00Z' }, error: null };
-         }
-         return {
-            data: {
-               id: 'acc-1',
-               tenant_id: 'tenant-1',
-               customer_id: 'c1',
-               seller_id: 'S1',
-               api_connection: 'connected'
-            },
-            error: null
-         };
-      },
-      () => ({ data: 'Atzr|vault', error: null })
+   // The user's client reads the cache (a miss) and the account; the service role reads the
+   // token and writes the cache.
+   const { db: user, queries: userQueries } = fakeDb((query) =>
+      query.table === 'amazon_product_type_definition'
+         ? { data: [], error: null }
+         : {
+              data: {
+                 id: 'acc-1',
+                 tenant_id: 'tenant-1',
+                 customer_id: 'c1',
+                 seller_id: 'S1',
+                 api_connection: 'connected'
+              },
+              error: null
+           }
    );
+   const rpcs: string[] = [];
+   const { db: service, queries } = fakeDb(
+      (query) => {
+         const [row] = query.ops.find(([m]) => m === 'upsert')![1] as [DefinitionRow];
+         return { data: { ...row, fetched_at: '2026-11-06T04:00:00Z' }, error: null };
+      },
+      (name) => (rpcs.push(name), { data: 'Atzr|vault', error: null })
+   );
+   const serviceFor: string[] = [];
 
    const res = await handler(
       get(
          'action=definition&product_type=LUGGAGE&country=FR&customer_id=00000000-0000-4000-8000-000000000001'
       ),
-      deps({ env: () => PROD, userDb: () => user, admin: () => admin, amazon })
+      deps({
+         env: () => PROD,
+         userDb: () => user,
+         service: (userId) => (serviceFor.push(userId), serviceRole(service)),
+         admin: () => {
+            throw new Error('the refresh client is not for a user route');
+         },
+         amazon
+      })
    );
    assertEquals(res.status, 200);
    const row = await res.json();
@@ -573,9 +588,14 @@ Deno.test('definition in production fetches a missing row and caches it', async 
    // The cache is read for the exact key; the account is the caller's tenant's.
    assertEquals(arg(userQueries[0], 'eq', 'marketplace_id'), FR);
    assertEquals(arg(userQueries[0], 'eq', 'locale'), 'fr_FR');
-   assertEquals(arg(queries[0], 'eq', 'tenant_id'), 'tenant-1');
+   assertEquals(userQueries[1].table, 'customer_platform_account');
+   assertEquals(arg(userQueries[1], 'eq', 'tenant_id'), 'tenant-1');
    assert(calls.some((c) => c.url.includes('sellerId=S1')));
-   assert(queries.some((q) => has(q, 'upsert')));
+   assertEquals(
+      queries.map((q) => [q.table, has(q, 'upsert')]),
+      [['amazon_product_type_definition', true]]
+   );
+   assertEquals([rpcs, serviceFor], [['amazon_account_token'], ['user-1']]);
 });
 
 Deno.test('search returns the product types of the country marketplace', async () => {
@@ -598,7 +618,7 @@ Deno.test('search returns the product types of the country marketplace', async (
       get(
          'action=search&keywords=luggage&country=DE&customer_id=00000000-0000-4000-8000-000000000001'
       ),
-      deps({ admin: () => db, amazon })
+      deps({ userDb: () => db, service: () => serviceRole(db), amazon })
    );
    assertEquals(res.status, 200);
    assertEquals(await res.json(), { productTypes: [{ name: 'LUGGAGE', displayName: 'Luggage' }] });
@@ -636,7 +656,7 @@ Deno.test('an Amazon error answers its code and status, never a token', async ()
    }));
    const res = await handler(
       get('action=search&keywords=x&country=DE&customer_id=00000000-0000-4000-8000-000000000001'),
-      deps({ admin: () => db, amazon })
+      deps({ userDb: () => db, service: () => serviceRole(db), amazon })
    );
    assertEquals(res.status, 422);
    const text = await res.text();

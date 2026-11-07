@@ -5012,7 +5012,6 @@ export type Database = {
           p_sku: string
           p_marketplace_id: string
           p_payload: Json
-          p_created_by: string
         }
         Returns: {
           amazon_submission_id: string | null
@@ -5071,6 +5070,29 @@ export type Database = {
           status: Database["public"]["Enums"]["market_cell_status"]
           stock_source: Database["public"]["Enums"]["stock_source"] | null
           target_launch_on: string | null
+          tenant_id: string
+          updated_at: string
+        }
+      }
+      listing_settle_removal: {
+        Args: {
+          p_submission_id: string
+          p_status: Database["public"]["Enums"]["listing_submission_status"]
+          p_amazon_submission_id: string
+          p_issues: Json
+        }
+        Returns: {
+          amazon_submission_id: string | null
+          cell_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issues: Json
+          kind: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id: string
+          payload: Json
+          sku: string
+          status: Database["public"]["Enums"]["listing_submission_status"]
           tenant_id: string
           updated_at: string
         }

@@ -13,12 +13,19 @@
 // The callback carries no JWT (verify_jwt = false): the signed state is its only credential. The
 // refresh token goes from LWA straight to Vault through amazon_account_connect (service role); it
 // is never in a response, a redirect or a log line.
+//
+// Credentials: connect's account lookup and disconnect run with the user's JWT (RLS; 046's
+// amazon_account_disconnect checks the update permission inside), so the audit records the user.
+// Connecting writes server-only columns and the Vault token, so it stays with the service role
+// (_shared/serviceRole.ts), audited as amazon-auth with the user as actor: in sandbox the caller,
+// in the callback the user of the signed state (its user_id).
 import { AmazonError, type AmazonEnv, amazonEnv, type Deps } from '../_shared/amazon.ts';
 import { type Requirement, withAuthorization } from '../_shared/auth.ts';
 import type { Database } from '../_shared/database.types.ts';
 import { type SupabaseClient, z } from '../_shared/deps.ts';
 import { errorResponse, HttpError, json, serve } from '../_shared/http.ts';
-import { supabaseAdmin } from '../_shared/supabaseClient.ts';
+import { type ServiceRole, serviceRole } from '../_shared/serviceRole.ts';
+import { supabaseClient, supabaseService } from '../_shared/supabaseClient.ts';
 import {
    type AuthConfig,
    authConfig,
@@ -44,8 +51,10 @@ type Account = Pick<
 >;
 
 export type HandlerDeps = {
-   /** The service-role client: account lookups (scoped by tenant explicitly) and the RPCs. */
-   db: () => Db;
+   /** The caller's client (the user's JWT): the account lookup and the disconnect. */
+   db: (req: Request) => Db;
+   /** The service role, audited as amazon-auth for `userId`: connecting, the callback's lookup. */
+   service: (userId: string) => ServiceRole;
    env: () => AmazonEnv;
    config: (env: AmazonEnv) => Promise<AuthConfig>;
    /** APP_URL as set (no default): where a callback goes when the config cannot be read. */
@@ -94,34 +103,30 @@ const findAccount = async (db: Db, id: string, tenantId: string): Promise<Accoun
 };
 
 const connectAccount = async (
-   db: Db,
+   service: ServiceRole,
    id: string,
    refreshToken: string | null,
    sellerId: string
-) => {
-   const { data, error } = await db.rpc('amazon_account_connect', {
-      p_account_id: id,
-      // NULL keeps Vault untouched: the sandbox reads the self-authorized token from the env.
-      p_refresh_token: refreshToken as string,
-      p_seller_id: sellerId
-   });
-   if (error) throw error;
-   return pick(data as Account);
-};
+) => pick(await service.connectAccount(id, refreshToken, sellerId));
 
 const connect = async (
+   req: Request,
    d: HandlerDeps,
    ctx: { tenantId: string; userId: string },
    q: { account_id: string; return_to: string }
 ) => {
    const env = d.env();
-   const db = d.db();
-   const account = await findAccount(db, q.account_id, ctx.tenantId);
+   const account = await findAccount(d.db(req), q.account_id, ctx.tenantId);
 
    // R6: the OAuth website flow cannot run against the sandbox hosts.
    if (env.env === 'sandbox')
       return json({
-         account: await connectAccount(db, account.id, null, env.sellerId ?? SANDBOX_SELLER)
+         account: await connectAccount(
+            d.service(ctx.userId),
+            account.id,
+            null,
+            env.sellerId ?? SANDBOX_SELLER
+         )
       });
 
    const config = await d.config(env);
@@ -139,8 +144,8 @@ const connect = async (
    return json({ redirect: consentUrl(config.appId, state, config.beta) });
 };
 
-const disconnect = async (d: HandlerDeps, tenantId: string, id: string) => {
-   const db = d.db();
+const disconnect = async (req: Request, d: HandlerDeps, tenantId: string, id: string) => {
+   const db = d.db(req);
    await findAccount(db, id, tenantId);
    const { error } = await db.rpc('amazon_account_disconnect', {
       p_account_id: id,
@@ -198,8 +203,11 @@ const callback = async (req: Request, d: HandlerDeps) => {
    if (!code || !sellerId) return back({ amazon: 'error', reason: 'amazon_callback_invalid' });
 
    try {
-      const db = d.db();
-      const account = await findAccount(db, payload.account_id, payload.tenant_id);
+      // No user session here: the service role reads the account of the signed state, and the
+      // connect is audited as that state's user.
+      const service = d.service(payload.user_id);
+      const account = await service.callbackAccount(payload.account_id, payload.tenant_id);
+      if (!account) throw new HttpError(404, 'platform_account_not_found');
       // One use per state: an account authorized since the state was issued has spent it.
       const issuedAt = payload.exp - STATE_TTL_MS;
       if (account.authorized_at && Date.parse(account.authorized_at) >= issuedAt)
@@ -208,7 +216,7 @@ const callback = async (req: Request, d: HandlerDeps) => {
       const refreshToken = await exchangeCode(code, config.publicSupabaseUrl + CALLBACK_PATH, env, {
          fetch: d.fetch
       });
-      await connectAccount(db, account.id, refreshToken, sellerId);
+      await connectAccount(service, account.id, refreshToken, sellerId);
       return back({ amazon: 'connected' });
    } catch (error) {
       if (error instanceof HttpError) return back({ amazon: 'error', reason: error.message });
@@ -238,8 +246,8 @@ const route = async (req: Request, d: HandlerDeps): Promise<Response> => {
    return d.authorize(req, PERMISSION, async (ctx) => {
       const q = body.parse(await readBody(req));
       return q.action === 'connect'
-         ? connect(d, ctx, q)
-         : disconnect(d, ctx.tenantId, q.account_id);
+         ? connect(req, d, ctx, q)
+         : disconnect(req, d, ctx.tenantId, q.account_id);
    });
 };
 
@@ -251,7 +259,9 @@ const toResponse = (error: unknown) =>
 
 export async function handler(req: Request, deps: Partial<HandlerDeps> = {}): Promise<Response> {
    const d: HandlerDeps = {
-      db: supabaseAdmin,
+      db: supabaseClient,
+      // The service role, for the token store and the server-only connection columns.
+      service: (userId) => serviceRole(supabaseService({ role: 'amazon-auth', actorId: userId })),
       env: () => amazonEnv(),
       config: (env) => authConfig(env),
       appUrl: () => Deno.env.get('APP_URL'),

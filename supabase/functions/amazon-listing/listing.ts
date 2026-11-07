@@ -423,10 +423,12 @@ export function publicImageUrl(base: string, path: string, env: AmazonEnv['env']
  * the public listing-images bucket under the same `<tenant>/<media id>/<file>` path, skipping
  * objects already there, and returns their public URLs by media id. A reference without a
  * copyable image refuses the whole set: 422 listing_image_missing, details = attribute names.
- * `db` is the service-role client.
+ * `db` reads the media rows (the user's client: a media row the user cannot see is missing);
+ * `storage` is the service role's (ServiceRole.storage): users have no policy on listing-images.
  */
 export async function copyListingImages(
    db: SupabaseClient<Database>,
+   storage: SupabaseClient<Database>['storage'],
    tenantId: string,
    refs: Map<string, string[]>,
    publicBase: string,
@@ -454,7 +456,7 @@ export async function copyListingImages(
    };
    if (missingIds.length) throw refuse(missingIds);
 
-   const target = db.storage.from(LISTING_IMAGES_BUCKET);
+   const target = storage.from(LISTING_IMAGES_BUCKET);
    const urls: Record<string, string> = {};
    const gone: string[] = [];
    for (const id of refs.keys()) {
@@ -466,7 +468,7 @@ export async function copyListingImages(
       });
       if (listError) throw listError;
       if (!existing?.some((object) => object.name === path.slice(slash + 1))) {
-         const { data: blob, error: downloadError } = await db.storage
+         const { data: blob, error: downloadError } = await storage
             .from(MEDIA_BUCKET)
             .download(path);
          if (downloadError || !blob) {
