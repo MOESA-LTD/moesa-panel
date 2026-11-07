@@ -6,6 +6,10 @@ import type { Database, Json } from './database.types.ts';
 import type { SupabaseClient } from './deps.ts';
 
 type Db = SupabaseClient<Database>;
+
+/** The private bucket of the uploaded media, and the public one Amazon fetches the images from. */
+export const MEDIA_BUCKET = 'media';
+export const LISTING_IMAGES_BUCKET = 'listing-images';
 type Tables = Database['public']['Tables'];
 export type PlatformAccountRow = Tables['customer_platform_account']['Row'];
 export type DefinitionInsert = Tables['amazon_product_type_definition']['Insert'];
@@ -40,10 +44,20 @@ export type ServiceRole = {
    /** The account of a signed OAuth state: Amazon's redirect carries no user session. */
    callbackAccount(accountId: string, tenantId: string): Promise<CallbackAccount | null>;
    /**
-    * Storage: the private `media` bucket is read and the public `listing-images` bucket written,
-    * which has no user storage policy (only the service role writes what Amazon fetches).
+    * One object of the private `media` bucket (the path comes from a media row the user's client
+    * read under RLS); null when it is gone.
     */
-   storage: Db['storage'];
+   readMedia(path: string): Promise<Blob | null>;
+   /**
+    * One object into the public `listing-images` bucket, which has no user storage policy (only
+    * the service role writes what Amazon fetches). An object already there is kept, and `read`
+    * is then not called; false when `read` gives nothing to upload.
+    */
+   putListingImage(
+      path: string,
+      contentType: string,
+      read: () => Promise<Blob | null>
+   ): Promise<boolean>;
    /** The tenant-neutral product type definition cache, which no user writes. */
    storeDefinition(row: DefinitionInsert): Promise<DefinitionStored>;
    // Amazon's outcome: 046 lets only the service role write it (a user could forge it). Each call
@@ -114,7 +128,26 @@ export const serviceRole = (client: Db, actorId: string | null = null): ServiceR
       if (error) throw error;
       return (data as CallbackAccount | null) ?? null;
    },
-   storage: client.storage,
+   async readMedia(path) {
+      const { data, error } = await client.storage.from(MEDIA_BUCKET).download(path);
+      return error || !data ? null : data;
+   },
+   async putListingImage(path, contentType, read) {
+      const bucket = client.storage.from(LISTING_IMAGES_BUCKET);
+      const slash = path.lastIndexOf('/');
+      const name = path.slice(slash + 1);
+      const { data: existing, error: listError } = await bucket.list(path.slice(0, slash), {
+         search: name
+      });
+      if (listError) throw listError;
+      if (existing?.some((object) => object.name === name)) return true;
+      const blob = await read();
+      if (!blob) return false;
+      const { error } = await bucket.upload(path, blob, { contentType, upsert: false });
+      // A concurrent copy of the same object is as good as ours.
+      if (error && !/exists|duplicate/i.test(error.message)) throw error;
+      return true;
+   },
    async storeDefinition(row) {
       const { data, error } = await client
          .from('amazon_product_type_definition')

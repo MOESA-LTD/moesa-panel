@@ -36,6 +36,7 @@ const ADMIN_ALLOWED: Record<string, string> = {
 const USER_PATH = (path: string) =>
    path.startsWith('amazon-listing/') ||
    path.startsWith('amazon-auth/') ||
+   path.startsWith('amazon-schema/') ||
    path === '_shared/listingStatus.ts' ||
    path === '_shared/amazonAccount.ts';
 
@@ -48,34 +49,71 @@ Deno.test('supabaseAdmin is used only where the allow-list says why', () => {
    assertEquals(offenders, []);
 });
 
-Deno.test(
-   'a service client is either the narrow ServiceRole or a system run (poll, schema refresh)',
-   () => {
-      const offenders = [...files].flatMap(([path, text]) =>
-         lines(text)
-            .filter(({ line }) => /\bsupabaseService\(/.test(line))
-            .filter(({ line }) => !/export const supabaseService/.test(line))
+/** The only lines that may build a full (system) service client: no user is there. */
+const SYSTEM_CLIENTS: Record<string, RegExp> = {
+   'amazon-poll/index.ts': /admin: \(\) => supabaseService\(\{ role: 'amazon-poll' \}\)/,
+   'amazon-schema/index.ts': /admin: \(\) => supabaseService\(\{ role: 'amazon-schema-refresh' \}\)/
+};
+
+/** Every construction of a service client that is neither the narrow ServiceRole nor allowed above. */
+const serviceClientOffenders = (sources: Map<string, string>) =>
+   [...sources].flatMap(([path, text]) =>
+      lines(text)
+         .filter(({ line }) => /\bsupabaseService\(/.test(line))
+         .filter(({ line }) => !/const supabaseService/.test(line))
+         .filter(
+            ({ line }) =>
+               !/serviceRole\(supabaseService\(/.test(line) && !SYSTEM_CLIENTS[path]?.test(line)
+         )
+         .map(({ n, line }) => `${path}:${n}: ${line.trim()}`)
+   );
+
+/** amazon-schema/index.ts without its refresh (the one place there that holds the system client). */
+const withoutRefresh = (text: string) => {
+   const start = text.indexOf('const refresh = async');
+   const end = text.indexOf('\n};\n', start);
+   return start < 0 || end < 0 ? text : text.slice(0, start) + text.slice(end);
+};
+
+/** Mentions of a full service client in the user-path files (imports and the allowed lines aside). */
+const userPathOffenders = (sources: Map<string, string>) =>
+   [...sources]
+      .filter(([path]) => USER_PATH(path))
+      .flatMap(([path, text]) =>
+         lines(path === 'amazon-schema/index.ts' ? withoutRefresh(text) : text)
+            .filter(({ line }) => !/^import /.test(line))
+            .filter(({ line }) => !SYSTEM_CLIENTS[path]?.test(line))
+            // The refresh's dependency is declared in HandlerDeps.
             .filter(
                ({ line }) =>
-                  !/serviceRole\(supabaseService\(/.test(line) &&
-                  !/role: '(amazon-poll|amazon-schema-refresh)'/.test(line)
+                  !(path === 'amazon-schema/index.ts' && /^\s*admin: \(\) => Db;$/.test(line))
+            )
+            .filter(
+               ({ line }) =>
+                  /\badmin\b/.test(line) ||
+                  (/\bsupabaseService\b/.test(line) && !/serviceRole\(supabaseService\(/.test(line))
             )
             .map(({ n, line }) => `${path}:${n}: ${line.trim()}`)
       );
-      assertEquals(offenders, []);
-   }
+
+Deno.test(
+   'a service client is either the narrow ServiceRole or a system run (poll, schema refresh)',
+   () => assertEquals(serviceClientOffenders(files), [])
 );
 
-Deno.test('the user path holds no admin client', () => {
-   const offenders = [...files]
-      .filter(([path]) => USER_PATH(path))
-      .flatMap(([path, text]) =>
-         lines(text)
-            .filter(({ line }) => !/^import /.test(line))
-            .filter(({ line }) => /\badmin\b/.test(line) || /\bsupabaseService\b(?!\()/.test(line))
-            .map(({ n, line }) => `${path}:${n}: ${line.trim()}`)
-      );
-   assertEquals(offenders, []);
+Deno.test('the user path holds no admin client', () => assertEquals(userPathOffenders(files), []));
+
+Deno.test('the guard catches a system client or an admin on a user path', () => {
+   const forged = new Map([
+      ['amazon-listing/index.ts', "   service: () => supabaseService({ role: 'amazon-poll' }),"],
+      [
+         'amazon-schema/index.ts',
+         'const search = async (d) => {\n   const admin = d.admin();\n};\n'
+      ],
+      ['amazon-auth/index.ts', "   db: () => supabaseService({ role: 'amazon-schema-refresh' }),"]
+   ]);
+   assertEquals(serviceClientOffenders(forged).length, 2);
+   assertEquals(userPathOffenders(forged).length, 3);
 });
 
 Deno.test("amazon-schema's service client serves the scheduled refresh only", () => {

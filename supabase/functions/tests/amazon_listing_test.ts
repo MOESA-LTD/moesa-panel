@@ -4,7 +4,7 @@ import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
 import type { AmazonSchema, GetDefinitionResponse } from '../_shared/listingCompleteness.ts';
-import { toDefinitionRow } from '../_shared/listingCompleteness.ts';
+import { MARKETPLACE_IDS, toDefinitionRow } from '../_shared/listingCompleteness.ts';
 import { withAuthorization } from '../_shared/auth.ts';
 import { refreshListingStatus } from '../_shared/listingStatus.ts';
 import { serviceRole } from '../_shared/serviceRole.ts';
@@ -559,8 +559,14 @@ const rpc = (
          tenant_id: target.tenant_id,
          cell_id: target.id,
          kind: args.p_kind,
-         sku: args.p_sku,
-         marketplace_id: args.p_marketplace_id,
+         // 046 derives both from the cell (the caller cannot name them).
+         sku: skuFor(
+            target as unknown as MarketCellRow,
+            state.tables.product.find(
+               (row) => row.id === target.product_id
+            ) as unknown as ProductRow
+         ),
+         marketplace_id: MARKETPLACE_IDS[target.country as string],
          payload: args.p_payload,
          status: 'processing',
          issues: [],
@@ -864,7 +870,7 @@ const PUT_ACCEPTED = () => Response.json(SANDBOX_ACCEPTED);
 Deno.test('copyListingImages copies a new image once and gives its public URL', async () => {
    const state = withMediaObject(story());
    const db = fakeDb(state, 'user');
-   const storage = fakeDb(state, 'service').storage;
+   const storage = serviceRole(fakeDb(state, 'service'));
    const refs = new Map([[MEDIA, ['main_product_image_locator']]]);
    const first = await copyListingImages(db, storage, TENANT, refs, PUBLIC_BASE, 'sandbox');
    assertEquals(first, {
@@ -905,7 +911,7 @@ Deno.test(
          () =>
             copyListingImages(
                fakeDb(state, 'user'),
-               fakeDb(state, 'service').storage,
+               serviceRole(fakeDb(state, 'service')),
                TENANT,
                refs,
                PUBLIC_BASE,
@@ -926,7 +932,7 @@ Deno.test(
          () =>
             copyListingImages(
                fakeDb(gone, 'user'),
-               fakeDb(gone, 'service').storage,
+               serviceRole(fakeDb(gone, 'service')),
                TENANT,
                new Map([[MEDIA, ['main_product_image_locator']]]),
                PUBLIC_BASE,
@@ -2078,3 +2084,34 @@ Deno.test(
       assert(begins.length >= 2 && begins.every((r) => r.client === 'user'));
    }
 );
+
+Deno.test('begin sends no SKU or marketplace: 046 derives them from the cell', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   await handler(post({ action: 'publish', cell_id: CELL }), deps(state, amazon));
+   const begin = state.rpcs.find((r) => r.name === 'listing_begin_submission')!;
+   assertEquals(Object.keys(begin.args).sort(), ['p_cell_id', 'p_kind', 'p_payload']);
+   assertEquals(
+      [state.inserts[0].row.sku, state.inserts[0].row.marketplace_id],
+      ['THO-MOP40-2P', DE]
+   );
+});
+
+Deno.test('the image copy uses only the two storage operations of ServiceRole', async () => {
+   const state = withMediaObject(story());
+   const calls: string[] = [];
+   const images = {
+      readMedia: (path: string) => (calls.push(`read ${path}`), Promise.resolve(new Blob(['png']))),
+      putListingImage: async (path: string, type: string, read: () => Promise<Blob | null>) => {
+         calls.push(`put ${path} ${type}`);
+         return !!(await read());
+      }
+   };
+   const refs = new Map([[MEDIA, ['main_product_image_locator']]]);
+   await copyListingImages(fakeDb(state, 'user'), images, TENANT, refs, PUBLIC_BASE, 'sandbox');
+   assertEquals(calls, [
+      `put ${TENANT}/${MEDIA}/mop-primary.png image/png`,
+      `read ${TENANT}/${MEDIA}/mop-primary.png`
+   ]);
+});

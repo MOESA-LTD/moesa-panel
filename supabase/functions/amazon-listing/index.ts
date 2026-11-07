@@ -303,8 +303,6 @@ const beginSubmission = async (
    const { data, error } = await run.db.rpc('listing_begin_submission', {
       p_cell_id: ctx.cell.id,
       p_kind: kind,
-      p_sku: ctx.sku,
-      p_marketplace_id: ctx.marketplaceId,
       p_payload: payload as unknown as Json
    });
    if (error?.message === 'listing_in_progress') throw new HttpError(409, 'listing_in_progress');
@@ -375,7 +373,7 @@ const check = async (run: Run, id: string) => {
 const copyImages = (run: Run, ctx: CellContext) =>
    copyListingImages(
       run.db,
-      run.service.storage,
+      run.service,
       run.tenantId,
       mediaRefs(attributesOf(ctx.product)),
       run.d.publicUrl(run.env),

@@ -5010,8 +5010,6 @@ export type Database = {
         Args: {
           p_cell_id: string
           p_kind: Database["public"]["Enums"]["listing_submission_kind"]
-          p_sku: string
-          p_marketplace_id: string
           p_payload: Json
         }
         Returns: {

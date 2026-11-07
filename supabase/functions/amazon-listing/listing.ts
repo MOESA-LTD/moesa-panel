@@ -4,6 +4,7 @@ import { AmazonError, type AmazonEnv, type SpapiCall } from '../_shared/amazon.t
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import { HttpError } from '../_shared/http.ts';
+import { LISTING_IMAGES_BUCKET, type ServiceRole } from '../_shared/serviceRole.ts';
 import {
    type AmazonSchema,
    type Attributes,
@@ -49,8 +50,6 @@ export type CellContext = {
 
 export const LISTINGS_RESTRICTIONS = '/listings/2021-08-01/restrictions';
 export const CATALOG_ITEMS = '/catalog/2022-04-01/items';
-export const LISTING_IMAGES_BUCKET = 'listing-images';
-const MEDIA_BUCKET = 'media';
 const COPIED_TYPES = new Set(['image/png', 'image/jpeg']);
 
 /** A reference to a media library item in an attribute's `media_location`. */
@@ -424,11 +423,11 @@ export function publicImageUrl(base: string, path: string, env: AmazonEnv['env']
  * objects already there, and returns their public URLs by media id. A reference without a
  * copyable image refuses the whole set: 422 listing_image_missing, details = attribute names.
  * `db` reads the media rows (the user's client: a media row the user cannot see is missing);
- * `storage` is the service role's (ServiceRole.storage): users have no policy on listing-images.
+ * `images` is the service role's (ServiceRole): users have no policy on listing-images.
  */
 export async function copyListingImages(
    db: SupabaseClient<Database>,
-   storage: SupabaseClient<Database>['storage'],
+   images: Pick<ServiceRole, 'readMedia' | 'putListingImage'>,
    tenantId: string,
    refs: Map<string, string[]>,
    publicBase: string,
@@ -456,31 +455,14 @@ export async function copyListingImages(
    };
    if (missingIds.length) throw refuse(missingIds);
 
-   const target = storage.from(LISTING_IMAGES_BUCKET);
    const urls: Record<string, string> = {};
    const gone: string[] = [];
    for (const id of refs.keys()) {
       const row = byId.get(id)!;
       const path = row.storage_path;
-      const slash = path.lastIndexOf('/');
-      const { data: existing, error: listError } = await target.list(path.slice(0, slash), {
-         search: path.slice(slash + 1)
-      });
-      if (listError) throw listError;
-      if (!existing?.some((object) => object.name === path.slice(slash + 1))) {
-         const { data: blob, error: downloadError } = await storage
-            .from(MEDIA_BUCKET)
-            .download(path);
-         if (downloadError || !blob) {
-            gone.push(id);
-            continue;
-         }
-         const { error: uploadError } = await target.upload(path, blob, {
-            contentType: row.mime_type,
-            upsert: false
-         });
-         // A concurrent copy of the same object is as good as ours.
-         if (uploadError && !/exists|duplicate/i.test(uploadError.message)) throw uploadError;
+      if (!(await images.putListingImage(path, row.mime_type, () => images.readMedia(path)))) {
+         gone.push(id);
+         continue;
       }
       urls[id] = publicImageUrl(publicBase, path, env);
    }
