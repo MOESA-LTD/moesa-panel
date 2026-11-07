@@ -1540,6 +1540,7 @@ DECLARE
     v_account UUID;
     v_product UUID;
     v_attributes_all JSONB;
+    v_sent JSONB;
 BEGIN
     INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, display_name, schema, property_groups)
     SELECT m, v_definition ->> 'productType', v_definition ->> 'locale', v_definition -> 'productTypeVersion' ->> 'version',
@@ -1555,8 +1556,13 @@ BEGIN
         RAISE EXCEPTION 'story 11: THO has no amazon account';
     END IF;
 
-    -- The mop is a variation parent (it has children), so its attributes name the theme.
-    v_attributes_all := v_attributes || '{"variation_theme": [{"value": "NUMBER_OF_ITEMS"}]}'::JSONB;
+    -- The mop is a variation parent (it has children), so its attributes name the theme. Its brand,
+    -- pack quantity and pack gross weight come from the product card (derived on publish, never
+    -- stored): the fixture's brand is dropped, and the listing overrides the package weight (420 g
+    -- as Amazon weighed it, the card says 400 g). What was sent carries the derived values.
+    v_attributes_all := (v_attributes - 'brand')
+        || '{"variation_theme": [{"value": "NUMBER_OF_ITEMS"}], "item_package_weight": [{"value": 0.42, "unit": "kilograms"}]}'::JSONB;
+    v_sent := v_attributes_all || jsonb_build_object('brand', v_attributes -> 'brand', 'number_of_items', '[{"value": 2}]'::JSONB);
     UPDATE public.product
     SET amazon_product_type = v_definition ->> 'productType',
         amazon_schema_version = v_definition -> 'productTypeVersion' ->> 'version',
@@ -1577,13 +1583,13 @@ BEGIN
     INSERT INTO public.listing_submission (id, tenant_id, cell_id, kind, sku, marketplace_id, payload, amazon_submission_id, status, issues, created_at)
     VALUES
         ('5eed0011-0000-4000-8000-000000000001', v_tenant, '5eed0007-0000-4000-8000-000000000001', 'create', 'THO-MOP40-2P-DE', 'A1PA6795UKMFR9',
-         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_attributes_all),
+         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_sent),
          'f1dc2914-75dd-11ea-bc55-0242ac130003', 'processing', '[]', now() - INTERVAL '2 days'),
         ('5eed0011-0000-4000-8000-000000000002', v_tenant, '5eed0007-0000-4000-8000-000000000002', 'create', 'THO-MOP40-2P-FR', 'A13V1IB3VIYZZH',
-         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_attributes_all),
+         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_sent),
          NULL, 'processing', '[]', now() - INTERVAL '2 days'),
         ('5eed0011-0000-4000-8000-000000000003', v_tenant, '5eed0007-0000-4000-8000-000000000003', 'create', 'THO-MOP40-2P-IT', 'APJ6JRA9NG5V4',
-         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_attributes_all),
+         jsonb_build_object('productType', 'LUGGAGE', 'requirements', 'LISTING', 'attributes', v_sent),
          NULL, 'processing', '[]', now() - INTERVAL '2 days');
 
     -- DE: Amazon accepted the create and the poll found the listing live.
