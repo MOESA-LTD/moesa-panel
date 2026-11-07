@@ -21,7 +21,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- What it writes is rolled back.
 BEGIN;
 
-SELECT plan(94);
+SELECT plan(100);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -265,7 +265,7 @@ SELECT is((SELECT platform_product_id FROM public.market_cell WHERE id = current
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.sub_begin', (public.listing_begin_submission(
-    current_setting('test.cell_gb')::UUID, 'update', 'THO-MOP40-2P', 'A1F83G8C2ARO7P', '{"productType": "LUGGAGE"}'
+    current_setting('test.cell_gb')::UUID, 'update', '{"productType": "LUGGAGE"}'
 )).id::TEXT, TRUE);
 SELECT ok(
     (SELECT status = 'processing' AND created_by = current_setting('test.akif')::UUID AND issues = '[]'::JSONB
@@ -274,7 +274,7 @@ SELECT ok(
 );
 SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_gb')::UUID), 'submitted', 'begin marks the cell submitted before Amazon is called');
 SELECT throws_ok(
-    $$ SELECT public.listing_begin_submission(current_setting('test.cell_be')::UUID, 'create', 'THO-MOP40-2P', 'AMEN7PMS3EDWL', '{}') $$,
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_be')::UUID, 'create', '{}') $$,
     'P0001',
     'listing_in_progress',
     'begin refuses while the last submission is in flight'
@@ -488,10 +488,11 @@ SELECT set_config('test.koord', (SELECT id FROM public.user WHERE email = 'koord
 SELECT set_config('test.zzb', (SELECT a.id FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id
                                WHERE c.code = 'ZZB' AND a.platform_id = 'amazon')::TEXT, TRUE);
 
+UPDATE public.market_cell SET platform_sku = ' THO-PL-OWN ' WHERE id = current_setting('test.cell_pl')::UUID;
 SELECT private.impersonate(current_setting('test.koord')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('audit.transaction_id', '', TRUE);
 SELECT set_config('test.sub_user', (public.listing_begin_submission(
-    current_setting('test.cell_pl')::UUID, 'update', 'THO-MOP40-2P', 'A1C3SOZRARQ6R3', '{}'
+    current_setting('test.cell_pl')::UUID, 'update', '{}'
 )).id::TEXT, TRUE);
 SELECT set_config('test.tx_begin', current_setting('audit.transaction_id'), TRUE);
 -- A user's own x-audit-role / x-audit-actor headers are not a label.
@@ -500,10 +501,16 @@ SELECT set_config('request.headers', json_build_object(
     'x-audit-role', 'amazon-poll', 'x-audit-actor', current_setting('test.akif'))::TEXT, TRUE);
 SELECT set_config('audit.transaction_id', '', TRUE);
 SELECT set_config('test.sub_removal', (public.listing_begin_submission(
-    current_setting('test.cell_se')::UUID, 'delete', 'THO-MOP40-2P', 'A2NODRKZP88ZB9', '{}'
+    current_setting('test.cell_se')::UUID, 'delete', '{}'
 )).id::TEXT, TRUE);
 SELECT set_config('test.tx_forged', current_setting('audit.transaction_id'), TRUE);
 SELECT isnt(public.listing_parent_cell(current_setting('test.child_cell')::UUID), NULL, 'a user gets the parent cell');
+SELECT throws_ok(
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_pl')::UUID, 'update', 'FORGED-SKU', 'ATVPDKIKX0DER', '{}') $$,
+    '42883',
+    NULL,
+    'a user cannot name the SKU or the marketplace of a submission'
+);
 
 -- Amazon's outcome is not the user's to write.
 SELECT throws_ok(
@@ -579,6 +586,18 @@ SELECT throws_ok(
     NULL,
     'only a removal is settled without the walk'
 );
+SELECT throws_ok(
+    $$ SELECT public.listing_set_state(current_setting('test.cell_se')::UUID, 'live', NULL, NULL, current_setting('test.selin')::UUID) $$,
+    '42501',
+    'listing_forbidden',
+    'an actor of another tenant is refused'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_apply_submission(current_setting('test.sub_user')::UUID, 'done', NULL, '[]', 'live', NULL, current_setting('test.selin')::UUID) $$,
+    '42501',
+    'listing_forbidden',
+    'an outcome cannot be applied in the name of a user without the permission there'
+);
 
 SELECT set_config('request.headers', json_build_object('x-audit-role', 'amazon-auth', 'x-audit-actor', current_setting('test.koord'))::TEXT, TRUE);
 SELECT set_config('audit.transaction_id', '', TRUE);
@@ -616,7 +635,7 @@ SELECT ok(
 -- Another tenant's user.
 SELECT private.impersonate(current_setting('test.selin')::UUID, current_setting('test.eski')::UUID);
 SELECT throws_ok(
-    $$ SELECT public.listing_begin_submission(current_setting('test.cell_se')::UUID, 'delete', 'X', 'Y', '{}') $$,
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_se')::UUID, 'delete', '{}') $$,
     '42501',
     'listing_forbidden',
     'another tenant cannot begin a submission'
@@ -643,7 +662,7 @@ WHERE rp.role_id = r.id AND rp.permission_id = p.id
   AND p.resource_name = 'public.listing_submission' AND p.command = 'insert';
 SELECT private.impersonate(current_setting('test.koord')::UUID, current_setting('test.moesa')::UUID);
 SELECT throws_ok(
-    $$ SELECT public.listing_begin_submission(current_setting('test.cell_pl')::UUID, 'delete', 'X', 'Y', '{}') $$,
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_pl')::UUID, 'delete', '{}') $$,
     '42501',
     'listing_forbidden',
     'without the permission a submission is refused'
@@ -656,11 +675,36 @@ SELECT throws_ok(
 );
 RESET ROLE;
 
+-- The db role authenticated with a service_role claim is a user, not the service role.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
+SELECT set_config('request.headers', json_build_object('x-tenant-id', current_setting('test.moesa'), 'x-tenant-ids', current_setting('test.moesa'))::TEXT, TRUE);
+SELECT throws_ok(
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_se')::UUID, 'delete', '{}') $$,
+    '42501',
+    'listing_forbidden',
+    'authenticated with a service_role claim cannot begin a submission'
+);
+SELECT throws_ok(
+    $$ SELECT public.amazon_account_disconnect(current_setting('test.zzb')::UUID, 'none') $$,
+    '42501',
+    'platform_account_forbidden',
+    'authenticated with a service_role claim cannot disconnect'
+);
+RESET ROLE;
+
 -- Who the audit names.
 SELECT is(
     (SELECT created_by FROM public.listing_submission WHERE id = current_setting('test.sub_user')::UUID),
     current_setting('test.koord')::UUID,
     'created_by is the caller'
+);
+SELECT ok(
+    (SELECT s.sku = 'THO-PL-OWN' AND s.marketplace_id = 'A1C3SOZRARQ6R3'
+     FROM public.listing_submission s WHERE s.id = current_setting('test.sub_user')::UUID)
+    AND (SELECT s.sku = 'THO-MOP40-2P' AND s.marketplace_id = 'A2NODRKZP88ZB9'
+         FROM public.listing_submission s WHERE s.id = current_setting('test.sub_removal')::UUID),
+    'begin stores the cell''s own SKU (its platform SKU, else the product''s) and its country''s marketplace'
 );
 SELECT ok(
     (SELECT t.actor_id = current_setting('test.koord')::UUID AND t.actor_role = 'authenticated'
