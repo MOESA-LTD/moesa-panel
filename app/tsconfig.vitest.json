@@ -4,5 +4,12 @@
       "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
       "types": ["node", "vite/client"]
    },
-   "include": ["tests/**/*", "src/**/*", "src/**/*.vue", "auto-imports.d.ts", "components.d.ts"]
+   "include": [
+      "tests/**/*",
+      "src/**/*",
+      "src/**/*.vue",
+      "auto-imports.d.ts",
+      "components.d.ts",
+      "../supabase/functions/_shared/listingCompleteness.ts"
+   ]
 }

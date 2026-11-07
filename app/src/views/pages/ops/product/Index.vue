@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
 import { useCustomerFilter, withCustomerFilter } from '@/store/customerFilter';
 import MediaThumb from '@/components/service-components/media/MediaThumb.vue';
+import AmazonBulkPublish from './AmazonBulkPublish.vue';
 import {
    PRODUCT_STATUSES,
    specFilterFromQuery,
@@ -206,6 +207,23 @@ const openTransfer = async () => {
    selected.value = [];
 };
 
+// Publish to Amazon: the selected products, one customer's like a transfer (the customer's Amazon
+// account publishes them). The dialog keeps its own copy of the products, so the selection is
+// cleared and the result table stays.
+const bulkHint = computed(() => {
+   if (!selected.value.length) return t('ops.amazon.bulk.open_disabled_empty');
+   return transferCustomer.value ? null : t('ops.amazon.bulk.open_disabled_mixed');
+});
+const bulkProducts = ref<TableRow<'product_with_evidence'>[]>([]);
+const bulkOpen = ref(false);
+const openBulk = () => {
+   if (!transferCustomer.value) return;
+   bulkProducts.value = [...selected.value];
+   bulkOpen.value = true;
+   // As after a transfer: the next action starts from a new selection.
+   selected.value = [];
+};
+
 const dialogRef = useDialogRef();
 </script>
 <template>
@@ -239,6 +257,27 @@ const dialogRef = useDialogRef();
                      "
                      :disabled="!transferCustomer"
                      @click="openTransfer"
+                  />
+               </span>
+               <span
+                  v-if="$can('create', 'listing_submission')"
+                  v-tooltip.bottom="bulkHint"
+                  data-amazon-bulk
+               >
+                  <Button
+                     variant="outlined"
+                     :icon="PrimeIcons.AMAZON"
+                     :label="
+                        selected.length
+                           ? $t(
+                                'ops.amazon.bulk.open_count',
+                                { count: selected.length },
+                                selected.length
+                             )
+                           : $t('ops.amazon.bulk.open')
+                     "
+                     :disabled="!transferCustomer"
+                     @click="openBulk"
                   />
                </span>
                <Button
@@ -319,4 +358,22 @@ const dialogRef = useDialogRef();
          />
       </template>
    </ResourceTable>
+   <Dialog
+      v-model:visible="bulkOpen"
+      modal
+      :header="$t('ops.amazon.bulk.title')"
+      class="w-full max-w-3xl"
+      :draggable="false"
+   >
+      <AmazonBulkPublish
+         :productIds="bulkProducts.map(({ id }) => id!)"
+         :products="
+            bulkProducts.map(({ id, sku, display_name }) => ({
+               id: id!,
+               sku: sku!,
+               display_name: display_name!
+            }))
+         "
+      />
+   </Dialog>
 </template>

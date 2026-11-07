@@ -11,14 +11,15 @@ import { inject, type InjectionKey } from 'vue';
 
 export type ProductFormTab = 'general' | 'dimensions' | 'cost';
 
-/** The product card's tabs: the form's, then the documents and the media. */
+/** The product card's tabs: the form's, then the documents, the media and the Amazon content. */
 export const PRODUCT_CARD_TABS = [
    'general',
    'dimensions',
    'cost',
    'orders',
    'documents',
-   'media'
+   'media',
+   'amazon'
 ] as const;
 export type ProductCardTab = (typeof PRODUCT_CARD_TABS)[number];
 

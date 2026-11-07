@@ -1,3 +1,4 @@
+import { API_CONNECTIONS, LISTING_STATES } from '@/api/amazon';
 import {
    CHANGE_KINDS,
    CHANGE_REQUEST_SOURCES,
@@ -59,7 +60,9 @@ export const GLOSSARY_ENUMS = {
    change_request_status: CHANGE_REQUEST_STATUSES,
    change_request_source: CHANGE_REQUEST_SOURCES,
    change_request_urgency: CHANGE_REQUEST_URGENCIES,
-   change_kind: CHANGE_KINDS
+   change_kind: CHANGE_KINDS,
+   listing_state: LISTING_STATES,
+   api_connection: API_CONNECTIONS
 } as const;
 
 export type GlossaryEnum = keyof typeof GLOSSARY_ENUMS;
@@ -97,5 +100,7 @@ export const GLOSSARY_LABELS: Record<GlossaryEnum, string | null> = {
    change_request_status: 'ops.change_request.status',
    change_request_source: 'ops.change_request.source',
    change_request_urgency: 'ops.change_request.urgency',
-   change_kind: 'ops.change_request.kind'
+   change_kind: 'ops.change_request.kind',
+   listing_state: 'ops.amazon.state',
+   api_connection: 'ops.amazon.api_connection'
 };

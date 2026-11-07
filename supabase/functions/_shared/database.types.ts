@@ -34,6 +34,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      amazon_product_type_definition: {
+        Row: {
+          display_name: string | null
+          fetched_at: string
+          locale: string
+          marketplace_id: string
+          product_type: string
+          property_groups: Json
+          schema: Json
+          version: string
+        }
+        Insert: {
+          display_name?: string | null
+          fetched_at?: string
+          locale: string
+          marketplace_id: string
+          product_type: string
+          property_groups: Json
+          schema: Json
+          version: string
+        }
+        Update: {
+          display_name?: string | null
+          fetched_at?: string
+          locale?: string
+          marketplace_id?: string
+          product_type?: string
+          property_groups?: Json
+          schema?: Json
+          version?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           created_at: string
@@ -646,31 +679,40 @@ export type Database = {
         Row: {
           access: Database["public"]["Enums"]["platform_access"]
           account_holder: string | null
+          api_connection: Database["public"]["Enums"]["api_connection"]
+          authorized_at: string | null
           countries: string[]
           customer_id: string
           id: string
           notes: string | null
           platform_id: string
+          seller_id: string | null
           tenant_id: string
         }
         Insert: {
           access?: Database["public"]["Enums"]["platform_access"]
           account_holder?: string | null
+          api_connection?: Database["public"]["Enums"]["api_connection"]
+          authorized_at?: string | null
           countries?: string[]
           customer_id: string
           id?: string
           notes?: string | null
           platform_id: string
+          seller_id?: string | null
           tenant_id: string
         }
         Update: {
           access?: Database["public"]["Enums"]["platform_access"]
           account_holder?: string | null
+          api_connection?: Database["public"]["Enums"]["api_connection"]
+          authorized_at?: string | null
           countries?: string[]
           customer_id?: string
           id?: string
           notes?: string | null
           platform_id?: string
+          seller_id?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -1186,6 +1228,83 @@ export type Database = {
           },
         ]
       }
+      listing_submission: {
+        Row: {
+          amazon_submission_id: string | null
+          cell_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issues: Json
+          kind: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id: string
+          payload: Json
+          sku: string
+          status: Database["public"]["Enums"]["listing_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amazon_submission_id?: string | null
+          cell_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issues?: Json
+          kind: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id: string
+          payload: Json
+          sku: string
+          status?: Database["public"]["Enums"]["listing_submission_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amazon_submission_id?: string | null
+          cell_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issues?: Json
+          kind?: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id?: string
+          payload?: Json
+          sku?: string
+          status?: Database["public"]["Enums"]["listing_submission_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_submission_cell_fkey"
+            columns: ["cell_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "market_cell"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "listing_submission_cell_fkey"
+            columns: ["cell_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "market_cell_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "listing_submission_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_submission_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_cell: {
         Row: {
           compliance: Database["public"]["Enums"]["market_compliance"]
@@ -1195,9 +1314,14 @@ export type Database = {
           created_at: string
           currency: string | null
           customer_id: string
+          fulfillment_channel: string | null
           id: string
           last_checked_on: string | null
           launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
           notes: string | null
           open_issue: string | null
           platform_id: string
@@ -1221,9 +1345,14 @@ export type Database = {
           created_at?: string
           currency?: string | null
           customer_id: string
+          fulfillment_channel?: string | null
           id?: string
           last_checked_on?: string | null
           launched_on?: string | null
+          listing_checked_at?: string | null
+          listing_language?: string | null
+          listing_match?: Json | null
+          listing_state?: Database["public"]["Enums"]["listing_state"] | null
           notes?: string | null
           open_issue?: string | null
           platform_id: string
@@ -1247,9 +1376,14 @@ export type Database = {
           created_at?: string
           currency?: string | null
           customer_id?: string
+          fulfillment_channel?: string | null
           id?: string
           last_checked_on?: string | null
           launched_on?: string | null
+          listing_checked_at?: string | null
+          listing_language?: string | null
+          listing_match?: Json | null
+          listing_state?: Database["public"]["Enums"]["listing_state"] | null
           notes?: string | null
           open_issue?: string | null
           platform_id?: string
@@ -1682,6 +1816,8 @@ export type Database = {
       }
       product: {
         Row: {
+          amazon_product_type: string | null
+          amazon_schema_version: string | null
           brand: string | null
           carton_dims_mm: string | null
           carton_gross_kg: number | null
@@ -1703,6 +1839,7 @@ export type Database = {
           is_hazmat: boolean
           landed_cost_eur: number | null
           landed_cost_on: string | null
+          listing_attributes: Json
           lot_rule: string | null
           manufacturer_art_no: string | null
           notes: string | null
@@ -1729,6 +1866,8 @@ export type Database = {
           variant_label: string | null
         }
         Insert: {
+          amazon_product_type?: string | null
+          amazon_schema_version?: string | null
           brand?: string | null
           carton_dims_mm?: string | null
           carton_gross_kg?: number | null
@@ -1750,6 +1889,7 @@ export type Database = {
           is_hazmat?: boolean
           landed_cost_eur?: number | null
           landed_cost_on?: string | null
+          listing_attributes?: Json
           lot_rule?: string | null
           manufacturer_art_no?: string | null
           notes?: string | null
@@ -1776,6 +1916,8 @@ export type Database = {
           variant_label?: string | null
         }
         Update: {
+          amazon_product_type?: string | null
+          amazon_schema_version?: string | null
           brand?: string | null
           carton_dims_mm?: string | null
           carton_gross_kg?: number | null
@@ -1797,6 +1939,7 @@ export type Database = {
           is_hazmat?: boolean
           landed_cost_eur?: number | null
           landed_cost_on?: string | null
+          listing_attributes?: Json
           lot_rule?: string | null
           manufacturer_art_no?: string | null
           notes?: string | null
@@ -4203,10 +4346,15 @@ export type Database = {
           currency: string | null
           customer_code: string | null
           customer_id: string | null
+          fulfillment_channel: string | null
           gtin: string | null
           id: string | null
           last_checked_on: string | null
           launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
           notes: string | null
           open_issue: string | null
           platform_id: string | null
@@ -4720,6 +4868,39 @@ export type Database = {
         }
         Returns: string
       }
+      amazon_account_connect: {
+        Args: {
+          p_account_id: string
+          p_refresh_token: string
+          p_seller_id: string
+        }
+        Returns: {
+          access: Database["public"]["Enums"]["platform_access"]
+          account_holder: string | null
+          api_connection: Database["public"]["Enums"]["api_connection"]
+          authorized_at: string | null
+          countries: string[]
+          customer_id: string
+          id: string
+          notes: string | null
+          platform_id: string
+          seller_id: string | null
+          tenant_id: string
+        }
+      }
+      amazon_account_disconnect: {
+        Args: {
+          p_account_id: string
+          p_state: Database["public"]["Enums"]["api_connection"]
+        }
+        Returns: undefined
+      }
+      amazon_account_token: {
+        Args: {
+          p_account_id: string
+        }
+        Returns: string
+      }
       audit_transfer_locked: {
         Args: {
           transaction_id: string
@@ -4782,6 +4963,140 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      listing_apply_submission: {
+        Args: {
+          p_submission_id: string
+          p_status: Database["public"]["Enums"]["listing_submission_status"]
+          p_amazon_submission_id: string
+          p_issues: Json
+          p_listing_state: Database["public"]["Enums"]["listing_state"]
+          p_asin: string
+          p_actor?: string
+        }
+        Returns: {
+          compliance: Database["public"]["Enums"]["market_compliance"]
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at: string
+          currency: string | null
+          customer_id: string
+          fulfillment_channel: string | null
+          id: string
+          last_checked_on: string | null
+          launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number
+          product_id: string
+          project_id: string | null
+          status: Database["public"]["Enums"]["market_cell_status"]
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string
+          updated_at: string
+        }
+      }
+      listing_begin_submission: {
+        Args: {
+          p_cell_id: string
+          p_kind: Database["public"]["Enums"]["listing_submission_kind"]
+          p_payload: Json
+        }
+        Returns: {
+          amazon_submission_id: string | null
+          cell_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issues: Json
+          kind: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id: string
+          payload: Json
+          sku: string
+          status: Database["public"]["Enums"]["listing_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+      }
+      listing_parent_cell: {
+        Args: {
+          p_cell_id: string
+        }
+        Returns: string
+      }
+      listing_set_state: {
+        Args: {
+          p_cell_id: string
+          p_listing_state: Database["public"]["Enums"]["listing_state"]
+          p_listing_match: Json
+          p_expected_updated_at?: string
+          p_actor?: string
+        }
+        Returns: {
+          compliance: Database["public"]["Enums"]["market_compliance"]
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"]
+          country: string
+          created_at: string
+          currency: string | null
+          customer_id: string
+          fulfillment_channel: string | null
+          id: string
+          last_checked_on: string | null
+          launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number
+          product_id: string
+          project_id: string | null
+          status: Database["public"]["Enums"]["market_cell_status"]
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string
+          updated_at: string
+        }
+      }
+      listing_settle_removal: {
+        Args: {
+          p_submission_id: string
+          p_status: Database["public"]["Enums"]["listing_submission_status"]
+          p_amazon_submission_id: string
+          p_issues: Json
+          p_actor?: string
+        }
+        Returns: {
+          amazon_submission_id: string | null
+          cell_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issues: Json
+          kind: Database["public"]["Enums"]["listing_submission_kind"]
+          marketplace_id: string
+          payload: Json
+          sku: string
+          status: Database["public"]["Enums"]["listing_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
       }
       managed_in: {
         Args: {
@@ -5024,6 +5339,7 @@ export type Database = {
       }
     }
     Enums: {
+      api_connection: "none" | "connected" | "revoked"
       change_kind:
         | "spec"
         | "design"
@@ -5116,6 +5432,14 @@ export type Database = {
         | "customer"
       incident_severity: "s1" | "s2" | "s3"
       incident_status: "open" | "contained" | "closed"
+      listing_state: "draft" | "ready" | "submitted" | "live" | "issues"
+      listing_submission_kind: "create" | "update" | "delete"
+      listing_submission_status:
+        | "accepted"
+        | "invalid"
+        | "processing"
+        | "done"
+        | "failed"
       market_cell_status:
         | "candidate"
         | "planned"

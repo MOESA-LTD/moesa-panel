@@ -666,6 +666,21 @@ const routes: RouteRecordRaw[] = [
                            default: () => import('@/views/pages/ops/product/tabs/Media.vue'),
                            skeleton: () => import('@/views/pages/ops/product/tabs/Media.vue')
                         }
+                     },
+                     {
+                        // The Amazon content; `?market=<country>`, `?lang=<xx_YY>` and `?field=<attribute>` pick its cell, language and field.
+                        path: 'amazon',
+                        name: 'ops-product-manage-amazon',
+                        props: true,
+                        meta: {
+                           label: 'route.label.ops_product_amazon',
+                           icon: PrimeIcons.AMAZON,
+                           visible: false
+                        },
+                        components: {
+                           default: () => import('@/views/pages/ops/product/tabs/Amazon.vue'),
+                           skeleton: () => import('@/views/pages/ops/product/tabs/Amazon.vue')
+                        }
                      }
                   ]
                }

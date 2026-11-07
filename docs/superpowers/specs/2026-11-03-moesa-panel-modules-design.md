@@ -399,6 +399,10 @@ C-G1 müşteri kaydındadır (M1). (M) işaretli kapılar 06 §2'deki gibi: G1, 
 
 **Ekran:** Müşteri kartı → "Aktar…" (ve ürün listesinde çoklu seçim → "Aktar…"): hedef kiracı seçimi (kullanıcının yetkili olduğu, kaynak dışındaki kiracılar), mod, prova raporu, karar formu, onay. Sonuç ekranı eşleme tablosunu CSV olarak verir.
 
+### M22 Amazon listing yayınlama (Faz 3, tasarım: `2026-11-06-amazon-listing-design.md`)
+
+Panel ürünün listing içeriğinin kaynağıdır: ürün kartındaki "Amazon" sekmesi, Amazon'un ürün tipi (kategori) şemasından üretilen dinamik formla (sol gezinti + bölüm, eksik sayaçları) `listing_attributes` değerlerini tutar; pazar matrisi hücresinin çekmecesi pazaryerine özel alanları, EAN→ASIN eşleşmesini, gönderim geçmişini ve **Amazon'da yayınla** düğmesini taşır; hücre rozeti taslak → hazır → gönderildi → yayında / sorunlu yolculuğunu gösterir. Her müşteri kendi Seller Central hesabını müşteri kartından bağlar (public app, OAuth; token Vault'ta). Tüm Amazon çağrıları Edge Function'larda; sandbox ile geliştirilir, üretim onay sonrası ayrı uygulamayla açılır. v1'de kapı bağı yok; diğer platformlar elle kalır. (Karar 2026-11-06.)
+
 ### M11–M16 (Faz 3, sınır tanımı)
 
 - **M11 Stok ve yeniden sipariş:** haftalık `stock_snapshot` (ürün × hücre: 30 gün satış, stok platform / depo / yolda) → kalan gün ve yeniden sipariş noktası (üretim + sevkiyat + güvenlik stoku) × günlük satış; PO önerisi taslağı üretir. Veri CSV ile girilir; API yok.

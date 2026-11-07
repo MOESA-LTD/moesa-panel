@@ -173,7 +173,9 @@
       "incident_deadline": "Incident deadline",
       "change_request": "Change request",
       "change_request_product": "Change request product",
-      "transfer": "Transfer"
+      "transfer": "Transfer",
+      "listing": "Listing",
+      "listing_submission": "Listing submission"
    },
    "input": {
       "select_or_write": "選択または入力してください"
@@ -486,6 +488,8 @@
       "market_cell_compliance_red": "A red cell cannot be planned or live; remove it with the reason.",
       "market_cell_live_incomplete": "Live needs the platform ID, platform SKU, price, currency, stock source and approved content (L-G1).",
       "market_cell_status_order": "The cell cannot move to this status from its current one (S05).",
+      "market_cell_listing_server_only": "Only the Amazon connection updates the listing state.",
+      "platform_account_api_server_only": "The Amazon connection is set by connecting the account.",
       "market_cell_reason_required": "Write the reason: the open issue when suppressed, a note when closed or removed.",
       "market_cell_immutable_field": "A cell's product, platform and country do not change; open a new cell.",
       "market_cell_delete_candidate_only": "Only a candidate cell can be deleted; remove or close the others.",
@@ -539,7 +543,41 @@
       "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer.",
       "transfer_not_found": "Transfer not found.",
       "transfer_files_pending": "The files of an earlier transfer into this customer are not all copied yet. Finish that transfer first: \"Retry file copy\" on the customer's page.",
-      "request_failed": "Request failed"
+      "request_failed": "Request failed",
+      "amazon_not_connected": "The customer has not connected an Amazon account.",
+      "amazon_connection_revoked": "The Amazon connection was withdrawn. Connect the account again.",
+      "amazon_auth_failed": "Amazon refused the authorisation. Connect the account again.",
+      "amazon_unavailable": "Amazon is not reachable right now. Try again later.",
+      "amazon_throttled": "Amazon is limiting requests. Try again in a moment.",
+      "amazon_rate_limited": "Too many requests to Amazon. Try again in a moment.",
+      "amazon_marketplace_unsupported": "This country is not supported for Amazon listings.",
+      "amazon_schema_missing": "The Amazon schema for this product type is not available yet.",
+      "amazon_schema_checksum": "The downloaded Amazon schema failed its integrity check. Try again.",
+      "amazon_schema_invalid": "The Amazon schema could not be read.",
+      "amazon_request_invalid": "Amazon rejected the request.",
+      "amazon_not_found": "Amazon does not know this item.",
+      "amazon_unconfigured": "Amazon is not configured on the server.",
+      "amazon_state_invalid": "The Amazon connection request expired or is not valid. Start again.",
+      "amazon_state_replayed": "This Amazon connection request was already used. Start again.",
+      "amazon_callback_invalid": "Amazon’s answer was incomplete. Start again.",
+      "listing_incomplete": "Required Amazon fields are missing.",
+      "listing_image_missing": "An image of the listing could not be found.",
+      "listing_image_url_not_public": "Images must be served from a public address before Amazon can fetch them.",
+      "listing_cell_not_found": "This Amazon cell was not found.",
+      "listing_product_type_missing": "Choose an Amazon product type first.",
+      "listing_language_missing": "This country needs a listing language.",
+      "listing_submission_not_found": "Nothing has been submitted for this cell yet.",
+      "platform_account_not_found": "The platform account was not found.",
+      "invalid_request": "The request is not valid.",
+      "unauthorized": "Sign in again to continue.",
+      "forbidden": "You are not allowed to do this.",
+      "tenant_not_allowed": "You are not allowed to act in this company.",
+      "method_not_allowed": "This request method is not allowed.",
+      "not_found": "Not found.",
+      "listing_in_progress": "Amazon is still processing the last submission of this listing.",
+      "listing_forbidden": "You may not manage this listing.",
+      "platform_account_forbidden": "You may not change this Amazon account's connection.",
+      "platform_account_connected": "Disconnect Amazon before moving this account to another customer."
    },
    "account": {
       "profile": {
@@ -749,7 +787,8 @@
          "ops_change_request_decision": "Decision",
          "ops_change_request_documents": "Documents",
          "guide": "System guide",
-         "ops_transfer": "Transfer"
+         "ops_transfer": "Transfer",
+         "ops_product_amazon": "Amazon"
       }
    },
    "dashboard": {
@@ -1229,7 +1268,8 @@
             "cost": "Cost",
             "documents": "Documents",
             "media": "Media",
-            "orders": "Orders and shipments"
+            "orders": "Orders and shipments",
+            "amazon": "Amazon"
          },
          "sections": {
             "identity": "Product",
@@ -2224,6 +2264,174 @@
          },
          "open_count": "Transfer {count}…",
          "open_disabled_empty": "Select products first."
+      },
+      "amazon": {
+         "state": {
+            "draft": "Draft",
+            "ready": "Ready",
+            "submitted": "Submitted",
+            "live": "Live",
+            "issues": "Issues"
+         },
+         "api_connection": {
+            "none": "Not connected",
+            "connected": "Connected",
+            "revoked": "Revoked"
+         },
+         "platform": {
+            "api_connection": "Amazon connection",
+            "authorized_at": "Connected on"
+         },
+         "tab": {
+            "title": "Amazon",
+            "product_type": "Amazon product type",
+            "product_type_search": "Search product types",
+            "product_type_none": "No product type matches.",
+            "schema_version": "Schema version {version}",
+            "schema_moved": "Amazon changed this product type to version {version}. Your values are kept; check the fields marked missing.",
+            "language": "Language",
+            "next_missing": "Next missing field",
+            "completeness": "{filled} of {total} required fields filled",
+            "groups": "Field groups",
+            "badge": {
+               "required": "Required",
+               "conditional": "Required if applicable",
+               "optional": "Optional"
+            },
+            "image_pick": "Choose image",
+            "image_clear": "Remove image",
+            "save": "Save Amazon content",
+            "values_kept": "Values already entered are kept.",
+            "json_invalid": "This is not valid JSON.",
+            "issue_link": "Go to {field}",
+            "product_type_empty": "Choose the Amazon product type to fill in its fields.",
+            "provided": "Filled in on publishing, from the product or the market cell.",
+            "value_clear": "Clear the value",
+            "derived": {
+               "badge": "From the product",
+               "source": "Product card › {field}",
+               "override": "Override for this language",
+               "use_product": "Use the product value"
+            }
+         },
+         "cell": {
+            "title": "Amazon listing",
+            "open": "Open Amazon listing",
+            "connection": "Amazon connection",
+            "not_connected": "The customer has not connected an Amazon account.",
+            "completeness": "Completeness",
+            "missing_none": "No field is missing.",
+            "marketplace": "Marketplace",
+            "listing_language": "Listing language",
+            "fulfillment_channel": "Fulfilment",
+            "fulfillment": {
+               "fbm": "Merchant fulfilled (FBM)",
+               "fba": "Fulfilled by Amazon (FBA)"
+            },
+            "match": {
+               "found": "Matches an existing Amazon product ({asin})",
+               "new": "No match: a new product will be created",
+               "none": "Not checked yet"
+            },
+            "restriction": {
+               "none": "No selling restriction",
+               "restricted": "Selling is restricted: {reasons}"
+            },
+            "history": "Submissions",
+            "history_empty": "Nothing has been submitted yet.",
+            "issue_general": "General",
+            "check": "Check",
+            "publish": "Publish on Amazon",
+            "update": "Update on Amazon",
+            "validate": "Validate with Amazon",
+            "validated": {
+               "VALID": "Amazon accepts this listing.",
+               "INVALID": "Amazon reports problems with this listing."
+            },
+            "delete": "Remove from Amazon",
+            "delete_confirm": "Remove this listing from Amazon?",
+            "checked_at": "Checked {date}",
+            "state": "Listing state",
+            "state_unknown": "Unknown state",
+            "open_platforms": "Open the customer’s platform accounts",
+            "product_type_missing": "The product has no Amazon product type yet.",
+            "open_tab": "Open the Amazon tab",
+            "catalogue": "Catalogue match",
+            "fields_save": "Save marketplace fields",
+            "published": "Sent to Amazon: {status}",
+            "publish_blocked": {
+               "not_connected": "Connect the customer’s Amazon account first.",
+               "product_type": "Choose the product’s Amazon product type first.",
+               "missing": "Fill in the missing fields first.",
+               "unchecked": "Run Check to mark the listing ready.",
+               "submitted": "Amazon is still processing the last submission.",
+               "unsaved": "Save the marketplace fields first.",
+               "unsaved_attributes": "Save the Amazon fields first."
+            },
+            "refresh_status": "Refresh status",
+            "attributes_save": "Save Amazon fields",
+            "open_all": "Open all fields in the product tab",
+            "issue_fix": "Fix",
+            "tabs": {
+               "listing": "Listing",
+               "content": "Content"
+            },
+            "content_notice": "These fields belong to the product and apply to all its marketplaces; texts are written in {language}.",
+            "open_in_content": "Open in the Content tab"
+         },
+         "connect": {
+            "button": "Connect Amazon",
+            "reconnect": "Reconnect Amazon",
+            "disconnect": "Disconnect Amazon",
+            "connected_on": "Connected on {date}",
+            "sandbox_note": "Test mode: the connection is simulated and no seller consent is asked.",
+            "result": {
+               "connected": "Amazon is connected.",
+               "error": "Amazon could not be connected."
+            },
+            "seller_id": "Seller ID {id}",
+            "disconnect_confirm": "Disconnect the Amazon account? Nothing can be published to Amazon until it is connected again.",
+            "disconnected": "Amazon is disconnected."
+         },
+         "bulk": {
+            "open": "Publish to Amazon",
+            "open_count": "Publish {count} products to Amazon",
+            "title": "Publish to Amazon",
+            "country": "Country",
+            "submit": "Publish",
+            "col": {
+               "sku": "SKU",
+               "name": "Product",
+               "result": "Result",
+               "detail": "Detail"
+            },
+            "result": {
+               "submitted": "Submitted",
+               "skipped_no_cell": "Skipped: no Amazon cell in this country",
+               "skipped_incomplete": "Skipped: required fields are missing",
+               "invalid": "Rejected by Amazon",
+               "error": "Failed"
+            },
+            "open_disabled_empty": "Select products first.",
+            "open_disabled_mixed": "Pick products of one customer to publish them.",
+            "summary": "{submitted} of {total} submitted"
+         },
+         "submission": {
+            "kind": {
+               "create": "Create",
+               "update": "Update",
+               "delete": "Remove from Amazon",
+               "unknown": "Other"
+            },
+            "status": {
+               "accepted": "Accepted",
+               "invalid": "Rejected",
+               "processing": "Processing",
+               "done": "Done",
+               "failed": "Failed",
+               "unknown": "Unknown"
+            }
+         }
       }
    },
    "glossary": {
@@ -2457,6 +2665,18 @@
          "deadline": "Ready date, booking or launch date.",
          "supplier": "Another supplier; a new spec sheet and golden sample.",
          "content": "Listing content; L-G1 again."
+      },
+      "listing_state": {
+         "draft": "Required Amazon fields are still missing.",
+         "ready": "All required Amazon fields are filled; the listing can be published.",
+         "submitted": "Sent to Amazon; waiting for Amazon to process it.",
+         "live": "Amazon lists the product and it can be bought.",
+         "issues": "Amazon reported problems that must be fixed."
+      },
+      "api_connection": {
+         "none": "The customer has not connected an Amazon account.",
+         "connected": "The customer’s Amazon account is connected.",
+         "revoked": "The customer withdrew the authorisation; connect again to continue."
       }
    },
    "status_actions": {
@@ -2624,6 +2844,14 @@
                      "2": "Rehearse, then decide each conflict: link, new code, empty [[GTIN]] or skip.",
                      "3": "Confirm; download the ID map, and retry the file copy if files are missing."
                   }
+               },
+               "connect_amazon": {
+                  "title": "Connect the Amazon account",
+                  "steps": {
+                     "1": "Open the customer, then the Platforms tab.",
+                     "2": "Press Connect Amazon on the Amazon account and give consent as the seller.",
+                     "3": "The tab shows Connected with the seller ID; publishing is possible from then on."
+                  }
                }
             }
          },
@@ -2681,6 +2909,14 @@
                      "1": "Open the product, then Media.",
                      "2": "Drop the files; the first image becomes the primary image.",
                      "3": "Change a file's role from its menu."
+                  }
+               },
+               "fill_amazon": {
+                  "title": "Fill in the Amazon content",
+                  "steps": {
+                     "1": "Open the product, then the Amazon tab, and choose the [[productType]].",
+                     "2": "Fill the fields marked Required; the counter shows how many are left. A parent product also needs its [[variation_theme]].",
+                     "3": "Save the Amazon content; the market cell shows what is still missing."
                   }
                }
             }
@@ -2855,6 +3091,14 @@
                      "1": "Move it through planned, preparing and uploaded as the work goes.",
                      "2": "Fill the platform ID, platform SKU, price, currency and stock source.",
                      "3": "With the content approved (L-G1), choose Live."
+                  }
+               },
+               "publish_amazon": {
+                  "title": "Publish a cell on Amazon",
+                  "steps": {
+                     "1": "Open an Amazon cell and press Check; fix the missing fields it links to.",
+                     "2": "When the cell is ready, press Publish on Amazon; Amazon answers with a [[submissionId]].",
+                     "3": "Watch the state move to Live, or open the issues and fix each one in the Amazon tab."
                   }
                }
             }
@@ -3105,6 +3349,18 @@
       "SKU": {
          "short": "Stock keeping unit: the seller's own code for one product variant.",
          "long": "One variant is one SKU and one row of the product master ([[S10]]); it holds no platform or country. A marketplace may have its own platform SKU for the same product, kept on the market cell. A SKU is unique."
+      },
+      "product_type": {
+         "short": "Amazon's category of a product, for example LUGGAGE. It decides which fields Amazon asks for.",
+         "long": "Amazon describes every product type with its own schema, and the Amazon tab shows exactly those fields. Pick it once per product; if Amazon changes the schema the values you entered are kept and the missing fields are recomputed. It is filled in before a cell can be published ([[S05]])."
+      },
+      "submission_id": {
+         "short": "The ID Amazon gives to one submission of a listing.",
+         "long": "Every Publish, Update or Remove creates one submission, and Amazon answers with this ID. The panel polls Amazon with it until the submission is done or has issues; it is also what Amazon support asks for when something looks wrong."
+      },
+      "variation_theme": {
+         "short": "How the children of a parent product differ, for example by size or colour.",
+         "long": "Set on the parent product of a variation family. Every child must then carry the matching attributes (such as size or colour) and the parent link, or Amazon refuses the listing. The panel marks them as missing in the Amazon tab."
       }
    },
    "system_guide": {
@@ -3139,6 +3395,10 @@
          "abbreviations": {
             "title": "Abbreviations",
             "intro": "Trade abbreviations used on the screens."
+         },
+         "amazon": {
+            "title": "Amazon listing",
+            "intro": "Amazon's own words, as they appear in its messages and in the Amazon tab."
          }
       },
       "topics": {

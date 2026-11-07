@@ -37,6 +37,7 @@ describe('glossary', () => {
 
    it('covers the enums the spec names', () => {
       expect(Object.keys(GLOSSARY_ENUMS).sort()).toEqual([
+         'api_connection',
          'change_kind',
          'change_request_source',
          'change_request_status',
@@ -54,6 +55,7 @@ describe('glossary', () => {
          'incident_root_cause',
          'incident_severity',
          'incident_status',
+         'listing_state',
          'market_cell_status',
          'market_compliance',
          'package',

@@ -1,4 +1,4 @@
-import { type AnyAbility, createMongoAbility, jwtDecode } from './deps.ts';
+import { type AnyAbility, createMongoAbility, jwtDecode, timingSafeEqual } from './deps.ts';
 import { HttpError } from './http.ts';
 import { supabaseAdmin, supabaseClient } from './supabaseClient.ts';
 
@@ -74,6 +74,24 @@ export const authenticate = async (req: Request) => {
 
    return claims;
 };
+
+/**
+ * For calls made by the platform itself (pg_cron through pg_net): the bearer token must be the
+ * service role key. Compared in constant time; anything else is 401.
+ */
+export function assertServiceCall(
+   req: Request,
+   key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+): void {
+   const token = req.headers.get('Authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+   if (!key || !token) throw new HttpError(401, 'unauthorized');
+
+   const encoder = new TextEncoder();
+   const a = encoder.encode(token);
+   const b = encoder.encode(key);
+   if (a.byteLength !== b.byteLength || !timingSafeEqual(a, b))
+      throw new HttpError(401, 'unauthorized');
+}
 
 export async function withAuthorization(
    req: Request,

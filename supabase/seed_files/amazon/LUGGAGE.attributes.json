@@ -1,0 +1,10 @@
+{
+  "item_name": [{ "value": "Baumwoll-Wischmopp-Bezug 40 cm, 2er-Pack", "language_tag": "de_DE" }],
+  "brand": [{ "value": "OKAEI", "language_tag": "de_DE" }],
+  "condition_type": [{ "value": "new_new" }],
+  "bullet_point": [
+    { "value": "Waschbarer Wischbezug aus 100 % Baumwolle, passend für 40-cm-Mopphalter", "language_tag": "de_DE" },
+    { "value": "Im 2er-Pack: ein Bezug im Einsatz, einer in der Wäsche", "language_tag": "de_DE" }
+  ],
+  "main_product_image_locator": [{ "media_location": "media:5eed0009-0000-4000-8000-000000000001" }]
+}

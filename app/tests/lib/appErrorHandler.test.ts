@@ -73,6 +73,18 @@ describe('appErrorHandler', () => {
       expect(en.errors.request_failed).toBe('Request failed');
    });
 
+   it('titles an Amazon function refusal with a neutral summary, not the class name', async () => {
+      const { AmazonApiError } = await import('@/api/amazon');
+      await appErrorHandler(new AmazonApiError('amazon_schema_missing'));
+
+      expect(toasts()).toEqual([
+         expect.objectContaining({
+            summary: en.errors.request_failed,
+            detail: i18n.t('errors.amazon_schema_missing')
+         })
+      ]);
+   });
+
    it('keeps the name of another classified error as its summary', async () => {
       await appErrorHandler({ name: 'AuthApiError', status: 400, message: 'invalid_credentials' });
 

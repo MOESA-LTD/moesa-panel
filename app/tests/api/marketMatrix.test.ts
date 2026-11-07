@@ -19,7 +19,8 @@ import {
    useAddMarketCells,
    useMarketCells,
    useSetMarketCellStatus,
-   type MarketCellOverviewRow
+   type MarketCellOverviewRow,
+   type MarketCellRow
 } from '@/api/marketMatrix';
 import i18n from '@plugins/i18n';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
@@ -337,6 +338,32 @@ describe('toMarketCellPayload', () => {
       expect(created).not.toHaveProperty('id');
       expect(created).not.toHaveProperty('customer_id');
       expect(created).not.toHaveProperty('status');
+   });
+
+   it('toMarketCellPayload never sends the server-only listing columns', () => {
+      // A cell loaded with its Amazon columns: the form must not write them back (the functions
+      // own the state, the match and the check time; the drawer saves the language and channel).
+      const cell = {
+         product_id: P,
+         platform_id: 'amazon',
+         country: 'DE',
+         listing_state: 'live',
+         listing_checked_at: '2026-11-06T10:00:00Z',
+         listing_match: { asin: 'B0TEST', restricted: false, reasons: [] },
+         listing_language: 'de_DE',
+         fulfillment_channel: 'fbm'
+      } as Partial<MarketCellRow>;
+      const values = marketCellSchema.parse({ ...toMarketCellFormValues(cell), ...cell });
+      for (const payload of [toMarketCellPayload(values, 'c1'), toMarketCellPayload(values)]) {
+         for (const key of [
+            'listing_state',
+            'listing_checked_at',
+            'listing_match',
+            'listing_language',
+            'fulfillment_channel'
+         ])
+            expect(payload).not.toHaveProperty(key);
+      }
    });
 
    it('sends NULL, never an empty string, for the empty text fields', () => {

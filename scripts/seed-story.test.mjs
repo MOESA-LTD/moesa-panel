@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { assertLocalApiUrl, bigPdf, countChecks, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
+import { amazonStoryPrelude, assertLocalApiUrl, bigPdf, countChecks, edgeSecretsSql, GENERATED_BIG_PDF, main, MEDIA, parseCheckRows, parseStatus, ROOT, run } from './seed-story.mjs';
 
 test('bigPdf is sample.pdf padded with comment lines to exactly 12 MiB', () => {
    const sample = readFileSync(path.join(ROOT, 'supabase', 'seed_files', 'sample.pdf'));
@@ -109,6 +109,38 @@ test('the check runs with the story date the database had before the story began
    assert.match(logs.join('\n'), /ok \(\d+ checks\)/);
 });
 
+test('edgeSecretsSql sets both secrets after the story and before the check', async () => {
+   const sqlText = edgeSecretsSql('svc-key');
+   assert.match(sqlText, /'edge_function_url'/);
+   assert.match(sqlText, /'edge_service_key'/);
+   assert.match(sqlText, /supabase_kong_moesa-panel:8000\/functions\/v1/);
+   assert.match(sqlText, /\$k\$svc-key\$k\$/);
+   assert.throws(() => edgeSecretsSql('bad$k$key'));
+
+   const order = [];
+   const original = console.log;
+   console.log = () => {};
+   try {
+      await main({
+         keys: () => ({ apiUrl: 'http://127.0.0.1:1', serviceRoleKey: 'svc-key' }),
+         sql: (text, opts) => {
+            if (text.startsWith('SELECT count(*) FROM public.customer')) return '0';
+            if (text.startsWith('SELECT id FROM public.tenant')) return 'tenant-id';
+            if (text === 'SELECT current_date') return '2026-11-06';
+            order.push(text.includes('edge_service_key') && text.includes('vault.create_secret') ? 'secrets' : opts?.singleTransaction ? 'story' : 'check');
+            return '';
+         },
+         upload: async () => {},
+         exit: (code) => {
+            throw new Error(`exit ${code}`);
+         },
+      });
+   } finally {
+      console.log = original;
+   }
+   assert.deepEqual(order, ['story', 'secrets', 'check']);
+});
+
 test('the check SQL derives every date from pg_temp.today(), never current_date directly', () => {
    const sql = readFileSync(path.join(ROOT, 'supabase', 'seed_story.check.sql'), 'utf8');
    const uses = sql.split(/\r?\n/).filter((l) => /current_date/.test(l) && !l.trimStart().startsWith('--'));
@@ -147,4 +179,55 @@ test('a non-local API URL is refused before any query or upload', async () => {
    assert.equal(touched, 0);
    assert.doesNotThrow(() => assertLocalApiUrl('http://127.0.0.1:54321'));
    assert.doesNotThrow(() => assertLocalApiUrl('http://localhost:54321'));
+});
+
+test('amazonStoryPrelude embeds both fixture files and the seller id', () => {
+   const dir = path.join(ROOT, 'supabase', 'seed_files', 'amazon');
+   const definition = readFileSync(path.join(dir, 'LUGGAGE.A1PA6795UKMFR9.en_GB.json'), 'utf8');
+   const attributes = readFileSync(path.join(dir, 'LUGGAGE.attributes.json'), 'utf8');
+   const prelude = amazonStoryPrelude(ROOT, { AMAZON_SPAPI_SELLER_ID: 'A1TESTSELLER' });
+   assert.ok(prelude.includes(`set_config('story.amazon_definition', $fx$${definition}$fx$, FALSE)`));
+   assert.ok(prelude.includes(`set_config('story.amazon_attributes', $fx$${attributes}$fx$, FALSE)`));
+   assert.ok(prelude.includes(`set_config('story.amazon_seller_id', 'A1TESTSELLER', FALSE)`));
+   assert.ok(amazonStoryPrelude(ROOT, {}).includes(`'SANDBOX_SELLER'`));
+   assert.ok(amazonStoryPrelude(ROOT, { AMAZON_SPAPI_SELLER_ID: '  ' }).includes(`'SANDBOX_SELLER'`));
+   assert.throws(() => amazonStoryPrelude(ROOT, { AMAZON_SPAPI_SELLER_ID: "x'); DROP TABLE y; --" }), /seller id/);
+});
+
+test('the amazon fixture files exist and parse', () => {
+   const dir = path.join(ROOT, 'supabase', 'seed_files', 'amazon');
+   for (const name of ['LUGGAGE.A1PA6795UKMFR9.en_GB.json', 'LUGGAGE.attributes.json']) {
+      assert.ok(existsSync(path.join(dir, name)), name);
+      assert.doesNotThrow(() => JSON.parse(readFileSync(path.join(dir, name), 'utf8')), name);
+   }
+   const definition = JSON.parse(readFileSync(path.join(dir, 'LUGGAGE.A1PA6795UKMFR9.en_GB.json'), 'utf8'));
+   assert.equal(definition.productType, 'LUGGAGE');
+   assert.equal(typeof definition.schema.properties, 'object');
+});
+
+test('the story SQL runs after the prelude, in the same transaction', async () => {
+   const statements = [];
+   const original = console.log;
+   console.log = () => {};
+   try {
+      await main({
+         keys: () => ({ apiUrl: 'http://127.0.0.1:1', serviceRoleKey: 'svc-key' }),
+         sql: (text, opts) => {
+            if (text.startsWith('SELECT count(*) FROM public.customer')) return '0';
+            if (text.startsWith('SELECT id FROM public.tenant')) return 'tenant-id';
+            if (text === 'SELECT current_date') return '2026-11-06';
+            if (opts?.singleTransaction && !text.includes('vault.create_secret')) statements.push(text);
+            return '';
+         },
+         upload: async () => {},
+         exit: (code) => {
+            throw new Error(`exit ${code}`);
+         },
+      });
+   } finally {
+      console.log = original;
+   }
+   assert.equal(statements.length, 1);
+   assert.match(statements[0], /^SELECT set_config\('story\.amazon_definition'/);
+   assert.ok(statements[0].indexOf('story.amazon_seller_id') < statements[0].indexOf('seed_story: already loaded'));
 });

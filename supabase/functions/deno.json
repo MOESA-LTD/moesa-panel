@@ -3,7 +3,9 @@
     "lib": ["deno.ns", "dom"]
   },
   "tasks": {
-    "check": "deno check **/index.ts",
-    "test": "deno test --allow-env tests/"
+    "check": "deno check **/*.ts",
+    "test": "deno test --allow-env --allow-read tests/",
+    "test:live": "deno test --allow-env --allow-read --allow-net --env-file=.env tests/amazon_live_test.ts tests/amazon_listing_live_test.ts",
+    "probe": "deno run --allow-env --allow-net --env-file=.env scripts/probe.ts"
   }
 }

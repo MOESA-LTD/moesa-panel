@@ -166,6 +166,58 @@ async function uploadMedia(apiUrl, serviceRoleKey, tenantId) {
    }
 }
 
+// Where a request made from the database container reaches the Edge Functions (Kong on the
+// Docker network; verified with a pg_net probe in M22 task 2).
+export const EDGE_FUNCTION_URL = 'http://supabase_kong_moesa-panel:8000/functions/v1';
+
+// The two Vault secrets the pg_cron jobs of migration 047 read (edge_function_url, edge_service_key):
+// any old secret is deleted, then created. The key is dollar-quoted and never printed.
+export function edgeSecretsSql(serviceRoleKey) {
+   if (!serviceRoleKey || serviceRoleKey.includes('$k$')) throw new Error('unusable service role key');
+   return `DELETE FROM vault.secrets WHERE name IN ('edge_function_url', 'edge_service_key');
+SELECT vault.create_secret('${EDGE_FUNCTION_URL}', 'edge_function_url', 'Edge Functions base URL for pg_cron');
+SELECT vault.create_secret($k$${serviceRoleKey}$k$, 'edge_service_key', 'Service key for pg_cron calls');
+`;
+}
+
+// The values of a KEY=VALUE env file (comments and blank lines skipped, optional quotes removed);
+// {} when the file does not exist.
+export function readEnvFile(file) {
+   let text;
+   try {
+      text = readFileSync(file, 'utf8');
+   } catch {
+      return {};
+   }
+   const values = {};
+   for (const line of text.split(/\r?\n/)) {
+      const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+      if (match) values[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
+   }
+   return values;
+}
+
+// The statements step 11 reads its Amazon data from: the R3 fixture (definition and the mop's
+// attributes) and the seller id, as session settings the story SQL picks up with current_setting.
+// The seller id is the Edge Functions' AMAZON_SPAPI_SELLER_ID, else SANDBOX_SELLER, the placeholder
+// amazon-auth's sandbox connect stores too; no token is stored, because the sandbox uses the
+// self-authorized one.
+export function amazonStoryPrelude(root, env) {
+   const dir = path.join(root, 'supabase', 'seed_files', 'amazon');
+   const read = (name) => {
+      const text = readFileSync(path.join(dir, name), 'utf8');
+      JSON.parse(text);
+      if (text.includes('$fx$')) throw new Error(`${name} contains the quote tag $fx$`);
+      return text;
+   };
+   const sellerId = env.AMAZON_SPAPI_SELLER_ID?.trim() || 'SANDBOX_SELLER';
+   if (!/^[A-Za-z0-9_-]+$/.test(sellerId)) throw new Error('AMAZON_SPAPI_SELLER_ID is not a usable seller id');
+   return `SELECT set_config('story.amazon_definition', $fx$${read('LUGGAGE.A1PA6795UKMFR9.en_GB.json')}$fx$, FALSE);
+SELECT set_config('story.amazon_attributes', $fx$${read('LUGGAGE.attributes.json')}$fx$, FALSE);
+SELECT set_config('story.amazon_seller_id', '${sellerId}', FALSE);
+`;
+}
+
 // The steps are injectable so the test can prove the KRN guard stops the run before any upload.
 export async function main({ keys = localKeys, sql = psql, upload = uploadMedia, exit = process.exit } = {}) {
    const { apiUrl, serviceRoleKey } = keys();
@@ -188,7 +240,10 @@ export async function main({ keys = localKeys, sql = psql, upload = uploadMedia,
    // (story.today), so a run that crosses 00:00 UTC does not fail the date checks.
    const storyDate = sql('SELECT current_date').trim();
    if (!/^\d{4}-\d{2}-\d{2}$/.test(storyDate)) throw new Error(`unexpected database date: ${storyDate}`);
-   sql(storySql, { singleTransaction: true });
+   const env = readEnvFile(path.join(ROOT, 'supabase', 'functions', '.env'));
+   sql(amazonStoryPrelude(ROOT, env) + storySql, { singleTransaction: true });
+   // After the story and before its check, which asserts both secrets exist.
+   sql(edgeSecretsSql(serviceRoleKey), { singleTransaction: true });
 
    const checkSql = readFileSync(CHECK_SQL, 'utf8');
    const failures = parseCheckRows(sql(`SET story.today = '${storyDate}';\n${checkSql}`));

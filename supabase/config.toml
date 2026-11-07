@@ -254,6 +254,26 @@ verify_jwt = true
 [functions.create-account]
 verify_jwt = true
 
+# The weekly cron call (047) carries the service key, not a user JWT: the function checks it
+# with assertServiceCall, and user calls with withAuthorization.
+[functions.amazon-schema]
+verify_jwt = false
+
+# Amazon's OAuth redirect (amazon-auth/callback) carries no JWT: the signed state is its credential.
+# connect/disconnect verify the user JWT in code with withAuthorization.
+[functions.amazon-auth]
+verify_jwt = false
+
+# Users call it with their JWT (checked by the gateway and by withAuthorization); amazon-poll
+# does not call it: it imports the status logic from _shared/listingStatus.ts.
+[functions.amazon-listing]
+verify_jwt = true
+
+# The 10-minute cron call (047) carries the service key, not a user JWT: the function checks it
+# with assertServiceCall. No user route.
+[functions.amazon-poll]
+verify_jwt = false
+
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true

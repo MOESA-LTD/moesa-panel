@@ -21,10 +21,12 @@ import {
 import { useLookup } from '@/api/useLookup';
 import { useDialogRef } from '@/composables/useDialogRef';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+import { defaultCurrencyFor } from '@/constants/currency';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { isTermCode } from '@/constants/terms';
 import { useCustomerFilter } from '@/store/customerFilter';
 import ProductSelect from '../purchase-order/ProductSelect.vue';
+import CellAmazonDrawer from './CellAmazonDrawer.vue';
 import ProjectSelect from '../purchase-order/ProjectSelect.vue';
 
 // A market cell (S05), opened as a dialog. A new one names its product, platform and country (an
@@ -55,7 +57,8 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       prefill: () => ({
          product_id: props.product_id ?? undefined,
          platform_id: props.platform_id ?? undefined,
-         country: props.country ?? undefined
+         country: props.country ?? undefined,
+         currency: defaultCurrencyFor(props.country) ?? undefined
       }),
       useRow: marketCellResource.useOne,
       useSaveRow: marketCellResource.useSave,
@@ -103,6 +106,15 @@ const countryOptions = computed(
    () =>
       platforms.value?.find((platform) => platform.id === values.value.platform_id)?.countries ?? []
 );
+// A currency left empty (or still the previous country's default on a new cell) follows the country.
+watch(
+   () => values.value.country,
+   (country, before) => {
+      const current = values.value.currency;
+      if (!current || (!props.id && current === defaultCurrencyFor(before)))
+         values.value.currency = defaultCurrencyFor(country) ?? current ?? null;
+   }
+);
 const onPlatformPick = () => {
    if (values.value.country && !countryOptions.value.includes(values.value.country))
       values.value.country = null;
@@ -138,7 +150,23 @@ const productIdLabel = computed(
    () => cell.value?.platform?.product_id_label || t('ops.market.fields.platform_product_id')
 );
 
-const LISTING_TEXTS = ['platform_sku', 'currency'] as const;
+// An Amazon cell opens its listing (connection, completeness, publishing) and the product's Amazon
+// content in a drawer, which asks before it closes over unsaved Amazon content. The content tab's
+// form has two columns: the drawer widens while it is shown.
+const amazonOpen = ref(false);
+const amazonDrawer = ref<InstanceType<typeof CellAmazonDrawer> | null>(null);
+const amazonTab = ref<'listing' | 'content'>('listing');
+const setAmazonOpen = async (open: boolean) => {
+   if (open || ((await amazonDrawer.value?.allowClose()) ?? true)) amazonOpen.value = open;
+   // It opens on the listing again.
+   if (!amazonOpen.value) amazonTab.value = 'listing';
+};
+const amazonDrawerClass = computed(() => [
+   '!w-full',
+   amazonTab.value === 'content' ? 'md:!w-[max(40rem,70vw)] md:!max-w-[90rem]' : 'md:!w-[40rem]'
+]);
+
+const LISTING_TEXTS = ['platform_sku'] as const;
 const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
 </script>
 
@@ -154,6 +182,31 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
          :value="$t(`ops.market.status.${cell.status}`)"
          :severity="MARKET_CELL_STATUS_SEVERITY[cell.status]"
       />
+      <template v-if="cell.platform_id === 'amazon' && id">
+         <span class="flex-1" />
+         <Button
+            data-action="amazon-open"
+            variant="outlined"
+            size="small"
+            :icon="PrimeIcons.AMAZON"
+            :label="$t('ops.amazon.cell.open')"
+            @click="amazonOpen = true"
+         />
+         <Drawer
+            :visible="amazonOpen"
+            @update:visible="setAmazonOpen"
+            position="right"
+            :header="$t('ops.amazon.cell.title')"
+            :class="amazonDrawerClass"
+         >
+            <CellAmazonDrawer
+               v-if="amazonOpen"
+               ref="amazonDrawer"
+               v-model:tab="amazonTab"
+               :cellId="cell.id"
+            />
+         </Drawer>
+      </template>
    </div>
    <FormBox
       @submit="save"
@@ -316,6 +369,15 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
                v-slot="slotProps"
             >
                <InputText v-bind="slotProps" v-model="values[field]" />
+            </FormField>
+            <FormField
+               fluid
+               :label="$t('ops.market.fields.currency')"
+               :error="errors.currency"
+               :readonly
+               v-slot="slotProps"
+            >
+               <SelectCurrency v-bind="slotProps" v-model="values.currency" />
             </FormField>
             <FormField
                fluid

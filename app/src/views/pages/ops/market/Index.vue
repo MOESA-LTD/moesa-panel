@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAmazonAccounts } from '@/api/amazon';
 import { matrixCounts, useMarketCells, type MarketCellRow } from '@/api/marketMatrix';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { useCustomerFilter } from '@/store/customerFilter';
@@ -48,6 +49,18 @@ const counters = computed(() => {
 });
 
 const canCreate = computed(() => ability.can('create', 'market_cell'));
+
+// N2: an Amazon cell of a customer without a connected account shows draft. Without the right to
+// read the accounts the stored states are shown (undefined); while they load, none (null).
+const canReadAccounts = computed(() => ability.can('select', 'customer_platform_account'));
+const { data: amazonAccounts } = useAmazonAccounts(() => (canReadAccounts.value ? {} : null));
+const amazonConnected = computed(() => {
+   if (!canReadAccounts.value) return undefined;
+   if (!amazonAccounts.value) return null;
+   return amazonAccounts.value
+      .filter((account) => account.api_connection === 'connected')
+      .map((account) => account.customer_id);
+});
 
 const dialog = { showDialog: DIALOG_POSITIONS.CENTER };
 
@@ -101,6 +114,7 @@ const addCells = () => router.push({ name: 'ops-market-cells-add', query: dialog
          <MarketMatrixGrid
             :cells="cells ?? []"
             :canCreate
+            :amazonConnected
             :loading="isPending"
             :error="isError"
             @open="openCell"

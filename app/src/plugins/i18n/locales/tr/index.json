@@ -374,6 +374,8 @@
       "market_cell_compliance_red": "Kırmızı hücre planlanamaz ve yayına alınamaz; nedeniyle çıkarın.",
       "market_cell_live_incomplete": "Yayın için platform kimliği, platform SKU, fiyat, para birimi, stok kaynağı ve onaylı içerik (L-G1) gerekir.",
       "market_cell_status_order": "Hücre mevcut durumundan bu duruma geçemez (S05).",
+      "market_cell_listing_server_only": "İlan durumunu yalnız Amazon bağlantısı günceller.",
+      "platform_account_api_server_only": "Amazon bağlantısı, hesap bağlanarak kurulur.",
       "incident_customer_missing": "Olayın müşterisi bulunamadı.",
       "incident_immutable_field": "Olayın kodu, müşterisi ve ailesi değiştirilemez.",
       "incident_type_invalid": "Bir Y10 kart kodu seçin (ör. OL-09).",
@@ -407,7 +409,41 @@
       "market_cell_duplicate": "Bu ürünün bu platform ve ülke için zaten bir hücresi var.",
       "market_cell_product_customer": "Ürün başka bir müşteriye ait.",
       "market_cell_project_customer": "Proje başka bir müşteriye ait.",
-      "market_cell_price_currency": "Fiyatın para birimi olmalı."
+      "market_cell_price_currency": "Fiyatın para birimi olmalı.",
+      "amazon_not_connected": "Müşteri bir Amazon hesabı bağlamamış.",
+      "amazon_connection_revoked": "Amazon bağlantısı geri çekildi. Hesabı yeniden bağlayın.",
+      "amazon_auth_failed": "Amazon yetkilendirmeyi reddetti. Hesabı yeniden bağlayın.",
+      "amazon_unavailable": "Amazon şu an erişilemiyor. Daha sonra tekrar deneyin.",
+      "amazon_throttled": "Amazon istekleri sınırlıyor. Biraz sonra tekrar deneyin.",
+      "amazon_rate_limited": "Amazon’a çok fazla istek gönderildi. Biraz sonra tekrar deneyin.",
+      "amazon_marketplace_unsupported": "Bu ülke Amazon ilanları için desteklenmiyor.",
+      "amazon_schema_missing": "Bu ürün tipinin Amazon şeması henüz mevcut değil.",
+      "amazon_schema_checksum": "İndirilen Amazon şeması bütünlük denetimini geçemedi. Tekrar deneyin.",
+      "amazon_schema_invalid": "Amazon şeması okunamadı.",
+      "amazon_request_invalid": "Amazon isteği reddetti.",
+      "amazon_not_found": "Amazon bu öğeyi tanımıyor.",
+      "amazon_unconfigured": "Amazon sunucuda yapılandırılmamış.",
+      "amazon_state_invalid": "Amazon bağlantı isteğinin süresi doldu ya da geçerli değil. Baştan başlayın.",
+      "amazon_state_replayed": "Bu Amazon bağlantı isteği daha önce kullanılmış. Baştan başlayın.",
+      "amazon_callback_invalid": "Amazon’un yanıtı eksikti. Baştan başlayın.",
+      "listing_incomplete": "Zorunlu Amazon alanları eksik.",
+      "listing_image_missing": "İlanın bir görseli bulunamadı.",
+      "listing_image_url_not_public": "Amazon’un indirebilmesi için görseller herkese açık bir adresten sunulmalı.",
+      "listing_cell_not_found": "Bu Amazon hücresi bulunamadı.",
+      "listing_product_type_missing": "Önce bir Amazon ürün tipi seçin.",
+      "listing_language_missing": "Bu ülke için bir ilan dili gerekli.",
+      "listing_submission_not_found": "Bu hücre için henüz bir şey gönderilmedi.",
+      "platform_account_not_found": "Platform hesabı bulunamadı.",
+      "invalid_request": "İstek geçerli değil.",
+      "unauthorized": "Devam etmek için yeniden giriş yapın.",
+      "forbidden": "Bunu yapmaya yetkiniz yok.",
+      "tenant_not_allowed": "Bu şirkette işlem yapmaya yetkiniz yok.",
+      "method_not_allowed": "Bu istek yöntemine izin verilmiyor.",
+      "not_found": "Bulunamadı.",
+      "listing_in_progress": "Amazon bu ilanın son gönderimini hâlâ işliyor.",
+      "listing_forbidden": "Bu ilanı yönetme yetkiniz yok.",
+      "platform_account_forbidden": "Bu Amazon hesabının bağlantısını değiştirme yetkiniz yok.",
+      "platform_account_connected": "Bu hesabı başka bir müşteriye taşımadan önce Amazon bağlantısını kesin."
    },
    "account": {
       "logout": "Çıkış yap",
@@ -540,6 +576,7 @@
          "ops_product_orders": "PO/sevkiyat geçmişi",
          "ops_product_documents": "Belgeler",
          "ops_product_media": "Ortam",
+         "ops_product_amazon": "Amazon",
          "ops_product_import": "Ürün içe aktar",
          "ops_project": "Projeler",
          "ops_project_list": "Proje listesi",
@@ -696,7 +733,9 @@
       "incident_deadline": "Olay süre sınırı",
       "change_request": "Değişiklik talebi",
       "change_request_product": "Değişiklik talebi ürünü",
-      "transfer": "Aktarım"
+      "transfer": "Aktarım",
+      "listing": "İlan",
+      "listing_submission": "İlan gönderimi"
    },
    "dashboard": {
       "notifications": {
@@ -1229,7 +1268,8 @@
             "cost": "Maliyet",
             "orders": "PO/sevkiyat geçmişi",
             "documents": "Belgeler",
-            "media": "Ortam"
+            "media": "Ortam",
+            "amazon": "Amazon"
          },
          "sections": {
             "identity": "Ürün",
@@ -2224,6 +2264,174 @@
             "retry": "Dosyaları yeniden kopyala",
             "notice": "Bu müşteriye yapılan bir aktarımın dosyaları eksik."
          }
+      },
+      "amazon": {
+         "state": {
+            "draft": "Taslak",
+            "ready": "Hazır",
+            "submitted": "Gönderildi",
+            "live": "Yayında",
+            "issues": "Sorunlu"
+         },
+         "api_connection": {
+            "none": "Bağlı değil",
+            "connected": "Bağlı",
+            "revoked": "İptal edildi"
+         },
+         "platform": {
+            "api_connection": "Amazon bağlantısı",
+            "authorized_at": "Bağlanma tarihi"
+         },
+         "tab": {
+            "title": "Amazon",
+            "product_type": "Amazon ürün tipi",
+            "product_type_search": "Ürün tipi ara",
+            "product_type_none": "Eşleşen ürün tipi yok.",
+            "schema_version": "Şema sürümü {version}",
+            "schema_moved": "Amazon bu ürün tipini {version} sürümüne taşıdı. Girdiğiniz değerler korundu; eksik işaretli alanları kontrol edin.",
+            "language": "Dil",
+            "next_missing": "Sonraki eksik alan",
+            "completeness": "Zorunlu {total} alanın {filled} tanesi dolu",
+            "groups": "Alan grupları",
+            "badge": {
+               "required": "Zorunlu",
+               "conditional": "Duruma göre zorunlu",
+               "optional": "İsteğe bağlı"
+            },
+            "image_pick": "Görsel seç",
+            "image_clear": "Görseli kaldır",
+            "save": "Amazon içeriğini kaydet",
+            "values_kept": "Daha önce girilen değerler korunur.",
+            "json_invalid": "Bu geçerli bir JSON değil.",
+            "issue_link": "{field} alanına git",
+            "product_type_empty": "Alanlarını doldurmak için Amazon ürün tipini seçin.",
+            "provided": "Yayınlarken üründen veya pazar hücresinden doldurulur.",
+            "derived": {
+               "badge": "Üründen",
+               "source": "Ürün kartı › {field}",
+               "override": "Bu dil için farklı değer girin",
+               "use_product": "Ürün değerine dönün"
+            },
+            "value_clear": "Değeri temizle"
+         },
+         "cell": {
+            "title": "Amazon ilanı",
+            "open": "Amazon ilanını aç",
+            "connection": "Amazon bağlantısı",
+            "not_connected": "Müşteri bir Amazon hesabı bağlamamış.",
+            "completeness": "Doluluk",
+            "missing_none": "Eksik alan yok.",
+            "attributes_save": "Amazon alanlarını kaydet",
+            "open_all": "Tüm alanları ürün sekmesinde aç",
+            "marketplace": "Pazaryeri",
+            "listing_language": "İlan dili",
+            "fulfillment_channel": "Gönderim",
+            "fulfillment": {
+               "fbm": "Satıcı gönderimi (FBM)",
+               "fba": "Amazon gönderimi (FBA)"
+            },
+            "match": {
+               "found": "Mevcut bir Amazon ürünüyle eşleşti ({asin})",
+               "new": "Eşleşme yok: yeni ürün oluşturulacak",
+               "none": "Henüz kontrol edilmedi"
+            },
+            "restriction": {
+               "none": "Satış kısıtı yok",
+               "restricted": "Satış kısıtlı: {reasons}"
+            },
+            "history": "Gönderimler",
+            "history_empty": "Henüz bir şey gönderilmedi.",
+            "issue_general": "Genel",
+            "issue_fix": "Düzelt",
+            "check": "Kontrol et",
+            "publish": "Amazon’da yayınla",
+            "update": "Amazon’da güncelle",
+            "validate": "Amazon ile doğrula",
+            "validated": {
+               "VALID": "Amazon bu ilanı kabul ediyor.",
+               "INVALID": "Amazon bu ilanda sorun bildiriyor."
+            },
+            "delete": "Amazon’dan kaldır",
+            "delete_confirm": "Bu ilan Amazon’dan kaldırılsın mı?",
+            "checked_at": "Kontrol: {date}",
+            "state": "İlan durumu",
+            "state_unknown": "Bilinmeyen durum",
+            "open_platforms": "Müşterinin platform hesaplarını aç",
+            "product_type_missing": "Ürünün henüz bir Amazon ürün tipi yok.",
+            "open_tab": "Amazon sekmesini aç",
+            "catalogue": "Katalog eşleşmesi",
+            "fields_save": "Pazaryeri alanlarını kaydet",
+            "published": "Amazon’a gönderildi: {status}",
+            "publish_blocked": {
+               "not_connected": "Önce müşterinin Amazon hesabını bağlayın.",
+               "product_type": "Önce ürünün Amazon ürün tipini seçin.",
+               "missing": "Önce eksik alanları doldurun.",
+               "unsaved_attributes": "Önce Amazon alanlarını kaydedin.",
+               "unchecked": "İlanı hazır işaretlemek için Kontrol et’i çalıştırın.",
+               "submitted": "Amazon son gönderimi hâlâ işliyor.",
+               "unsaved": "Önce pazaryeri alanlarını kaydedin."
+            },
+            "refresh_status": "Durumu yenile",
+            "tabs": {
+               "listing": "İlan",
+               "content": "İçerik"
+            },
+            "content_notice": "Bu alanlar ürüne aittir ve ürünün tüm pazaryerlerinde geçerlidir; metinler {language} dilinde yazılır.",
+            "open_in_content": "İçerik sekmesinde aç"
+         },
+         "connect": {
+            "button": "Amazon’u bağla",
+            "reconnect": "Amazon’u yeniden bağla",
+            "disconnect": "Amazon bağlantısını kes",
+            "connected_on": "{date} tarihinde bağlandı",
+            "sandbox_note": "Test modu: bağlantı simüle edilir, satıcıdan onay istenmez.",
+            "result": {
+               "connected": "Amazon bağlandı.",
+               "error": "Amazon bağlanamadı."
+            },
+            "seller_id": "Satıcı kimliği {id}",
+            "disconnect_confirm": "Amazon hesabının bağlantısı kesilsin mi? Yeniden bağlanana kadar Amazon’a hiçbir şey yayınlanamaz.",
+            "disconnected": "Amazon bağlantısı kesildi."
+         },
+         "bulk": {
+            "open": "Amazon’da yayınla",
+            "open_count": "{count} ürünü Amazon’da yayınla | {count} ürünü Amazon’da yayınla",
+            "title": "Amazon’da yayınla",
+            "country": "Ülke",
+            "submit": "Yayınla",
+            "col": {
+               "sku": "SKU",
+               "name": "Ürün",
+               "result": "Sonuç",
+               "detail": "Ayrıntı"
+            },
+            "result": {
+               "submitted": "Gönderildi",
+               "skipped_no_cell": "Atlandı: bu ülkede Amazon hücresi yok",
+               "skipped_incomplete": "Atlandı: zorunlu alanlar eksik",
+               "invalid": "Amazon reddetti",
+               "error": "Başarısız"
+            },
+            "open_disabled_empty": "Önce ürün seçin.",
+            "open_disabled_mixed": "Yayınlamak için tek bir müşterinin ürünlerini seçin.",
+            "summary": "{total} üründen {submitted} tanesi gönderildi"
+         },
+         "submission": {
+            "kind": {
+               "create": "Oluşturma",
+               "update": "Güncelleme",
+               "delete": "Amazon’dan kaldır",
+               "unknown": "Diğer"
+            },
+            "status": {
+               "accepted": "Kabul edildi",
+               "invalid": "Reddedildi",
+               "processing": "İşleniyor",
+               "done": "Tamamlandı",
+               "failed": "Başarısız",
+               "unknown": "Bilinmiyor"
+            }
+         }
       }
    },
    "glossary": {
@@ -2457,6 +2665,18 @@
          "deadline": "Termin, booking ya da yayın tarihi.",
          "supplier": "Başka tedarikçi; yeni spec sheet ve altın numune.",
          "content": "Listing içeriği; [[L-G1]] yeniden."
+      },
+      "listing_state": {
+         "draft": "Zorunlu Amazon alanları hâlâ eksik.",
+         "ready": "Zorunlu Amazon alanlarının hepsi dolu; ilan yayınlanabilir.",
+         "submitted": "Amazon’a gönderildi; Amazon’un işlemesi bekleniyor.",
+         "live": "Amazon ürünü listeliyor ve satın alınabiliyor.",
+         "issues": "Amazon düzeltilmesi gereken sorunlar bildirdi."
+      },
+      "api_connection": {
+         "none": "Müşteri bir Amazon hesabı bağlamamış.",
+         "connected": "Müşterinin Amazon hesabı bağlı.",
+         "revoked": "Müşteri yetkiyi geri çekti; devam etmek için yeniden bağlayın."
       }
    },
    "status_actions": {
@@ -2624,6 +2844,14 @@
                      "2": "Prova yapın, sonra her çakışmaya karar verin: bağla, yeni kod, boş [[GTIN]] ya da atla.",
                      "3": "Onaylayın; kimlik eşlemesini indirin, eksik dosya varsa kopyayı yineleyin."
                   }
+               },
+               "connect_amazon": {
+                  "title": "Amazon hesabını bağla",
+                  "steps": {
+                     "1": "Müşteriyi, sonra Platformlar sekmesini açın.",
+                     "2": "Amazon hesabında Amazon'u bağla'ya basıp satıcı olarak izin verin.",
+                     "3": "Sekme satıcı kimliğiyle Bağlı gösterir; bundan sonra yayınlama yapılabilir."
+                  }
                }
             }
          },
@@ -2681,6 +2909,14 @@
                      "1": "Ürünü, sonra Ortam sekmesini açın.",
                      "2": "Dosyaları bırakın; ilk görsel birincil görsel olur.",
                      "3": "Dosyanın rolünü menüsünden değiştirin."
+                  }
+               },
+               "fill_amazon": {
+                  "title": "Amazon içeriğini doldur",
+                  "steps": {
+                     "1": "Ürünü, sonra Amazon sekmesini açın ve [[productType]] seçin.",
+                     "2": "Zorunlu işaretli alanları doldurun; sayaç kaç alanın kaldığını gösterir. Ana ürün için ayrıca [[variation_theme]] gerekir.",
+                     "3": "Amazon içeriğini kaydedin; pazar hücresi nelerin eksik kaldığını gösterir."
                   }
                }
             }
@@ -2856,6 +3092,14 @@
                      "2": "Platform kimliği, platform [[SKU]], fiyat, para birimi ve stok kaynağını doldurun.",
                      "3": "İçerik onaylıyken ([[L-G1]]) Yayında'yı seçin."
                   }
+               },
+               "publish_amazon": {
+                  "title": "Hücreyi Amazon'da yayınla",
+                  "steps": {
+                     "1": "Bir Amazon hücresini açıp Kontrol et'e basın; listelenen eksik alanları orada doldurun.",
+                     "2": "Hücre hazır olunca Amazon'da yayınla'ya basın; Amazon bir [[submissionId]] ile yanıt verir.",
+                     "3": "Durumun Yayında'ya geçmesini izleyin ya da her sorunda Düzelt'e basıp alanını orada düzeltin."
+                  }
                }
             }
          },
@@ -2951,6 +3195,10 @@
          "abbreviations": {
             "title": "Kısaltmalar",
             "intro": "Ekranlarda geçen ticari kısaltmalar."
+         },
+         "amazon": {
+            "title": "Amazon listing",
+            "intro": "Amazon'un kendi terimleri; mesajlarında ve Amazon sekmesinde göründükleri gibi."
          }
       },
       "topics": {
@@ -3162,6 +3410,18 @@
       "SKU": {
          "short": "Stok kodu: satıcının bir ürün varyantı için kendi kodu.",
          "long": "Bir varyant bir SKU ve ürün ana tablosunda bir satırdır ([[S10]]); platform ya da ülke içermez. Pazar yerinde aynı ürünün kendi platform SKU'su olabilir; pazar hücresinde tutulur. SKU benzersizdir."
+      },
+      "product_type": {
+         "short": "Amazon'un bir ürün için kullandığı kategori, örneğin LUGGAGE. Amazon'un hangi alanları isteyeceğini belirler.",
+         "long": "Amazon her ürün tipini kendi şemasıyla tanımlar; Amazon sekmesi tam olarak bu alanları gösterir. Ürün başına bir kez seçilir; Amazon şemayı değiştirirse girdiğiniz değerler korunur, eksik alanlar yeniden hesaplanır. Hücre yayına alınmadan önce doldurulmalıdır ([[S05]])."
+      },
+      "submission_id": {
+         "short": "Amazon'un bir listing gönderimine verdiği kimlik.",
+         "long": "Her Yayınla, Güncelle veya Kaldır bir gönderim oluşturur ve Amazon bu kimlikle yanıt verir. Panel, gönderim bitene ya da sorun çıkana kadar bu kimlikle Amazon'u yoklar; bir şey ters giderse Amazon desteği de bunu sorar."
+      },
+      "variation_theme": {
+         "short": "Bir ana ürünün alt ürünlerinin birbirinden nasıl ayrıldığı, örneğin beden veya renk.",
+         "long": "Varyasyon ailesinin ana ürününde belirlenir. Her alt ürün buna uyan alanları (beden, renk gibi) ve ana ürün bağlantısını taşımalıdır; yoksa Amazon listing'i reddeder. Panel bunları Amazon sekmesinde eksik olarak işaretler."
       }
    }
 }
