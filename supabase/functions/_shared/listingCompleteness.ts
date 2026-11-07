@@ -537,9 +537,22 @@ const DERIVATIONS: readonly Derivation[] = [
 ];
 
 /**
+ * The columns a variation parent derives from: its identity only. Its pack quantity, dimensions and
+ * weights are its children's (a parent must not send what its children vary by, e.g.
+ * NUMBER_OF_ITEMS).
+ */
+const PARENT_COLUMNS: ReadonlySet<ProductCardColumn> = new Set([
+   'brand',
+   'manufacturer_art_no',
+   'origin_country',
+   'is_hazmat'
+]);
+
+/**
  * Everything provided without being typed for Amazon, for one cell: what the server fills on
  * publish (serverProvided: the GTIN's identifier, the offer, a parent's rules) and the attributes
- * derived from the product card in the schema's shape, for the cell's marketplace and language.
+ * derived from the product card in the schema's shape, for the cell's marketplace and language
+ * (a variation parent derives only its identity: PARENT_COLUMNS).
  * Derived values are never stored in `listing_attributes`: the server merges them under the
  * user's values on check, validate and publish (withProvided), and the forms show them.
  */
@@ -554,6 +567,7 @@ export function providedAttributes(
       sources[name] = 'server';
    const attributes: Attributes = {};
    for (const { column, attributes: names, entry } of DERIVATIONS) {
+      if (ctx.isParent && !PARENT_COLUMNS.has(column)) continue;
       for (const name of names) {
          const parts = entryPartsOf(schema, name);
          if (!parts || Object.hasOwn(sources, name)) continue;

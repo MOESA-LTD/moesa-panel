@@ -689,10 +689,10 @@ SELECT 'm22.group_order', d.marketplace_id FROM public.amazon_product_type_defin
 -- m22.attributes: the mop has its product type, schema version, attributes and the variation theme of its family
 SELECT 'm22.attributes' WHERE NOT EXISTS (SELECT 1 FROM public.product WHERE tenant_id = pg_temp.moesa() AND sku = 'THO-MOP40-2P' AND amazon_product_type = 'LUGGAGE' AND amazon_schema_version = 'UHqSqmb4FNUk='
    AND listing_attributes ? 'item_name' AND listing_attributes ? 'variation_theme');
--- m22.derived: the mop's brand, pack quantity and pack gross weight are on its product card and not typed again for Amazon; the package weight is overridden for the listing
+-- m22.derived: the mop (a parent) has its brand on the product card and not typed again for Amazon in German; French overrides it; nothing its children vary by is stored
 SELECT 'm22.derived' WHERE NOT EXISTS (SELECT 1 FROM public.product WHERE tenant_id = pg_temp.moesa() AND sku = 'THO-MOP40-2P'
-   AND brand = 'OKAEI' AND pack_qty = 2 AND pack_gross_g = 400 AND NOT listing_attributes ? 'brand' AND NOT listing_attributes ? 'number_of_items'
-   AND listing_attributes -> 'item_package_weight' = '[{"value": 0.42, "unit": "kilograms"}]'::JSONB);
+   AND brand = 'OKAEI' AND listing_attributes -> 'brand' = '[{"value": "OKAEI Maison", "language_tag": "fr_FR"}]'::JSONB
+   AND NOT listing_attributes ? 'number_of_items' AND NOT listing_attributes ? 'item_package_weight');
 -- m22.submissions: one done, one invalid with issues
 SELECT 'm22.submissions', s FROM unnest(ARRAY['done','invalid']) s WHERE NOT EXISTS (SELECT 1 FROM public.listing_submission WHERE tenant_id = pg_temp.moesa() AND status::TEXT = s AND (s = 'done' OR jsonb_array_length(issues) > 0));
 -- m22.cell_states: the step 07 THO cells carry the listing state of their journey, and the FR cell says why in its open issue

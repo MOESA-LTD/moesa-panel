@@ -1556,13 +1556,14 @@ BEGIN
         RAISE EXCEPTION 'story 11: THO has no amazon account';
     END IF;
 
-    -- The mop is a variation parent (it has children), so its attributes name the theme. Its brand,
-    -- pack quantity and pack gross weight come from the product card (derived on publish, never
-    -- stored): the fixture's brand is dropped, and the listing overrides the package weight (420 g
-    -- as Amazon weighed it, the card says 400 g). What was sent carries the derived values.
+    -- The mop is a variation parent (it has children), so its attributes name the theme. A parent
+    -- derives only its identity from the product card (its pack quantity, dimensions and weights are
+    -- its children's): the German brand comes from the card (derived on publish, never stored), so
+    -- the fixture's brand is dropped, and the French brand is overridden for that language. What
+    -- was sent carries the derived brand beside the override.
     v_attributes_all := (v_attributes - 'brand')
-        || '{"variation_theme": [{"value": "NUMBER_OF_ITEMS"}], "item_package_weight": [{"value": 0.42, "unit": "kilograms"}]}'::JSONB;
-    v_sent := v_attributes_all || jsonb_build_object('brand', v_attributes -> 'brand', 'number_of_items', '[{"value": 2}]'::JSONB);
+        || '{"variation_theme": [{"value": "NUMBER_OF_ITEMS"}], "brand": [{"value": "OKAEI Maison", "language_tag": "fr_FR"}]}'::JSONB;
+    v_sent := v_attributes_all || jsonb_build_object('brand', (v_attributes_all -> 'brand') || (v_attributes -> 'brand'));
     UPDATE public.product
     SET amazon_product_type = v_definition ->> 'productType',
         amazon_schema_version = v_definition -> 'productTypeVersion' ->> 'version',

@@ -262,3 +262,25 @@ Deno.test('derived attributes count as filled', () => {
    assertEquals(missing.map((m) => m.attribute).includes('brand'), false);
    assertEquals(completeness(fixture.schema, {}, { ...DE, provided }), { required: 6, filled: 2 });
 });
+
+Deno.test('a variation parent derives only its identity, never what its children vary by', () => {
+   const product: ProductCard = {
+      brand: 'OKAEI',
+      unit_dims_mm: '400x300x15',
+      unit_net_g: 180,
+      pack_dims_mm: '410x310x30',
+      pack_gross_g: 400,
+      pack_qty: 2,
+      origin_country: 'CN',
+      manufacturer_art_no: 'MOP-40',
+      is_hazmat: false
+   };
+   const { attributes } = providedAttributes(product, NO_CELL, full, { ...DE, isParent: true });
+   assertEquals(Object.keys(attributes).sort(), [
+      'brand',
+      'country_of_origin',
+      'model_number',
+      'part_number',
+      'supplier_declared_dg_hz_regulation'
+   ]);
+});
