@@ -39,7 +39,8 @@ import AmazonContentForm from '@/components/service-components/amazon-form/Amazo
 import {
    badgeFor,
    baseAttribute,
-   missingInFormOrder
+   missingInFormOrder,
+   NOTHING_PROVIDED
 } from '@/components/service-components/amazon-form/amazonForm';
 import { useAmazonContent } from '@/components/service-components/amazon-form/useAmazonContent';
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
@@ -47,9 +48,11 @@ import { appErrorHandler } from '@/lib/appErrorHandler';
 import {
    languageTag as defaultLanguageTag,
    missingAttributes,
+   providedAttributes,
    requiredAttributes,
-   serverProvided,
-   type PropertyGroups
+   type AmazonSchema,
+   type PropertyGroups,
+   type ProvidedAttributes
 } from '@edge-shared/listingCompleteness';
 import { useAbility } from '@casl/vue';
 import { ToastSeverity } from '@primevue/core/api';
@@ -157,12 +160,23 @@ const {
    reset: resetContent
 } = content;
 
-/** The attributes the server fills on publish (the GTIN, the price; a parent's, R7). */
-const provided = computed(() =>
-   product.value && cell.value && isParent.value !== undefined
-      ? serverProvided(product.value, cell.value, { isParent: isParent.value })
-      : []
-);
+/**
+ * What is provided in a language against a schema: what the server fills on publish (the GTIN,
+ * the price; a parent's, R7) and what the product card gives; nothing while unknown.
+ */
+const providedIn = (
+   languageTag: string | null,
+   productSchema: AmazonSchema | null
+): ProvidedAttributes =>
+   product.value && cell.value && isParent.value !== undefined && languageTag
+      ? providedAttributes(product.value, cell.value, productSchema, {
+           marketplaceId: marketplaceId.value ?? '',
+           languageTag,
+           isParent: isParent.value
+        })
+      : NOTHING_PROVIDED;
+/** Provided in the cell's language, against the saved type's schema (the listing tab). */
+const provided = computed(() => providedIn(language.value, schema.value));
 
 /**
  * The required fields still missing in what is saved, by the server's rule (the GTIN and the price
@@ -178,7 +192,7 @@ const missing = computed(() => {
       missingAttributes(schema.value, groups, savedAttributes.value, {
          marketplaceId: marketplaceId.value,
          languageTag: language.value,
-         provided: provided.value
+         provided: Object.keys(provided.value.sources)
       }),
       groups
    );
@@ -278,6 +292,13 @@ const pickContentLanguage = (tag: string) => {
    contentLanguagePicked.value = true;
    contentLanguage.value = tag;
 };
+/** Provided in the content tab's language, against the schema of the type picked there. */
+const contentProvided = computed(() =>
+   providedIn(
+      contentLanguage.value,
+      content.definition.value ? amazonSchemaOf(content.definition.value) : null
+   )
+);
 
 /** Edited, and savable: a changed product type needs its schema loaded. */
 const contentSavable = computed(
@@ -605,7 +626,9 @@ const askRemove = () =>
                            :modelValue="attributes"
                            :languageTag="language"
                            :badge="badgeFor(field.name, required)"
-                           :provided="provided.includes(field.name)"
+                           :source="provided.sources[field.name] ?? null"
+                           :derived="provided.attributes[field.name] ?? null"
+                           :productId="product?.id"
                            :readonly="!canEditProduct"
                            :customerId="product?.customer_id"
                            :tenantId="product?.tenant_id"
@@ -925,7 +948,7 @@ const askRemove = () =>
                      :content
                      :languageTag="contentLanguage"
                      @update:languageTag="pickContentLanguage"
-                     :provided
+                     :provided="contentProvided"
                      :readonly="!canEditProduct"
                      :issues="latestIssues"
                      :focusField="contentFocus"

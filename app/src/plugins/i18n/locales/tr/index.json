@@ -2304,6 +2304,12 @@
             "issue_link": "{field} alanına git",
             "product_type_empty": "Alanlarını doldurmak için Amazon ürün tipini seçin.",
             "provided": "Yayınlarken üründen veya pazar hücresinden doldurulur.",
+            "derived": {
+               "badge": "Üründen",
+               "source": "Ürün kartı › {field}",
+               "override": "Bu ilanda farklı değer girin",
+               "use_product": "Ürün değerine dönün"
+            },
             "value_clear": "Değeri temizle"
          },
          "cell": {

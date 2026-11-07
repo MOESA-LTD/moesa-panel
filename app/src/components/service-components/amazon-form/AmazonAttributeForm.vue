@@ -10,7 +10,8 @@ import {
    groupMissingCounts,
    missingAttributes,
    requiredAttributes,
-   type Attributes
+   type Attributes,
+   type ProvidedAttributes
 } from '@edge-shared/listingCompleteness';
 import AmazonAttributeField from './AmazonAttributeField.vue';
 import { badgeFor, baseAttribute, groupOf, missingInFormOrder } from './amazonForm';
@@ -23,8 +24,14 @@ const props = defineProps<{
    definition: Definition;
    modelValue: Attributes;
    languageTag: string;
-   /** Attributes the server fills on publish; they count as filled. */
-   provided: string[];
+   /**
+    * What is provided without being typed here (providedAttributes, in `languageTag`): what the
+    * server fills on publish and what the product card gives. Both count as filled; a derived one
+    * shows the product's value until it is overridden.
+    */
+   provided: ProvidedAttributes;
+   /** The product, whose card a derived attribute links to. */
+   productId?: string | null;
    readonly?: boolean;
    /** Amazon's issues of the latest submission. */
    issues?: AmazonIssue[];
@@ -47,10 +54,11 @@ const groups = computed(() => props.definition.property_groups);
 const groupKeys = computed(() => groups.value.map(({ key }) => key));
 const groupByKey = computed(() => new Map(groups.value.map((group) => [group.key, group])));
 
+const providedNames = computed(() => Object.keys(props.provided.sources));
 const optionsFor = (languageTag: string) => ({
    marketplaceId: props.definition.marketplace_id,
    languageTag,
-   provided: props.provided
+   provided: providedNames.value
 });
 
 const required = computed(() => requiredAttributes(schema.value, props.modelValue));
@@ -264,7 +272,9 @@ const ISSUE_SEVERITY = {
                :modelValue
                :languageTag
                :badge="badgeFor(name, required)"
-               :provided="provided.includes(name)"
+               :source="provided.sources[name] ?? null"
+               :derived="provided.attributes[name] ?? null"
+               :productId
                :readonly
                :customerId
                :tenantId

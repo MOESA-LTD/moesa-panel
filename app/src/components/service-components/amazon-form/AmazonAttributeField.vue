@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { Attributes, PropertySchema } from '@edge-shared/listingCompleteness';
+import type { Attributes, PropertySchema, ProvidedSource } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import {
+   clearLanguage,
    contentOf,
    controlFor,
    entryCount,
    entryProperties,
    isLanguageTagged,
+   productSourceOf,
    readValue,
    valueKey,
    writeValue,
@@ -17,6 +19,8 @@ import AmazonImageSlot from './AmazonImageSlot.vue';
 // One attribute of the Amazon form, in the control its schema calls for. Every edit goes through
 // writeValue: the entries of the other languages stay as they are. An attribute that takes several
 // entries (e.g. five bullet points) shows the filled ones and one empty slot, up to its maximum.
+// An attribute derived from the product card shows the product's value read-only, with its source,
+// until it is overridden for the listing (a value of its own in this language, which wins).
 const props = defineProps<{
    name: string;
    property: PropertySchema;
@@ -24,8 +28,15 @@ const props = defineProps<{
    languageTag: string;
    badge: 'required' | 'conditional' | 'optional';
    readonly?: boolean;
-   /** Filled by the server on publish (e.g. the identifier from the GTIN). */
-   provided?: boolean;
+   /**
+    * Where the attribute is provided from: the server on publish (e.g. the identifier from the
+    * GTIN), or a product card column (`derived` holds the value it gives).
+    */
+   source?: ProvidedSource | null;
+   /** The value derived from the product card, in this language. */
+   derived?: unknown[] | null;
+   /** The product, whose card a derived attribute links to. */
+   productId?: string | null;
    /** The media library the image slots offer: the product's customer and tenant. */
    customerId?: string | null;
    tenantId?: string | null;
@@ -47,16 +58,66 @@ const options = (values: unknown[] | undefined, names: string[] | undefined) =>
 const valueOptions = computed(() => options(field.value.enum, field.value.enumNames));
 const unitOptions = computed(() => options(parts.value.unit?.enum, parts.value.unit?.enumNames));
 
+// --- derived from the product card ---
+const productSource = computed(() =>
+   props.derived?.length ? productSourceOf(props.source) : null
+);
+/** The product card tab the source column is on. */
+const productLink = computed(() =>
+   productSource.value && props.productId
+      ? { name: productSource.value.route, params: { id: props.productId } }
+      : null
+);
+/** "Product card › <the column's label>". */
+const sourceText = computed(() =>
+   productSource.value
+      ? i18n.t('ops.amazon.tab.derived.source', {
+           field: i18n.t(`ops.product.fields.${productSource.value.column}`)
+        })
+      : ''
+);
+/** The listing's own value in this language: it wins over the product's. */
+const overridden = computed(() => entryCount(props.modelValue, props.name, props.languageTag) > 0);
+/** Override was asked for here: the field stays editable even while emptied. */
+const overriding = ref(false);
+/** The product's value is shown, read-only. */
+const showsDerived = computed(
+   () => !!productSource.value && !overridden.value && !overriding.value
+);
+const shown = computed(() =>
+   showsDerived.value ? { [props.name]: props.derived ?? [] } : props.modelValue
+);
+const locked = computed(() => props.readonly || showsDerived.value);
+
+/** Starts the listing's own value from the product's. */
+const override = () => {
+   overriding.value = true;
+   let next = props.modelValue;
+   (props.derived ?? []).forEach((entry, index) => {
+      next = writeValue(next, props.name, contentOf(entry as Entry), {
+         languageTag: props.languageTag,
+         languageTagged: languageTagged.value,
+         index
+      });
+   });
+   emit('update:modelValue', next);
+};
+/** Drops the listing's own value in this language: the product's applies again. */
+const useProductValue = () => {
+   overriding.value = false;
+   emit('update:modelValue', clearLanguage(props.modelValue, props.name, props.languageTag));
+};
+
 /** The slots shown: the language's entries plus an empty one while the maximum allows. */
 const slots = computed(() => {
-   const filled = entryCount(props.modelValue, props.name, props.languageTag);
+   const filled = entryCount(shown.value, props.name, props.languageTag);
    const max = Math.max(1, props.property.maxItems ?? 1);
-   const shown = props.readonly ? Math.max(filled, 1) : Math.min(max, filled + 1);
-   return Array.from({ length: shown }, (_, index) => index);
+   const shownCount = locked.value ? Math.max(filled, 1) : Math.min(max, filled + 1);
+   return Array.from({ length: shownCount }, (_, index) => index);
 });
 
 const entryAt = (index: number): Entry | undefined =>
-   readValue(props.modelValue, props.name, { languageTag: props.languageTag, index });
+   readValue(shown.value, props.name, { languageTag: props.languageTag, index });
 const valueAt = (index: number) => entryAt(index)?.[key.value];
 
 const write = (index: number, value: unknown) => {
@@ -88,6 +149,7 @@ const clearLocal = () => {
    jsonTexts.value = {};
    jsonErrors.value = {};
    pickedUnits.value = {};
+   overriding.value = false;
 };
 // Local text and units belong to what was shown: a language switch or a form reset drops them.
 watch(() => [props.languageTag, props.resetKey], clearLocal);
@@ -139,7 +201,7 @@ const locationAt = (index: number) => {
                   :id="slotId(slotProps.id, index)"
                   :modelValue="(valueAt(index) as string | undefined) ?? ''"
                   :maxlength="field.maxLength"
-                  :disabled="readonly"
+                  :disabled="locked"
                   fluid
                   @update:modelValue="writeKey(index, $event)"
                />
@@ -148,7 +210,7 @@ const locationAt = (index: number) => {
                   :id="slotId(slotProps.id, index)"
                   :modelValue="(valueAt(index) as string | undefined) ?? ''"
                   :maxlength="field.maxLength"
-                  :disabled="readonly"
+                  :disabled="locked"
                   rows="4"
                   autoResize
                   fluid
@@ -162,7 +224,7 @@ const locationAt = (index: number) => {
                   :max="field.maximum"
                   :maxFractionDigits="field.type === 'integer' ? 0 : 6"
                   :useGrouping="false"
-                  :disabled="readonly"
+                  :disabled="locked"
                   fluid
                   @update:modelValue="writeKey(index, $event)"
                />
@@ -173,7 +235,7 @@ const locationAt = (index: number) => {
                   :options="valueOptions"
                   optionLabel="label"
                   optionValue="value"
-                  :disabled="readonly"
+                  :disabled="locked"
                   showClear
                   fluid
                   @update:modelValue="writeKey(index, $event)"
@@ -182,12 +244,12 @@ const locationAt = (index: number) => {
                   <ToggleSwitch
                      :inputId="slotId(slotProps.id, index)"
                      :modelValue="valueAt(index) === true"
-                     :disabled="readonly"
+                     :disabled="locked"
                      @update:modelValue="writeKey(index, $event)"
                   />
                   <!-- Unset differs from "no": a set answer can be taken back. -->
                   <Button
-                     v-if="!readonly && valueAt(index) !== undefined"
+                     v-if="!locked && valueAt(index) !== undefined"
                      data-action="boolean-clear"
                      variant="text"
                      severity="secondary"
@@ -205,7 +267,7 @@ const locationAt = (index: number) => {
                      :min="field.minimum"
                      :maxFractionDigits="field.type === 'integer' ? 0 : 6"
                      :useGrouping="false"
-                     :disabled="readonly"
+                     :disabled="locked"
                      class="flex-1"
                      @update:modelValue="writeMeasure(index, $event, unitAt(index))"
                   />
@@ -214,7 +276,7 @@ const locationAt = (index: number) => {
                      :options="unitOptions"
                      optionLabel="label"
                      optionValue="value"
-                     :disabled="readonly"
+                     :disabled="locked"
                      :aria-label="parts.unit?.title"
                      @update:modelValue="writeMeasure(index, valueAt(index) ?? null, $event)"
                   />
@@ -223,7 +285,7 @@ const locationAt = (index: number) => {
                   v-else-if="control === 'image'"
                   :location="locationAt(index)"
                   :inputId="slotId(slotProps.id, index)"
-                  :readonly
+                  :readonly="locked"
                   :customerId
                   :tenantId
                   @pick="writeKey(index, `media:${$event}`)"
@@ -234,7 +296,7 @@ const locationAt = (index: number) => {
                   :id="slotId(slotProps.id, index)"
                   :modelValue="jsonAt(index)"
                   :invalid="!!jsonErrors[index]"
-                  :disabled="readonly"
+                  :disabled="locked"
                   rows="4"
                   autoResize
                   fluid
@@ -250,7 +312,40 @@ const locationAt = (index: number) => {
             :severity="BADGE_SEVERITY[badge]"
             :value="$t(`ops.amazon.tab.badge.${badge}`)"
          />
-         <span v-if="provided" v-text="$t('ops.amazon.tab.provided')" />
+         <span v-if="source === 'server'" v-text="$t('ops.amazon.tab.provided')" />
+         <template v-if="productSource">
+            <Tag data-derived severity="info" :value="$t('ops.amazon.tab.derived.badge')" />
+            <RouterLink
+               v-if="productLink"
+               data-derived-source
+               :to="productLink"
+               target="_blank"
+               rel="noopener"
+            >
+               {{ sourceText }}
+            </RouterLink>
+            <span v-else data-derived-source v-text="sourceText" />
+            <template v-if="!readonly">
+               <Button
+                  v-if="showsDerived"
+                  data-action="derived-override"
+                  variant="link"
+                  size="small"
+                  class="!p-0"
+                  :label="$t('ops.amazon.tab.derived.override')"
+                  @click="override"
+               />
+               <Button
+                  v-else
+                  data-action="derived-reset"
+                  variant="link"
+                  size="small"
+                  class="!p-0"
+                  :label="$t('ops.amazon.tab.derived.use_product')"
+                  @click="useProductValue"
+               />
+            </template>
+         </template>
          <span v-if="property.description" v-text="property.description" />
       </span>
    </div>

@@ -287,6 +287,20 @@ describe('CellAmazonDrawer', () => {
       expect(german.text()).toContain(en.ops.amazon.cell.missing_none);
    });
 
+   it('does not list an attribute the product card provides as missing', async () => {
+      const unbranded: Attributes = { ...story };
+      delete unbranded.brand;
+      productRef.value = { ...PRODUCT, listing_attributes: unbranded };
+      const plain = await mountDrawer();
+      expect(plain.find('[data-missing="brand"]').exists()).toBe(true);
+
+      productRef.value = { ...PRODUCT, brand: 'OKAEI', listing_attributes: unbranded };
+      const carded = await mountDrawer();
+      expect(carded.find('[data-missing]').exists()).toBe(false);
+      expect(carded.text()).toContain(en.ops.amazon.cell.missing_none);
+      expect(isDisabled(carded, 'publish')).toBe(false);
+   });
+
    it('counts the identifier and the offer of a variation parent as provided (R7)', async () => {
       // A parent: no GTIN, no price; its children carry them.
       productRef.value = { ...PRODUCT, gtin: null };

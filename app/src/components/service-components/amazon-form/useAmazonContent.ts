@@ -27,6 +27,7 @@ export function useAmazonContent(
    country: MaybeRefOrGetter<string>
 ) {
    const listing = useListingAttributes(product);
+   const productId = computed(() => product.value?.id ?? null);
    const customerId = computed(() => product.value?.customer_id ?? null);
    const tenantId = computed(() => product.value?.tenant_id ?? null);
    const savedType = computed(() => product.value?.amazon_product_type ?? null);
@@ -93,6 +94,7 @@ export function useAmazonContent(
 
    return {
       ...listing,
+      productId,
       customerId,
       tenantId,
       productType,

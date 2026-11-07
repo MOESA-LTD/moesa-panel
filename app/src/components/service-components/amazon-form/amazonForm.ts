@@ -2,8 +2,11 @@ import {
    attributeFilled,
    type Attributes,
    type MissingField,
+   type ProductCardColumn,
    type PropertyGroups,
    type PropertySchema,
+   type ProvidedAttributes,
+   type ProvidedSource,
    type requiredAttributes
 } from '@edge-shared/listingCompleteness';
 
@@ -187,4 +190,42 @@ export function missingInFormOrder(
       return at === -1 ? order.length : at;
    };
    return [...missing].sort((a, b) => rank(a.attribute) - rank(b.attribute));
+}
+
+/** Removes the attribute's entries of the language (the attribute goes when it has none left). */
+export function clearLanguage(
+   attributes: Attributes,
+   name: string,
+   languageTag: string
+): Attributes {
+   const kept = (attributes[name] ?? []).filter((entry) => !inLanguage(entry, languageTag));
+   const next = { ...attributes };
+   if (kept.length) next[name] = kept;
+   else delete next[name];
+   return next;
+}
+
+/** Nothing provided: before the product, the cell or the schema is known. */
+export const NOTHING_PROVIDED: ProvidedAttributes = Object.freeze({ attributes: {}, sources: {} });
+
+/** The product card tab of each column attributes are derived from. */
+const PRODUCT_TABS: Record<ProductCardColumn, 'general' | 'dimensions'> = {
+   brand: 'general',
+   origin_country: 'general',
+   manufacturer_art_no: 'general',
+   is_hazmat: 'general',
+   unit_dims_mm: 'dimensions',
+   unit_net_g: 'dimensions',
+   pack_dims_mm: 'dimensions',
+   pack_gross_g: 'dimensions',
+   pack_qty: 'dimensions'
+};
+
+/** The product card column and its tab's route name of a derived attribute; null for the server's. */
+export function productSourceOf(
+   source: ProvidedSource | null | undefined
+): { column: ProductCardColumn; route: string } | null {
+   if (!source?.startsWith('product.')) return null;
+   const column = source.slice('product.'.length) as ProductCardColumn;
+   return { column, route: `ops-product-manage-${PRODUCT_TABS[column]}` };
 }

@@ -6,6 +6,7 @@ import {
    groupMissingCounts,
    languageTag,
    missingAttributes,
+   providedAttributes,
    serverProvided,
    toDefinitionRow,
    toPropertyGroups
@@ -44,6 +45,24 @@ describe('listingCompleteness from the app (@edge-shared)', () => {
          required: 6,
          filled: 6
       });
+   });
+
+   it('derives the product card attributes the schema has, as the server does', () => {
+      const { attributes, sources } = providedAttributes(
+         { gtin: '4006381333931', brand: 'OKAEI', pack_qty: 2, unit_net_g: 180 },
+         { price: null, currency: null },
+         fixture.schema,
+         DE
+      );
+      expect(attributes).toEqual({
+         brand: [{ value: 'OKAEI', language_tag: 'de_DE', marketplace_id: DE.marketplaceId }],
+         number_of_items: [{ value: 2, marketplace_id: DE.marketplaceId }]
+      });
+      const unbranded: Attributes = { ...story };
+      delete unbranded.brand;
+      expect(
+         completeness(fixture.schema, unbranded, { ...DE, provided: Object.keys(sources) })
+      ).toEqual({ required: 6, filled: 6 });
    });
 
    it('shares the language default and the definition row with the server', () => {

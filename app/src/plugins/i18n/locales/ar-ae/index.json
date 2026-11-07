@@ -2304,7 +2304,13 @@
             "issue_link": "Go to {field}",
             "product_type_empty": "Choose the Amazon product type to fill in its fields.",
             "provided": "Filled in on publishing, from the product or the market cell.",
-            "value_clear": "Clear the value"
+            "value_clear": "Clear the value",
+            "derived": {
+               "badge": "From the product",
+               "source": "Product card › {field}",
+               "override": "Override for this listing",
+               "use_product": "Use the product value"
+            }
          },
          "cell": {
             "title": "Amazon listing",

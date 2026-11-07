@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { amazonErrorText, type AmazonIssue } from '@/api/amazon';
-import type { Attributes } from '@edge-shared/listingCompleteness';
+import type { Attributes, ProvidedAttributes } from '@edge-shared/listingCompleteness';
 import AmazonAttributeForm from './AmazonAttributeForm.vue';
 import type { AmazonContent } from './useAmazonContent';
 
@@ -10,8 +10,8 @@ import type { AmazonContent } from './useAmazonContent';
 const props = defineProps<{
    content: AmazonContent;
    languageTag: string;
-   /** Attributes the server fills on publish; they count as filled. */
-   provided: string[];
+   /** What the server fills and the product card gives, in `languageTag` (providedAttributes). */
+   provided: ProvidedAttributes;
    readonly?: boolean;
    /** Amazon's issues of the latest submission. */
    issues?: AmazonIssue[];
@@ -24,6 +24,7 @@ const emit = defineEmits<{ 'update:languageTag': [languageTag: string] }>();
 const {
    attributes,
    resetKey,
+   productId,
    customerId,
    tenantId,
    productType,
@@ -83,6 +84,7 @@ const search = (text: string) => (query.value = text);
             @update:languageTag="emit('update:languageTag', $event)"
             :definition
             :provided
+            :productId
             :readonly
             :issues
             :customerId

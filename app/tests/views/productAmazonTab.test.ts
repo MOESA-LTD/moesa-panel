@@ -4,9 +4,13 @@ import AmazonAttributeForm from '@/components/service-components/amazon-form/Ama
 import MediaPickerDialog from '@/components/service-components/media/MediaPickerDialog.vue';
 import en from '@/plugins/i18n/locales/en/index.json';
 import Amazon from '@/views/pages/ops/product/tabs/Amazon.vue';
-import { toPropertyGroups, type Attributes } from '@edge-shared/listingCompleteness';
+import {
+   toPropertyGroups,
+   type Attributes,
+   type ProvidedAttributes
+} from '@edge-shared/listingCompleteness';
 import i18n, { i18NPlugin } from '@plugins/i18n';
-import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import PrimeVue from 'primevue/config';
@@ -98,8 +102,22 @@ enableAutoUnmount(afterEach);
 type FormProps = {
    modelValue?: Attributes;
    languageTag?: string;
-   provided?: string[];
+   provided?: ProvidedAttributes;
    issues?: AmazonIssue[];
+   productId?: string;
+};
+
+const NOTHING: ProvidedAttributes = { attributes: {}, sources: {} };
+/** The server fills the identifier from the GTIN. */
+const GTIN: ProvidedAttributes = {
+   attributes: {},
+   sources: { externally_assigned_product_identifier: 'server' }
+};
+const MARKETPLACE = 'A1PA6795UKMFR9';
+/** The product card's brand, as providedAttributes derives it for de_DE. */
+const BRAND: ProvidedAttributes = {
+   attributes: { brand: [{ value: 'OKAEI', language_tag: 'de_DE', marketplace_id: MARKETPLACE }] },
+   sources: { ...GTIN.sources, brand: 'product.brand' }
 };
 
 const mountForm = (props: FormProps = {}) =>
@@ -109,10 +127,10 @@ const mountForm = (props: FormProps = {}) =>
          definition,
          modelValue: {},
          languageTag: 'de_DE',
-         provided: [],
+         provided: NOTHING,
          ...props
       },
-      global: { plugins }
+      global: { plugins, stubs: { RouterLink: RouterLinkStub } }
    });
 
 type Wrapper = ReturnType<typeof mountForm>;
@@ -155,7 +173,7 @@ describe('AmazonAttributeForm', () => {
       };
       const wrapper = mountForm({
          modelValue: filled,
-         provided: ['externally_assigned_product_identifier']
+         provided: GTIN
       });
       expect(wrapper.find('[data-field="condition_type"]').exists()).toBe(false);
 
@@ -199,7 +217,7 @@ describe('AmazonAttributeForm', () => {
    it('the completeness bar shows filled of required', async () => {
       const wrapper = mountForm({
          modelValue: story,
-         provided: ['externally_assigned_product_identifier']
+         provided: GTIN
       });
       expect(wrapper.get('[data-completeness]').text()).toContain('6 / 6');
       // Nothing is written in English yet: item name, brand and bullet points are missing there.
@@ -297,16 +315,78 @@ describe('AmazonAttributeForm', () => {
       expect(new Set(ids).size).toBe(3);
    });
 
+   it('shows a derived attribute read-only with its product card source', () => {
+      const wrapper = mountForm({ provided: BRAND, productId: 'p1' });
+      const field = wrapper.get('[data-field="brand"]');
+      expect(inputValue(wrapper, 'brand')).toBe('OKAEI');
+      expect(field.get('input').attributes('disabled')).toBeDefined();
+      expect(field.get('[data-derived]').text()).toBe('From the product');
+      expect(field.get('[data-derived-source]').text()).toBe('Product card › Brand');
+      expect(field.getComponent(RouterLinkStub).props('to')).toEqual({
+         name: 'ops-product-manage-general',
+         params: { id: 'p1' }
+      });
+      // Derived counts as filled: the identity group misses only the item name.
+      expect(groupButton(wrapper, 'product_identity').get('[data-missing]').text()).toBe('1');
+   });
+
+   it('overrides a derived attribute for the listing, starting from the product value', async () => {
+      const wrapper = mountForm({ provided: BRAND });
+      await wrapper.get('[data-action="derived-override"]').trigger('click');
+      expect(lastModel(wrapper).brand).toEqual([{ value: 'OKAEI', language_tag: 'de_DE' }]);
+
+      await wrapper.setProps({ modelValue: lastModel(wrapper) });
+      const input = wrapper.get('[data-field="brand"] input');
+      expect(input.attributes('disabled')).toBeUndefined();
+      await input.setValue('OKAEI Pro');
+      expect(lastModel(wrapper).brand).toEqual([{ value: 'OKAEI Pro', language_tag: 'de_DE' }]);
+      expect(wrapper.find('[data-action="derived-override"]').exists()).toBe(false);
+   });
+
+   it('goes back to the product value by removing the override in the language', async () => {
+      const overridden: Attributes = {
+         brand: [
+            { value: 'OKAEI Pro', language_tag: 'de_DE' },
+            { value: 'OKAEI UK', language_tag: 'en_GB' }
+         ]
+      };
+      const wrapper = mountForm({ modelValue: overridden, provided: BRAND });
+      expect(inputValue(wrapper, 'brand')).toBe('OKAEI Pro');
+      await wrapper.get('[data-action="derived-reset"]').trigger('click');
+      expect(lastModel(wrapper).brand).toEqual([{ value: 'OKAEI UK', language_tag: 'en_GB' }]);
+
+      await wrapper.setProps({ modelValue: lastModel(wrapper) });
+      expect(inputValue(wrapper, 'brand')).toBe('OKAEI');
+      expect(wrapper.get('[data-field="brand"] input').attributes('disabled')).toBeDefined();
+   });
+
+   it('offers no override without the right to edit', () => {
+      const wrapper = mountForm({ provided: BRAND });
+      expect(wrapper.find('[data-action="derived-override"]').exists()).toBe(true);
+      const readonly = mount(AmazonAttributeForm, {
+         props: {
+            definition,
+            modelValue: {},
+            languageTag: 'de_DE',
+            provided: BRAND,
+            readonly: true
+         },
+         global: { plugins, stubs: { RouterLink: RouterLinkStub } }
+      });
+      expect(readonly.find('[data-action="derived-override"]').exists()).toBe(false);
+      expect(readonly.find('[data-field="brand"] [data-derived]').exists()).toBe(true);
+   });
+
    it('is read-only without the right to edit', () => {
       const wrapper = mount(AmazonAttributeForm, {
          props: {
             definition,
             modelValue: {},
             languageTag: 'de_DE',
-            provided: [],
+            provided: NOTHING,
             readonly: true
          },
-         global: { plugins }
+         global: { plugins, stubs: { RouterLink: RouterLinkStub } }
       });
       expect(wrapper.get('[data-field="item_name"] input').attributes('disabled')).toBeDefined();
       expect(wrapper.find('[data-action="next-missing"]').exists()).toBe(true);
@@ -338,7 +418,11 @@ describe('the product Amazon tab', () => {
    const mountTab = () => {
       productRef.value = api.product;
       cellsRef.value = api.cells;
-      return mount(Amazon, { attachTo: document.body, props: { id: 'p1' }, global: { plugins } });
+      return mount(Amazon, {
+         attachTo: document.body,
+         props: { id: 'p1' },
+         global: { plugins, stubs: { RouterLink: RouterLinkStub } }
+      });
    };
 
    it('shows the schema-moved notice', async () => {
@@ -373,6 +457,39 @@ describe('the product Amazon tab', () => {
             ...story,
             item_name: [{ value: 'Mop', language_tag: 'de_DE' }]
          }
+      });
+   });
+
+   it('derives the brand from the product card and saves only an override', async () => {
+      const unbranded: Attributes = { ...story };
+      delete unbranded.brand;
+      api.product = {
+         ...(api.product as object),
+         brand: 'OKAEI',
+         pack_qty: 2,
+         listing_attributes: unbranded
+      };
+      const wrapper = mountTab();
+      await flushPromises();
+
+      expect(inputValue(wrapper, 'brand')).toBe('OKAEI');
+      expect(wrapper.find('[data-field="brand"] [data-derived]').exists()).toBe(true);
+      // The story without its brand is complete: the card provides it.
+      expect(wrapper.get('[data-completeness]').text()).toContain('6 / 6');
+
+      await wrapper.get('[data-group="product_details"]').trigger('click');
+      expect(inputValue(wrapper, 'number_of_items')).toBe('2');
+      await wrapper
+         .get('[data-field="number_of_items"] [data-action="derived-override"]')
+         .trigger('click');
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+
+      expect(api.save).toHaveBeenCalledWith({
+         id: 'p1',
+         amazon_product_type: 'LUGGAGE',
+         amazon_schema_version: 'UHqSqmb4FNUk=',
+         listing_attributes: { ...unbranded, number_of_items: [{ value: 2 }] }
       });
    });
 

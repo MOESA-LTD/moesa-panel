@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import {
    AMAZON_LANGUAGE_TAGS,
+   amazonSchemaOf,
    DEFAULT_AMAZON_COUNTRY,
    DEFAULT_AMAZON_LANGUAGE,
+   marketplaceIdFor,
    orderAmazonCells,
    useListingSubmissions,
    useProductAmazonCells
 } from '@/api/amazon';
 import { productResource } from '@/api/product';
 import AmazonContentForm from '@/components/service-components/amazon-form/AmazonContentForm.vue';
+import { NOTHING_PROVIDED } from '@/components/service-components/amazon-form/amazonForm';
 import { useAmazonContent } from '@/components/service-components/amazon-form/useAmazonContent';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useAuthStore } from '@/store/auth';
 import {
    languageTag as defaultLanguageTag,
-   serverProvided
+   providedAttributes
 } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import { ToastSeverity } from '@primevue/core/api';
@@ -74,8 +77,20 @@ const pickLanguage = (tag: string) => {
 };
 watch(linkedLanguage, (tag) => tag && pickLanguage(tag));
 
+// What the server fills and the product card gives, in the form's language and marketplace.
 const provided = computed(() =>
-   product.value ? serverProvided(product.value, cell.value ?? {}) : []
+   product.value
+      ? providedAttributes(
+           product.value,
+           cell.value ?? {},
+           definition.value ? amazonSchemaOf(definition.value) : null,
+           {
+              marketplaceId:
+                 definition.value?.marketplace_id ?? marketplaceIdFor(country.value) ?? '',
+              languageTag: languageTag.value
+           }
+        )
+      : NOTHING_PROVIDED
 );
 
 const { data: submissions } = useListingSubmissions(() => cell.value?.id ?? null);
