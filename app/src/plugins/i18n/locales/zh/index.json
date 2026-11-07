@@ -2308,7 +2308,7 @@
             "derived": {
                "badge": "From the product",
                "source": "Product card › {field}",
-               "override": "Override for this listing",
+               "override": "Override for this language",
                "use_product": "Use the product value"
             }
          },

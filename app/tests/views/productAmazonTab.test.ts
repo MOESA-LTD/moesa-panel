@@ -360,6 +360,22 @@ describe('AmazonAttributeForm', () => {
       expect(wrapper.get('[data-field="brand"] input').attributes('disabled')).toBeDefined();
    });
 
+   it('a value for another marketplace does not override the derived one, and stays', async () => {
+      const french: Attributes = {
+         brand: [{ value: 'OKAEI FR', language_tag: 'de_DE', marketplace_id: 'A13V1IB3VIYZZH' }]
+      };
+      const wrapper = mountForm({ modelValue: french, provided: BRAND });
+      expect(inputValue(wrapper, 'brand')).toBe('OKAEI');
+      expect(wrapper.get('[data-field="brand"] input').attributes('disabled')).toBeDefined();
+
+      const own: Attributes = {
+         brand: [...french.brand!, { value: 'OKAEI DE', language_tag: 'de_DE' }]
+      };
+      await wrapper.setProps({ modelValue: own });
+      await wrapper.get('[data-action="derived-reset"]').trigger('click');
+      expect(lastModel(wrapper)).toEqual(french);
+   });
+
    it('offers no override without the right to edit', () => {
       const wrapper = mountForm({ provided: BRAND });
       expect(wrapper.find('[data-action="derived-override"]').exists()).toBe(true);

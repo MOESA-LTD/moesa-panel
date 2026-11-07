@@ -192,13 +192,32 @@ export function missingInFormOrder(
    return [...missing].sort((a, b) => rank(a.attribute) - rank(b.attribute));
 }
 
-/** Removes the attribute's entries of the language (the attribute goes when it has none left). */
-export function clearLanguage(
-   attributes: Attributes,
-   name: string,
-   languageTag: string
-): Attributes {
-   const kept = (attributes[name] ?? []).filter((entry) => !inLanguage(entry, languageTag));
+/** Where a listing's own value applies: a language, and the marketplace when known. */
+export type ValueScope = { languageTag: string; marketplaceId?: string | null };
+
+/** An entry of the scope: its language (or none named) and marketplace (or none named). */
+const inScope = (entry: unknown, scope: ValueScope): entry is Entry =>
+   inLanguage(entry, scope.languageTag) &&
+   (scope.marketplaceId == null ||
+      entry.marketplace_id == null ||
+      entry.marketplace_id === scope.marketplaceId);
+
+/**
+ * Whether the attribute has a value of its own in the scope, as the server reads it
+ * (attributeFilled): such a value wins over the one derived from the product card.
+ */
+export const hasOwnValue = (attributes: Attributes, name: string, scope: ValueScope) =>
+   attributeFilled(
+      (attributes[name] ?? []).filter((entry) => inScope(entry, scope)).map(contentOf),
+      { marketplaceId: '', languageTag: '' }
+   );
+
+/**
+ * Removes the attribute's entries of the scope (the attribute goes when it has none left); the
+ * entries of other languages and marketplaces stay.
+ */
+export function clearScope(attributes: Attributes, name: string, scope: ValueScope): Attributes {
+   const kept = (attributes[name] ?? []).filter((entry) => !inScope(entry, scope));
    const next = { ...attributes };
    if (kept.length) next[name] = kept;
    else delete next[name];

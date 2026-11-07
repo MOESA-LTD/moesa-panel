@@ -275,6 +275,7 @@ const ISSUE_SEVERITY = {
                :source="provided.sources[name] ?? null"
                :derived="provided.attributes[name] ?? null"
                :productId
+               :marketplaceId="definition.marketplace_id"
                :readonly
                :customerId
                :tenantId

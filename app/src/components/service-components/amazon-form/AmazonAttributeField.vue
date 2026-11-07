@@ -2,11 +2,12 @@
 import type { Attributes, PropertySchema, ProvidedSource } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import {
-   clearLanguage,
+   clearScope,
    contentOf,
    controlFor,
    entryCount,
    entryProperties,
+   hasOwnValue,
    isLanguageTagged,
    productSourceOf,
    readValue,
@@ -20,7 +21,8 @@ import AmazonImageSlot from './AmazonImageSlot.vue';
 // writeValue: the entries of the other languages stay as they are. An attribute that takes several
 // entries (e.g. five bullet points) shows the filled ones and one empty slot, up to its maximum.
 // An attribute derived from the product card shows the product's value read-only, with its source,
-// until it is overridden for the listing (a value of its own in this language, which wins).
+// until it is overridden for the language (a value of its own in this language and marketplace,
+// which wins).
 const props = defineProps<{
    name: string;
    property: PropertySchema;
@@ -37,6 +39,8 @@ const props = defineProps<{
    derived?: unknown[] | null;
    /** The product, whose card a derived attribute links to. */
    productId?: string | null;
+   /** The marketplace of the derived value: a listing value for another one does not override it. */
+   marketplaceId?: string | null;
    /** The media library the image slots offer: the product's customer and tenant. */
    customerId?: string | null;
    tenantId?: string | null;
@@ -76,8 +80,13 @@ const sourceText = computed(() =>
         })
       : ''
 );
-/** The listing's own value in this language: it wins over the product's. */
-const overridden = computed(() => entryCount(props.modelValue, props.name, props.languageTag) > 0);
+/** Where an own value overrides the product's: this language and marketplace. */
+const scope = computed(() => ({
+   languageTag: props.languageTag,
+   marketplaceId: props.marketplaceId
+}));
+/** An own value in this language and marketplace: it wins over the product's (as on the server). */
+const overridden = computed(() => hasOwnValue(props.modelValue, props.name, scope.value));
 /** Override was asked for here: the field stays editable even while emptied. */
 const overriding = ref(false);
 /** The product's value is shown, read-only. */
@@ -102,10 +111,10 @@ const override = () => {
    });
    emit('update:modelValue', next);
 };
-/** Drops the listing's own value in this language: the product's applies again. */
+/** Drops the own value in this language and marketplace: the product's applies again. */
 const useProductValue = () => {
    overriding.value = false;
-   emit('update:modelValue', clearLanguage(props.modelValue, props.name, props.languageTag));
+   emit('update:modelValue', clearScope(props.modelValue, props.name, scope.value));
 };
 
 /** The slots shown: the language's entries plus an empty one while the maximum allows. */

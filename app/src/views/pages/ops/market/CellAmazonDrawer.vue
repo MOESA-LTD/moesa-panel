@@ -629,6 +629,7 @@ const askRemove = () =>
                            :source="provided.sources[field.name] ?? null"
                            :derived="provided.attributes[field.name] ?? null"
                            :productId="product?.id"
+                           :marketplaceId
                            :readonly="!canEditProduct"
                            :customerId="product?.customer_id"
                            :tenantId="product?.tenant_id"

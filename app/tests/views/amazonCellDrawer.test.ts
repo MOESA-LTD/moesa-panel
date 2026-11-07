@@ -17,7 +17,7 @@ import AutoComplete from 'primevue/autocomplete';
 import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ref, toValue, type MaybeRefOrGetter } from 'vue';
+import { computed, ref, toValue, type MaybeRefOrGetter } from 'vue';
 
 // The Amazon drawer of a market cell: connection, completeness for the cell's marketplace,
 // marketplace fields, catalogue match, history and the actions, all on the API module's hooks.
@@ -52,6 +52,8 @@ const api = vi.hoisted(() => ({
    confirm: vi.fn(),
    checkTarget: null as null | (() => string | null),
    definitionArgs: [] as (() => unknown)[],
+   /** Product types whose schema is still loading. */
+   loadingTypes: [] as string[],
    accountsFilter: null as null | (() => unknown)
 }));
 
@@ -109,7 +111,11 @@ vi.mock('@/api/amazon', async (importOriginal) => ({
    useProductIsParent: () => ({ data: isParentRef }),
    useDefinition: (args: MaybeRefOrGetter<unknown>) => {
       api.definitionArgs.push(() => toValue(args));
-      return { data: ref(definition), error: ref(null), isFetching: ref(false) };
+      const data = computed(() => {
+         const type = (toValue(args) as { productType?: string } | null)?.productType;
+         return type && api.loadingTypes.includes(type) ? undefined : definition;
+      });
+      return { data, error: ref(null), isFetching: ref(false) };
    },
    useProductTypeSearch: () => ({
       data: ref([{ name: 'MOP', displayName: 'Mop' }]),
@@ -231,6 +237,7 @@ enableAutoUnmount(afterEach);
 beforeAll(() => i18n.setLocaleMessage('en', en));
 beforeEach(() => {
    ability.update([{ action: 'manage', subject: 'all' }]);
+   api.loadingTypes = [];
    cellRef.value = { ...CELL };
    productRef.value = { ...PRODUCT };
    accountsRef.value = [{ ...ACCOUNT }];
@@ -517,6 +524,40 @@ describe('CellAmazonDrawer', () => {
       expect(field.props()).toMatchObject({ name: 'color', languageTag: 'de_DE' });
       // Not a missing required field.
       expect(wrapper.find('[data-missing="color"]').exists()).toBe(false);
+   });
+
+   it('shows a field the product card provides, opened from an issue, with its source', async () => {
+      const unbranded: Attributes = { ...story };
+      delete unbranded.brand;
+      productRef.value = { ...PRODUCT, brand: 'OKAEI', listing_attributes: unbranded };
+      submissionsRef.value = [
+         submission({
+            status: 'invalid',
+            issues: [
+               {
+                  code: '1',
+                  message: 'Brand is not valid.',
+                  severity: 'ERROR',
+                  attributeNames: ['brand']
+               }
+            ]
+         })
+      ];
+      cellRef.value = { ...CELL, listing_state: 'issues' };
+      const wrapper = await mountDrawer();
+      expect(wrapper.find('[data-inline-field="brand"]').exists()).toBe(false);
+
+      await wrapper.get('[data-action="issue-fix"]').trigger('click');
+      await flushPromises();
+      const field = wrapper.get('[data-inline-field="brand"]');
+      expect(field.get('[data-derived]').text()).toBe(en.ops.amazon.tab.derived.badge);
+      expect((field.get('input').element as HTMLInputElement).value).toBe('OKAEI');
+      expect(field.get('input').attributes('disabled')).toBeDefined();
+      expect(field.getComponent(RouterLinkStub).props('to')).toEqual({
+         name: 'ops-product-manage-general',
+         params: { id: 'p1' }
+      });
+      expect(field.find('[data-action="derived-override"]').exists()).toBe(true);
    });
 
    it('lists an issue without attributeNames under General', async () => {
@@ -1003,6 +1044,28 @@ describe('CellAmazonDrawer content tab', () => {
          id: 'p1',
          listing_attributes: { ...story, item_name: withEnglishName }
       });
+   });
+
+   it('holds the inline Save back while a newly picked type has no schema yet', async () => {
+      // An English listing misses the item name: it is an inline field.
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      api.loadingTypes = ['MOP'];
+      const wrapper = await mountDrawer();
+      await inlineInput(wrapper, 'item_name').setValue('Mop');
+      expect(isDisabled(wrapper, 'save-attributes')).toBe(false);
+
+      await showTab(wrapper, 'content');
+      content(wrapper)
+         .getComponent(AutoComplete)
+         .vm.$emit('option-select', { value: { name: 'MOP', label: 'Mop (MOP)' } });
+      await flushPromises();
+      expect(saveContent(wrapper).attributes('disabled')).toBeDefined();
+
+      await showTab(wrapper, 'listing');
+      expect(isDisabled(wrapper, 'save-attributes')).toBe(true);
+      await action(wrapper, 'save-attributes').trigger('click');
+      await flushPromises();
+      expect(api.saveProduct).not.toHaveBeenCalled();
    });
 
    it('changes the product type with the right to edit the product, and saves it with its schema version', async () => {

@@ -2307,7 +2307,7 @@
             "derived": {
                "badge": "Üründen",
                "source": "Ürün kartı › {field}",
-               "override": "Bu ilanda farklı değer girin",
+               "override": "Bu dil için farklı değer girin",
                "use_product": "Ürün değerine dönün"
             },
             "value_clear": "Değeri temizle"
