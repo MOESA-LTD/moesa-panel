@@ -24,11 +24,11 @@
 --                                 it (no write policy).
 -- listing_submission              One submission of a cell's listing to Amazon (create, update or
 --                                 delete), with its SKU, marketplace, payload, Amazon's submission id,
---                                 its status and Amazon's issues verbatim. Users read them; only the
---                                 service role writes them (INSERT, UPDATE and DELETE are revoked
---                                 from authenticated), through listing_begin_submission. created_at
---                                 is clock_timestamp(), so the latest submission of a cell is the
---                                 one with the greatest created_at even within one transaction.
+--                                 its status and Amazon's issues verbatim. Users read them; nobody
+--                                 writes them directly (INSERT, UPDATE and DELETE are revoked from
+--                                 authenticated): the listing RPCs below write them. created_at is
+--                                 clock_timestamp(), so the latest submission of a cell is the one
+--                                 with the greatest created_at even within one transaction.
 --
 -- Guards (the message is the code):
 --   market_cell_listing_server_only   check_violation: a user (current_user authenticated) sets or
@@ -49,19 +49,30 @@
 --        updates it, and a NULL token deletes it. The token is never a table column, so it is in
 --        no audit row.
 --
--- Service RPCs (PostgREST exposes only public; SECURITY DEFINER, executable by service_role only):
+-- RPCs (PostgREST exposes only public; all SECURITY DEFINER). The Amazon Edge Functions call them
+-- with the user's JWT for what a user does (publish, check, remove, status, disconnect), so the
+-- audit records the user, and with the service role only where no user is there or a credential
+-- is involved (the poll, the schema refresh, the OAuth callback, the token, a revoked grant).
+-- Service role only:
 --   amazon_account_token       the account's refresh token, NULL when none is stored
 --   amazon_account_connect     stores the token (skipped when NULL, as in sandbox) and sets
---                              connected, authorized_at = now() and the seller id
+--                              connected, authorized_at = now() and the seller id (the connection
+--                              columns are server-only: a user never sets them)
+-- Service role and authenticated (a user call is checked inside, below):
 --   amazon_account_disconnect  'none' clears the connection and deletes the token; 'revoked'
 --                              (Amazon answered invalid_grant) deletes the token too and keeps
---                              authorized_at and seller_id: no credential lingers
+--                              authorized_at and seller_id: no credential lingers. A user may
+--                              only disconnect ('none'), holding update on
+--                              customer_platform_account in the account's tenant
 --   listing_begin_submission   under the cell's row lock: refuses a create or update with
 --                              'listing_in_progress' (P0001) while the cell's latest submission is
 --                              accepted or processing (two publishes never overlap); inserts the
---                              submission (processing, created_by = p_created_by, the tenant of
---                              the cell) and, for a create or update, sets the cell submitted, so
---                              a run that dies before Amazon answers leaves a row the poll settles
+--                              submission (processing, created_by = auth.uid(), so NULL for the
+--                              service role; the tenant of the cell) and, for a create or update,
+--                              sets the cell submitted, so a run that dies before Amazon answers
+--                              leaves a row the poll settles
+--   listing_settle_removal     a delete submission's answer: its status, Amazon id and issues
+--                              (a removal never walks the business status)
 --   listing_set_state          under the cell's row lock: the cell's listing_state,
 --                              listing_checked_at = now() and, when given, listing_match; leaving
 --                              issues clears an 'Amazon: ' open issue (unless suppressed). With
@@ -73,6 +84,18 @@
 --                              own row only, and the cell is returned unchanged)
 --   listing_parent_cell        the cell of the product's parent in the same platform and country,
 --                              inserted (as a candidate) when missing; NULL without a parent
+-- The listing RPCs (all but the account ones) let a user in only with insert on listing_submission
+-- in the row's tenant, within the request's tenant scope (private.listing_authorize, as RLS reads
+-- it): anything else is 'listing_forbidden' (42501). A call without a user (the service role) is
+-- not limited. The account RPCs refuse a user with 'platform_account_forbidden' (42501).
+--
+-- Audit of service-role writes: the audit trigger records auth.uid() and auth.role(), so a
+-- service-role write is actor NULL, role service_role. A service request may name itself in the
+-- x-audit-role header (amazon-auth, amazon-listing, amazon-schema, amazon-poll,
+-- amazon-schema-refresh; any other value is ignored) and the user it acts for in x-audit-actor (the
+-- OAuth callback: the user of the signed state); private.audit_service_actor writes them into the
+-- audit transaction. Only a service_role request without a user is relabelled, so a user's own
+-- headers change nothing.
 -- A missing row raises no_data_found (P0002), a NULL listing state invalid_parameter_value (22023),
 -- with a plain message: these are server errors, never shown to a user. Deleting a platform
 -- account (directly or by cascade) deletes its token (platform_account_forget_token).
@@ -104,8 +127,8 @@
 --
 -- Module listing (core): select and insert on public.listing_submission, for the owner role and
 -- every role that may change products. The CASL subject is listing_submission; the insert right
--- is what amazon-listing checks before it writes a submission with the service role (the table
--- privilege itself is revoked from users).
+-- is what amazon-listing checks, and what the listing RPCs check again inside (the table privilege
+-- itself is revoked from users).
 --
 -- Bucket listing-images: public (Amazon fetches the images without credentials, R5), PNG and JPEG
 -- up to 10 MiB, no user storage policy: only the service role writes it.
@@ -447,7 +470,76 @@ $$;
 
 REVOKE ALL ON FUNCTION private.listing_mirror_parent (UUID) FROM PUBLIC, anon, authenticated;
 
--- Service RPCs (see the header).
+-- Who may write a listing through the RPCs below (see the header): a request without a user, or a
+-- user holding insert on listing_submission in `p_tenant_id` within the request's tenant scope.
+CREATE OR REPLACE FUNCTION private.listing_authorize (p_tenant_id UUID) RETURNS VOID LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF auth.uid() IS NULL AND coalesce(auth.role(), '') <> 'authenticated' THEN
+        RETURN;
+    END IF;
+    IF NOT coalesce(p_tenant_id = ANY (private.permitted_tenants('public.listing_submission', 'insert')), FALSE) THEN
+        RAISE EXCEPTION 'listing_forbidden' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.listing_authorize (UUID) FROM PUBLIC, anon, authenticated;
+
+-- A user may disconnect an account (never connect it, never mark it revoked) holding update on
+-- customer_platform_account in its tenant; a request without a user is not limited.
+CREATE OR REPLACE FUNCTION private.platform_account_authorize (p_account_id UUID, p_state public.api_connection) RETURNS VOID LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    IF auth.uid() IS NULL AND coalesce(auth.role(), '') <> 'authenticated' THEN
+        RETURN;
+    END IF;
+    IF p_state IS DISTINCT FROM 'none' OR NOT coalesce((
+        SELECT a.tenant_id = ANY (private.permitted_tenants('public.customer_platform_account', 'update'))
+        FROM public.customer_platform_account a WHERE a.id = p_account_id
+    ), FALSE) THEN
+        RAISE EXCEPTION 'platform_account_forbidden' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.platform_account_authorize (UUID, public.api_connection) FROM PUBLIC, anon, authenticated;
+
+-- The label of a service-role write (see the header): x-audit-role from the allowed names, and
+-- x-audit-actor when it is a UUID. Only a service_role transaction without a user is relabelled.
+CREATE OR REPLACE FUNCTION private.audit_service_actor () RETURNS TRIGGER LANGUAGE plpgsql
+SET
+   search_path = '' AS $$
+DECLARE
+    v_headers JSONB;
+    v_actor TEXT;
+BEGIN
+    IF NEW.actor_id IS NOT NULL OR NEW.actor_role IS DISTINCT FROM 'service_role' THEN
+        RETURN NEW;
+    END IF;
+
+    v_headers := nullif(current_setting('request.headers', TRUE), '')::JSONB;
+    IF NOT coalesce(v_headers ->> 'x-audit-role' = ANY (ARRAY['amazon-auth', 'amazon-listing', 'amazon-schema', 'amazon-poll', 'amazon-schema-refresh']), FALSE) THEN
+        RETURN NEW;
+    END IF;
+
+    NEW.actor_role := v_headers ->> 'x-audit-role';
+    v_actor := v_headers ->> 'x-audit-actor';
+    IF v_actor ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+        NEW.actor_id := v_actor::UUID;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER audit_service_actor BEFORE INSERT ON public.audit_transaction FOR EACH ROW
+EXECUTE FUNCTION private.audit_service_actor ();
+
+REVOKE ALL ON FUNCTION private.audit_service_actor () FROM PUBLIC, anon, authenticated;
+
+-- The RPCs (see the header).
 CREATE OR REPLACE FUNCTION public.amazon_account_token (p_account_id UUID) RETURNS TEXT LANGUAGE sql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -485,6 +577,8 @@ BEGIN
         RAISE EXCEPTION 'disconnect state must be none or revoked, not %', p_state USING ERRCODE = 'invalid_parameter_value';
     END IF;
 
+    PERFORM private.platform_account_authorize(p_account_id, p_state);
+
     IF p_state = 'none' THEN
         UPDATE public.customer_platform_account a
         SET api_connection = 'none', authorized_at = NULL, seller_id = NULL
@@ -521,6 +615,8 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'market cell % not found', p_cell_id USING ERRCODE = 'no_data_found';
     END IF;
+
+    PERFORM private.listing_authorize(v_cell.tenant_id);
 
     -- Someone wrote the cell since the caller read it: the caller's state is stale.
     IF p_expected_updated_at IS NOT NULL AND v_cell.updated_at IS DISTINCT FROM p_expected_updated_at THEN
@@ -568,6 +664,8 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'listing submission % not found', p_submission_id USING ERRCODE = 'no_data_found';
     END IF;
+
+    PERFORM private.listing_authorize(v_submission.tenant_id);
 
     -- The cell first: a submission begun or applied meanwhile waits for this one.
     SELECT * INTO v_cell FROM public.market_cell m
@@ -648,8 +746,7 @@ CREATE OR REPLACE FUNCTION public.listing_begin_submission (
    p_kind public.listing_submission_kind,
    p_sku TEXT,
    p_marketplace_id TEXT,
-   p_payload JSONB,
-   p_created_by UUID
+   p_payload JSONB
 ) RETURNS public.listing_submission LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -664,6 +761,8 @@ BEGIN
         RAISE EXCEPTION 'market cell % not found', p_cell_id USING ERRCODE = 'no_data_found';
     END IF;
 
+    PERFORM private.listing_authorize(v_cell.tenant_id);
+
     IF p_kind <> 'delete' THEN
         SELECT * INTO v_latest FROM public.listing_submission s
         WHERE s.cell_id = p_cell_id
@@ -676,7 +775,7 @@ BEGIN
     END IF;
 
     INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload, created_by)
-    VALUES (v_cell.tenant_id, v_cell.id, p_kind, p_sku, p_marketplace_id, coalesce(p_payload, '{}'::JSONB), p_created_by)
+    VALUES (v_cell.tenant_id, v_cell.id, p_kind, p_sku, p_marketplace_id, coalesce(p_payload, '{}'::JSONB), auth.uid())
     RETURNING * INTO v_submission;
 
     IF p_kind <> 'delete' THEN
@@ -686,6 +785,40 @@ BEGIN
 
         PERFORM private.listing_mirror_parent(v_cell.id);
     END IF;
+
+    RETURN v_submission;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.listing_settle_removal (
+   p_submission_id UUID,
+   p_status public.listing_submission_status,
+   p_amazon_submission_id TEXT,
+   p_issues JSONB
+) RETURNS public.listing_submission LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    v_submission public.listing_submission;
+BEGIN
+    SELECT * INTO v_submission FROM public.listing_submission s WHERE s.id = p_submission_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'listing submission % not found', p_submission_id USING ERRCODE = 'no_data_found';
+    END IF;
+
+    PERFORM private.listing_authorize(v_submission.tenant_id);
+
+    IF v_submission.kind <> 'delete' THEN
+        RAISE EXCEPTION 'listing submission % is not a removal', p_submission_id USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+
+    UPDATE public.listing_submission s
+    SET status = p_status,
+        amazon_submission_id = coalesce(p_amazon_submission_id, s.amazon_submission_id),
+        issues = coalesce(p_issues, '[]'::JSONB)
+    WHERE s.id = p_submission_id
+    RETURNING * INTO v_submission;
 
     RETURN v_submission;
 END;
@@ -706,6 +839,8 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'market cell % not found', p_cell_id USING ERRCODE = 'no_data_found';
     END IF;
+
+    PERFORM private.listing_authorize(v_cell.tenant_id);
 
     IF v_cell.parent_id IS NULL THEN
         RETURN NULL;
@@ -747,7 +882,9 @@ REVOKE ALL ON FUNCTION public.amazon_account_disconnect (UUID, public.api_connec
 
 REVOKE ALL ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB, TIMESTAMPTZ) FROM PUBLIC, anon, authenticated;
 
-REVOKE ALL ON FUNCTION public.listing_begin_submission (UUID, public.listing_submission_kind, TEXT, TEXT, JSONB, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.listing_begin_submission (UUID, public.listing_submission_kind, TEXT, TEXT, JSONB) FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION public.listing_settle_removal (UUID, public.listing_submission_status, TEXT, JSONB) FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION public.listing_apply_submission (UUID, public.listing_submission_status, TEXT, JSONB, public.listing_state, TEXT) FROM PUBLIC, anon, authenticated;
 
@@ -757,15 +894,18 @@ GRANT EXECUTE ON FUNCTION public.amazon_account_token (UUID) TO service_role;
 
 GRANT EXECUTE ON FUNCTION public.amazon_account_connect (UUID, TEXT, TEXT) TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.amazon_account_disconnect (UUID, public.api_connection) TO service_role;
+-- These check a user call inside (see the header).
+GRANT EXECUTE ON FUNCTION public.amazon_account_disconnect (UUID, public.api_connection) TO service_role, authenticated;
 
-GRANT EXECUTE ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB, TIMESTAMPTZ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.listing_set_state (UUID, public.listing_state, JSONB, TIMESTAMPTZ) TO service_role, authenticated;
 
-GRANT EXECUTE ON FUNCTION public.listing_begin_submission (UUID, public.listing_submission_kind, TEXT, TEXT, JSONB, UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.listing_begin_submission (UUID, public.listing_submission_kind, TEXT, TEXT, JSONB) TO service_role, authenticated;
 
-GRANT EXECUTE ON FUNCTION public.listing_apply_submission (UUID, public.listing_submission_status, TEXT, JSONB, public.listing_state, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION public.listing_settle_removal (UUID, public.listing_submission_status, TEXT, JSONB) TO service_role, authenticated;
 
-GRANT EXECUTE ON FUNCTION public.listing_parent_cell (UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.listing_apply_submission (UUID, public.listing_submission_status, TEXT, JSONB, public.listing_state, TEXT) TO service_role, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.listing_parent_cell (UUID) TO service_role, authenticated;
 
 -- The images Amazon fetches (R5).
 INSERT INTO
@@ -824,8 +964,9 @@ VALUES
 ON CONFLICT (table_name) DO NOTHING;
 
 -- Module and permissions. Inserting a permission creates its RLS policies (see
--- private.manage_policies). The insert permission is the CASL right amazon-listing checks; the
--- table privilege is revoked below, so only the service role writes a submission.
+-- private.manage_policies). The insert permission is the CASL right amazon-listing checks and the
+-- listing RPCs check inside; the table privilege is revoked below, so only those RPCs write a
+-- submission.
 INSERT INTO
    public.module (id, is_core, position)
 VALUES
@@ -858,5 +999,5 @@ ON CONFLICT DO NOTHING;
 SELECT
    private.grant_group_to_product_editors ('listing');
 
--- Users read submissions; only the service role writes them (amazon-listing, amazon-poll).
+-- Users read submissions; only the listing RPCs write them (amazon-listing, amazon-poll).
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.listing_submission FROM anon, authenticated;

@@ -441,6 +441,8 @@
       "method_not_allowed": "Bu istek yöntemine izin verilmiyor.",
       "not_found": "Bulunamadı.",
       "listing_in_progress": "Amazon bu ilanın son gönderimini hâlâ işliyor.",
+      "listing_forbidden": "Bu ilanı yönetme yetkiniz yok.",
+      "platform_account_forbidden": "Bu Amazon hesabının bağlantısını değiştirme yetkiniz yok.",
       "platform_account_connected": "Bu hesabı başka bir müşteriye taşımadan önce Amazon bağlantısını kesin."
    },
    "account": {

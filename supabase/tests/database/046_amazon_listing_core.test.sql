@@ -14,11 +14,13 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- the version it was given and clears an Amazon open issue when leaving issues; the parent cell is
 -- created on demand and shows the worst of its own submission and its children (R7); the registry
 -- row, the public bucket and the coordinator's publish permission are there; a transferred account
--- starts disconnected. The cells are THO-MOP40-2P's on amazon PL, SE, BE, GB and NL, inserted as
--- postgres and walked with UPDATEs. What it writes is rolled back.
+-- starts disconnected; called as a user, the RPCs are audited as that user and refuse another tenant
+-- or a user without the permission, and a service write is labelled by its x-audit-role. The cells
+-- are THO-MOP40-2P's on amazon PL, SE, BE, GB and NL, inserted as postgres and walked with UPDATEs.
+-- What it writes is rolled back.
 BEGIN;
 
-SELECT plan(65);
+SELECT plan(92);
 
 SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
@@ -146,6 +148,7 @@ RESET ROLE;
 
 -- 25–30. The service role: connect, the token, disconnect.
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 
 SELECT is(
     (public.amazon_account_connect(current_setting('test.acct')::UUID, 'Atzr|test', 'A3TEST')).api_connection,
@@ -176,6 +179,7 @@ SELECT throws_ok(
 );
 RESET ROLE;
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 
 SELECT lives_ok($$ SELECT public.amazon_account_disconnect(current_setting('test.acct')::UUID, 'none') $$, 'disconnect');
 SELECT is(public.amazon_account_token(current_setting('test.acct')::UUID), NULL, 'disconnect none removes the token');
@@ -227,6 +231,7 @@ WITH s AS (
 )
 SELECT set_config('test.sub_complete', s.id::TEXT, TRUE) FROM s;
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 
 SELECT is(
     (public.listing_apply_submission(current_setting('test.sub_complete')::UUID, 'done', NULL, '[]', 'live', 'B07N4M94X4')).status,
@@ -255,9 +260,11 @@ SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current
 SELECT is((SELECT platform_product_id FROM public.market_cell WHERE id = current_setting('test.cell_pl')::UUID), 'B07N4M94X4', 'the ASIN fills the platform product id');
 
 -- C2/C13. listing_begin_submission: GB's last submission is done, so a new one starts; BE's is
--- accepted (in flight), so a second one is refused.
+-- accepted (in flight), so a second one is refused. A user begins it: created_by is the caller.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.sub_begin', (public.listing_begin_submission(
-    current_setting('test.cell_gb')::UUID, 'update', 'THO-MOP40-2P', 'A1F83G8C2ARO7P', '{"productType": "LUGGAGE"}', current_setting('test.akif')::UUID
+    current_setting('test.cell_gb')::UUID, 'update', 'THO-MOP40-2P', 'A1F83G8C2ARO7P', '{"productType": "LUGGAGE"}'
 )).id::TEXT, TRUE);
 SELECT ok(
     (SELECT status = 'processing' AND created_by = current_setting('test.akif')::UUID AND issues = '[]'::JSONB
@@ -266,11 +273,14 @@ SELECT ok(
 );
 SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_gb')::UUID), 'submitted', 'begin marks the cell submitted before Amazon is called');
 SELECT throws_ok(
-    $$ SELECT public.listing_begin_submission(current_setting('test.cell_be')::UUID, 'create', 'THO-MOP40-2P', 'AMEN7PMS3EDWL', '{}', NULL) $$,
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_be')::UUID, 'create', 'THO-MOP40-2P', 'AMEN7PMS3EDWL', '{}') $$,
     'P0001',
     'listing_in_progress',
     'begin refuses while the last submission is in flight'
 );
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 
 -- C2. An older submission's answer settles that submission only: GB keeps the newer one's state.
 SELECT is(
@@ -331,6 +341,7 @@ WITH s AS (
 SELECT set_config('test.sub_child', s.id::TEXT, TRUE) FROM s;
 
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 
 SELECT isnt(public.listing_parent_cell(current_setting('test.child_cell')::UUID), NULL, 'the parent cell is created');
 SELECT set_config('test.parent_cell', public.listing_parent_cell(current_setting('test.child_cell')::UUID)::TEXT, TRUE);
@@ -353,6 +364,7 @@ VALUES (current_setting('test.moesa')::UUID, current_setting('test.parent_cell')
 INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
 VALUES (current_setting('test.moesa')::UUID, current_setting('test.child_cell')::UUID, 'update', 'THO-M22-CHILD', 'A1PA6795UKMFR9', '{}');
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 SELECT 1 FROM public.listing_apply_submission(
     (SELECT id FROM public.listing_submission WHERE cell_id = current_setting('test.parent_cell')::UUID),
     'failed', NULL, '[{"code":"amazon_poll_timeout","message":"late","severity":"ERROR"}]', 'issues', NULL
@@ -370,6 +382,7 @@ RESET ROLE;
 INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
 VALUES (current_setting('test.moesa')::UUID, current_setting('test.parent_cell')::UUID, 'update', 'THO-M22-PARENT', 'A1PA6795UKMFR9', '{}');
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 SELECT 1 FROM public.listing_apply_submission(
     (SELECT id FROM public.listing_submission WHERE cell_id = current_setting('test.parent_cell')::UUID AND kind = 'update'),
     'done', NULL, '[]', 'live', NULL
@@ -409,6 +422,7 @@ SELECT ok(
 
 -- 51. Deleting the account deletes its token.
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 SELECT 1 FROM public.amazon_account_connect(current_setting('test.acct')::UUID, 'Atzr|third', 'A3TEST');
 RESET ROLE;
 DELETE FROM public.customer_platform_account WHERE id = current_setting('test.acct')::UUID;
@@ -438,6 +452,7 @@ SELECT is(current_setting('test.transferred_connection'), 'none', 'a transferred
 
 -- C1. A running transfer that moves a connected account moves it disconnected, without its token.
 SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
 SELECT 1 FROM public.amazon_account_connect(
     (SELECT a.id FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id
      WHERE c.code = 'ZZA' AND a.platform_id = 'amazon'),
@@ -457,6 +472,222 @@ SELECT ok(
      FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id
      WHERE c.code = 'ZZB' AND a.platform_id = 'amazon'),
     'a transfer moves a connected account disconnected'
+);
+
+-- The caller's credentials: the Amazon functions call the listing RPCs as the user (koordinator in
+-- MOESA LTD, who holds insert on listing_submission). The audit records that user; a service call
+-- is labelled by its x-audit-role header (and x-audit-actor), which a user cannot forge; a user of
+-- another tenant, or without the permission, is refused inside the RPC; the table stays closed to
+-- direct writes. Each call starts its own audit transaction (audit.transaction_id cleared).
+SELECT set_config('test.koord', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')::TEXT, TRUE);
+SELECT set_config('test.zzb', (SELECT a.id FROM public.customer_platform_account a JOIN public.customer c ON c.id = a.customer_id
+                               WHERE c.code = 'ZZB' AND a.platform_id = 'amazon')::TEXT, TRUE);
+
+SELECT private.impersonate(current_setting('test.koord')::UUID, current_setting('test.moesa')::UUID);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT set_config('test.sub_user', (public.listing_begin_submission(
+    current_setting('test.cell_pl')::UUID, 'update', 'THO-MOP40-2P', 'A1C3SOZRARQ6R3', '{}'
+)).id::TEXT, TRUE);
+SELECT set_config('test.tx_begin', current_setting('audit.transaction_id'), TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT 1 FROM public.listing_apply_submission(current_setting('test.sub_user')::UUID, 'accepted', 'u1',
+    '[{"code":"90220","message":"size","severity":"ERROR"}]', 'issues', NULL);
+SELECT set_config('test.tx_apply', current_setting('audit.transaction_id'), TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT 1 FROM public.listing_set_state(current_setting('test.cell_se')::UUID, 'draft', NULL);
+SELECT set_config('test.tx_state', current_setting('audit.transaction_id'), TRUE);
+-- A user's own x-audit-role / x-audit-actor headers are not a label.
+SELECT set_config('request.headers', json_build_object(
+    'x-tenant-id', current_setting('test.moesa'), 'x-tenant-ids', current_setting('test.moesa'),
+    'x-audit-role', 'amazon-poll', 'x-audit-actor', current_setting('test.akif'))::TEXT, TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT 1 FROM public.listing_set_state(current_setting('test.cell_se')::UUID, 'ready', NULL);
+SELECT set_config('test.tx_forged', current_setting('audit.transaction_id'), TRUE);
+
+SELECT set_config('test.sub_removal', (public.listing_begin_submission(
+    current_setting('test.cell_se')::UUID, 'delete', 'THO-MOP40-2P', 'A2NODRKZP88ZB9', '{}'
+)).id::TEXT, TRUE);
+SELECT is(
+    (public.listing_settle_removal(current_setting('test.sub_removal')::UUID, 'done', 'r1', '[]')).status::TEXT,
+    'done',
+    'a user settles a removal'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_settle_removal(current_setting('test.sub_user')::UUID, 'done', NULL, '[]') $$,
+    '22023',
+    NULL,
+    'only a removal is settled without the walk'
+);
+SELECT isnt(public.listing_parent_cell(current_setting('test.child_cell')::UUID), NULL, 'a user gets the parent cell');
+SELECT throws_ok(
+    $$ INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+       VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_se')::UUID, 'create', 'X', 'Y', '{}') $$,
+    '42501',
+    NULL,
+    'a user with the permission still cannot insert a submission directly'
+);
+SELECT throws_ok(
+    $$ UPDATE public.listing_submission SET status = 'done' WHERE id = current_setting('test.sub_user')::UUID $$,
+    '42501',
+    NULL,
+    'a user with the permission still cannot update a submission directly'
+);
+SELECT throws_ok(
+    $$ SELECT public.amazon_account_connect(current_setting('test.zzb')::UUID, 'Atzr|forged', 'AFORGED') $$,
+    '42501',
+    NULL,
+    'a user cannot connect an account'
+);
+RESET ROLE;
+
+-- The service role: an OAuth callback for koordinator, the poll, and an unknown label.
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claims', '{"role": "service_role"}', TRUE);
+SELECT set_config('request.headers', json_build_object('x-audit-role', 'amazon-auth', 'x-audit-actor', current_setting('test.koord'))::TEXT, TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT 1 FROM public.amazon_account_connect(current_setting('test.zzb')::UUID, 'Atzr|zzb', 'A3ZZB');
+SELECT set_config('test.tx_connect', current_setting('audit.transaction_id'), TRUE);
+SELECT set_config('request.headers', '{"x-audit-role": "amazon-poll"}', TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT 1 FROM public.listing_set_state(current_setting('test.cell_se')::UUID, 'draft', NULL);
+SELECT set_config('test.tx_poll', current_setting('audit.transaction_id'), TRUE);
+SELECT set_config('request.headers', '{"x-audit-role": "anything"}', TRUE);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT 1 FROM public.listing_set_state(current_setting('test.cell_se')::UUID, 'ready', NULL);
+SELECT set_config('test.tx_unlabelled', current_setting('audit.transaction_id'), TRUE);
+SELECT set_config('request.headers', '', TRUE);
+RESET ROLE;
+
+-- koordinator disconnects the account (update on customer_platform_account); revoked is the
+-- server's word only.
+SELECT private.impersonate(current_setting('test.koord')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_ok(
+    $$ SELECT public.amazon_account_disconnect(current_setting('test.zzb')::UUID, 'revoked') $$,
+    '42501',
+    NULL,
+    'a user cannot mark an account revoked'
+);
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT lives_ok($$ SELECT public.amazon_account_disconnect(current_setting('test.zzb')::UUID, 'none') $$, 'a user disconnects the account');
+SELECT set_config('test.tx_disconnect', current_setting('audit.transaction_id'), TRUE);
+RESET ROLE;
+SELECT ok(
+    (SELECT a.api_connection = 'none' AND private.amazon_token(a.id) IS NULL FROM public.customer_platform_account a WHERE a.id = current_setting('test.zzb')::UUID),
+    'a user''s disconnect clears the connection and the token'
+);
+
+-- Another tenant's user.
+SELECT private.impersonate(current_setting('test.selin')::UUID, current_setting('test.eski')::UUID);
+SELECT throws_ok(
+    $$ SELECT public.listing_set_state(current_setting('test.cell_se')::UUID, 'draft', NULL) $$,
+    '42501',
+    'listing_forbidden',
+    'another tenant cannot write the cell''s state'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_se')::UUID, 'delete', 'X', 'Y', '{}') $$,
+    '42501',
+    'listing_forbidden',
+    'another tenant cannot begin a submission'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_apply_submission(current_setting('test.sub_user')::UUID, 'done', NULL, '[]', 'live', NULL) $$,
+    '42501',
+    'listing_forbidden',
+    'another tenant cannot apply a submission'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_parent_cell(current_setting('test.child_cell')::UUID) $$,
+    '42501',
+    'listing_forbidden',
+    'another tenant cannot get the parent cell'
+);
+SELECT throws_ok(
+    $$ SELECT public.amazon_account_disconnect(current_setting('test.zzb')::UUID, 'none') $$,
+    '42501',
+    NULL,
+    'another tenant cannot disconnect the account'
+);
+RESET ROLE;
+
+-- koordinator without the permission.
+DELETE FROM public.role_permission rp
+USING public.role r, public.permission p
+WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  AND r.tenant_id = current_setting('test.moesa')::UUID AND r.display_name = 'coordinator'
+  AND p.resource_name = 'public.listing_submission' AND p.command = 'insert';
+SELECT private.impersonate(current_setting('test.koord')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_ok(
+    $$ SELECT public.listing_set_state(current_setting('test.cell_se')::UUID, 'draft', NULL) $$,
+    '42501',
+    'listing_forbidden',
+    'without the permission the state is refused'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_begin_submission(current_setting('test.cell_pl')::UUID, 'delete', 'X', 'Y', '{}') $$,
+    '42501',
+    'listing_forbidden',
+    'without the permission a submission is refused'
+);
+SELECT throws_ok(
+    $$ SELECT public.listing_settle_removal(current_setting('test.sub_removal')::UUID, 'failed', NULL, '[]') $$,
+    '42501',
+    'listing_forbidden',
+    'without the permission a removal is not settled'
+);
+RESET ROLE;
+
+-- Who the audit names.
+SELECT is(
+    (SELECT created_by FROM public.listing_submission WHERE id = current_setting('test.sub_user')::UUID),
+    current_setting('test.koord')::UUID,
+    'created_by is the caller'
+);
+SELECT ok(
+    (SELECT t.actor_id = current_setting('test.koord')::UUID AND t.actor_role = 'authenticated'
+     FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_begin')::UUID),
+    'a user''s begin is audited as the user'
+);
+SELECT ok(
+    EXISTS (SELECT 1 FROM public.audit_log l WHERE l.transaction_id = current_setting('test.tx_begin')::UUID AND l.table_name = 'listing_submission')
+    AND EXISTS (SELECT 1 FROM public.audit_log l WHERE l.transaction_id = current_setting('test.tx_begin')::UUID AND l.table_name = 'market_cell'),
+    'the begin logs the submission and the cell'
+);
+SELECT ok(
+    (SELECT t.actor_id = current_setting('test.koord')::UUID FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_apply')::UUID)
+    AND EXISTS (SELECT 1 FROM public.audit_log l WHERE l.transaction_id = current_setting('test.tx_apply')::UUID AND l.table_name = 'listing_submission')
+    AND EXISTS (SELECT 1 FROM public.audit_log l WHERE l.transaction_id = current_setting('test.tx_apply')::UUID AND l.table_name = 'market_cell'),
+    'a user''s apply is audited as the user, on the submission and the cell'
+);
+SELECT ok(
+    (SELECT t.actor_id = current_setting('test.koord')::UUID AND t.table_name = 'market_cell'
+     FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_state')::UUID),
+    'a user''s state write is audited as the user'
+);
+SELECT ok(
+    (SELECT t.actor_id = current_setting('test.koord')::UUID AND t.actor_role = 'authenticated'
+     FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_forged')::UUID),
+    'a user''s audit headers change nothing'
+);
+SELECT ok(
+    (SELECT t.actor_id = current_setting('test.koord')::UUID AND t.actor_role = 'amazon-auth'
+     FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_connect')::UUID),
+    'the OAuth callback''s connect is audited as the user of the state, labelled amazon-auth'
+);
+SELECT ok(
+    (SELECT t.actor_id IS NULL AND t.actor_role = 'amazon-poll'
+     FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_poll')::UUID),
+    'a poll write is labelled amazon-poll'
+);
+SELECT is(
+    (SELECT t.actor_role FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_unlabelled')::UUID),
+    'service_role',
+    'an unknown label is ignored'
+);
+SELECT ok(
+    (SELECT t.actor_id = current_setting('test.koord')::UUID AND t.actor_role = 'authenticated'
+     FROM public.audit_transaction t WHERE t.id = current_setting('test.tx_disconnect')::UUID),
+    'a user''s disconnect is audited as the user'
 );
 
 SELECT * FROM finish();

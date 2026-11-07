@@ -672,6 +672,8 @@
       "method_not_allowed": "This request method is not allowed.",
       "not_found": "Not found.",
       "listing_in_progress": "Amazon is still processing the last submission of this listing.",
+      "listing_forbidden": "You may not manage this listing.",
+      "platform_account_forbidden": "You may not change this Amazon account's connection.",
       "platform_account_connected": "Disconnect Amazon before moving this account to another customer."
    },
    "route": {
