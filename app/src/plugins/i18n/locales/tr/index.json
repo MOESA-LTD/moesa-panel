@@ -2363,7 +2363,13 @@
                "submitted": "Amazon son gönderimi hâlâ işliyor.",
                "unsaved": "Önce pazaryeri alanlarını kaydedin."
             },
-            "refresh_status": "Durumu yenile"
+            "refresh_status": "Durumu yenile",
+            "tabs": {
+               "listing": "İlan",
+               "content": "İçerik"
+            },
+            "content_notice": "Bu alanlar ürüne aittir ve ürünün tüm pazaryerlerinde geçerlidir; metinler {language} dilinde yazılır.",
+            "open_in_content": "İçerik sekmesinde aç"
          },
          "connect": {
             "button": "Amazon’u bağla",

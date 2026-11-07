@@ -491,6 +491,9 @@ export function useProductTypeSearch(
 
 export type DefinitionArgs = Parameters<typeof fetchDefinition>[0];
 
+/** The locale of the schemas' titles and descriptions (Amazon's own text) the forms show. */
+export const AMAZON_SCHEMA_LOCALE = 'en_GB';
+
 /** The schema of a product type; null arguments wait. */
 export function useDefinition(args: MaybeRefOrGetter<DefinitionArgs | null>) {
    const tenantKey = useTenantKey();

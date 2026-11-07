@@ -150,13 +150,21 @@ const productIdLabel = computed(
    () => cell.value?.platform?.product_id_label || t('ops.market.fields.platform_product_id')
 );
 
-// An Amazon cell opens its listing (connection, completeness, publishing) in a drawer, which asks
-// before it closes over unsaved Amazon fields.
+// An Amazon cell opens its listing (connection, completeness, publishing) and the product's Amazon
+// content in a drawer, which asks before it closes over unsaved Amazon content. The content tab's
+// form has two columns: the drawer widens while it is shown.
 const amazonOpen = ref(false);
 const amazonDrawer = ref<InstanceType<typeof CellAmazonDrawer> | null>(null);
+const amazonTab = ref<'listing' | 'content'>('listing');
 const setAmazonOpen = async (open: boolean) => {
    if (open || ((await amazonDrawer.value?.allowClose()) ?? true)) amazonOpen.value = open;
+   // It opens on the listing again.
+   if (!amazonOpen.value) amazonTab.value = 'listing';
 };
+const amazonDrawerClass = computed(() => [
+   '!w-full',
+   amazonTab.value === 'content' ? 'md:!w-[70vw] md:!max-w-[90rem]' : 'md:!w-[40rem]'
+]);
 
 const LISTING_TEXTS = ['platform_sku'] as const;
 const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
@@ -189,9 +197,14 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
             @update:visible="setAmazonOpen"
             position="right"
             :header="$t('ops.amazon.cell.title')"
-            class="!w-full md:!w-[40rem]"
+            :class="amazonDrawerClass"
          >
-            <CellAmazonDrawer v-if="amazonOpen" ref="amazonDrawer" :cellId="cell.id" />
+            <CellAmazonDrawer
+               v-if="amazonOpen"
+               ref="amazonDrawer"
+               v-model:tab="amazonTab"
+               :cellId="cell.id"
+            />
          </Drawer>
       </template>
    </div>

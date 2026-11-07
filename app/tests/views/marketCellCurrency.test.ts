@@ -8,6 +8,7 @@ import i18n, { i18NPlugin } from '@plugins/i18n';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { flushPromises, mount } from '@vue/test-utils';
 import PrimeVue from 'primevue/config';
+import Drawer from 'primevue/drawer';
 import Select from 'primevue/select';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, Suspense } from 'vue';
@@ -62,6 +63,13 @@ vi.mock('@/composables/useUpsertForm', async () => {
    };
 });
 
+// The Amazon drawer's content stands in: it only tells which of its tabs is shown.
+const CellAmazonDrawerStub = defineComponent({
+   name: 'CellAmazonDrawer',
+   emits: ['update:tab'],
+   setup: () => () => h('div')
+});
+
 const Slot = defineComponent({
    setup:
       (_, { slots }) =>
@@ -87,7 +95,7 @@ const mountCell = async (props: object, row: Partial<MarketCellRow> | null = nul
                FormField: Slot,
                ProductSelect: true,
                ProjectSelect: true,
-               CellAmazonDrawer: true,
+               CellAmazonDrawer: CellAmazonDrawerStub,
                StatusActions: true
             }
          }
@@ -136,5 +144,29 @@ describe('market cell currency', () => {
       formValues().country = 'DE';
       await flushPromises();
       expect(formValues().currency).toBe('USD');
+   });
+});
+
+describe('the cell Amazon drawer', () => {
+   beforeAll(() => {
+      i18n.setLocaleMessage('en', en);
+      ability.update([{ action: 'manage', subject: 'all' }]);
+   });
+
+   it('widens while its content tab is shown', async () => {
+      const wrapper = await mountCell({ id: 'c1' }, { ...saved, platform_id: 'amazon' });
+      await wrapper.get('[data-action="amazon-open"]').trigger('click');
+      await flushPromises();
+      const drawerClass = () => [wrapper.getComponent(Drawer).vm.$attrs.class].flat().join(' ');
+      expect(drawerClass()).toContain('md:!w-[40rem]');
+
+      wrapper.getComponent(CellAmazonDrawerStub).vm.$emit('update:tab', 'content');
+      await flushPromises();
+      expect(drawerClass()).toContain('md:!w-[70vw]');
+      expect(drawerClass()).not.toContain('md:!w-[40rem]');
+
+      wrapper.getComponent(CellAmazonDrawerStub).vm.$emit('update:tab', 'listing');
+      await flushPromises();
+      expect(drawerClass()).toContain('md:!w-[40rem]');
    });
 });

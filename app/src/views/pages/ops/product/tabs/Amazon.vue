@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import {
    AMAZON_LANGUAGE_TAGS,
-   amazonErrorText,
    orderAmazonCells,
-   useDefinition,
    useListingSubmissions,
-   useProductAmazonCells,
-   useProductTypeSearch
+   useProductAmazonCells
 } from '@/api/amazon';
 import { productResource } from '@/api/product';
-import AmazonAttributeForm from '@/components/service-components/amazon-form/AmazonAttributeForm.vue';
-import { useListingAttributes } from '@/components/service-components/amazon-form/useListingAttributes';
+import AmazonContentForm from '@/components/service-components/amazon-form/AmazonContentForm.vue';
+import { useAmazonContent } from '@/components/service-components/amazon-form/useAmazonContent';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useAuthStore } from '@/store/auth';
 import {
@@ -29,8 +26,6 @@ import { useToast } from 'primevue/usetoast';
 // field to open (`?field=<attribute>`), as the cell drawer's links do.
 const props = defineProps<{ id: string }>();
 
-/** The locale of the schema's titles and descriptions (Amazon's own text). */
-const SCHEMA_LOCALE = 'en_GB';
 const DEFAULT_COUNTRY = 'DE';
 
 const route = useRoute();
@@ -47,63 +42,15 @@ const cell = computed(() => {
    return ordered.find(({ country }) => country === market.value) ?? ordered[0] ?? null;
 });
 const country = computed(() => cell.value?.country ?? DEFAULT_COUNTRY);
-const customerId = computed(() => product.value?.customer_id ?? null);
 const canEdit = computed(
    () => !!product.value && authStore.canIn(product.value.tenant_id, 'update', 'product')
 );
 
-// --- product type ---
-type TypeOption = { name: string; label: string };
-const productType = ref<string | null>(product.value?.amazon_product_type ?? null);
-const typeInput = ref<TypeOption | string | null>(productType.value);
-const query = ref('');
-const { data: found } = useProductTypeSearch(query, country, customerId);
-const typeOptions = computed<TypeOption[]>(() =>
-   (found.value ?? []).map(({ name, displayName }) => ({
-      name,
-      label: `${displayName} (${name})`
-   }))
-);
-// The product loads after the tab when it was not cached yet; its type is taken unless one was picked.
-watch(
-   () => product.value?.amazon_product_type ?? null,
-   (type, old) => {
-      if (productType.value !== (old ?? null)) return;
-      productType.value = type;
-      typeInput.value = type;
-   }
-);
-const pickType = (option: TypeOption) => {
-   productType.value = option.name;
-   typeInput.value = option.name;
-};
-
-const { data: definition, error: definitionError } = useDefinition(() =>
-   productType.value && customerId.value
-      ? {
-           productType: productType.value,
-           country: country.value,
-           locale: SCHEMA_LOCALE,
-           customerId: customerId.value
-        }
-      : null
-);
-
-// --- values ---
-// The product loading after the tab, or refetched after another tab saved it, replaces the values
-// unless they were edited here; a save writes only the attributes edited here (useListingAttributes).
-const {
-   attributes,
-   resetKey,
-   changed: attributesChanged,
-   saving: isSubmitting,
-   reset: resetAttributes,
-   save: saveAttributes
-} = useListingAttributes(product);
-const isDirty = computed(
-   () =>
-      attributesChanged.value || productType.value !== (product.value?.amazon_product_type ?? null)
-);
+// The product type and the values: a product loading after the tab, or refetched after another tab
+// saved it, replaces them unless they were edited here; a save writes only the attributes edited
+// here (useAmazonContent).
+const content = useAmazonContent(product, country);
+const { definition, saving: isSubmitting, dirty: isDirty, reset } = content;
 
 // The language a link names, else the working cell's language, until the user picks one.
 const linkedLanguage = computed(() => {
@@ -131,32 +78,17 @@ const provided = computed(() =>
    product.value ? serverProvided(product.value, cell.value ?? {}) : []
 );
 
-const schemaMoved = computed(
-   () =>
-      !!definition.value &&
-      !!product.value?.amazon_schema_version &&
-      product.value.amazon_schema_version !== definition.value.version
-);
-
 const { data: submissions } = useListingSubmissions(() => cell.value?.id ?? null);
 const issues = computed(() => submissions.value?.[0]?.issues ?? []);
 
 const focusField = computed(() => queryText('field'));
 
 // --- save ---
-const reset = () => {
-   resetAttributes();
-   productType.value = product.value?.amazon_product_type ?? null;
-   typeInput.value = productType.value;
-};
-
 const submit = async () => {
-   if (!product.value || !canEdit.value || !productType.value || !definition.value) return;
+   const columns = content.typeColumns();
+   if (!product.value || !canEdit.value || !columns) return;
    try {
-      await saveAttributes({
-         amazon_product_type: productType.value,
-         amazon_schema_version: definition.value.version
-      });
+      await content.save(columns);
       toast.add({
          life: 3000,
          severity: ToastSeverity.SUCCESS,
@@ -179,55 +111,14 @@ const submit = async () => {
       @submit="submit"
       @reset="reset"
    >
-      <div class="flex w-full flex-col gap-4">
-         <FormField
-            fluid
-            :label="$t('ops.amazon.tab.product_type')"
-            :readonly="!canEdit"
-            v-slot="slotProps"
-         >
-            <AutoComplete
-               v-bind="slotProps"
-               v-model="typeInput"
-               :suggestions="typeOptions"
-               optionLabel="label"
-               :placeholder="$t('ops.amazon.tab.product_type_search')"
-               :disabled="!canEdit"
-               :emptySearchMessage="$t('ops.amazon.tab.product_type_none')"
-               @complete="query = $event.query"
-               @optionSelect="pickType($event.value)"
-            />
-         </FormField>
-
-         <Message v-if="definitionError" severity="error">
-            {{ amazonErrorText(definitionError) }}
-         </Message>
-         <Message v-else-if="!productType" severity="secondary">
-            {{ $t('ops.amazon.tab.product_type_empty') }}
-         </Message>
-
-         <template v-if="definition">
-            <span
-               class="text-sm text-surface-500"
-               v-text="$t('ops.amazon.tab.schema_version', { version: definition.version })"
-            />
-            <Message v-if="schemaMoved" data-schema-moved severity="warn">
-               {{ $t('ops.amazon.tab.schema_moved', { version: definition.version }) }}
-            </Message>
-            <AmazonAttributeForm
-               v-model="attributes"
-               :languageTag
-               :resetKey
-               @update:languageTag="pickLanguage"
-               :definition
-               :provided
-               :readonly="!canEdit"
-               :issues
-               :customerId
-               :tenantId="product.tenant_id"
-               :focusField
-            />
-         </template>
-      </div>
+      <AmazonContentForm
+         :content
+         :languageTag
+         @update:languageTag="pickLanguage"
+         :provided
+         :readonly="!canEdit"
+         :issues
+         :focusField
+      />
    </FormBox>
 </template>

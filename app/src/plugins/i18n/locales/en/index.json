@@ -2363,7 +2363,13 @@
                "submitted": "Amazon is still processing the last submission.",
                "unsaved": "Save the marketplace fields first."
             },
-            "refresh_status": "Refresh status"
+            "refresh_status": "Refresh status",
+            "tabs": {
+               "listing": "Listing",
+               "content": "Content"
+            },
+            "content_notice": "These fields belong to the product and apply to all its marketplaces; texts are written in {language}.",
+            "open_in_content": "Open in the Content tab"
          },
          "connect": {
             "button": "Connect Amazon",

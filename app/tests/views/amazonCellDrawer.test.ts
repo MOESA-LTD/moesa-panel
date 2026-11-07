@@ -3,6 +3,7 @@ import type { Definition, ListingSubmissionRow } from '@/api/amazon';
 import { ability } from '@/plugins/casl';
 import en from '@/plugins/i18n/locales/en/index.json';
 import AmazonAttributeField from '@/components/service-components/amazon-form/AmazonAttributeField.vue';
+import AmazonAttributeForm from '@/components/service-components/amazon-form/AmazonAttributeForm.vue';
 import { ROUTE_DIALOG } from '@/components/layout/route-dialog/context';
 import CellAmazonDrawer from '@/views/pages/ops/market/CellAmazonDrawer.vue';
 import { toPropertyGroups, type Attributes } from '@edge-shared/listingCompleteness';
@@ -12,6 +13,7 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { enableAutoUnmount, flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import AutoComplete from 'primevue/autocomplete';
 import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -49,6 +51,7 @@ const api = vi.hoisted(() => ({
    toast: vi.fn(),
    confirm: vi.fn(),
    checkTarget: null as null | (() => string | null),
+   definitionArgs: [] as (() => unknown)[],
    accountsFilter: null as null | (() => unknown)
 }));
 
@@ -104,7 +107,14 @@ vi.mock('@/api/amazon', async (importOriginal) => ({
       return { data: accountsRef };
    },
    useProductIsParent: () => ({ data: isParentRef }),
-   useDefinition: () => ({ data: ref(definition), error: ref(null), isFetching: ref(false) }),
+   useDefinition: (args: MaybeRefOrGetter<unknown>) => {
+      api.definitionArgs.push(() => toValue(args));
+      return { data: ref(definition), error: ref(null), isFetching: ref(false) };
+   },
+   useProductTypeSearch: () => ({
+      data: ref([{ name: 'MOP', displayName: 'Mop' }]),
+      isFetching: ref(false)
+   }),
    useCellCheck: (cellId: MaybeRefOrGetter<string | null>) => {
       api.checkTarget = () => toValue(cellId);
       return {
@@ -180,8 +190,10 @@ const submission = (extra: Partial<ListingSubmissionRow> = {}): ListingSubmissio
    ...extra
 });
 
-const mountDrawer = async () => {
+const mountDrawer = async ({ attach = false } = {}) => {
    const wrapper = mount(CellAmazonDrawer, {
+      // Attached when a test checks the focus.
+      attachTo: attach ? document.body : undefined,
       props: { cellId: 'c1' },
       global: {
          plugins: [
@@ -232,6 +244,8 @@ beforeEach(() => {
    api.saveProduct.mockReset();
    api.saveProduct.mockImplementation(async (row: object) => ({ ...productRef.value, ...row }));
    api.closeGuards = [];
+   api.definitionArgs = [];
+   document.body.innerHTML = '';
 });
 
 describe('CellAmazonDrawer', () => {
@@ -789,5 +803,213 @@ describe('CellAmazonDrawer', () => {
       for (const name of ['check', 'validate', 'publish', 'delete'])
          expect(action(wrapper, name).exists()).toBe(false);
       expect(api.checkTarget!()).toBeNull();
+   });
+});
+
+// The drawer's second tab edits the product's whole Amazon content with the product tab's form;
+// both tabs edit one state of the product's attributes.
+describe('CellAmazonDrawer content tab', () => {
+   const tab = (wrapper: Wrapper, name: string) => wrapper.get(`[data-tab="${name}"]`);
+   const showTab = async (wrapper: Wrapper, name: string) => {
+      await tab(wrapper, name).trigger('click');
+      await flushPromises();
+   };
+   const content = (wrapper: Wrapper) => wrapper.get('[data-tab-panel="content"]');
+   const contentInput = (wrapper: Wrapper, name: string) =>
+      content(wrapper).get(`[data-field="${name}"] input`);
+   const inlineInput = (wrapper: Wrapper, name: string) =>
+      wrapper.get(`[data-inline-field="${name}"] input`);
+   const valueOf = (input: { element: Element }) => (input.element as HTMLInputElement).value;
+   const withEnglishName = [...story.item_name!, { value: 'Mop', language_tag: 'en_GB' }];
+   const saveContent = (wrapper: Wrapper) => content(wrapper).find('[data-action="save-content"]');
+
+   it('opens on the listing tab; the content tab shows the form for the cell marketplace and language', async () => {
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      expect(tab(wrapper, 'listing').text()).toBe(en.ops.amazon.cell.tabs.listing);
+      expect(tab(wrapper, 'content').text()).toBe(en.ops.amazon.cell.tabs.content);
+      expect(tab(wrapper, 'listing').attributes('aria-selected')).toBe('true');
+      expect(wrapper.find('[data-section="completeness"]').exists()).toBe(true);
+      // The content form is built when its tab is first shown.
+      expect(wrapper.findComponent(AmazonAttributeForm).exists()).toBe(false);
+
+      await showTab(wrapper, 'content');
+      expect(wrapper.emitted('update:tab')!.at(-1)).toEqual(['content']);
+      const form = content(wrapper).getComponent(AmazonAttributeForm);
+      expect(form.props()).toMatchObject({ languageTag: 'en_GB', definition, readonly: false });
+      expect(api.definitionArgs.map((args) => args())).toContainEqual({
+         productType: 'LUGGAGE',
+         country: 'DE',
+         locale: 'en_GB',
+         customerId: 'k1'
+      });
+      expect(content(wrapper).getComponent(AutoComplete).props('modelValue')).toBe('LUGGAGE');
+      expect(content(wrapper).get('[data-content-notice]').text()).toBe(
+         en.ops.amazon.cell.content_notice.replace('{language}', 'en_GB')
+      );
+   });
+
+   it('edits one state: an edit in either tab shows in the other', async () => {
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      await showTab(wrapper, 'content');
+
+      await contentInput(wrapper, 'item_name').setValue('Mop');
+      await showTab(wrapper, 'listing');
+      expect(valueOf(inlineInput(wrapper, 'item_name'))).toBe('Mop');
+
+      await inlineInput(wrapper, 'item_name').setValue('Mops');
+      await showTab(wrapper, 'content');
+      expect(valueOf(contentInput(wrapper, 'item_name'))).toBe('Mops');
+   });
+
+   it('saves the merged attributes once from either tab, and completeness counts them at once', async () => {
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      let wrapper = await mountDrawer();
+      await showTab(wrapper, 'content');
+      await contentInput(wrapper, 'item_name').setValue('Mop');
+      await showTab(wrapper, 'listing');
+      await action(wrapper, 'save-attributes').trigger('click');
+      await flushPromises();
+      expect(api.saveProduct).toHaveBeenCalledTimes(1);
+      expect(api.saveProduct).toHaveBeenCalledWith({
+         id: 'p1',
+         listing_attributes: { ...story, item_name: withEnglishName }
+      });
+      expect(wrapper.find('[data-missing="item_name"]').exists()).toBe(false);
+      wrapper.unmount();
+
+      api.saveProduct.mockClear();
+      wrapper = await mountDrawer();
+      await inlineInput(wrapper, 'item_name').setValue('Mop');
+      await showTab(wrapper, 'content');
+      expect(saveContent(wrapper).attributes('disabled')).toBeUndefined();
+      await saveContent(wrapper).trigger('click');
+      await flushPromises();
+      expect(api.saveProduct).toHaveBeenCalledTimes(1);
+      expect(api.saveProduct).toHaveBeenCalledWith({
+         id: 'p1',
+         listing_attributes: { ...story, item_name: withEnglishName }
+      });
+      expect(saveContent(wrapper).attributes('disabled')).toBeDefined();
+      expect(wrapper.find('[data-missing="item_name"]').exists()).toBe(false);
+   });
+
+   it('holds Publish back over an unsaved content edit and asks once on close', async () => {
+      const wrapper = await mountDrawer();
+      await showTab(wrapper, 'content');
+      await contentInput(wrapper, 'item_name').setValue('Mop');
+      expect(isDisabled(wrapper, 'publish')).toBe(true);
+      expect(wrapper.get('[data-blocked]').text()).toBe(
+         en.ops.amazon.cell.publish_blocked.unsaved_attributes
+      );
+
+      const allowClose = (wrapper.vm as unknown as { allowClose: () => Promise<boolean> })
+         .allowClose;
+      const closing = allowClose();
+      expect(api.confirm).toHaveBeenCalledTimes(1);
+      api.confirm.mock.calls[0]![0].reject();
+      expect(await closing).toBe(false);
+   });
+
+   it('"Open in the Content tab" shows the field there, from a missing field and from an issue', async () => {
+      cellRef.value = { ...CELL, listing_language: 'en_GB', listing_state: 'issues' };
+      submissionsRef.value = [
+         submission({
+            status: 'invalid',
+            issues: [
+               {
+                  code: '90003',
+                  message: 'Colour is not valid.',
+                  severity: 'ERROR',
+                  attributeNames: ['color[marketplace_id=A1PA6795UKMFR9]']
+               }
+            ]
+         })
+      ];
+      const wrapper = await mountDrawer({ attach: true });
+      const fieldLink = wrapper.get(
+         '[data-inline-field="item_name"] [data-action="open-in-content"]'
+      );
+      expect(fieldLink.text()).toBe(en.ops.amazon.cell.open_in_content);
+      await fieldLink.trigger('click');
+      await flushPromises();
+      expect(tab(wrapper, 'content').attributes('aria-selected')).toBe('true');
+      expect(
+         content(wrapper).get('[data-field="item_name"]').element.contains(document.activeElement)
+      ).toBe(true);
+
+      await showTab(wrapper, 'listing');
+      await wrapper
+         .get('[data-section="history"] [data-issue] [data-action="open-in-content"]')
+         .trigger('click');
+      await flushPromises();
+      expect(tab(wrapper, 'content').attributes('aria-selected')).toBe('true');
+      expect(
+         content(wrapper).get('[data-group="product_details"]').attributes('aria-current')
+      ).toBe('true');
+      expect(
+         content(wrapper).get('[data-field="color"]').element.contains(document.activeElement)
+      ).toBe(true);
+   });
+
+   it('shows the content read-only, the product type too, without the right to edit the product', async () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         { action: 'update', subject: 'product', inverted: true }
+      ]);
+      const wrapper = await mountDrawer();
+      await showTab(wrapper, 'content');
+      expect(content(wrapper).getComponent(AmazonAttributeForm).props('readonly')).toBe(true);
+      expect(content(wrapper).getComponent(AutoComplete).props('disabled')).toBe(true);
+      expect(saveContent(wrapper).exists()).toBe(false);
+      expect(content(wrapper).get('[data-content-readonly]').text()).toBe(
+         en.errors.insufficient_permission
+      );
+   });
+
+   it('takes the values and the type of a product that loads after the drawer, and saves them all', async () => {
+      productRef.value = null;
+      cellRef.value = { ...CELL, listing_language: 'en_GB' };
+      const wrapper = await mountDrawer();
+      await showTab(wrapper, 'content');
+      expect(saveContent(wrapper).exists()).toBe(false);
+
+      productRef.value = { ...PRODUCT };
+      await flushPromises();
+      expect(content(wrapper).getComponent(AutoComplete).props('modelValue')).toBe('LUGGAGE');
+      expect(content(wrapper).getComponent(AmazonAttributeForm).props('modelValue')).toEqual(story);
+      // Nothing edited: a save cannot write the late values over with an empty form.
+      expect(saveContent(wrapper).attributes('disabled')).toBeDefined();
+
+      await contentInput(wrapper, 'item_name').setValue('Mop');
+      await saveContent(wrapper).trigger('click');
+      await flushPromises();
+      expect(api.saveProduct).toHaveBeenCalledWith({
+         id: 'p1',
+         listing_attributes: { ...story, item_name: withEnglishName }
+      });
+   });
+
+   it('changes the product type with the right to edit the product, and saves it with its schema version', async () => {
+      const wrapper = await mountDrawer();
+      await showTab(wrapper, 'content');
+      content(wrapper)
+         .getComponent(AutoComplete)
+         .vm.$emit('option-select', { value: { name: 'MOP', label: 'Mop (MOP)' } });
+      await flushPromises();
+      expect(wrapper.get('[data-blocked]').text()).toBe(
+         en.ops.amazon.cell.publish_blocked.unsaved_attributes
+      );
+
+      await saveContent(wrapper).trigger('click');
+      await flushPromises();
+      expect(api.saveProduct).toHaveBeenCalledTimes(1);
+      expect(api.saveProduct).toHaveBeenCalledWith({
+         id: 'p1',
+         amazon_product_type: 'MOP',
+         amazon_schema_version: definition.version,
+         listing_attributes: story
+      });
    });
 });

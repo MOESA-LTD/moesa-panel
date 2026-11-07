@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
    AMAZON_LANGUAGE_TAGS,
+   AMAZON_SCHEMA_LOCALE,
    amazonErrorText,
    amazonSchemaOf,
    issueField,
@@ -33,12 +34,13 @@ import { productResource } from '@/api/product';
 import type { ResourceInput } from '@/api/defineResource';
 import { invalidateTables } from '@/api/queryKeys';
 import AmazonAttributeField from '@/components/service-components/amazon-form/AmazonAttributeField.vue';
+import AmazonContentForm from '@/components/service-components/amazon-form/AmazonContentForm.vue';
 import {
    badgeFor,
    baseAttribute,
    missingInFormOrder
 } from '@/components/service-components/amazon-form/amazonForm';
-import { useListingAttributes } from '@/components/service-components/amazon-form/useListingAttributes';
+import { useAmazonContent } from '@/components/service-components/amazon-form/useAmazonContent';
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import {
@@ -55,15 +57,17 @@ import dayjs from 'dayjs';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 
-// The Amazon side of a market cell, opened from the cell's dialog: whether the customer's account
-// is connected, what the product still misses for THIS marketplace and language, the cell's
-// marketplace fields, Amazon's catalogue match and restriction, the submissions with Amazon's
-// issues verbatim, and the actions. Every Amazon call goes through the API module (which sends
-// the tenant header). A cell whose customer is not connected is shown as draft (ruling N2).
+// The Amazon side of a market cell, opened from the cell's dialog, in two tabs. The listing tab:
+// whether the customer's account is connected, what the product still misses for THIS marketplace
+// and language, the cell's marketplace fields, Amazon's catalogue match and restriction, the
+// submissions with Amazon's issues verbatim, and the actions. The content tab: the product's whole
+// Amazon content, with the product's Amazon tab form. Both tabs edit one state of the product's
+// attributes. Every Amazon call goes through the API module (which sends the tenant header). A
+// cell whose customer is not connected is shown as draft (ruling N2).
+type DrawerTab = 'listing' | 'content';
 const props = defineProps<{ cellId: string }>();
-
-/** The locale of the schema's titles (Amazon's own text), as on the product's Amazon tab. */
-const SCHEMA_LOCALE = 'en_GB';
+/** The tab shown; the cell's dialog widens the drawer for the content tab. */
+const tab = defineModel<DrawerTab>('tab', { default: 'listing' });
 /** A check older than this runs again when the drawer opens. */
 const CHECK_STALE_MS = 60 * 60 * 1000;
 
@@ -133,24 +137,24 @@ const { data: definition, error: definitionError } = useDefinition(() =>
       ? {
            productType: productType.value,
            country: country.value,
-           locale: SCHEMA_LOCALE,
+           locale: AMAZON_SCHEMA_LOCALE,
            customerId: product.value.customer_id
         }
       : null
 );
 const schema = computed(() => (definition.value ? amazonSchemaOf(definition.value) : null));
 
-// The product's Amazon values, edited here in the cell's language; a save writes only the
-// attributes edited here, as the product's Amazon tab does.
+// The product's Amazon content, edited in both tabs (the listing tab's fields in the cell's
+// language); a save writes only the attributes edited here, as the product's Amazon tab does.
+const content = useAmazonContent(product, country);
 const {
    attributes,
    saved: savedAttributes,
    resetKey,
-   changed: attributesChanged,
-   saving: savingAttributes,
-   reset: resetAttributes,
-   save: saveAttributes
-} = useListingAttributes(product);
+   dirty: contentDirty,
+   saving: savingContent,
+   reset: resetContent
+} = content;
 
 /** The attributes the server fills on publish (the GTIN, the price; a parent's, R7). */
 const provided = computed(() =>
@@ -216,10 +220,18 @@ const fix = async (attribute: string) => {
    field?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
 };
 
-const saveInline = async () => {
-   if (!canEditProduct.value) return;
+/**
+ * Saves the content from either tab: the attributes edited here, and the product type with its
+ * schema's version when the type was changed or its schema moved.
+ */
+const saveContent = async () => {
+   if (!canEditProduct.value || !contentDirty.value) return;
+   const columns =
+      content.typeChanged.value || content.schemaMoved.value ? content.typeColumns() : {};
+   // A type picked whose schema is not loaded yet: nothing to save it with.
+   if (!columns) return;
    try {
-      await saveAttributes();
+      await content.save(columns);
       toast.add({
          life: 3000,
          severity: ToastSeverity.SUCCESS,
@@ -231,8 +243,8 @@ const saveInline = async () => {
    }
 };
 
-// Closing the drawer (see CellUpsert) or the cell's dialog with unsaved Amazon fields asks first.
-const allowClose = useUnsavedChangesGuard(attributesChanged);
+// Closing the drawer (see CellUpsert) or the cell's dialog with unsaved Amazon content asks first.
+const allowClose = useUnsavedChangesGuard(contentDirty);
 defineExpose({ allowClose });
 
 /**
@@ -248,6 +260,39 @@ const amazonTab = (field?: string) => ({
       ...(field ? { field: baseAttribute(field) } : {})
    }
 });
+
+// --- the content tab ---
+
+/** The content tab's form is built when the tab is first shown, then kept. */
+const contentShown = ref(false);
+watch(tab, (shown) => shown === 'content' && (contentShown.value = true), { immediate: true });
+
+// The content opens in the cell's language, until another one is picked there.
+const contentLanguagePicked = ref(false);
+const contentLanguage = ref(language.value ?? 'de_DE');
+watch(language, (tag) => {
+   if (!contentLanguagePicked.value && tag) contentLanguage.value = tag;
+});
+const pickContentLanguage = (tag: string) => {
+   contentLanguagePicked.value = true;
+   contentLanguage.value = tag;
+};
+
+/** Edited, and savable: a changed product type needs its schema loaded. */
+const contentSavable = computed(
+   () => contentDirty.value && (!content.typeChanged.value || !!content.typeColumns())
+);
+
+/** The field the content form opens and focuses (as the product tab's `?field=` link). */
+const contentFocus = ref<string | null>(null);
+/** Shows the content tab on the attribute's group, and focuses it. */
+const openInContent = async (attribute: string) => {
+   tab.value = 'content';
+   // Cleared first, so the same field opened again is focused again.
+   contentFocus.value = null;
+   await nextTick();
+   contentFocus.value = baseAttribute(attribute);
+};
 
 // --- marketplace fields, saved through the cell ---
 
@@ -342,6 +387,8 @@ const match = computed(
 // --- history ---
 
 const { data: submissions } = useListingSubmissions(() => props.cellId);
+/** The issues of the latest submission, as the content form shows them. */
+const latestIssues = computed(() => submissions.value?.[0]?.issues ?? []);
 /** The listing exists on Amazon after a done create or update that no done removal followed. */
 const listed = computed(() => {
    const latest = submissions.value?.find((submission) => submission.status === 'done');
@@ -385,7 +432,7 @@ const blocked = computed<Blocked | null>(() => {
    if (notConnected.value) return 'not_connected';
    if (!productType.value) return 'product_type';
    if (missing.value?.length) return 'missing';
-   if (attributesChanged.value) return 'unsaved_attributes';
+   if (contentDirty.value) return 'unsaved_attributes';
    if (fieldsDirty.value) return 'unsaved';
    if (state.value === 'submitted') return 'submitted';
    if (!PUBLISHABLE_STATES.includes(state.value as ListingState)) return 'unchecked';
@@ -455,7 +502,7 @@ const askRemove = () =>
 </script>
 
 <template>
-   <div v-if="cell" class="flex flex-col gap-6">
+   <div v-if="cell" class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center gap-2">
          <span class="font-semibold">
             {{ cell.product?.sku }} · {{ cell.country }} ({{ marketplaceId ?? '—' }})
@@ -472,346 +519,439 @@ const askRemove = () =>
          />
       </div>
 
-      <!-- 1. connection -->
-      <section class="flex flex-col gap-2" data-section="connection">
-         <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.connection') }}</h3>
-         <span class="flex flex-wrap items-center gap-2">
-            <Tag
-               v-if="apiConnection"
-               data-api-connection
-               :value="$t(`ops.amazon.api_connection.${apiConnection}`)"
-               :severity="
-                  connected ? 'success' : apiConnection === 'revoked' ? 'danger' : 'secondary'
-               "
-            />
-            <small v-if="connected && account?.authorized_at" class="text-muted-color">
-               {{
-                  $t('ops.amazon.connect.connected_on', {
-                     date: dayjs(account.authorized_at).format('YYYY-MM-DD')
-                  })
-               }}
-            </small>
-            <small v-if="connected && account?.seller_id" class="text-muted-color">
-               {{ $t('ops.amazon.connect.seller_id', { id: account.seller_id }) }}
-            </small>
-         </span>
-         <Message v-if="notConnected" severity="warn" class="w-full">
-            {{ $t('ops.amazon.cell.not_connected') }}
-            <RouterLink
-               :to="{ name: 'ops-customer-manage-platforms', params: { id: cell.customer_id } }"
-            >
-               {{ $t('ops.amazon.cell.open_platforms') }}
-            </RouterLink>
-         </Message>
-      </section>
-
-      <!-- 2. completeness -->
-      <section ref="completenessSection" class="flex flex-col gap-2" data-section="completeness">
-         <h3 class="m-0 text-base font-semibold">
-            {{ $t('ops.amazon.cell.completeness') }}
-            <small class="font-normal text-muted-color">{{ language }}</small>
-         </h3>
-         <!-- The product's tab opens in a new browser tab: it would open under this dialog. -->
-         <Message v-if="!productType" severity="warn" class="w-full">
-            {{ $t('ops.amazon.cell.product_type_missing') }}
-            <RouterLink :to="amazonTab()" target="_blank" rel="noopener">
-               {{ $t('ops.amazon.cell.open_tab') }}
-            </RouterLink>
-         </Message>
-         <Message v-else-if="definitionError" severity="error" class="w-full">
-            {{ amazonErrorText(definitionError) }}
-         </Message>
-         <template v-else-if="missing && language">
-            <small v-if="!missing.length" class="text-muted-color">
-               {{ $t('ops.amazon.cell.missing_none') }}
-            </small>
-            <div
-               v-for="field in inlineFields"
-               :key="field.name"
-               :data-inline-field="field.name"
-               :data-missing="field.missing ? field.name : undefined"
-            >
-               <AmazonAttributeField
-                  :name="field.name"
-                  :property="field.property"
-                  :modelValue="attributes"
-                  :languageTag="language"
-                  :badge="badgeFor(field.name, required)"
-                  :provided="provided.includes(field.name)"
-                  :readonly="!canEditProduct"
-                  :customerId="product?.customer_id"
-                  :tenantId="product?.tenant_id"
-                  :resetKey
-                  @update:modelValue="attributes = $event"
-               />
-            </div>
-            <template v-if="inlineFields.length">
-               <span v-if="canEditProduct" class="flex flex-wrap gap-2">
-                  <Button
-                     data-action="reset-attributes"
-                     size="small"
-                     severity="secondary"
-                     variant="outlined"
-                     :label="$t('action.reset')"
-                     :disabled="!attributesChanged || savingAttributes"
-                     @click="resetAttributes"
-                  />
-                  <Button
-                     data-action="save-attributes"
-                     size="small"
-                     :label="$t('ops.amazon.cell.attributes_save')"
-                     :disabled="!attributesChanged"
-                     :loading="savingAttributes"
-                     @click="saveInline"
-                  />
-               </span>
-               <small v-else data-attributes-readonly class="text-muted-color">
-                  {{ $t('errors.insufficient_permission') }}
-               </small>
-            </template>
-         </template>
-         <span v-if="productType">
-            <RouterLink data-open-all :to="amazonTab()" target="_blank" rel="noopener">
-               {{ $t('ops.amazon.cell.open_all') }}
-            </RouterLink>
-         </span>
-      </section>
-
-      <!-- 3. marketplace fields -->
-      <section class="flex flex-col gap-2" data-section="marketplace">
-         <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.marketplace') }}</h3>
-         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <FormField fluid :label="$t('ops.market.fields.price')" v-slot="slotProps">
-               <InputNumber
-                  v-bind="slotProps"
-                  v-model="fields.price"
-                  :min="0"
-                  :minFractionDigits="2"
-                  :maxFractionDigits="2"
-                  :disabled="!canEditCell"
-               />
-            </FormField>
-            <FormField fluid :label="$t('ops.market.fields.currency')" v-slot="slotProps">
-               <SelectCurrency
-                  v-bind="slotProps"
-                  v-model="fields.currency"
-                  show-clear
-                  :disabled="!canEditCell"
-               />
-            </FormField>
-            <FormField fluid :label="$t('ops.amazon.cell.listing_language')" v-slot="slotProps">
-               <Select
-                  v-bind="slotProps"
-                  v-model="fields.listing_language"
-                  data-field="listing_language"
-                  :options="[...AMAZON_LANGUAGE_TAGS]"
-                  :placeholder="defaultLanguageTag(cell.country) ?? undefined"
-                  showClear
-                  :disabled="!canEditCell"
-               />
-            </FormField>
-            <FormField fluid :label="$t('ops.amazon.cell.fulfillment_channel')" v-slot="slotProps">
-               <Select
-                  v-bind="slotProps"
-                  v-model="fields.fulfillment_channel"
-                  data-field="fulfillment_channel"
-                  :options="FULFILLMENT_OPTIONS"
-                  optionValue="value"
-                  optionLabel="label"
-                  showClear
-                  :disabled="!canEditCell"
-               />
-            </FormField>
-            <FormField fluid :label="$t('ops.market.fields.stock_source')" v-slot="slotProps">
-               <SelectEnum
-                  v-bind="slotProps"
-                  v-model="fields.stock_source"
-                  :values="STOCK_SOURCES"
-                  i18n-prefix="ops.market.stock_source"
-                  glossary="stock_source"
-                  showClear
-                  :disabled="!canEditCell"
-               />
-            </FormField>
-         </div>
-         <span v-if="canEditCell">
-            <Button
-               data-action="save-fields"
-               size="small"
-               :label="$t('ops.amazon.cell.fields_save')"
-               :disabled="!fieldsDirty"
-               :loading="savingFields"
-               @click="saveFields"
-            />
-         </span>
-      </section>
-
-      <!-- 4. catalogue match and restriction -->
-      <section class="flex flex-col gap-2" data-section="match">
-         <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.catalogue') }}</h3>
-         <span v-if="!match">{{ $t('ops.amazon.cell.match.none') }}</span>
-         <template v-else>
-            <span>
-               {{
-                  match.asin
-                     ? $t('ops.amazon.cell.match.found', { asin: match.asin })
-                     : $t('ops.amazon.cell.match.new')
-               }}
-            </span>
-            <span :class="{ 'text-red-500': match.restricted }">
-               {{
-                  match.restricted
-                     ? $t('ops.amazon.cell.restriction.restricted', {
-                          reasons: match.reasons.join(', ')
-                       })
-                     : $t('ops.amazon.cell.restriction.none')
-               }}
-            </span>
-         </template>
-         <small v-if="match?.checked_at" data-checked-at class="text-muted-color">
-            {{ $t('ops.amazon.cell.checked_at', { date: time(match.checked_at) }) }}
-         </small>
-         <Message v-if="checkError" severity="error" class="w-full">
-            {{ amazonErrorText(checkError) }}
-         </Message>
-         <span v-if="canSubmit">
-            <Button
-               data-action="check"
-               size="small"
-               variant="outlined"
-               :icon="PrimeIcons.REFRESH"
-               :label="$t('ops.amazon.cell.check')"
-               :loading="checking"
-               @click="runCheck"
-            />
-         </span>
-      </section>
-
-      <!-- 5. history -->
-      <section class="flex flex-col gap-2" data-section="history">
-         <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.history') }}</h3>
-         <small v-if="!submissions?.length" class="text-muted-color">
-            {{ $t('ops.amazon.cell.history_empty') }}
-         </small>
-         <div
-            v-for="submission in submissions"
-            :key="submission.id"
-            :data-submission="submission.id"
-            class="flex flex-col gap-2 rounded border border-surface-200 p-3 dark:border-surface-700"
-         >
-            <span class="flex flex-wrap items-center gap-2">
-               <span class="font-semibold">
-                  {{ submissionText('kind', submission.kind) }}
-               </span>
-               <Tag
-                  :value="submissionText('status', submission.status)"
-                  :severity="STATUS_SEVERITY[submission.status] ?? 'secondary'"
-               />
-               <small class="text-muted-color">{{ time(submission.created_at) }}</small>
-            </span>
-            <ul v-if="submission.issues.length" class="m-0 flex flex-col gap-2 pl-0">
-               <li
-                  v-for="(issue, index) in submission.issues"
-                  :key="index"
-                  data-issue
-                  class="flex list-none flex-col gap-1"
-               >
+      <Tabs v-model:value="tab">
+         <TabList>
+            <Tab value="listing" data-tab="listing">{{ $t('ops.amazon.cell.tabs.listing') }}</Tab>
+            <Tab value="content" data-tab="content">{{ $t('ops.amazon.cell.tabs.content') }}</Tab>
+         </TabList>
+         <TabPanels class="!px-0">
+            <TabPanel value="listing" data-tab-panel="listing" class="flex flex-col gap-6">
+               <!-- 1. connection -->
+               <section class="flex flex-col gap-2" data-section="connection">
+                  <h3 class="m-0 text-base font-semibold">
+                     {{ $t('ops.amazon.cell.connection') }}
+                  </h3>
                   <span class="flex flex-wrap items-center gap-2">
-                     <Tag :value="issue.code" :severity="ISSUE_SEVERITY[issue.severity]" />
-                     <strong data-issue-field>{{
-                        issueField(issue, schema) ?? $t('ops.amazon.cell.issue_general')
-                     }}</strong>
-                     <Button
-                        v-if="issueTarget(issue)"
-                        data-action="issue-fix"
-                        variant="link"
-                        size="small"
-                        class="!p-0"
-                        :label="$t('ops.amazon.cell.issue_fix')"
-                        @click="fix(issueTarget(issue)!)"
+                     <Tag
+                        v-if="apiConnection"
+                        data-api-connection
+                        :value="$t(`ops.amazon.api_connection.${apiConnection}`)"
+                        :severity="
+                           connected
+                              ? 'success'
+                              : apiConnection === 'revoked'
+                                ? 'danger'
+                                : 'secondary'
+                        "
                      />
-                     <!-- A field the schema does not have: only the product's tab may know it. -->
+                     <small v-if="connected && account?.authorized_at" class="text-muted-color">
+                        {{
+                           $t('ops.amazon.connect.connected_on', {
+                              date: dayjs(account.authorized_at).format('YYYY-MM-DD')
+                           })
+                        }}
+                     </small>
+                     <small v-if="connected && account?.seller_id" class="text-muted-color">
+                        {{ $t('ops.amazon.connect.seller_id', { id: account.seller_id }) }}
+                     </small>
+                  </span>
+                  <Message v-if="notConnected" severity="warn" class="w-full">
+                     {{ $t('ops.amazon.cell.not_connected') }}
                      <RouterLink
-                        v-else-if="issue.attributeNames[0]"
-                        :to="amazonTab(issue.attributeNames[0])"
-                        target="_blank"
-                        rel="noopener"
+                        :to="{
+                           name: 'ops-customer-manage-platforms',
+                           params: { id: cell.customer_id }
+                        }"
                      >
+                        {{ $t('ops.amazon.cell.open_platforms') }}
+                     </RouterLink>
+                  </Message>
+               </section>
+
+               <!-- 2. completeness -->
+               <section
+                  ref="completenessSection"
+                  class="flex flex-col gap-2"
+                  data-section="completeness"
+               >
+                  <h3 class="m-0 text-base font-semibold">
+                     {{ $t('ops.amazon.cell.completeness') }}
+                     <small class="font-normal text-muted-color">{{ language }}</small>
+                  </h3>
+                  <!-- The product's tab opens in a new browser tab: it would open under this dialog. -->
+                  <Message v-if="!productType" severity="warn" class="w-full">
+                     {{ $t('ops.amazon.cell.product_type_missing') }}
+                     <RouterLink :to="amazonTab()" target="_blank" rel="noopener">
                         {{ $t('ops.amazon.cell.open_tab') }}
                      </RouterLink>
+                  </Message>
+                  <Message v-else-if="definitionError" severity="error" class="w-full">
+                     {{ amazonErrorText(definitionError) }}
+                  </Message>
+                  <template v-else-if="missing && language">
+                     <small v-if="!missing.length" class="text-muted-color">
+                        {{ $t('ops.amazon.cell.missing_none') }}
+                     </small>
+                     <div
+                        v-for="field in inlineFields"
+                        :key="field.name"
+                        :data-inline-field="field.name"
+                        :data-missing="field.missing ? field.name : undefined"
+                     >
+                        <AmazonAttributeField
+                           :name="field.name"
+                           :property="field.property"
+                           :modelValue="attributes"
+                           :languageTag="language"
+                           :badge="badgeFor(field.name, required)"
+                           :provided="provided.includes(field.name)"
+                           :readonly="!canEditProduct"
+                           :customerId="product?.customer_id"
+                           :tenantId="product?.tenant_id"
+                           :resetKey
+                           @update:modelValue="attributes = $event"
+                        />
+                        <Button
+                           data-action="open-in-content"
+                           variant="link"
+                           size="small"
+                           class="!p-0"
+                           :label="$t('ops.amazon.cell.open_in_content')"
+                           @click="openInContent(field.name)"
+                        />
+                     </div>
+                     <template v-if="inlineFields.length">
+                        <span v-if="canEditProduct" class="flex flex-wrap gap-2">
+                           <Button
+                              data-action="reset-attributes"
+                              size="small"
+                              severity="secondary"
+                              variant="outlined"
+                              :label="$t('action.reset')"
+                              :disabled="!contentDirty || savingContent"
+                              @click="resetContent"
+                           />
+                           <Button
+                              data-action="save-attributes"
+                              size="small"
+                              :label="$t('ops.amazon.cell.attributes_save')"
+                              :disabled="!contentDirty"
+                              :loading="savingContent"
+                              @click="saveContent"
+                           />
+                        </span>
+                        <small v-else data-attributes-readonly class="text-muted-color">
+                           {{ $t('errors.insufficient_permission') }}
+                        </small>
+                     </template>
+                  </template>
+                  <span v-if="productType">
+                     <RouterLink data-open-all :to="amazonTab()" target="_blank" rel="noopener">
+                        {{ $t('ops.amazon.cell.open_all') }}
+                     </RouterLink>
                   </span>
-                  <span>{{ issue.message }}</span>
-               </li>
-            </ul>
-         </div>
-      </section>
+               </section>
 
-      <!-- 6. actions -->
-      <section v-if="canSubmit" class="flex flex-col gap-2" data-section="actions">
-         <span class="flex flex-wrap gap-2">
-            <Button
-               data-action="validate"
-               variant="outlined"
-               :label="$t('ops.amazon.cell.validate')"
-               :disabled="notConnected || connectionLoading || !productType || busy"
-               :loading="validating"
-               @click="runValidate"
-            />
-            <Button
-               data-action="publish"
-               :icon="PrimeIcons.AMAZON"
-               :label="$t(listed ? 'ops.amazon.cell.update' : 'ops.amazon.cell.publish')"
-               :disabled="blocked !== null || missing === null || connectionLoading || busy"
-               :loading="publishing"
-               @click="runPublish"
-            />
-            <Button
-               v-if="listed"
-               data-action="delete"
-               variant="outlined"
-               severity="danger"
-               :label="$t('ops.amazon.cell.delete')"
-               :disabled="notConnected || connectionLoading || busy"
-               :loading="removing"
-               @click="askRemove"
-            />
-            <Button
-               v-if="canRefresh"
-               data-action="refresh-status"
-               variant="outlined"
-               :icon="PrimeIcons.SYNC"
-               :label="$t('ops.amazon.cell.refresh_status')"
-               :disabled="notConnected || connectionLoading || busy"
-               :loading="refreshing"
-               @click="runRefresh"
-            />
-         </span>
-         <small v-if="blocked" data-blocked class="text-muted-color">{{
-            $t(`ops.amazon.cell.publish_blocked.${blocked}`)
-         }}</small>
-         <Message v-if="sent" data-published severity="info" class="w-full">
-            {{
-               $t('ops.amazon.cell.published', {
-                  status: submissionText('status', sent.status)
-               })
-            }}
-         </Message>
-         <Message
-            v-if="validated"
-            data-validated
-            :severity="validated.status === 'VALID' ? 'success' : 'warn'"
-            class="w-full"
-         >
-            <p class="m-0">{{ $t(`ops.amazon.cell.validated.${validated.status}`) }}</p>
-            <ul v-if="validated.issues.length" class="m-0 mt-2 flex flex-col gap-1 pl-5">
-               <li v-for="(issue, index) in validated.issues" :key="index" data-issue>
-                  <strong data-issue-field>{{
-                     issueField(issue, schema) ?? $t('ops.amazon.cell.issue_general')
-                  }}</strong>
-                  — {{ issue.code }}: {{ issue.message }}
-               </li>
-            </ul>
-         </Message>
-      </section>
+               <!-- 3. marketplace fields -->
+               <section class="flex flex-col gap-2" data-section="marketplace">
+                  <h3 class="m-0 text-base font-semibold">
+                     {{ $t('ops.amazon.cell.marketplace') }}
+                  </h3>
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                     <FormField fluid :label="$t('ops.market.fields.price')" v-slot="slotProps">
+                        <InputNumber
+                           v-bind="slotProps"
+                           v-model="fields.price"
+                           :min="0"
+                           :minFractionDigits="2"
+                           :maxFractionDigits="2"
+                           :disabled="!canEditCell"
+                        />
+                     </FormField>
+                     <FormField fluid :label="$t('ops.market.fields.currency')" v-slot="slotProps">
+                        <SelectCurrency
+                           v-bind="slotProps"
+                           v-model="fields.currency"
+                           show-clear
+                           :disabled="!canEditCell"
+                        />
+                     </FormField>
+                     <FormField
+                        fluid
+                        :label="$t('ops.amazon.cell.listing_language')"
+                        v-slot="slotProps"
+                     >
+                        <Select
+                           v-bind="slotProps"
+                           v-model="fields.listing_language"
+                           data-field="listing_language"
+                           :options="[...AMAZON_LANGUAGE_TAGS]"
+                           :placeholder="defaultLanguageTag(cell.country) ?? undefined"
+                           showClear
+                           :disabled="!canEditCell"
+                        />
+                     </FormField>
+                     <FormField
+                        fluid
+                        :label="$t('ops.amazon.cell.fulfillment_channel')"
+                        v-slot="slotProps"
+                     >
+                        <Select
+                           v-bind="slotProps"
+                           v-model="fields.fulfillment_channel"
+                           data-field="fulfillment_channel"
+                           :options="FULFILLMENT_OPTIONS"
+                           optionValue="value"
+                           optionLabel="label"
+                           showClear
+                           :disabled="!canEditCell"
+                        />
+                     </FormField>
+                     <FormField
+                        fluid
+                        :label="$t('ops.market.fields.stock_source')"
+                        v-slot="slotProps"
+                     >
+                        <SelectEnum
+                           v-bind="slotProps"
+                           v-model="fields.stock_source"
+                           :values="STOCK_SOURCES"
+                           i18n-prefix="ops.market.stock_source"
+                           glossary="stock_source"
+                           showClear
+                           :disabled="!canEditCell"
+                        />
+                     </FormField>
+                  </div>
+                  <span v-if="canEditCell">
+                     <Button
+                        data-action="save-fields"
+                        size="small"
+                        :label="$t('ops.amazon.cell.fields_save')"
+                        :disabled="!fieldsDirty"
+                        :loading="savingFields"
+                        @click="saveFields"
+                     />
+                  </span>
+               </section>
+
+               <!-- 4. catalogue match and restriction -->
+               <section class="flex flex-col gap-2" data-section="match">
+                  <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.catalogue') }}</h3>
+                  <span v-if="!match">{{ $t('ops.amazon.cell.match.none') }}</span>
+                  <template v-else>
+                     <span>
+                        {{
+                           match.asin
+                              ? $t('ops.amazon.cell.match.found', { asin: match.asin })
+                              : $t('ops.amazon.cell.match.new')
+                        }}
+                     </span>
+                     <span :class="{ 'text-red-500': match.restricted }">
+                        {{
+                           match.restricted
+                              ? $t('ops.amazon.cell.restriction.restricted', {
+                                   reasons: match.reasons.join(', ')
+                                })
+                              : $t('ops.amazon.cell.restriction.none')
+                        }}
+                     </span>
+                  </template>
+                  <small v-if="match?.checked_at" data-checked-at class="text-muted-color">
+                     {{ $t('ops.amazon.cell.checked_at', { date: time(match.checked_at) }) }}
+                  </small>
+                  <Message v-if="checkError" severity="error" class="w-full">
+                     {{ amazonErrorText(checkError) }}
+                  </Message>
+                  <span v-if="canSubmit">
+                     <Button
+                        data-action="check"
+                        size="small"
+                        variant="outlined"
+                        :icon="PrimeIcons.REFRESH"
+                        :label="$t('ops.amazon.cell.check')"
+                        :loading="checking"
+                        @click="runCheck"
+                     />
+                  </span>
+               </section>
+
+               <!-- 5. history -->
+               <section class="flex flex-col gap-2" data-section="history">
+                  <h3 class="m-0 text-base font-semibold">{{ $t('ops.amazon.cell.history') }}</h3>
+                  <small v-if="!submissions?.length" class="text-muted-color">
+                     {{ $t('ops.amazon.cell.history_empty') }}
+                  </small>
+                  <div
+                     v-for="submission in submissions"
+                     :key="submission.id"
+                     :data-submission="submission.id"
+                     class="flex flex-col gap-2 rounded border border-surface-200 p-3 dark:border-surface-700"
+                  >
+                     <span class="flex flex-wrap items-center gap-2">
+                        <span class="font-semibold">
+                           {{ submissionText('kind', submission.kind) }}
+                        </span>
+                        <Tag
+                           :value="submissionText('status', submission.status)"
+                           :severity="STATUS_SEVERITY[submission.status] ?? 'secondary'"
+                        />
+                        <small class="text-muted-color">{{ time(submission.created_at) }}</small>
+                     </span>
+                     <ul v-if="submission.issues.length" class="m-0 flex flex-col gap-2 pl-0">
+                        <li
+                           v-for="(issue, index) in submission.issues"
+                           :key="index"
+                           data-issue
+                           class="flex list-none flex-col gap-1"
+                        >
+                           <span class="flex flex-wrap items-center gap-2">
+                              <Tag :value="issue.code" :severity="ISSUE_SEVERITY[issue.severity]" />
+                              <strong data-issue-field>{{
+                                 issueField(issue, schema) ?? $t('ops.amazon.cell.issue_general')
+                              }}</strong>
+                              <Button
+                                 v-if="issueTarget(issue)"
+                                 data-action="issue-fix"
+                                 variant="link"
+                                 size="small"
+                                 class="!p-0"
+                                 :label="$t('ops.amazon.cell.issue_fix')"
+                                 @click="fix(issueTarget(issue)!)"
+                              />
+                              <Button
+                                 v-if="issueTarget(issue)"
+                                 data-action="open-in-content"
+                                 variant="link"
+                                 size="small"
+                                 class="!p-0"
+                                 :label="$t('ops.amazon.cell.open_in_content')"
+                                 @click="openInContent(issueTarget(issue)!)"
+                              />
+                              <!-- A field the schema does not have: only the product's tab may know it. -->
+                              <RouterLink
+                                 v-else-if="issue.attributeNames[0]"
+                                 :to="amazonTab(issue.attributeNames[0])"
+                                 target="_blank"
+                                 rel="noopener"
+                              >
+                                 {{ $t('ops.amazon.cell.open_tab') }}
+                              </RouterLink>
+                           </span>
+                           <span>{{ issue.message }}</span>
+                        </li>
+                     </ul>
+                  </div>
+               </section>
+
+               <!-- 6. actions -->
+               <section v-if="canSubmit" class="flex flex-col gap-2" data-section="actions">
+                  <span class="flex flex-wrap gap-2">
+                     <Button
+                        data-action="validate"
+                        variant="outlined"
+                        :label="$t('ops.amazon.cell.validate')"
+                        :disabled="notConnected || connectionLoading || !productType || busy"
+                        :loading="validating"
+                        @click="runValidate"
+                     />
+                     <Button
+                        data-action="publish"
+                        :icon="PrimeIcons.AMAZON"
+                        :label="$t(listed ? 'ops.amazon.cell.update' : 'ops.amazon.cell.publish')"
+                        :disabled="
+                           blocked !== null || missing === null || connectionLoading || busy
+                        "
+                        :loading="publishing"
+                        @click="runPublish"
+                     />
+                     <Button
+                        v-if="listed"
+                        data-action="delete"
+                        variant="outlined"
+                        severity="danger"
+                        :label="$t('ops.amazon.cell.delete')"
+                        :disabled="notConnected || connectionLoading || busy"
+                        :loading="removing"
+                        @click="askRemove"
+                     />
+                     <Button
+                        v-if="canRefresh"
+                        data-action="refresh-status"
+                        variant="outlined"
+                        :icon="PrimeIcons.SYNC"
+                        :label="$t('ops.amazon.cell.refresh_status')"
+                        :disabled="notConnected || connectionLoading || busy"
+                        :loading="refreshing"
+                        @click="runRefresh"
+                     />
+                  </span>
+                  <small v-if="blocked" data-blocked class="text-muted-color">{{
+                     $t(`ops.amazon.cell.publish_blocked.${blocked}`)
+                  }}</small>
+                  <Message v-if="sent" data-published severity="info" class="w-full">
+                     {{
+                        $t('ops.amazon.cell.published', {
+                           status: submissionText('status', sent.status)
+                        })
+                     }}
+                  </Message>
+                  <Message
+                     v-if="validated"
+                     data-validated
+                     :severity="validated.status === 'VALID' ? 'success' : 'warn'"
+                     class="w-full"
+                  >
+                     <p class="m-0">{{ $t(`ops.amazon.cell.validated.${validated.status}`) }}</p>
+                     <ul v-if="validated.issues.length" class="m-0 mt-2 flex flex-col gap-1 pl-5">
+                        <li v-for="(issue, index) in validated.issues" :key="index" data-issue>
+                           <strong data-issue-field>{{
+                              issueField(issue, schema) ?? $t('ops.amazon.cell.issue_general')
+                           }}</strong>
+                           — {{ issue.code }}: {{ issue.message }}
+                        </li>
+                     </ul>
+                  </Message>
+               </section>
+            </TabPanel>
+
+            <TabPanel value="content" data-tab-panel="content">
+               <div v-if="contentShown && product" class="flex flex-col gap-4">
+                  <Message data-content-notice severity="secondary" size="small">
+                     {{ $t('ops.amazon.cell.content_notice', { language: contentLanguage }) }}
+                  </Message>
+                  <AmazonContentForm
+                     :content
+                     :languageTag="contentLanguage"
+                     @update:languageTag="pickContentLanguage"
+                     :provided
+                     :readonly="!canEditProduct"
+                     :issues="latestIssues"
+                     :focusField="contentFocus"
+                  />
+                  <span v-if="canEditProduct" class="flex flex-wrap gap-2">
+                     <Button
+                        data-action="reset-content"
+                        severity="secondary"
+                        variant="outlined"
+                        :label="$t('action.reset')"
+                        :disabled="!contentDirty || savingContent"
+                        @click="resetContent"
+                     />
+                     <Button
+                        data-action="save-content"
+                        :label="$t('ops.amazon.tab.save')"
+                        :disabled="!contentSavable"
+                        :loading="savingContent"
+                        @click="saveContent"
+                     />
+                  </span>
+                  <small v-else data-content-readonly class="text-muted-color">
+                     {{ $t('errors.insufficient_permission') }}
+                  </small>
+               </div>
+            </TabPanel>
+         </TabPanels>
+      </Tabs>
    </div>
 </template>

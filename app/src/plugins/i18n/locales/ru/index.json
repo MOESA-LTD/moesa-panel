@@ -2363,7 +2363,13 @@
             "refresh_status": "Refresh status",
             "attributes_save": "Save Amazon fields",
             "open_all": "Open all fields in the product tab",
-            "issue_fix": "Fix"
+            "issue_fix": "Fix",
+            "tabs": {
+               "listing": "Listing",
+               "content": "Content"
+            },
+            "content_notice": "These fields belong to the product and apply to all its marketplaces; texts are written in {language}.",
+            "open_in_content": "Open in the Content tab"
          },
          "connect": {
             "button": "Connect Amazon",
