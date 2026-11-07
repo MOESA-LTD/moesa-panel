@@ -112,6 +112,13 @@ Missing required fields and fields named by Amazon issues are now edited inside 
 - A stale refetch landing right after a save could briefly bring back the pre-save values (unlikely race in `useListingAttributes`).
 - Closing the cell dialog with both the cell form and the drawer fields unsaved asks twice; a combined prompt can come later.
 
+
+### Drawer tabs and product-derived attributes (2026-11-07, owner request)
+
+- The cell drawer has two tabs: İlan (listing state, inline missing fields, marketplace fields, actions, history) and İçerik (the product tab's full form, same component, one shared editing state). The product card's Amazon tab stays.
+- Amazon attributes already on the product card are derived at check/validate/publish time and never stored in `listing_attributes`: brand, item and package dimensions and weights, number of items / unit count, country of origin, model/part number, and the dangerous-goods regulation when hazmat is false. A variation parent derives only identity attributes (brand, model/part number, origin, regulation). One shared `providedAttributes`/`withProvided` in `_shared/listingCompleteness.ts` feeds the server body, the missing lists and the forms. A value entered for a language overrides the derived one for every listing in that language ("Bu dil için farklı değer girin").
+- Parked: `validate` now answers 404 `amazon_schema_missing` before the account check when no definition exists (same as publish, untested); the story's `v_sent` uses the fixture's brand entry for every marketplace; the schema-moved warning shows only in İçerik although an İlan save also stamps the schema version; the drawer's phone layout was not checked in a browser.
+
 ## Deferred minors
 
 ### Fixed in the final fix wave (verify)
