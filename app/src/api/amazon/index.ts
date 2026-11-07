@@ -5,7 +5,7 @@ import { useTenantKey } from '@/api/useTenantKey';
 import { allValues } from '@/lib/enumValues';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
-import { MARKETPLACE_IDS, type AmazonSchema } from '@edge-shared/listingCompleteness';
+import { languageTag, MARKETPLACE_IDS, type AmazonSchema } from '@edge-shared/listingCompleteness';
 import i18n from '@plugins/i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -58,6 +58,11 @@ export const listingStateLabel = (state: string | null | undefined): string =>
    LISTING_STATES.includes(state as ListingState)
       ? i18n.t(`ops.amazon.state.${state}`)
       : i18n.t('ops.amazon.cell.state_unknown');
+
+/** The marketplace the Amazon forms work in when no cell names one. */
+export const DEFAULT_AMAZON_COUNTRY = 'DE';
+/** Its default listing language: the forms' language when nothing else names one. */
+export const DEFAULT_AMAZON_LANGUAGE = languageTag(DEFAULT_AMAZON_COUNTRY) as string;
 
 /** The EU countries the Amazon API publishes to, with the default language tag of each (same order). */
 export const AMAZON_COUNTRIES = ['DE', 'FR', 'IT', 'ES', 'NL', 'PL', 'SE', 'BE', 'GB'] as const;

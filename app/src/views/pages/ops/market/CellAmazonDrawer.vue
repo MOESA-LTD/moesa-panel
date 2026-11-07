@@ -4,6 +4,7 @@ import {
    AMAZON_SCHEMA_LOCALE,
    amazonErrorText,
    amazonSchemaOf,
+   DEFAULT_AMAZON_LANGUAGE,
    issueField,
    LISTING_STATES,
    listingStateLabel,
@@ -269,7 +270,7 @@ watch(tab, (shown) => shown === 'content' && (contentShown.value = true), { imme
 
 // The content opens in the cell's language, until another one is picked there.
 const contentLanguagePicked = ref(false);
-const contentLanguage = ref(language.value ?? 'de_DE');
+const contentLanguage = ref(language.value ?? DEFAULT_AMAZON_LANGUAGE);
 watch(language, (tag) => {
    if (!contentLanguagePicked.value && tag) contentLanguage.value = tag;
 });
@@ -635,7 +636,7 @@ const askRemove = () =>
                               data-action="save-attributes"
                               size="small"
                               :label="$t('ops.amazon.cell.attributes_save')"
-                              :disabled="!contentDirty"
+                              :disabled="!contentSavable"
                               :loading="savingContent"
                               @click="saveContent"
                            />

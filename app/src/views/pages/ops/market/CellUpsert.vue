@@ -163,7 +163,7 @@ const setAmazonOpen = async (open: boolean) => {
 };
 const amazonDrawerClass = computed(() => [
    '!w-full',
-   amazonTab.value === 'content' ? 'md:!w-[70vw] md:!max-w-[90rem]' : 'md:!w-[40rem]'
+   amazonTab.value === 'content' ? 'md:!w-[max(40rem,70vw)] md:!max-w-[90rem]' : 'md:!w-[40rem]'
 ]);
 
 const LISTING_TEXTS = ['platform_sku'] as const;

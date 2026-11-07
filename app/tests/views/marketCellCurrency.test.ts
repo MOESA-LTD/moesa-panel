@@ -162,7 +162,8 @@ describe('the cell Amazon drawer', () => {
 
       wrapper.getComponent(CellAmazonDrawerStub).vm.$emit('update:tab', 'content');
       await flushPromises();
-      expect(drawerClass()).toContain('md:!w-[70vw]');
+      // Never narrower than the listing tab (40rem) between md and 40rem / 70%.
+      expect(drawerClass()).toContain('md:!w-[max(40rem,70vw)]');
       expect(drawerClass()).not.toContain('md:!w-[40rem]');
 
       wrapper.getComponent(CellAmazonDrawerStub).vm.$emit('update:tab', 'listing');

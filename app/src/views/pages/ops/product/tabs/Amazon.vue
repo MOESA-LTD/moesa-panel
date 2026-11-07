@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
    AMAZON_LANGUAGE_TAGS,
+   DEFAULT_AMAZON_COUNTRY,
+   DEFAULT_AMAZON_LANGUAGE,
    orderAmazonCells,
    useListingSubmissions,
    useProductAmazonCells
@@ -26,8 +28,6 @@ import { useToast } from 'primevue/usetoast';
 // field to open (`?field=<attribute>`), as the cell drawer's links do.
 const props = defineProps<{ id: string }>();
 
-const DEFAULT_COUNTRY = 'DE';
-
 const route = useRoute();
 const toast = useToast();
 const authStore = useAuthStore();
@@ -41,7 +41,7 @@ const cell = computed(() => {
    const ordered = orderAmazonCells(cells.value ?? []);
    return ordered.find(({ country }) => country === market.value) ?? ordered[0] ?? null;
 });
-const country = computed(() => cell.value?.country ?? DEFAULT_COUNTRY);
+const country = computed(() => cell.value?.country ?? DEFAULT_AMAZON_COUNTRY);
 const canEdit = computed(
    () => !!product.value && authStore.canIn(product.value.tenant_id, 'update', 'product')
 );
@@ -61,7 +61,7 @@ const languagePicked = ref(!!linkedLanguage.value);
 const languageTag = ref(
    linkedLanguage.value ??
       defaultLanguageTag(country.value, cell.value?.listing_language) ??
-      'de_DE'
+      DEFAULT_AMAZON_LANGUAGE
 );
 watch(cell, (first) => {
    if (languagePicked.value) return;
