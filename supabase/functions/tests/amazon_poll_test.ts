@@ -478,7 +478,13 @@ Deno.test('a cell whose account is not connected is skipped and set to draft (C1
       assertEquals(db.rpcs, [
          {
             fn: 'listing_set_state',
-            args: { p_cell_id: 'moved', p_listing_state: 'draft', p_listing_match: null }
+            // No actor: the poll's write keeps its amazon-poll label.
+            args: {
+               p_cell_id: 'moved',
+               p_listing_state: 'draft',
+               p_listing_match: null,
+               p_actor: null
+            }
          }
       ]);
    }

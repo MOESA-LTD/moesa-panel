@@ -4972,6 +4972,7 @@ export type Database = {
           p_issues: Json
           p_listing_state: Database["public"]["Enums"]["listing_state"]
           p_asin: string
+          p_actor?: string
         }
         Returns: {
           compliance: Database["public"]["Enums"]["market_compliance"]
@@ -5041,6 +5042,7 @@ export type Database = {
           p_listing_state: Database["public"]["Enums"]["listing_state"]
           p_listing_match: Json
           p_expected_updated_at?: string
+          p_actor?: string
         }
         Returns: {
           compliance: Database["public"]["Enums"]["market_compliance"]
@@ -5080,6 +5082,7 @@ export type Database = {
           p_status: Database["public"]["Enums"]["listing_submission_status"]
           p_amazon_submission_id: string
           p_issues: Json
+          p_actor?: string
         }
         Returns: {
           amazon_submission_id: string | null

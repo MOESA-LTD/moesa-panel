@@ -649,6 +649,8 @@ const rpc = (
 
 type Filter = (row: Row) => boolean;
 
+const OUTCOME_RPCS = ['listing_apply_submission', 'listing_set_state', 'listing_settle_removal'];
+
 /** A chainable PostgREST fake over `state.tables`: eq / in / order / limit / single / insert / update. */
 const fakeDb = (state: State, client: string) => {
    const from = (table: string) => {
@@ -750,6 +752,12 @@ const fakeDb = (state: State, client: string) => {
       storage,
       rpc: (name: string, args: Record<string, unknown>) => {
          state.rpcs.push({ name, args, client });
+         // 046: Amazon's outcome is granted to the service role only.
+         if (client === 'user' && OUTCOME_RPCS.includes(name))
+            return Promise.resolve({
+               data: null,
+               error: { code: '42501', message: 'permission denied for function' }
+            });
          return Promise.resolve(rpc(state, name, args, client));
       }
    } as unknown as SupabaseClient<Database>;
@@ -836,7 +844,7 @@ const deps = (
    amazon,
    env: () => ENV,
    db: () => fakeDb(state, 'user'),
-   service: () => serviceRole(fakeDb(state, 'service')),
+   service: (userId) => serviceRole(fakeDb(state, 'service'), userId),
    authorize: (_req, _required, run) => run({ tenantId: TENANT, userId: 'user-1' }),
    publicUrl: () => PUBLIC_BASE,
    ...overrides
@@ -984,7 +992,8 @@ Deno.test(
       );
 
       const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
-      assertEquals(apply.client, 'user');
+      // Amazon's outcome: the service role, for the caller (p_actor names them in the audit).
+      assertEquals([apply.client, apply.args.p_actor], ['service', 'user-1']);
       assertEquals(apply.args.p_status, 'accepted');
       assertEquals(apply.args.p_listing_state, 'submitted');
    }
@@ -1462,20 +1471,23 @@ Deno.test('a check over a cell published meanwhile reports the stored state (C2)
    const res = await handler(
       post({ action: 'check', cell_id: CELL }),
       deps(state, amazon, {
-         db: () => {
-            const db = fakeDb(state, 'user');
+         service: (userId) => {
+            const db = fakeDb(state, 'service');
             const rpcOf = db.rpc.bind(db);
-            return Object.assign(db, {
-               rpc: (name: string, args: Record<string, unknown>) => {
-                  if (name === 'listing_set_state') {
-                     Object.assign(cellRow(state, CELL), {
-                        listing_state: 'submitted',
-                        updated_at: '2026-11-06T10:30:00.000001+00:00'
-                     });
+            return serviceRole(
+               Object.assign(db, {
+                  rpc: (name: string, args: Record<string, unknown>) => {
+                     if (name === 'listing_set_state') {
+                        Object.assign(cellRow(state, CELL), {
+                           listing_state: 'submitted',
+                           updated_at: '2026-11-06T10:30:00.000001+00:00'
+                        });
+                     }
+                     return rpcOf(name as never, args as never);
                   }
-                  return rpcOf(name as never, args as never);
-               }
-            }) as typeof db;
+               }) as typeof db,
+               userId
+            );
          }
       })
    );
@@ -1608,7 +1620,7 @@ Deno.test('the poll skips a done submission without calling Amazon (C6)', async 
 
 const statusDeps = (state: State, amazon: Partial<Deps>) => ({
    db: fakeDb(state, 'user'),
-   service: serviceRole(fakeDb(state, 'service')),
+   service: serviceRole(fakeDb(state, 'service'), 'user-1'),
    env: ENV,
    amazon
 });
@@ -1630,7 +1642,7 @@ Deno.test('refreshListingStatus by submission applies a live summary with its AS
    assertEquals(result.submission.status, 'done');
    const apply = state.rpcs.find((r) => r.name === 'listing_apply_submission')!;
    assertEquals(apply.args.p_asin, 'B071VG5N9D');
-   assertEquals(apply.client, 'user');
+   assertEquals([apply.client, apply.args.p_actor], ['service', 'user-1']);
 });
 
 Deno.test('refreshListingStatus keeps an unknown SKU processing', async () => {
@@ -1709,9 +1721,12 @@ Deno.test('delete sends a delete submission and puts the cell back to draft', as
    assertEquals(state.inserts[0].row.kind, 'delete');
    assertEquals(state.inserts[0].client, 'user');
    assertEquals(state.tables.listing_submission[0].status, 'done');
-   // The removal is settled by 046's RPC as the user (a user never updates the row directly).
+   // The removal is settled by 046's RPC: the service role, for the caller (never a direct update).
    const settle = state.rpcs.find((r) => r.name === 'listing_settle_removal')!;
-   assertEquals([settle.client, settle.args.p_status], ['user', 'done']);
+   assertEquals(
+      [settle.client, settle.args.p_status, settle.args.p_actor],
+      ['service', 'done', 'user-1']
+   );
    assertEquals(state.updates, []);
    const set = state.rpcs.find((r) => r.name === 'listing_set_state')!;
    assertEquals([set.args.p_listing_state, set.args.p_listing_match], ['draft', null]);
@@ -1999,7 +2014,9 @@ Deno.test(
          post({ action: 'check', cell_id: CELL }),
          deps(state, amazon, {
             env: () => ({ ...ENV, env: 'production', selfRefreshToken: undefined }),
-            service: (userId) => (serviceFor.push(userId), serviceRole(fakeDb(state, 'service')))
+            service: (userId) => (
+               serviceFor.push(userId), serviceRole(fakeDb(state, 'service'), userId)
+            )
          })
       );
       assertEquals(res.status, 409);
@@ -2011,6 +2028,11 @@ Deno.test(
             ['amazon_account_token', undefined],
             ['amazon_account_disconnect', 'revoked']
          ]
+      );
+      // Nothing was written but the revocation (the check never reached its state write).
+      assertEquals(
+         state.rpcs.filter((r) => r.name === 'listing_set_state'),
+         []
       );
       assert(state.rpcs.filter((r) => r.client !== 'service').every((r) => r.client === 'user'));
       assertEquals(state.updates, []);
@@ -2029,10 +2051,30 @@ Deno.test(
       const res = await handler(post({ action: 'delete', cell_id: CELL }), deps(state, amazon));
       assert(res.status >= 400);
       const settle = state.rpcs.find((r) => r.name === 'listing_settle_removal')!;
-      assertEquals(settle.client, 'user');
+      assertEquals([settle.client, settle.args.p_actor], ['service', 'user-1']);
       assertEquals(settle.args.p_status, 'failed');
       // PostgREST resolves the function by its argument names: a missing key is no such function.
       assertEquals(Object.hasOwn(settle.args, 'p_amazon_submission_id'), true);
       assertEquals(settle.args.p_amazon_submission_id, null);
+   }
+);
+
+Deno.test(
+   'every outcome write goes through the service role with the caller as p_actor',
+   async () => {
+      clearTokenCache();
+      const state = withMediaObject(story());
+      const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+      // check (set_state), publish (apply), status (apply), delete (settle_removal + set_state).
+      await handler(post({ action: 'check', cell_id: CELL }), deps(state, amazon));
+      await handler(post({ action: 'publish', cell_id: CELL }), deps(state, amazon));
+      await handler(post({ action: 'status', cell_id: CELL }), deps(state, amazon));
+      await handler(post({ action: 'delete', cell_id: CELL }), deps(state, amazon));
+      const outcome = state.rpcs.filter((r) => OUTCOME_RPCS.includes(r.name));
+      assertEquals(new Set(outcome.map((r) => r.name)), new Set(OUTCOME_RPCS));
+      assert(outcome.every((r) => r.client === 'service' && r.args.p_actor === 'user-1'));
+      // What is the user's act stays the user's.
+      const begins = state.rpcs.filter((r) => r.name === 'listing_begin_submission');
+      assert(begins.length >= 2 && begins.every((r) => r.client === 'user'));
    }
 );

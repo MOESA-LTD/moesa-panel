@@ -2,7 +2,7 @@
 // perform, each for its own reason. A handler gets this narrow interface, never the client itself,
 // so tenant data cannot be read or written past RLS by accident (the user's client does that;
 // tests/service_role_test.ts checks the sources).
-import type { Database } from './database.types.ts';
+import type { Database, Json } from './database.types.ts';
 import type { SupabaseClient } from './deps.ts';
 
 type Db = SupabaseClient<Database>;
@@ -10,6 +10,9 @@ type Tables = Database['public']['Tables'];
 export type PlatformAccountRow = Tables['customer_platform_account']['Row'];
 export type DefinitionInsert = Tables['amazon_product_type_definition']['Insert'];
 export type DefinitionStored = Tables['amazon_product_type_definition']['Row'];
+type Enums = Database['public']['Enums'];
+type MarketCellRow = Tables['market_cell']['Row'];
+type ListingSubmissionRow = Tables['listing_submission']['Row'];
 
 /** The account as the OAuth callback reads it: the connection state, never a credential. */
 export type CallbackAccount = Pick<
@@ -43,9 +46,39 @@ export type ServiceRole = {
    storage: Db['storage'];
    /** The tenant-neutral product type definition cache, which no user writes. */
    storeDefinition(row: DefinitionInsert): Promise<DefinitionStored>;
+   // Amazon's outcome: 046 lets only the service role write it (a user could forge it). Each call
+   // passes the user this ServiceRole was made for as p_actor, so the audit names that user (role
+   // amazon-listing); without one (the poll) the x-audit-role label stands.
+   /** 046 listing_apply_submission: Amazon's answer for a submission (and its cell). */
+   applySubmission(args: {
+      submissionId: string;
+      status: Enums['listing_submission_status'];
+      amazonSubmissionId: string | null;
+      issues: Json;
+      state: Enums['listing_state'];
+      asin: string | null;
+   }): Promise<MarketCellRow>;
+   /** 046 listing_set_state: the cell's listing state (and match), over the version read. */
+   setListingState(args: {
+      cellId: string;
+      state: Enums['listing_state'];
+      match: Json | null;
+      expectedUpdatedAt: string | null;
+   }): Promise<MarketCellRow>;
+   /** 046 listing_settle_removal: a delete submission's answer. */
+   settleRemoval(args: {
+      submissionId: string;
+      status: Enums['listing_submission_status'];
+      amazonSubmissionId: string | null;
+      issues: Json;
+   }): Promise<ListingSubmissionRow>;
 };
 
-export const serviceRole = (client: Db): ServiceRole => ({
+/**
+ * `actorId`: the user the outcome writes are made for (p_actor); none for the poll and the schema
+ * refresh. Every RPC argument is sent: PostgREST resolves a function by its argument names.
+ */
+export const serviceRole = (client: Db, actorId: string | null = null): ServiceRole => ({
    async accountToken(accountId) {
       const { data, error } = await client.rpc('amazon_account_token', {
          p_account_id: accountId
@@ -90,5 +123,40 @@ export const serviceRole = (client: Db): ServiceRole => ({
          .single();
       if (error) throw error;
       return data;
+   },
+   async applySubmission(a) {
+      const { data, error } = await client.rpc('listing_apply_submission', {
+         p_submission_id: a.submissionId,
+         p_status: a.status,
+         p_amazon_submission_id: a.amazonSubmissionId as string,
+         p_issues: a.issues,
+         p_listing_state: a.state,
+         p_asin: a.asin as string,
+         p_actor: actorId as string
+      });
+      if (error) throw error;
+      return data as MarketCellRow;
+   },
+   async setListingState(a) {
+      const { data, error } = await client.rpc('listing_set_state', {
+         p_cell_id: a.cellId,
+         p_listing_state: a.state,
+         p_listing_match: a.match as Json,
+         ...(a.expectedUpdatedAt ? { p_expected_updated_at: a.expectedUpdatedAt } : {}),
+         p_actor: actorId as string
+      });
+      if (error) throw error;
+      return data as MarketCellRow;
+   },
+   async settleRemoval(a) {
+      const { data, error } = await client.rpc('listing_settle_removal', {
+         p_submission_id: a.submissionId,
+         p_status: a.status,
+         p_amazon_submission_id: a.amazonSubmissionId as string,
+         p_issues: a.issues,
+         p_actor: actorId as string
+      });
+      if (error) throw error;
+      return data as ListingSubmissionRow;
    }
 });

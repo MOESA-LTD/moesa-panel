@@ -9,10 +9,12 @@
 //   status       { cell_id }                   -> { cell, submission }
 //   publish_bulk { product_ids (1..10), country } -> { results, remaining }
 //
-// Reads and the 046 RPCs run with the caller's JWT (the user's client: RLS scopes the reads, the
-// RPCs check the permission inside and the audit records the user); the service role
-// (_shared/serviceRole.ts) only reads the account's token, marks a revoked grant and copies the
-// images. A submission is written by listing_begin_submission with created_by = the caller,
+// Reads and what is the user's act (listing_begin_submission, listing_parent_cell) run with the
+// caller's JWT (RLS scopes the reads, the RPCs check the permission inside, the audit records the
+// user). The service role (_shared/serviceRole.ts) reads the account's token, marks a revoked
+// grant, copies the images and writes Amazon's outcome (apply, set_state, settle_removal: 046
+// grants them to the service role only), passing the caller as p_actor so the audit names them.
+// A submission is written by listing_begin_submission with created_by = the caller,
 // under the cell's row lock, before Amazon is called (the cell is then submitted, so a run
 // that dies leaves a row the poll settles). A publish is refused while the cell's latest
 // submission is accepted or processing. The check writes its state only over the cell version it
@@ -103,7 +105,7 @@ export type HandlerDeps = {
    env: () => AmazonEnv;
    /** The caller's client (the user's JWT, so RLS applies): every read and the 046 RPCs. */
    db: (req: Request) => Db;
-   /** What only the service role may do (token, revoked grant, images), audited as the user. */
+   /** What only the service role may do (token, revoked grant, images, Amazon's outcome), for the user. */
    service: (userId: string) => ServiceRole;
    authorize: (
       req: Request,
@@ -340,7 +342,7 @@ const check = async (run: Run, id: string) => {
    const account = await accountOrNull(run, ctx);
    if (!account) {
       const state: ListingState = keep ? (current as ListingState) : 'draft';
-      const row = await setListingState(run.db, ctx.cell.id, state, null, version);
+      const row = await setListingState(run.service, ctx.cell.id, state, null, version);
       return json({ missing, match: null, state: row.listing_state ?? state });
    }
 
@@ -365,7 +367,7 @@ const check = async (run: Run, id: string) => {
       ...match,
       checked_at: new Date((run.d.amazon.now ?? Date.now)()).toISOString()
    };
-   const row = await setListingState(run.db, ctx.cell.id, state, checked, version);
+   const row = await setListingState(run.service, ctx.cell.id, state, checked, version);
    return json({ missing, match: checked, state: row.listing_state ?? state });
 };
 
@@ -495,7 +497,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
       const state: ListingState =
          parsed.status === 'invalid' || hasError(parsed.issues) ? 'issues' : 'submitted';
       const cell = await applySubmission(
-         run.db,
+         run.service,
          submission.id,
          parsed.status,
          parsed.submissionId ?? null,
@@ -507,7 +509,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
    } catch (error) {
       try {
          await applySubmission(
-            run.db,
+            run.service,
             submission.id,
             'failed',
             null,
@@ -548,14 +550,12 @@ const remove = async (run: Run, id: string): Promise<Response> => {
       amazon_submission_id?: string | null;
       issues: AmazonIssue[];
    }) => {
-      const { error } = await run.db.rpc('listing_settle_removal', {
-         p_submission_id: submission.id,
-         p_status: patch.status,
-         // Every argument is sent (PostgREST resolves the function by its argument names).
-         p_amazon_submission_id: (patch.amazon_submission_id ?? null) as string,
-         p_issues: patch.issues as unknown as Json
+      await run.service.settleRemoval({
+         submissionId: submission.id,
+         status: patch.status,
+         amazonSubmissionId: patch.amazon_submission_id ?? null,
+         issues: patch.issues as unknown as Json
       });
-      if (error) throw error;
    };
 
    let parsed: ReturnType<typeof parseSubmission>;
@@ -579,7 +579,7 @@ const remove = async (run: Run, id: string): Promise<Response> => {
       issues: parsed.issues
    });
    // Draft again; leaving issues clears the cell's 'Amazon: ' open issue (046).
-   if (parsed.status === 'accepted') await setListingState(run.db, ctx.cell.id, 'draft', null);
+   if (parsed.status === 'accepted') await setListingState(run.service, ctx.cell.id, 'draft', null);
    return json({
       cell: await loadListingCell(run.db, run.tenantId, ctx.cell.id),
       submission: await loadSubmission(run.db, run.tenantId, submission.id)
@@ -706,7 +706,7 @@ export async function handler(req: Request, deps: Partial<HandlerDeps> = {}): Pr
       db: supabaseClient,
       // The service role, for what no user may do; its writes are audited as this user.
       service: (userId) =>
-         serviceRole(supabaseService({ role: 'amazon-listing', actorId: userId })),
+         serviceRole(supabaseService({ role: 'amazon-listing', actorId: userId }), userId),
       authorize: withAuthorization,
       publicUrl: (env) => deploymentUrl('PUBLIC_SUPABASE_URL', env),
       ...deps

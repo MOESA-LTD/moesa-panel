@@ -8,7 +8,7 @@
 // issues.
 import { type AmazonEnv, AmazonError, type Deps } from '../_shared/amazon.ts';
 import { HttpError } from '../_shared/http.ts';
-import { serviceRole } from '../_shared/serviceRole.ts';
+import { type ServiceRole, serviceRole } from '../_shared/serviceRole.ts';
 import type { Database } from '../_shared/database.types.ts';
 import type { SupabaseClient } from '../_shared/deps.ts';
 import {
@@ -95,8 +95,8 @@ const transient = (error: unknown) => {
 };
 
 /** Marks a submission failed and its cell `issues` (the RPC writes the open_issue from the issue). */
-const giveUp = async (db: Db, submissionId: string) => {
-   await applySubmission(db, submissionId, 'failed', null, [GIVE_UP_ISSUE], 'issues', null);
+const giveUp = async (service: ServiceRole, submissionId: string) => {
+   await applySubmission(service, submissionId, 'failed', null, [GIVE_UP_ISSUE], 'issues', null);
 };
 
 export async function pollSubmitted(
@@ -105,6 +105,7 @@ export async function pollSubmitted(
 ): Promise<PollResult> {
    const { admin, env, amazon } = deps;
    const refresh = deps.refresh ?? refreshListingStatus;
+   // No actor: the poll's writes keep its amazon-poll label.
    const service = serviceRole(admin);
    const started = now();
 
@@ -136,7 +137,7 @@ export async function pollSubmitted(
             submission.status === 'processing' &&
             stale(submission.created_at, now())
          ) {
-            await giveUp(admin, submission.id);
+            await giveUp(service, submission.id);
             givenUp += 1;
          } else if (updated.listing_state === 'submitted' && submission.status !== 'processing') {
             // Not asked (settled, or a removal): to the back of the queue, so it starves no one.
@@ -146,7 +147,7 @@ export async function pollSubmitted(
       } catch (error) {
          if (disconnected(error)) {
             try {
-               await setListingState(admin, cell.id, 'draft', null);
+               await setListingState(service, cell.id, 'draft', null);
                skipped += 1;
                continue;
             } catch (inner) {
@@ -171,7 +172,7 @@ export async function pollSubmitted(
                (latest.status === 'processing' || latest.status === 'accepted') &&
                stale(latest.created_at, now())
             ) {
-               await giveUp(admin, latest.id);
+               await giveUp(service, latest.id);
                givenUp += 1;
             }
          } catch (inner) {

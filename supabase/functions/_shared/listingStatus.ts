@@ -116,9 +116,10 @@ export function getListingsItem(
 }
 
 // --- Rows ----------------------------------------------------------------------------------------
-// `db` is the caller's client: the user's in amazon-listing (RLS scopes every read and the RPCs
-// check the user's permission inside), the labelled service client in amazon-poll (no user). The
-// tenant filters state the intent; RLS is the guard on the user path.
+// `db` is the caller's client: the user's in amazon-listing (RLS scopes every read), the labelled
+// service client in amazon-poll (no user). The tenant filters state the intent; RLS is the guard
+// on the user path. Amazon's outcome (apply, set_state) is written by the service role only
+// (OutcomeWriter), for the triggering user (p_actor).
 
 /** The tenant's `amazon` cell; anything else is 404 listing_cell_not_found. */
 export async function loadListingCell(
@@ -172,12 +173,15 @@ export async function submissionsOf(
    return data ?? [];
 }
 
+/** The service role's outcome writes (046: Amazon's outcome is not a user's to write). */
+export type OutcomeWriter = Pick<ServiceRole, 'applySubmission' | 'setListingState'>;
+
 /**
  * 046's listing_apply_submission: the submission's status and issues, and, when it is the cell's
  * latest submission, the cell's state (R2 walk); an older submission's answer leaves the cell as is.
  */
-export async function applySubmission(
-   db: Db,
+export function applySubmission(
+   service: OutcomeWriter,
    submissionId: string,
    status: SubmissionStatus,
    amazonSubmissionId: string | null,
@@ -185,16 +189,14 @@ export async function applySubmission(
    state: ListingState,
    asin: string | null
 ): Promise<MarketCellRow> {
-   const { data, error } = await db.rpc('listing_apply_submission', {
-      p_submission_id: submissionId,
-      p_status: status,
-      p_amazon_submission_id: amazonSubmissionId as string,
-      p_issues: issues as unknown as Json,
-      p_listing_state: state,
-      p_asin: asin as string
+   return service.applySubmission({
+      submissionId,
+      status,
+      amazonSubmissionId,
+      issues: issues as unknown as Json,
+      state,
+      asin
    });
-   if (error) throw error;
-   return data as MarketCellRow;
 }
 
 /**
@@ -202,21 +204,14 @@ export async function applySubmission(
  * still at `expectedUpdatedAt` (the version the caller read; null writes unconditionally).
  * Returns the cell as it is afterwards: the caller's state, or the newer one that won.
  */
-export async function setListingState(
-   db: Db,
+export function setListingState(
+   service: OutcomeWriter,
    cellId: string,
    state: ListingState,
    match: Json | null,
    expectedUpdatedAt: string | null = null
 ): Promise<MarketCellRow> {
-   const { data, error } = await db.rpc('listing_set_state', {
-      p_cell_id: cellId,
-      p_listing_state: state,
-      p_listing_match: match as Json,
-      ...(expectedUpdatedAt ? { p_expected_updated_at: expectedUpdatedAt } : {})
-   });
-   if (error) throw error;
-   return data as MarketCellRow;
+   return service.setListingState({ cellId, state, match, expectedUpdatedAt });
 }
 
 // --- Refresh -------------------------------------------------------------------------------------
@@ -224,8 +219,8 @@ export async function setListingState(
 export type ListingStatusDeps = {
    /** The caller's client (see Rows above): reads and the 046 RPCs. */
    db: Db;
-   /** The Amazon account's token and a revoked grant. */
-   service: Pick<ServiceRole, 'accountToken' | 'revokeAccount'>;
+   /** The Amazon account's token, a revoked grant and Amazon's outcome. */
+   service: Pick<ServiceRole, 'accountToken' | 'revokeAccount'> & OutcomeWriter;
    env: AmazonEnv;
    /** fetch / now / sleep for the SP-API client. */
    amazon?: Partial<Deps>;
@@ -290,14 +285,14 @@ export async function refreshListingStatus(
    } catch (error) {
       if (!(error instanceof AmazonError && error.code === 'amazon_not_found')) throw error;
       // A listing Amazon had (done) and no longer knows was removed: the cell is draft again.
-      if (done) return { cell: await setListingState(db, cell.id, 'draft', null), submission };
+      if (done) return { cell: await setListingState(service, cell.id, 'draft', null), submission };
       derived = { state: 'submitted', asin: null, issues: [] };
    }
    // Neither live nor issues for a settled submission: nothing new to say.
    if (done && derived.state === 'submitted') return { cell, submission };
 
    const updated = await applySubmission(
-      db,
+      service,
       submission.id,
       derived.state === 'submitted' ? 'processing' : 'done',
       null,
