@@ -101,3 +101,51 @@ jobs:
             - run: sed -i 's/^\[inbucket\]/[local_smtp]/' supabase/config.toml
             - run: supabase link --project-ref "$STAGING_PROJECT_REF"
             - run: supabase db reset --linked --yes
+
+            # The Edge Functions of this branch, so the preview calls the same code it was built with.
+            - run: supabase functions deploy --project-ref "$STAGING_PROJECT_REF" --yes
+
+            # Function secrets: the Amazon sandbox app (SP-API) and the URLs the functions link to.
+            # APP_URL is the preview's branch alias (Cloudflare: lower case, other characters to '-',
+            # at most 28 characters). Values come from repository secrets and are masked in the log.
+            - name: Set the staging function secrets
+              env:
+                  LWA_CLIENT_ID: ${{ secrets.STAGING_AMAZON_SPAPI_LWA_CLIENT_ID }}
+                  LWA_CLIENT_SECRET: ${{ secrets.STAGING_AMAZON_SPAPI_LWA_CLIENT_SECRET }}
+                  REFRESH_TOKEN: ${{ secrets.STAGING_AMAZON_SPAPI_REFRESH_TOKEN }}
+                  STATE_SECRET: ${{ secrets.STAGING_AMAZON_SPAPI_STATE_SECRET }}
+              run: |
+                  alias=$(printf '%s' "$GITHUB_HEAD_REF" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]/-/g' | cut -c1-28 | sed 's/-*$//')
+                  umask 077
+                  cat > /tmp/staging-functions.env <<EOF
+                  AMAZON_SPAPI_ENV=sandbox
+                  AMAZON_SPAPI_REGION=eu
+                  AMAZON_SPAPI_LWA_CLIENT_ID=$LWA_CLIENT_ID
+                  AMAZON_SPAPI_LWA_CLIENT_SECRET=$LWA_CLIENT_SECRET
+                  AMAZON_SPAPI_REFRESH_TOKEN=$REFRESH_TOKEN
+                  AMAZON_SPAPI_STATE_SECRET=$STATE_SECRET
+                  APP_URL=https://$alias.moesa-panel.pages.dev
+                  PUBLIC_SUPABASE_URL=https://$STAGING_PROJECT_REF.supabase.co
+                  EOF
+                  sed -i 's/^ *//' /tmp/staging-functions.env
+                  supabase secrets set --project-ref "$STAGING_PROJECT_REF" --env-file /tmp/staging-functions.env --yes
+                  rm -f /tmp/staging-functions.env
+
+            # The reset emptied Vault: the pg_cron jobs (migration 047) read the functions' URL and the
+            # service-role key from it. The key is read from the Management API, never printed.
+            - name: Set the staging Vault secrets for pg_cron
+              run: |
+                  api=https://api.supabase.com/v1/projects/$STAGING_PROJECT_REF
+                  key=$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "$api/api-keys?reveal=true" \
+                      | jq -r '.[] | select(.name == "service_role") | .api_key')
+                  test -n "$key" || { echo "no service_role key"; exit 1; }
+                  echo "::add-mask::$key"
+                  url="https://$STAGING_PROJECT_REF.supabase.co/functions/v1"
+                  # Dollar quoting: neither value contains $v$.
+                  query="DELETE FROM vault.secrets WHERE name IN ('edge_function_url', 'edge_service_key');
+                  SELECT vault.create_secret(\$v\$$url\$v\$, 'edge_function_url', 'Edge Functions base URL for pg_cron');
+                  SELECT vault.create_secret(\$v\$$key\$v\$, 'edge_service_key', 'Service key for pg_cron calls');"
+                  jq -n --arg q "$query" '{query: $q}' > /tmp/vault.json
+                  curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+                      -H 'Content-Type: application/json' "$api/database/query" --data @/tmp/vault.json
+                  rm -f /tmp/vault.json
