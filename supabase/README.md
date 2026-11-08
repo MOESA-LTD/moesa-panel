@@ -182,6 +182,21 @@ values below. The hosted project must set **every** key of the table except
    4. The callback carries no JWT (`verify_jwt = false` in `config.toml`). The signed state is its
       only credential.
 
+### Previews (staging)
+
+Cloudflare previews of `feat/*` branches use the staging project, which runs the **sandbox**. The CI
+`staging` job, after a pull request's database tests pass, resets the staging database, deploys the
+branch's Edge Functions, sets their secrets and writes the two Vault secrets the cron jobs read:
+
+- Function secrets come from repository secrets `STAGING_AMAZON_SPAPI_LWA_CLIENT_ID`,
+  `STAGING_AMAZON_SPAPI_LWA_CLIENT_SECRET`, `STAGING_AMAZON_SPAPI_REFRESH_TOKEN` and
+  `STAGING_AMAZON_SPAPI_STATE_SECRET`; `AMAZON_SPAPI_ENV=sandbox`, `AMAZON_SPAPI_REGION=eu`,
+  `APP_URL` is the branch's preview alias and `PUBLIC_SUPABASE_URL` the staging project URL.
+- `edge_function_url` and `edge_service_key` are written through the Management API with the
+  staging service-role key, read in the job and masked in the log.
+- Staging has no story seed: connect a customer with **Connect Amazon** (one click in sandbox) to try
+  publishing in a preview. Only the newest preview's database matches its code.
+
 ### Publishing rules
 
 - A SKU Amazon does not have yet is created with `putListingsItem`, with its initial
