@@ -840,3 +840,5 @@ The coordinator defaults keep today's operational work (entering POs, PI check, 
 12. **`product.supplier_id`, `purchase_order.supplier_id` and `purchase_order.pi_document_id` are sensitive FKs**, so embeds (`supplier!...(code, display_name, ...)`) and filters on them must be hidden too. `shipment_line.purchase_order_id` and `shipment_purchase_order` stay system FKs, but the portal must not get the PO table (it does not).
 13. **`user.email` / `phone`** keep R for management and coordinator (they assign tasks and contact colleagues); portal sees only self.
 14. **`tenant` company data (`tax_number`, `legal_name`, address) stays public internally**; portal reads only `tenant.display_name`. K8 forbids storing bank/tax IDs for customers and suppliers, not for MOESA itself.
+
+> **Ruling 2026-11-09 (controller, owner delegated):** coordinator gets **RW** on `supplier_terms` (not R) — purchase orders require `incoterm` and `deposit_rate`, and entering POs is the coordinator's job. `contract` and `finance` stay R for the coordinator.
