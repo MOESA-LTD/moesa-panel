@@ -103,7 +103,7 @@ jobs:
             - run: supabase db reset --linked --yes
 
             # The Edge Functions of this branch, so the preview calls the same code it was built with.
-            - run: supabase functions deploy --project-ref "$STAGING_PROJECT_REF"
+            - run: supabase functions deploy --project-ref "$STAGING_PROJECT_REF" --yes
 
             # Function secrets: the Amazon sandbox app (SP-API) and the URLs the functions link to.
             # APP_URL is the preview's branch alias (Cloudflare: lower case, other characters to '-',
@@ -128,7 +128,7 @@ jobs:
                   PUBLIC_SUPABASE_URL=https://$STAGING_PROJECT_REF.supabase.co
                   EOF
                   sed -i 's/^ *//' /tmp/staging-functions.env
-                  supabase secrets set --project-ref "$STAGING_PROJECT_REF" --env-file /tmp/staging-functions.env
+                  supabase secrets set --project-ref "$STAGING_PROJECT_REF" --env-file /tmp/staging-functions.env --yes
                   rm -f /tmp/staging-functions.env
 
             # The reset emptied Vault: the pg_cron jobs (migration 047) read the functions' URL and the
