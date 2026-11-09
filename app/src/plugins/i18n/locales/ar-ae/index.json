@@ -646,6 +646,7 @@
       "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer.",
       "transfer_not_found": "Transfer not found.",
       "transfer_files_pending": "The files of an earlier transfer into this customer are not all copied yet. Finish that transfer first: \"Retry file copy\" on the customer's page.",
+      "transfer_field_rights_required": "This transfer copies every field of the copied records, including internal notes. You need the right to read and change all of them in both the source and the target branch.",
       "request_failed": "Request failed",
       "amazon_not_connected": "The customer has not connected an Amazon account.",
       "amazon_connection_revoked": "The Amazon connection was withdrawn. Connect the account again.",

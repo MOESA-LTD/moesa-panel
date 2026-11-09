@@ -295,12 +295,15 @@ WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o WHERE o.id = ('5eed0005-
 -- m7.spec_cited: every story line whose product has a signed or approved spec sheet cites one (the draft's MOP40-4P line has none to cite)
 SELECT 'm7.spec_cited', o.id FROM public.purchase_order_line l JOIN public.purchase_order o ON o.id = l.purchase_order_id
 WHERE o.id::TEXT LIKE '5eed0005-%' AND l.spec_document_id IS NULL AND EXISTS (SELECT 1 FROM public.product_evidence e WHERE e.product_id = l.product_id AND e.has_signed_spec);
--- m7.pi_approved: every story order from pi_approved on has an approved PI document of its own, 30 "ok" items, a checker in the past and PI figures equal to the recalculated ones
+-- m7.pi_approved: every story order from pi_approved on has an approved PI document of its own, 30 "ok" items, a checker in the past and PI figures equal to the recalculated ones.
+-- The recalculated figures read through the api views (058), which mask cost for a session without a user: the check runs as baris (owner of MOESA LTD), then the claims are cleared.
+DO $$ BEGIN PERFORM pg_temp.act_as('baris@moesa-panel.test', 'MOESA LTD'); END $$;
 SELECT 'm7.pi_approved', o.id FROM public.purchase_order_overview o
 LEFT JOIN public.document d ON d.id = o.pi_document_id AND d.type = 'pi' AND d.status = 'approved' AND d.entity_type = 'purchase_order' AND d.entity_id = o.id
 WHERE o.id::TEXT LIKE '5eed0005-%' AND o.status >= 'pi_approved' AND o.status <> 'cancelled'
   AND (d.id IS NULL OR (SELECT count(*) FROM jsonb_each(o.pi_check) e WHERE e.value = '"ok"'::JSONB) <> 30 OR o.pi_checked_by IS NULL OR o.pi_checked_at > now() - interval '2 days'
        OR ROW(o.pi_subtotal, o.pi_total, o.pi_deposit_amount, o.pi_balance_amount) IS DISTINCT FROM ROW(o.system_subtotal, o.system_total, o.system_deposit, o.system_balance));
+DO $$ BEGIN PERFORM set_config('request.jwt.claims', '', TRUE); PERFORM set_config('request.headers', '', TRUE); END $$;
 -- m7.pi_checker: baris checked the reorder's PI thirteen days ago (two days' margin); the differing PI is still a draft, unchecked
 SELECT 'm7.pi_checker' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.user u ON u.id = o.pi_checked_by WHERE o.id = '5eed0005-0000-4000-8000-000000000004' AND u.email = 'baris@moesa-panel.test' AND o.pi_checked_at BETWEEN now() - interval '15 days' AND now() - interval '11 days')
    OR NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.document d ON d.id = o.pi_document_id WHERE o.id = '5eed0005-0000-4000-8000-000000000003' AND d.status = 'draft' AND o.pi_checked_at IS NULL);

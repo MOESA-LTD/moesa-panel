@@ -156,6 +156,7 @@
       "transfer_product_in_use": "Geride kalan kayıtlar bu ürünleri kullanıyor (proje, sipariş, pazar hücresi ya da değişiklik talebi). Kopyalayın ya da müşterinin tamamını aktarın.",
       "transfer_not_found": "Aktarım bulunamadı.",
       "transfer_files_pending": "Bu müşteriye yapılan önceki bir aktarımın dosyaları henüz tamamen kopyalanmadı. Önce o aktarımı tamamlayın: müşteri sayfasında \"Dosyaları yeniden kopyala\".",
+      "transfer_field_rights_required": "Bu aktarım, kopyalanan kayıtların iç notlar dahil tüm alanlarını taşır. Kaynak ve hedef şubede bu alanların hepsini görme ve değiştirme yetkiniz olmalı.",
       "avatar_type": "Fotoğraf PNG, JPEG ya da WebP olmalı.",
       "avatar_size": "Fotoğraf en fazla 1 MB olmalı.",
       "access_denied": "Erişim reddedildi",
