@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- compared against the masked OLD, so a correct guess is refused like a wrong one (S1).
 BEGIN;
 
-SELECT plan(60);
+SELECT plan(61);
 
 -- The role and the generated objects.
 SELECT ok(NOT (SELECT rolbypassrls OR rolcanlogin FROM pg_roles WHERE rolname = 'api_owner'), 'api_owner cannot log in and does not bypass RLS');
@@ -17,7 +17,7 @@ SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'api_view_drift() 
 SELECT is((SELECT pg_get_userbyid(relowner)::TEXT FROM pg_class WHERE oid = 'api.product'::REGCLASS), 'api_owner', 'every api view is owned by api_owner');
 SELECT is((SELECT pg_get_userbyid(proowner)::TEXT FROM pg_proc WHERE oid = 'private.api_forward()'::REGPROCEDURE), 'api_owner',
    'the forwarder is owned by api_owner, not postgres');
-SELECT ok(has_table_privilege('authenticated', 'public.product', 'SELECT'), 'base still granted until the cutover (Task 19 flips this)');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.product', 'SELECT'), 'base closed after the cutover');
 SELECT ok(NOT has_table_privilege('anon', 'api.product', 'SELECT'), 'anon reads no api view');
 SELECT ok(NOT has_table_privilege('authenticated', 'api.product', 'DELETE'), 'the view grants no write the base does not (products are never deleted)');
 SELECT ok(NOT has_schema_privilege('authenticated', 'private', 'USAGE'), 'authenticated has no USAGE on private outside the test helpers');
@@ -34,6 +34,7 @@ GRANT DELETE ON api.product TO authenticated;
 -- As elif in MOESA LTD (t_restricted: product rights, no field rows).
 SELECT private.impersonate(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID);
 SELECT results_eq($$ SELECT sku FROM api.product WHERE id = current_setting('test.secret')::UUID $$, $$ VALUES ('SPIKE-SECRET') $$, 'T0 row visible');
+SELECT matches(t.error_of($$ SELECT purchase_price FROM public.product LIMIT 1 $$), '^42501:permission denied for table product', 'T8c the base table is refused');
 SELECT results_eq($$ SELECT purchase_price, purchase_currency::CHAR(3), landed_cost_eur, target_price_eur, company_price_eur, supplier_id, supplier_product_code, notes
                      FROM api.product WHERE id = current_setting('test.secret')::UUID $$,
    $$ VALUES (NULL::NUMERIC, NULL::CHAR(3), NULL::NUMERIC, NULL::NUMERIC, NULL::NUMERIC, NULL::UUID, NULL::TEXT, NULL::TEXT) $$, 'T1 masked columns are NULL');
@@ -68,13 +69,13 @@ SELECT lives_ok($$ INSERT INTO api.product (tenant_id, customer_id, sku) VALUES 
    'T5b insert without masked fields works');
 SELECT set_config('audit.transaction_id', '', TRUE);
 SELECT lives_ok($$ DELETE FROM api.product WHERE sku = 'T5B' $$, 'DELETE through the view');
-SELECT is(t.peek('product', 'sku', (SELECT l.record_id FROM public.audit_log l WHERE l.operation = 'INSERT' AND l.new_data ->> 'sku' = 'T5B' LIMIT 1)), NULL,
+SELECT is(t.peek('product', 'sku', (SELECT l.record_id FROM api.audit_log l WHERE l.operation = 'INSERT' AND l.new_data ->> 'sku' = 'T5B' LIMIT 1)), NULL,
    'the deleted row is gone from the base table');
-SELECT results_eq($$ SELECT t.table_name, t.operation FROM public.audit_transaction t
-                     WHERE t.id = (SELECT l.transaction_id FROM public.audit_log l WHERE l.operation = 'INSERT' AND l.new_data ->> 'sku' = 'T5B' ORDER BY l.id DESC LIMIT 1) $$,
+SELECT results_eq($$ SELECT t.table_name, t.operation FROM api.audit_transaction t
+                     WHERE t.id = (SELECT l.transaction_id FROM api.audit_log l WHERE l.operation = 'INSERT' AND l.new_data ->> 'sku' = 'T5B' ORDER BY l.id DESC LIMIT 1) $$,
    $$ VALUES ('product', 'INSERT') $$, 'audit through a view keeps the top-level row');
-SELECT results_eq($$ SELECT t.table_name, t.operation FROM public.audit_transaction t
-                     WHERE t.id = (SELECT l.transaction_id FROM public.audit_log l WHERE l.operation = 'DELETE' AND l.old_data ->> 'sku' = 'T5B' ORDER BY l.id DESC LIMIT 1) $$,
+SELECT results_eq($$ SELECT t.table_name, t.operation FROM api.audit_transaction t
+                     WHERE t.id = (SELECT l.transaction_id FROM api.audit_log l WHERE l.operation = 'DELETE' AND l.old_data ->> 'sku' = 'T5B' ORDER BY l.id DESC LIMIT 1) $$,
    $$ VALUES ('product', 'DELETE') $$, 'a DELETE through the view is logged as a DELETE, not a cascade');
 SELECT is((SELECT count(*)::INT FROM api.product WHERE id = current_setting('test.spike_eu')::UUID), 0, 'T11 another tenant''s rows stay invisible');
 SELECT throws_ok($$ INSERT INTO api.product (tenant_id, customer_id, sku) VALUES (current_setting('test.nova')::UUID, current_setting('test.tho')::UUID, 'T11C') $$,

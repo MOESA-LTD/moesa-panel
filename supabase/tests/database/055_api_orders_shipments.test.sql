@@ -30,7 +30,7 @@ SELECT set_config('audit.transaction_id', '', TRUE);
 -- Deviation: authenticated has no DELETE on public.purchase_order (029), so the view mirrors that.
 SELECT is(split_part(t.error_of($$ DELETE FROM api.purchase_order WHERE id = current_setting('test.po_draft')::UUID $$), ':', 1), '42501', 'a PO delete through api is refused like the base table (no DELETE grant)');
 SELECT lives_ok($$ DELETE FROM api.purchase_order_line WHERE id = current_setting('test.line_draft')::UUID $$, 'a draft PO line deletes through api');
-SELECT results_eq($$ SELECT t.table_name, t.operation FROM public.audit_transaction t WHERE t.id = (SELECT l.transaction_id FROM public.audit_log l WHERE l.table_name = 'purchase_order_line' AND l.operation = 'DELETE' AND l.record_id = current_setting('test.line_draft')::UUID ORDER BY l.id DESC LIMIT 1) $$,
+SELECT results_eq($$ SELECT t.table_name, t.operation FROM api.audit_transaction t WHERE t.id = (SELECT l.transaction_id FROM api.audit_log l WHERE l.table_name = 'purchase_order_line' AND l.operation = 'DELETE' AND l.record_id = current_setting('test.line_draft')::UUID ORDER BY l.id DESC LIMIT 1) $$,
    $$ VALUES ('purchase_order_line','DELETE') $$, 'the audit transaction through api names the deleted row');
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);

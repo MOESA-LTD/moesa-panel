@@ -23,7 +23,7 @@ SELECT private.impersonate(
 
 SELECT throws_ok($$ TRUNCATE public.product CASCADE $$, '42501', NULL, 'a user cannot TRUNCATE');
 
-SELECT ok(has_table_privilege('authenticated', 'public.product', 'SELECT'), 'SELECT is untouched until the cutover (Task 19 flips this)');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.product', 'SELECT'), 'the cutover closed SELECT');
 
 SELECT * FROM finish();
 

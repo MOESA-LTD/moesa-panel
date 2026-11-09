@@ -40,7 +40,10 @@ $$;
 GRANT EXECUTE ON FUNCTION t.supplier_deposit_writer () TO authenticated;
 
 -- As koordinator in MOESA LTD (coordinator: supplier terms and contract read-only).
+-- After the cutover (064) users reach public only through api; the statements below run as api_owner,
+-- the role the api views write as, which keeps the user's claims (the guard follows the request identity).
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+SET LOCAL ROLE api_owner;
 SELECT throws_ok($$ UPDATE public.supplier SET deposit_rate = 0.5 WHERE id = current_setting('test.tsp')::UUID $$,
    '42501', 'field_write_forbidden', 'T4: coordinator cannot write supplier terms');
 SELECT lives_ok($$ UPDATE public.supplier SET city = 'Ningbo' WHERE id = current_setting('test.tsp')::UUID $$,
@@ -56,6 +59,7 @@ SELECT throws_ok($$ SELECT t.supplier_deposit_writer() $$,
 -- As elif in MOESA LTD (t_restricted: no field rows).
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID);
+SET LOCAL ROLE api_owner;
 SELECT lives_ok($$ INSERT INTO public.incident (tenant_id, customer_id, family, severity, title, what_happened)
    VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'ol', 's3', 'guard test', 'x') $$,
    'a NOT NULL constant default (affected_parties {}) is not a write');
@@ -65,6 +69,7 @@ SELECT lives_ok($$ UPDATE public.purchase_order_line SET quantity = 11 WHERE id 
 -- As akif in MOESA LTD (management: personal_data on user is read-only).
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SET LOCAL ROLE api_owner;
 SELECT throws_ok($$ UPDATE public.user SET phone = '+1' WHERE id = current_setting('test.koordinator')::UUID $$,
    '42501', 'field_write_forbidden', 'nobody else writes a user''s phone');
 SELECT lives_ok($$ UPDATE public.user SET phone = '+90 1' WHERE id = current_setting('test.akif')::UUID $$,
@@ -76,6 +81,7 @@ SELECT throws_ok($$ UPDATE public.user SET id = current_setting('test.akif')::UU
 RESET ROLE;
 SELECT private.impersonate_scope(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID,
    ARRAY[current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID]);
+SET LOCAL ROLE api_owner;
 SELECT throws_ok($$ UPDATE public.product SET tenant_id = current_setting('test.europe')::UUID, customer_id = current_setting('test.euc')::UUID
    WHERE id = current_setting('test.secret')::UUID $$,
    '42501', 'tenant_move_forbidden', 'S8: a row cannot move tenant through the API');
@@ -103,6 +109,7 @@ SELECT lives_ok($$ UPDATE public.supplier SET deposit_rate = 0.32 WHERE id = cur
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('request.jwt.claims', json_build_object('sub', current_setting('test.koordinator'), 'role', 'service_role')::TEXT, TRUE);
+SET LOCAL ROLE api_owner;
 SELECT throws_ok($$ UPDATE public.supplier SET deposit_rate = 0.33 WHERE id = current_setting('test.tsp')::UUID $$,
    '42501', 'field_write_forbidden', 'S2: a service_role claim without the service DB role is refused');
 

@@ -109,6 +109,14 @@ jobs:
 
             - run: sed -i 's/^\[inbucket\]/[local_smtp]/' supabase/config.toml
             - run: supabase link --project-ref "$STAGING_PROJECT_REF"
+            # The app reads and writes through the `api` schema (064 closes `public` to users), so
+            # PostgREST on staging must expose it before the reset applies the cutover.
+            - name: Expose the api schema on staging
+              run: >-
+                  curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+                  -H 'Content-Type: application/json'
+                  "https://api.supabase.com/v1/projects/$STAGING_PROJECT_REF/postgrest"
+                  --data '{"db_schema":"public,api"}'
             - run: supabase db reset --linked --yes
 
             # The Edge Functions of this branch, so the preview calls the same code it was built with.

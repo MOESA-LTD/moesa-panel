@@ -113,9 +113,11 @@ SELECT throws_ok($$ UPDATE t.market_cell SET listing_state = 'live' WHERE id = c
 SELECT throws_ok($$ UPDATE t.customer_platform_account SET api_connection = 'revoked' WHERE id = current_setting('test.acct')::UUID $$,
    '23514', 'platform_account_api_server_only', 'R6: api_connection stays server-only through a definer forwarder');
 
--- R6 and R7, as akif in MOESA LTD.
+-- R6 and R7, as akif in MOESA LTD. After the cutover (064) the direct statements on public run as
+-- api_owner (the role the api views write as), which keeps akif's claims.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SET LOCAL ROLE api_owner;
 SELECT lives_ok($$ SELECT public.amazon_account_disconnect(current_setting('test.acct')::UUID, 'none') $$,
    'R6: the allowed definer RPC still writes it');
 SELECT throws_ok($$ UPDATE public.customer_platform_account SET api_connection = 'connected' WHERE id = current_setting('test.acct')::UUID $$,

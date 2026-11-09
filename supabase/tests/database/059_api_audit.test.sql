@@ -18,8 +18,10 @@ SELECT set_config('audit.transaction_id', '', TRUE);
 UPDATE api.product SET purchase_price = 13, notes = 'secret note 2' WHERE id = current_setting('test.secret')::UUID;
 SELECT set_config('audit.transaction_id', '', TRUE);
 UPDATE api.product SET display_name = 'Renamed' WHERE id = current_setting('test.secret')::UUID;
--- A field right granted in MOESA LTD as save_role writes it (its flag, a right akif holds): its revert
--- must be refused by the S7 trigger, never applied in part.
+-- A field right granted in MOESA LTD as save_role writes it (its helper runs as postgres with akif's
+-- claims, sets its flag, and grants a right akif holds): its revert must be refused by the S7 trigger,
+-- never applied in part.
+RESET ROLE;
 SELECT set_config('audit.transaction_id', '', TRUE);
 SELECT set_config('moesa.save_role', '1', TRUE);
 INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
@@ -126,7 +128,7 @@ SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test
 SELECT set_config('audit.transaction_id', '', TRUE);
 SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_ls')::UUID) $$, '42501', 'audit_revert_field_forbidden',
    'revert of a listing_submission DELETE refused: no INSERT grant on api.listing_submission');
-SELECT is(t.peek('setting', 'key', (SELECT id FROM public.setting WHERE key = 'renamed_key' AND tenant_id = current_setting('test.moesa')::UUID)), 'renamed_key',
+SELECT is(t.peek('setting', 'key', (SELECT id FROM api.setting WHERE key = 'renamed_key' AND tenant_id = current_setting('test.moesa')::UUID)), 'renamed_key',
    'nothing was written back');
 
 -- As postgres: the pure functions and the catalog.
