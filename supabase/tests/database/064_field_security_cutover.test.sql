@@ -103,7 +103,7 @@ SELECT private.unimpersonate();
 
 -- Allowlist: the exact SECURITY DEFINER functions in public and api that authenticated may EXECUTE.
 -- A new definer must be added here deliberately, after checking it guards its own access.
-SELECT results_eq($$ SELECT n.nspname || '.' || p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+SELECT results_eq($$ SELECT format('%s.%s', n.nspname, p.proname) COLLATE "default" FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
    WHERE n.nspname IN ('public','api') AND p.prosecdef AND has_function_privilege('authenticated', p.oid, 'EXECUTE') ORDER BY 1 $$,
    $$ VALUES ('api.display_name'),
    ('api.managed_in'),
@@ -132,7 +132,7 @@ SELECT results_eq($$ SELECT n.nspname || '.' || p.proname FROM pg_proc p JOIN pg
    ('public.set_user_roles'),
    ('public.transfer_check_files'),
    ('public.transfer_customer'),
-   ('public.transfer_options' $$, 'the executable SECURITY DEFINER functions are exactly the reviewed allowlist');
+   ('public.transfer_options') $$, 'the executable SECURITY DEFINER functions are exactly the reviewed allowlist');
 
 SELECT * FROM finish();
 ROLLBACK;
