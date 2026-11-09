@@ -15,15 +15,17 @@
 --                            4. A written field passes when the row's tenant is one where the user
 --                               may write it (private.field_write_tenants). public.user has no
 --                               tenant: a user writes their own personal data, or that of users
---                               private.field_user_ids(field, TRUE) returns.
---                          A later migration that adds or reclassifies a sensitive column calls
---                          this again for its table; the column is unguarded until it does.
+--                               private.field_user_ids(field, TRUE) returns; on UPDATE the user is
+--                               the stored row's (OLD.id), never a client-sent id.
+--                          A migration that adds or reclassifies a sensitive column re-runs this for
+--                          its table; 051_field_write_guard.test.sql fails otherwise (every guarded
+--                          table has the enabled trigger, every sensitive column its check).
 --
 --   field_write_forbidden      (42501) a written field the user may not write; DETAIL names
 --                              <table>.<field>, never a value
 --   tenant_move_forbidden      (42501) an UPDATE changes tenant_id
 --   field_security_unsupported (generator) a table without tenant_id, other than public.user, has
---                              sensitive fields
+--                              sensitive fields, or the guard's name would exceed 63 bytes
 
 CREATE OR REPLACE FUNCTION private.enable_field_write_guard (p_table TEXT) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
@@ -41,6 +43,11 @@ DECLARE
     on_insert TEXT := '';
     n_fields INT := 0;
 BEGIN
+    -- Postgres would truncate a longer name silently, and two tables could then share one guard.
+    IF octet_length(fn) > 63 THEN
+        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'guard name too long: ' || fn;
+    END IF;
+
     has_tenant := EXISTS (
         SELECT 1 FROM pg_catalog.pg_attribute a
         WHERE a.attrelid = rel AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
@@ -78,7 +85,8 @@ BEGIN
     LOOP
         n_fields := n_fields + 1;
         IF is_user THEN
-            allowed := format('NEW.id = auth.uid() OR NEW.id = ANY (private.field_user_ids(%L, TRUE))', col.field);
+            -- <row> is OLD on UPDATE (the user the stored row describes), NEW on INSERT.
+            allowed := format('<row>.id = auth.uid() OR <row>.id = ANY (private.field_user_ids(%L, TRUE))', col.field);
         ELSIF has_tenant THEN
             allowed := format('NEW.tenant_id = ANY (private.field_write_tenants(%L, %L))', resource, col.field);
         ELSE
@@ -92,8 +100,10 @@ BEGIN
             END IF;$s$,
             allowed, p_table || '.' || col.field
         );
-        on_update := on_update || format(E'\n        IF NEW.%1$I IS DISTINCT FROM OLD.%1$I THEN%2$s\n        END IF;', col.field, raise_forbidden);
-        on_insert := on_insert || format(E'\n        IF NEW.%1$I IS DISTINCT FROM %2$s THEN%3$s\n        END IF;', col.field, col.default_expr, raise_forbidden);
+        on_update := on_update || format(E'\n        IF NEW.%1$I IS DISTINCT FROM OLD.%1$I THEN%2$s\n        END IF;', col.field,
+                                         replace(raise_forbidden, '<row>', 'OLD'));
+        on_insert := on_insert || format(E'\n        IF NEW.%1$I IS DISTINCT FROM %2$s THEN%3$s\n        END IF;', col.field, col.default_expr,
+                                         replace(raise_forbidden, '<row>', 'NEW'));
     END LOOP;
 
     EXECUTE format(

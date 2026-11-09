@@ -5,7 +5,25 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- paths without a user request bypass the guard (S2).
 BEGIN;
 
-SELECT plan(19);
+SELECT plan(22);
+
+-- Coverage: a migration that adds a tenant table or a sensitive column must re-run
+-- private.enable_field_write_guard for it.
+SELECT is_empty($$
+    SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND NOT c.relispartition
+      AND (EXISTS (SELECT 1 FROM pg_catalog.pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped)
+           OR EXISTS (SELECT 1 FROM public.field_class f WHERE f.resource_name = 'public.' || c.relname AND f.class = 'sensitive'))
+      AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_trigger t WHERE t.tgrelid = c.oid AND t.tgname = 'aa_field_write_guard' AND t.tgenabled = 'O')
+$$, 'every tenant table and every table with a sensitive field has the enabled write guard');
+SELECT is_empty($$
+    SELECT f.resource_name || '.' || f.field
+    FROM public.field_class f
+    JOIN pg_catalog.pg_attribute a ON a.attrelid = f.resource_name::REGCLASS AND a.attname = f.field AND a.attnum > 0 AND NOT a.attisdropped
+    LEFT JOIN pg_catalog.pg_proc p ON p.oid = to_regprocedure('private.' || quote_ident(split_part(f.resource_name, '.', 2) || '_field_write_guard') || '()')
+    WHERE f.class = 'sensitive' AND a.attgenerated = ''
+      AND (p.oid IS NULL OR strpos(pg_get_functiondef(p.oid), 'DETAIL = ''' || split_part(f.resource_name, '.', 2) || '.' || f.field || '''') = 0)
+$$, 'every sensitive, non-generated column has its check in the table''s guard');
 
 -- The fixtures also set test.<key> for each id.
 SELECT private.field_test_fixtures();
@@ -51,6 +69,8 @@ SELECT throws_ok($$ UPDATE public.user SET phone = '+1' WHERE id = current_setti
    '42501', 'field_write_forbidden', 'nobody else writes a user''s phone');
 SELECT lives_ok($$ UPDATE public.user SET phone = '+90 1' WHERE id = current_setting('test.akif')::UUID $$,
    'a user writes their own phone (self)');
+SELECT throws_ok($$ UPDATE public.user SET id = current_setting('test.akif')::UUID, phone = '+2' WHERE id = current_setting('test.koordinator')::UUID $$,
+   '42501', 'field_write_forbidden', 'self is the stored row (OLD.id), not a client-sent id');
 
 -- As elif over MOESA LTD and Europe (product and customer_brand update in both tenants).
 RESET ROLE;
