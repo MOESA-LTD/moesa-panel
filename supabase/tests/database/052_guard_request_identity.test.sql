@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- views will be) makes current_user <> 'authenticated' and the base trigger depth 2.
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(19);
 
 SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();
@@ -67,6 +67,8 @@ SELECT set_config('moesa.rules_bypass', '1', TRUE);
 UPDATE public.purchase_order SET status = 'closed' WHERE id = current_setting('test.po_approved')::UUID;
 UPDATE public.shipment SET status = 'loaded' WHERE id = current_setting('test.shp')::UUID;
 UPDATE public.incident SET status = 'closed' WHERE id = current_setting('test.inc')::UUID;
+-- The live cell is listed (no request: the server-only guard does not apply).
+UPDATE public.market_cell SET listing_state = 'live', listing_checked_at = now() WHERE id = current_setting('test.live_cell')::UUID;
 
 -- T scratch: a customer, supplier and product; a draft order with a line, an approved order with a
 -- line, a candidate and a live cell. Numbered in its own tenant, as baris (a member).
@@ -116,6 +118,12 @@ RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT lives_ok($$ SELECT public.amazon_account_disconnect(current_setting('test.acct')::UUID, 'none') $$,
    'R6: the allowed definer RPC still writes it');
+SELECT throws_ok($$ UPDATE public.customer_platform_account SET api_connection = 'connected' WHERE id = current_setting('test.acct')::UUID $$,
+   '23514', 'platform_account_api_server_only', 'R6: the server-write flag ends with the RPC call (api_connection)');
+SELECT lives_ok($$ SELECT public.listing_begin_submission(current_setting('test.cell')::UUID, 'create', '{}') $$,
+   'R6: listing_begin_submission still writes the listing state');
+SELECT throws_ok($$ UPDATE public.market_cell SET listing_state = 'live' WHERE id = current_setting('test.cell')::UUID $$,
+   '23514', 'market_cell_listing_server_only', 'R6: the server-write flag ends with the RPC call (listing_state)');
 SELECT is(t.error_of($$ DELETE FROM t.purchase_order_line WHERE id = current_setting('test.line_approved')::UUID $$),
    '23514:po_locked', 'R7: a delete through a view behaves like a direct delete (purchase_order_line)');
 SELECT is(t.error_of($$ DELETE FROM t.purchase_order_payment WHERE id = current_setting('test.payment')::UUID $$),
@@ -137,6 +145,41 @@ SELECT is(t.error_of($$ DELETE FROM t.market_cell WHERE id = current_setting('te
 SELECT is(t.error_of($$ DELETE FROM t.market_cell WHERE id = current_setting('test.live_cell')::UUID $$),
    t.error_of($$ DELETE FROM public.market_cell WHERE id = current_setting('test.live_cell')::UUID $$),
    'R7: market cell through a view = direct');
+
+-- A copy of THO into MOESA Europe, as akif, carries the live cell's listing state (the transfer exit
+-- of market_cell_listing_server_only). Conflicts are decided as the story does.
+CREATE FUNCTION pg_temp.copy_tho () RETURNS JSONB LANGUAGE plpgsql AS $f$
+DECLARE
+    decisions JSONB := '{}';
+    added JSONB;
+    report JSONB;
+BEGIN
+    FOR i IN 1..5 LOOP
+        report := public.transfer_customer(current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID,
+                                           current_setting('test.tho')::UUID, 'copy', decisions => decisions);
+        SELECT coalesce(jsonb_object_agg(c ->> 'key', CASE c ->> 'kind'
+                   WHEN 'gtin' THEN '{"action": "clear_gtin"}'::JSONB
+                   WHEN 'code' THEN '{"action": "new_code"}'::JSONB
+                   WHEN 'media_link' THEN '{"action": "demote"}'::JSONB
+                   ELSE jsonb_build_object('action', 'map', 'target_id', c -> 'existing_id')
+               END), '{}')
+        INTO added
+        FROM jsonb_array_elements(report -> 'conflicts') c
+        WHERE NOT (c -> 'actions') ? coalesce(decisions -> (c ->> 'key') ->> 'action', '');
+        EXIT WHEN added = '{}';
+        decisions := decisions || added;
+    END LOOP;
+    PERFORM set_config('audit.transaction_id', '', TRUE);
+    RETURN public.transfer_customer(current_setting('test.moesa')::UUID, current_setting('test.europe')::UUID,
+                                    current_setting('test.tho')::UUID, 'copy', decisions => decisions, dry_run => FALSE,
+                                    report_hash => report ->> 'report_hash');
+END;
+$f$;
+SELECT lives_ok($$ SELECT pg_temp.copy_tho() $$, 'a transfer copies a customer whose market cell has a listing state');
+RESET ROLE;
+SELECT is((SELECT m.listing_state::TEXT FROM public.market_cell m JOIN public.product p ON p.id = m.product_id AND p.tenant_id = m.tenant_id
+           WHERE m.tenant_id = current_setting('test.europe')::UUID AND p.sku = 'SPIKE-SECRET' AND m.platform_id = 'amazon' AND m.country = 'FR'),
+   'live', 'the copy carries the listing state');
 
 -- Cascades, as postgres without a request and with the rules on.
 RESET ROLE;

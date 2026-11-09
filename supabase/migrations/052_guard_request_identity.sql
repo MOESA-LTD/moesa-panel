@@ -4,14 +4,22 @@
 -- that owner and every base trigger runs at depth 2, so a test on either would let a user's write
 -- through.
 --
--- private.begin_server_write()  Sets moesa.server_write = '1', transaction-local. Called first by
---                               the definer RPCs granted to authenticated that write a server-only
---                               column: amazon_account_disconnect and listing_begin_submission
---                               (bodies otherwise as in 046). The other 046 definers that write
---                               them are service-only (listing_act_for sets the role claim to
---                               amazon-listing).
--- private.server_write()        Reads it. Both are revoked from PUBLIC, anon and authenticated: a
---                               PostgREST caller sets no GUC and calls neither.
+-- The definer RPCs granted to authenticated that write a server-only column,
+-- amazon_account_disconnect and listing_begin_submission, raise the flag for their own call only:
+-- begin_server_write() first, end_server_write() before they return. An error between them undoes
+-- the set_config with the (sub)transaction it aborts, so nothing after the call in the same
+-- transaction inherits the flag either way. (A function SET clause would scope it too, but postgres
+-- may not attach a placeholder parameter to a function: "permission denied to set parameter".)
+-- Their bodies are otherwise as in 046. The other 046 definers that write these columns are
+-- service-only (listing_act_for sets the role claim to amazon-listing).
+--
+-- private.begin_server_write()  Sets moesa.server_write = '1', transaction-local. Also for a system
+--                               path without a request role of its own (seed_story.sql step 11,
+--                               which ends it again).
+-- private.end_server_write()    Sets it to ''.
+-- private.server_write()        TRUE only for '1'; unset and '' are FALSE. All three are revoked
+--                               from PUBLIC, anon and authenticated: a PostgREST caller sets no GUC
+--                               and calls none of them.
 --
 -- R6. market_cell_listing_server_only and platform_account_api_server_only (046) refuse when
 --     auth.role() = 'authenticated' AND NOT private.server_write(), in place of current_user =
@@ -40,6 +48,12 @@ SET
     SELECT set_config('moesa.server_write', '1', TRUE);
 $$;
 
+CREATE OR REPLACE FUNCTION private.end_server_write () RETURNS VOID LANGUAGE sql VOLATILE
+SET
+   search_path = '' AS $$
+    SELECT set_config('moesa.server_write', '', TRUE);
+$$;
+
 CREATE OR REPLACE FUNCTION private.server_write () RETURNS BOOLEAN LANGUAGE sql STABLE
 SET
    search_path = '' AS $$
@@ -47,6 +61,8 @@ SET
 $$;
 
 REVOKE ALL ON FUNCTION private.begin_server_write () FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION private.end_server_write () FROM PUBLIC, anon, authenticated;
 
 REVOKE ALL ON FUNCTION private.server_write () FROM PUBLIC, anon, authenticated;
 
@@ -133,6 +149,8 @@ BEGIN
     END IF;
 
     PERFORM private.amazon_token_set(p_account_id, NULL);
+
+    PERFORM private.end_server_write();
 END;
 $$;
 
@@ -191,6 +209,7 @@ BEGIN
         PERFORM private.listing_mirror_parent(v_cell.id);
     END IF;
 
+    PERFORM private.end_server_write();
     RETURN v_submission;
 END;
 $$;

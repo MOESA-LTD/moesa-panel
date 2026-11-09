@@ -1611,7 +1611,7 @@ BEGIN
     PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000004', 'ready', NULL);
     PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000005', 'draft', NULL);
 
-    PERFORM set_config('moesa.server_write', '', TRUE);
+    PERFORM private.end_server_write();
     PERFORM private.story_end('2 days');
 END;
 $$;
