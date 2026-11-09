@@ -1155,8 +1155,37 @@ GRANT EXECUTE ON FUNCTION public.import_products (JSONB) TO authenticated, servi
 
 GRANT EXECUTE ON FUNCTION public.save_role (JSONB, UUID[], JSONB) TO authenticated, service_role;
 
--- save_role writes a role's field rights through this postgres-owned helper (050): api_owner holds no
--- write on role_field_permission (S7).
+-- save_role writes a role's field rights through private.save_role_field_rights (050): api_owner holds
+-- no write on role_field_permission (S7). The helper's owner, rfp_writer, is NOLOGIN and not
+-- BYPASSRLS, and is a member of authenticated, so the table's generated policies (TO authenticated)
+-- apply to its writes. It holds the table's DML and the SELECTs its policies and invoker triggers read:
+-- public.role (the policies' EXISTS) and public.field_class (role_field_permission_sensitive_only).
+-- Only postgres is a member, so that it can own and alter through it. No client role may assume it.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'rfp_writer') THEN
+        CREATE ROLE rfp_writer NOLOGIN NOBYPASSRLS;
+    END IF;
+END;
+$$;
+
+GRANT authenticated TO rfp_writer;
+
+GRANT rfp_writer TO postgres;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.role_field_permission TO rfp_writer;
+
+GRANT SELECT ON public.role, public.field_class TO rfp_writer;
+
+-- Changing a function's owner needs the new owner's CREATE on its schema (as for api_owner above).
+GRANT CREATE ON SCHEMA private TO rfp_writer;
+
+ALTER FUNCTION private.save_role_field_rights (UUID, JSONB) OWNER TO rfp_writer;
+
+REVOKE CREATE ON SCHEMA private FROM rfp_writer;
+
+REVOKE ALL ON FUNCTION private.save_role_field_rights (UUID, JSONB) FROM PUBLIC, anon, authenticated;
+
 GRANT EXECUTE ON FUNCTION private.save_role_field_rights (UUID, JSONB) TO api_owner;
 
 GRANT EXECUTE ON FUNCTION public.set_user_roles (UUID, UUID[]) TO authenticated, service_role;

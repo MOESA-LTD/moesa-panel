@@ -319,14 +319,12 @@ WHERE
    resource_name = 'public.role_field_permission'
    AND command = 'select';
 
--- save_role's field-rights sync: the role's rows become exactly `p_field_rights`. It writes as postgres
--- because save_role runs as api_owner (058), whose api view of role_field_permission is read-only and
--- which holds no write on the table (S7), not even after the cutover (064). RLS does not filter
--- postgres, so the table's policies are restated: each command that touches a row needs the caller's
--- role_field_permission permission in the active tenant (check_permission), on a role of a tenant.
--- The policies' role visibility is the caller's own write of the role row just before, under RLS.
--- The S7 trigger still checks every right added against the caller's own (C1). Only api_owner may
--- execute it (058).
+-- save_role's field-rights sync: the role's rows become exactly `p_field_rights`. save_role runs as
+-- api_owner (058), which holds no write on role_field_permission (its api view is read-only, S7), not
+-- even after the cutover (064). This helper is owned by rfp_writer (058): NOLOGIN, not BYPASSRLS, a
+-- member of authenticated whose only grants are this table's DML and the SELECTs its policies and
+-- triggers need, so the table's real generated policies apply to every row it writes. The S7 trigger
+-- still checks every right added against the caller's own (C1). Only api_owner may execute it (058).
 CREATE OR REPLACE FUNCTION private.save_role_field_rights (p_role UUID, p_field_rights JSONB) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -340,30 +338,7 @@ DECLARE
               FROM jsonb_to_recordset(p_field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
               GROUP BY x.resource_name, x.field) g
     );
-    in_tenant BOOLEAN := EXISTS (SELECT 1 FROM public.role r WHERE r.id = p_role AND r.tenant_id IS NOT NULL);
 BEGIN
-    -- The policies, before any write.
-    IF EXISTS (SELECT 1 FROM public.role_field_permission rfp
-               WHERE rfp.role_id = p_role
-                 AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT)
-                                 WHERE n.resource_name = rfp.resource_name AND n.field = rfp.field))
-       AND NOT (in_tenant AND private.check_permission('public.role_field_permission', 'delete')) THEN
-        PERFORM public.throw_rls_policy_error('You don''t have permission to modify on role');
-    END IF;
-    IF EXISTS (SELECT 1 FROM public.role_field_permission rfp
-               JOIN jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
-                 ON n.resource_name = rfp.resource_name AND n.field = rfp.field
-               WHERE rfp.role_id = p_role AND (rfp.can_read, rfp.can_write) IS DISTINCT FROM (n.can_read, n.can_write))
-       AND NOT (in_tenant AND private.check_permission('public.role_field_permission', 'update')) THEN
-        PERFORM public.throw_rls_policy_error('You don''t have permission to modify on role');
-    END IF;
-    IF EXISTS (SELECT 1 FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT)
-               WHERE NOT EXISTS (SELECT 1 FROM public.role_field_permission rfp
-                                 WHERE rfp.role_id = p_role AND rfp.resource_name = n.resource_name AND rfp.field = n.field))
-       AND NOT (in_tenant AND private.check_permission('public.role_field_permission', 'insert')) THEN
-        PERFORM public.throw_rls_policy_error('You don''t have permission to "create" on role');
-    END IF;
-
     PERFORM set_config('moesa.save_role', '1', TRUE);
 
     DELETE FROM public.role_field_permission rfp
