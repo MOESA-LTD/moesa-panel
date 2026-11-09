@@ -46,7 +46,8 @@
 --                        One select-list entry as the generator writes it (generator and drift share it).
 -- private.api_view_drift()  For each public table with an api view: 'columns' (names or order differ);
 --                        'expression <c>' (the deparsed column differs from what api_column_expr would
---                        generate, built as a temporary view), plus 'unmasked <c>' and 'masked <c>';
+--                        generate, built as a temporary view), 'definition' (the whole query differs:
+--                        FROM, WHERE, ...), plus 'unmasked <c>' and 'masked <c>';
 --                        'owner'; 'security_invoker' (not false); 'trigger' (authenticated may write the
 --                        view but api_forward is missing); 'anon or public privilege' on the view;
 --                        'anon or public execute <fn>' on a function over the view's row type (R4);
@@ -564,6 +565,11 @@ BEGIN
                     RETURN NEXT;
                 END IF;
             END LOOP;
+            -- The whole query (FROM, WHERE, ...), deparsed under the same search_path ''.
+            IF expected_ok AND pg_catalog.pg_get_viewdef(v.view) IS DISTINCT FROM pg_catalog.pg_get_viewdef(to_regclass('pg_temp.api_drift_expected')) THEN
+                problem := 'definition';
+                RETURN NEXT;
+            END IF;
             IF to_regclass('pg_temp.api_drift_expected') IS NOT NULL THEN
                 EXECUTE 'DROP VIEW pg_temp.api_drift_expected';
             END IF;

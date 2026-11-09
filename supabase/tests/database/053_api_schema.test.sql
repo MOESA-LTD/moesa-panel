@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- compared against the masked OLD, so a correct guess is refused like a wrong one (S1).
 BEGIN;
 
-SELECT plan(59);
+SELECT plan(60);
 
 -- The role and the generated objects.
 SELECT ok(NOT (SELECT rolbypassrls OR rolcanlogin FROM pg_roles WHERE rolname = 'api_owner'), 'api_owner cannot log in and does not bypass RLS');
@@ -168,6 +168,7 @@ SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', '::UU
    'drift: a trailing `OR true` in the mask is reported');
 SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', 'THEN t.notes END', 'THEN t.supplier_product_code END'))),
    'drift: a THEN naming another column is reported');
+SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('id', 't.id', 't.id') || ' WHERE TRUE')), 'drift: a WHERE added to the view is reported');
 SELECT ok('security_invoker' = ANY (t.drift_after('ALTER VIEW api.product SET (security_invoker = true)')), 'drift: security_invoker = true is reported');
 SELECT ok('trigger' = ANY (t.drift_after('DROP TRIGGER api_forward ON api.product')), 'drift: a writable view without the forwarder is reported');
 SELECT ok('anon or public privilege' = ANY (t.drift_after('GRANT SELECT ON api.product TO anon')), 'drift: a grant to anon is reported');
