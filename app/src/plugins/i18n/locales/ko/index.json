@@ -531,6 +531,7 @@
       "change_request_kinds_required": "Choose at least one change kind.",
       "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again.",
       "audit_transfer_not_revertable": "A transfer cannot be undone from the log. Transfer the records back instead.",
+      "audit_revert_field_forbidden": "This change cannot be reverted: it touches a field you are not allowed to change.",
       "transfer_invalid_mode": "Choose Copy or Move.",
       "transfer_same_tenant": "The target must differ from the source.",
       "transfer_owner_required": "Between two separate companies only an owner of both can transfer.",
@@ -893,7 +894,8 @@
       "updated": "수정됨",
       "deleted": "삭제됨",
       "readed": "읽힘",
-      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead.",
+      "masked": "changed"
    },
    "user": {
       "table": {
