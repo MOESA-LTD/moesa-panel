@@ -272,6 +272,9 @@ SET
    search_path = '' AS $$
 DECLARE
     role_tenant UUID;
+    -- An update keeps a flag only on the same row key; moving a row to another role or field is a new grant.
+    same_key BOOLEAN := TG_OP = 'UPDATE' AND NEW.role_id = OLD.role_id AND NEW.resource_name = OLD.resource_name
+        AND NEW.field = OLD.field;
 BEGIN
     IF private.field_guard_bypassed()
        OR (TG_OP = 'DELETE' AND private.parent_gone('public.role', OLD.role_id)) THEN
@@ -287,9 +290,9 @@ BEGIN
     -- Only a right that is added is checked: on an update, a flag already held stays as it is.
     IF TG_OP <> 'DELETE' AND (NEW.can_read OR NEW.can_write) THEN
         SELECT r.tenant_id INTO role_tenant FROM public.role r WHERE r.id = NEW.role_id;
-        IF (NEW.can_read AND NOT (TG_OP = 'UPDATE' AND OLD.can_read)
+        IF (NEW.can_read AND NOT (same_key AND OLD.can_read)
                AND NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, FALSE))
-           OR (NEW.can_write AND NOT (TG_OP = 'UPDATE' AND OLD.can_write)
+           OR (NEW.can_write AND NOT (same_key AND OLD.can_write)
                AND NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, TRUE)) THEN
             RAISE EXCEPTION 'field_grant_exceeds_own' USING ERRCODE = '42501';
         END IF;

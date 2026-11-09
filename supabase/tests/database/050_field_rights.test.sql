@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- writer of role_field_permission (S7) and the grant ceiling (C1).
 BEGIN;
 
-SELECT plan(37);
+SELECT plan(39);
 
 -- The fixtures also set test.<key> for each id.
 SELECT private.field_test_fixtures();
@@ -111,6 +111,12 @@ SELECT throws_ok($$ INSERT INTO public.role_field_permission (role_id, resource_
 SELECT lives_ok($$ INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
    VALUES (current_setting('test.t_restricted')::UUID, 'public.supplier', 'deposit_rate', TRUE, FALSE) $$,
    '... while a right the caller holds passes, as through save_role');
+SELECT lives_ok($$ UPDATE public.role_field_permission SET can_read = TRUE, can_write = TRUE
+   WHERE role_id = current_setting('test.t_restricted')::UUID AND resource_name = 'public.product' AND field = 'notes' $$,
+   'S7: a right the caller may write (internal notes) passes');
+SELECT throws_ok($$ UPDATE public.role_field_permission SET resource_name = 'public.supplier', field = 'payment_terms'
+   WHERE role_id = current_setting('test.t_restricted')::UUID AND resource_name = 'public.product' AND field = 'notes' $$,
+   '42501', 'field_grant_exceeds_own', 'S7: moving a held write to a field the caller cannot write is a new grant');
 SELECT set_config('moesa.save_role', '', TRUE);
 
 -- Only the rights a save adds are checked: the role holds a write the coordinator lacks (set by the
