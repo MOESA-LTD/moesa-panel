@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- compared against the masked OLD, so a correct guess is refused like a wrong one (S1).
 BEGIN;
 
-SELECT plan(71);
+SELECT plan(83);
 
 -- The role and the generated objects.
 SELECT ok(NOT (SELECT rolbypassrls OR rolcanlogin FROM pg_roles WHERE rolname = 'api_owner'), 'api_owner cannot log in and does not bypass RLS');
@@ -29,8 +29,16 @@ GRANT EXECUTE ON FUNCTION private.field_calls_only_in_initplans (TEXT) TO authen
 
 -- R10: field_read_rights / field_user_rights (one call per view) agree with field_read_all,
 -- field_read_tenants and field_user_ids for every sensitive field, for several callers and scopes.
+-- The fields as the generator picks them (api_is_sensitive over each base table with an api view, so a
+-- column missing from field_class counts), plus a made-up column that must fail closed.
 CREATE TEMPORARY TABLE t_sensitive AS
-SELECT resource_name, array_agg(field::TEXT ORDER BY field) AS fields FROM public.field_class WHERE class = 'sensitive' GROUP BY resource_name;
+SELECT 'public.' || c.relname AS resource_name,
+       coalesce(array_agg(a.attname::TEXT ORDER BY a.attnum) FILTER (WHERE private.api_is_sensitive('public.' || c.relname, a.attname)), '{}')
+           || ARRAY['t_no_such_column'] AS fields
+FROM pg_class c
+JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+WHERE c.relnamespace = 'public'::REGNAMESPACE AND c.relkind IN ('r', 'p') AND to_regclass('api.' || quote_ident(c.relname)) IS NOT NULL
+GROUP BY c.relname;
 GRANT SELECT ON t_sensitive TO authenticated;
 CREATE FUNCTION t.rights_mismatch () RETURNS SETOF TEXT LANGUAGE sql AS $$
     SELECT s.resource_name || '.' || s.fields[r.n]
@@ -65,6 +73,20 @@ SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-f
 RESET ROLE;
 SELECT private.unimpersonate();
 SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: no caller');
+SELECT is_empty($$ SELECT f.resource_name, f.field FROM public.field_class f WHERE f.class = 'sensitive'
+                    AND NOT EXISTS (SELECT 1 FROM t_sensitive s WHERE s.resource_name = f.resource_name AND f.field = ANY (s.fields)) $$,
+   'the equivalence covers every sensitive field (the generator''s rule, plus a made-up column per table)');
+-- The super admin.
+SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'admin@moesa-panel.test'), current_setting('test.moesa')::UUID);
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: super admin');
+RESET ROLE;
+-- A forged x-tenant-ids naming every tenant.
+SELECT private.impersonate_scope(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID, ARRAY(SELECT id FROM public.tenant));
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: forged scope of every tenant');
+SELECT is((SELECT r FROM unnest(private.field_read_rights('public.product', ARRAY['t_no_such_column'])) r), ROW(FALSE, NULL)::private.field_read_right,
+   'a made-up column fails closed for a non-owner');
+RESET ROLE;
+SELECT private.unimpersonate();
 SELECT ok(EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'public.document'::REGCLASS AND attisdropped)
           AND NOT EXISTS (SELECT 1 FROM private.api_view_drift() WHERE relation = 'document'),
    'drift numbers m''s pairs by base attnum: document, with a dropped column, has no drift');
@@ -226,6 +248,30 @@ SELECT ok('anon or public execute supplier' = ANY (t.drift_after('GRANT EXECUTE 
    'drift: EXECUTE on an R4 function for PUBLIC is reported');
 SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'every tamper was undone');
 
+-- S1 at the column type: elif reads t_cost's cost fields in MOESA Europe but may no longer write them.
+RESET ROLE;
+SELECT private.unimpersonate();
+SELECT set_config('moesa.save_role', '1', TRUE);
+UPDATE public.role_field_permission SET can_write = FALSE
+WHERE role_id = current_setting('test.t_cost')::UUID AND resource_name = 'public.product' AND field IN ('purchase_price', 'purchase_currency');
+SELECT set_config('moesa.save_role', '', TRUE);
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+UPDATE public.product SET purchase_price = 78, purchase_currency = 'EUR' WHERE id = current_setting('test.spike_eu')::UUID;
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+SELECT private.impersonate(current_setting('test.elif')::UUID, current_setting('test.europe')::UUID);
+SELECT lives_ok($$ UPDATE api.product SET purchase_price = 78.00004, display_name = 'S1 a' WHERE id = current_setting('test.spike_eu')::UUID $$,
+   'S1: excess precision that rounds to the stored numeric(12,4) is a no-op');
+SELECT lives_ok($$ UPDATE api.product SET purchase_price = 78.000000, display_name = 'S1 b' WHERE id = current_setting('test.spike_eu')::UUID $$,
+   'S1: extra trailing zeros are a no-op');
+SELECT lives_ok($$ UPDATE api.product SET purchase_currency = 'EUR ', display_name = 'S1 c' WHERE id = current_setting('test.spike_eu')::UUID $$,
+   'S1: a char(3) currency sent with a trailing space is a no-op');
+SELECT throws_ok($$ UPDATE api.product SET purchase_price = 78.0001 WHERE id = current_setting('test.spike_eu')::UUID $$,
+   '42501', 'field_write_forbidden', 'S1: a real numeric change is still refused');
+SELECT throws_ok($$ UPDATE api.product SET purchase_currency = 'USD' WHERE id = current_setting('test.spike_eu')::UUID $$,
+   '42501', 'field_write_forbidden', 'S1: a real currency change is still refused');
+SELECT results_eq($$ SELECT display_name, purchase_price, purchase_currency::TEXT FROM api.product WHERE id = current_setting('test.spike_eu')::UUID $$,
+   $$ VALUES ('S1 c', 78::NUMERIC, 'EUR') $$, 'S1: the open field was written, the cost fields kept');
+
 -- Drift: a hand-written view (every column plain) and a wrong owner are reported.
 RESET ROLE;
 SELECT private.unimpersonate();
@@ -234,6 +280,25 @@ CREATE VIEW api.product AS SELECT * FROM public.product;
 SELECT ok(EXISTS (SELECT 1 FROM private.api_view_drift() WHERE relation = 'product' AND problem = 'unmasked purchase_price'),
    'drift reports an unmasked sensitive column');
 SELECT ok(EXISTS (SELECT 1 FROM private.api_view_drift() WHERE relation = 'product' AND problem = 'owner'), 'drift reports an owner other than api_owner');
+
+-- Last, as they change memberships.
+RESET ROLE;
+SELECT private.unimpersonate();
+-- The comparison calls the field functions by name (USAGE was revoked above).
+GRANT USAGE ON SCHEMA private TO authenticated;
+-- An owner who is no longer a member (baris leaves MOESA LTD), and a leftover user_role (elif leaves
+-- MOESA Europe, where t_cost still names her).
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+DELETE FROM public.tenant_user WHERE user_id = current_setting('test.baris')::UUID AND tenant_id = current_setting('test.moesa')::UUID;
+DELETE FROM public.tenant_user WHERE user_id = current_setting('test.elif')::UUID AND tenant_id = current_setting('test.europe')::UUID;
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+SELECT private.impersonate_scope(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID, ARRAY(SELECT id FROM public.tenant));
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: owner without membership');
+RESET ROLE;
+SELECT private.impersonate_scope(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID, ARRAY(SELECT id FROM public.tenant));
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: leftover user_role');
+RESET ROLE;
+SELECT private.unimpersonate();
 
 SELECT * FROM finish();
 ROLLBACK;

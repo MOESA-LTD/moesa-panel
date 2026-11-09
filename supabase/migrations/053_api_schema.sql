@@ -138,6 +138,7 @@ DECLARE
     allowed BOOLEAN;
     reread RECORD;
     n BIGINT;
+    cast_sql TEXT;
 BEGIN
     pk := ARRAY(
         SELECT a.attname::TEXT
@@ -166,10 +167,26 @@ BEGIN
         SELECT 1 FROM pg_catalog.pg_attribute a
         WHERE a.attrelid = base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
     );
-    new_j := to_jsonb(NEW);
+    -- S1 compares at the column type: the view's columns carry no typmod and no domain (a per-row cast
+    -- would cost on every read), so each side is cast to the base column's type (a domain: its base type
+    -- and typmod, so a NULL never trips a NOT NULL domain) before the comparison. 12.50000 or 12.50004 for
+    -- a numeric(12,4) 12.5000, or 'EUR ' for a char(3) 'EUR', is then the stored value: a no-op, as the
+    -- base write would store the same. Per written row only.
+    cast_sql := pg_catalog.format(
+        'SELECT pg_catalog.to_jsonb(x) FROM (SELECT %s) x',
+        (SELECT pg_catalog.string_agg(
+                    pg_catalog.format('($1).%1$I::%2$s AS %1$I', a.attname,
+                        CASE WHEN ty.typtype = 'd' THEN pg_catalog.format_type(ty.typbasetype, ty.typtypmod)
+                             ELSE pg_catalog.format_type(a.atttypid, a.atttypmod) END),
+                    ', ' ORDER BY a.attnum)
+         FROM pg_catalog.pg_attribute a
+         JOIN pg_catalog.pg_type ty ON ty.oid = a.atttypid
+         WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped)
+    );
+    EXECUTE cast_sql INTO new_j USING NEW;
     -- The row whose rights apply: the stored (masked) row on UPDATE, the sent one on INSERT.
     IF TG_OP = 'UPDATE' THEN
-        old_j := to_jsonb(OLD);
+        EXECUTE cast_sql INTO old_j USING OLD;
         row_j := old_j;
     ELSE
         row_j := new_j;
