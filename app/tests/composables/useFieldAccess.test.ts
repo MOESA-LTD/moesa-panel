@@ -63,6 +63,13 @@ describe('readableColumns', () => {
       ]);
       expect(readableColumns('product_with_evidence', [{ field: 'notes' }])).toEqual([]);
    });
+
+   it('keeps every column of a table read without a permission of its own', () => {
+      // audit_transaction is read through RLS (the audit_log permission), with no field rights.
+      grant([]);
+      const columns = [{ field: 'table_name' }, { field: 'created_at' }];
+      expect(readableColumns('audit_transaction', columns)).toEqual(columns);
+   });
 });
 
 describe('canInsertFields', () => {

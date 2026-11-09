@@ -52,9 +52,16 @@ const VIEW_TABLES: Record<string, string> = {
    market_cell_overview: 'market_cell'
 };
 
-/** The columns of a list of `table` rows without those of fields the user may not read. */
+/**
+ * The columns of a list of `table` rows without those of fields the user may not read. A table the
+ * user reads without a permission of its own (audit_transaction, through RLS) has no field rights,
+ * so it keeps every column, as isFieldWriteForbidden does for writes.
+ */
 export const readableColumns = <C extends { field?: unknown }>(table: string, columns: C[]) => {
-   const { canRead } = useFieldAccess(VIEW_TABLES[table] ?? table);
+   void version.value;
+   const subject = VIEW_TABLES[table] ?? table;
+   if (!ability.can('read', subject)) return columns;
+   const { canRead } = useFieldAccess(subject);
    return columns.filter(({ field }) => typeof field !== 'string' || canRead(field));
 };
 
