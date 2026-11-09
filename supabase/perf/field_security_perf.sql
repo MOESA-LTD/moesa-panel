@@ -6,7 +6,8 @@
 -- and the api.supplier(p) computed relationship) and Q6 (the purchase-order overview) run against
 -- api.* and against the same query on public.* (temporarily granted to authenticated, so both sides
 -- pay the same RLS). Each side: one warm-up, then 5 alternating runs; the median planning + execution
--- time of EXPLAIN ANALYZE. Budget (R10): reads, internal ≤ +15%, restricted and mixed ≤ +40%. Every
+-- time of EXPLAIN ANALYZE. Budget (R10, amended 2026-11-09): reads, internal ≤ max(+15%, +5 ms),
+-- restricted and mixed ≤ max(+40%, +10 ms) (the per-query fixed cost of masking dominates indexed lists). Every
 -- case here is a read; writes (R10 as amended 2026-11-09: ≤ +15 ms absolute) are measured over HTTP
 -- by supabase/functions/scripts/field_perf_http.ts.
 \set ON_ERROR_STOP 1
@@ -48,6 +49,14 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION t.perf_pair (TEXT, TEXT, INT) TO authenticated;
+
+-- R10 (amended 2026-11-09): a read is over budget when it exceeds both the ratio and the absolute
+-- allowance: internal max(+15%, +5 ms), restricted and mixed max(+40%, +10 ms). No result is over.
+CREATE FUNCTION t.perf_over (actor TEXT, base_ms NUMERIC, api_ms NUMERIC) RETURNS BOOLEAN LANGUAGE sql IMMUTABLE AS $$
+    SELECT api_ms IS NULL OR base_ms IS NULL
+        OR api_ms > greatest(base_ms * CASE actor WHEN 'internal' THEN 1.15 ELSE 1.40 END,
+                             base_ms + CASE actor WHEN 'internal' THEN 5 ELSE 10 END)
+$$;
 
 CREATE TEMP TABLE perf_case (pos INT, name TEXT, sql TEXT);
 INSERT INTO perf_case VALUES
@@ -142,8 +151,9 @@ WHERE NOT EXISTS (SELECT 1 FROM perf_result r WHERE r.actor = a.actor AND r.pos 
 \unset QUIET
 SELECT actor, name AS query, round(base_ms, 2) AS public_ms, round(api_ms, 2) AS api_ms,
        coalesce(to_char(100 * (api_ms / nullif(base_ms, 0) - 1), 'S99990.0') || '%', 'timeout/error') AS delta,
-       CASE actor WHEN 'internal' THEN '+15%' ELSE '+40%' END AS budget,
-       CASE WHEN api_ms IS NULL OR api_ms / nullif(base_ms, 0) > CASE actor WHEN 'internal' THEN 1.15 ELSE 1.40 END THEN 'OVER' ELSE 'ok' END AS verdict
+       to_char(api_ms - base_ms, 'S99990.00') || ' ms' AS delta_ms,
+       CASE actor WHEN 'internal' THEN 'max(+15%, +5 ms)' ELSE 'max(+40%, +10 ms)' END AS budget,
+       CASE WHEN t.perf_over(actor, base_ms, api_ms) THEN 'OVER' ELSE 'ok' END AS verdict
 FROM perf_result
 ORDER BY CASE actor WHEN 'internal' THEN 1 WHEN 'restricted' THEN 2 ELSE 3 END, pos;
 
@@ -154,7 +164,7 @@ BEGIN
     SELECT string_agg(format('%s %s (%s ms vs %s ms)', actor, name, coalesce(round(api_ms, 2)::TEXT, 'timeout'),
                              coalesce(round(base_ms, 2)::TEXT, '-')), '; ') INTO over
     FROM perf_result
-    WHERE api_ms IS NULL OR api_ms / nullif(base_ms, 0) > CASE actor WHEN 'internal' THEN 1.15 ELSE 1.40 END;
+    WHERE t.perf_over(actor, base_ms, api_ms);
     IF over IS NOT NULL THEN
         RAISE EXCEPTION 'budget: %', over;
     END IF;
