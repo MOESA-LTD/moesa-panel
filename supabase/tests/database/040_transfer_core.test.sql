@@ -69,8 +69,9 @@ SELECT throws_ok(
     $$ INSERT INTO api.transfer (tenant_id, source_tenant_id, customer_id, mode, path, started_by, report)
        VALUES (current_setting('test.moesa')::UUID, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
                'copy', 'copy', current_setting('test.akif')::UUID, '{}') $$,
-    -- Through api the view refuses the insert (report is not insertable), not the base table's privilege check.
-    '0A000',
+    -- Through api the read-only view refuses the insert before any privilege check: it joins the rights
+    -- subquery (053), so it is not auto-updatable, and it has no INSTEAD OF trigger.
+    '55000',
     NULL,
     'a user cannot insert a transfer row'
 );
