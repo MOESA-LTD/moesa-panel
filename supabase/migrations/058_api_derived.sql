@@ -26,9 +26,10 @@
 --                        stays INVOKER as it is service_role only and the service role keeps its base
 --                        grants.
 -- S1 in RPCs             A parameter stored into a sensitive field is checked before any write, by its
---                        presence (non-NULL), never by comparing it with the stored value:
---                        pass_gate(note) → project_gate.note; import_products: every non-NULL row key
---                        naming a sensitive product field, supplier_code as supplier_id. rollback_gate
+--                        presence, never by comparing it with the stored value (no NULL oracle either):
+--                        pass_gate(note) → project_gate.note, a NULL note leaving the stored one
+--                        untouched; import_products: every row key naming a sensitive product field,
+--                        JSON null included (it clears the field), supplier_code as supplier_id. rollback_gate
 --                        stores its reason in rolled_back_reason, which is not sensitive.
 --                        field_write_forbidden (42501), DETAIL <table>.<field>.
 -- C2/S6                  pass_gate and rollback_gate return api.project_gate, set_primary_media
@@ -781,13 +782,15 @@ BEGIN
         WHERE c.code = item ->> 'customer_code'
             AND (SELECT count(*) FROM public.customer o WHERE o.code = c.code) = 1;
 
-        -- S1, before any write: every value given (non-NULL) for a sensitive product field must be
-        -- writable in the customer's tenant; supplier_code sets supplier_id. Present, not compared.
+        -- S1, before any write: every key given for a sensitive product field must be writable in the
+        -- customer's tenant; supplier_code sets supplier_id. Present, not compared: a JSON null is a
+        -- write too (it clears the field), so it is checked like any value; otherwise whether the
+        -- call succeeds would tell whether the stored value is NULL.
         IF tenant IS NOT NULL THEN
             FOR column_name IN
                 SELECT CASE WHEN e.key = 'supplier_code' THEN 'supplier_id' ELSE e.key END
                 FROM jsonb_each(item) AS e
-                WHERE (e.key = ANY (value_columns) OR e.key = 'supplier_code') AND jsonb_typeof(e.value) <> 'null'
+                WHERE e.key = ANY (value_columns) OR e.key = 'supplier_code'
                 ORDER BY 1
             LOOP
                 PERFORM private.require_field_write('public.product', column_name, tenant);
@@ -962,7 +965,9 @@ BEGIN
             DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
     END IF;
 
-    -- S1: a note given is a write of project_gate.note, whatever the stored one.
+    -- S1: a note given is a write of project_gate.note, whatever the stored one. A NULL note is no
+    -- note: the stored one stays as it is (never cleared), so a pass without a note writes nothing
+    -- there and tells nothing about it.
     IF pass_gate.note IS NOT NULL THEN
         PERFORM private.require_field_write('public.project_gate', 'note', gate_tenant);
     END IF;
@@ -971,7 +976,7 @@ BEGIN
     SET status = 'passed',
         passed_at = now(),
         decided_by_role = NULL,
-        note = pass_gate.note,
+        note = coalesce(pass_gate.note, g.note),
         customer_approved_on = pass_gate.customer_approved_on,
         approval_document_id = pass_gate.approval_document_id,
         evidence_document_ids = coalesce(pass_gate.evidence_document_ids, '{}')

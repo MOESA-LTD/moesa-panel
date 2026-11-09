@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- S6) and the catalog-driven transfer gate (S3).
 BEGIN;
 
-SELECT plan(21);
+SELECT plan(27);
 
 SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();
@@ -33,6 +33,11 @@ BEGIN
         INSERT INTO public.tenant_user (tenant_id, user_id) VALUES (t.id, can) ON CONFLICT DO NOTHING;
         INSERT INTO public.user_role (user_id, role_id) VALUES (can, r);
     END LOOP;
+    -- A THO product without cost or supplier (the NULL-oracle cases), and the project's tasks done so
+    -- its first gate can pass.
+    INSERT INTO public.product (tenant_id, customer_id, sku, display_name)
+    VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'NULL-COST', 'Null cost');
+    UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.project')::UUID;
     PERFORM set_config('moesa.rules_bypass', '', TRUE);
     PERFORM set_config('test.can', can::TEXT, TRUE);
 END;
@@ -43,6 +48,18 @@ SELECT is_empty($$ SELECT DISTINCT v.relname FROM pg_depend d JOIN pg_rewrite r 
    JOIN pg_class t ON t.oid = d.refobjid WHERE v.relnamespace = 'api'::regnamespace
    AND v.relname NOT IN (SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind IN ('r','p'))
    AND t.relnamespace = 'public'::regnamespace AND t.relkind IN ('r','p') $$, 'derived api views read only api relations');
+-- A whole-row argument is an explicit ROW(...)::api.<view>: its arity must follow the api view's columns.
+SELECT is_empty($$
+   WITH m AS (
+      SELECT v.viewname::TEXT AS viewname, x[2] AS typ, array_length(string_to_array(x[1], ','), 1) AS arity
+      FROM pg_views v, regexp_matches(v.definition, 'ROW\(([^()]*)\)::api\.("?\w+"?)', 'g') AS x
+      WHERE v.schemaname = 'api'
+   )
+   SELECT m.viewname, m.typ FROM m
+   WHERE m.arity <> (SELECT count(*) FROM pg_attribute a WHERE a.attrelid = format('api.%s', m.typ)::REGCLASS AND a.attnum > 0 AND NOT a.attisdropped)
+   UNION ALL
+   SELECT 'no ROW found', w FROM unnest(ARRAY['company_subscription', 'tenant_member']) AS w WHERE NOT EXISTS (SELECT 1 FROM m WHERE m.viewname = w)
+   $$, 'ROW constructors in derived views match the column count of api.user and api.subscription');
 
 -- As elif in MOESA LTD (t_restricted: no field rows).
 RESET ROLE;
@@ -62,6 +79,17 @@ SELECT throws_ok($$ SELECT public.import_products('[{"sku":"SPIKE-SECRET","custo
    '42501', 'field_write_forbidden', 'S1: import refuses a cost the writer cannot write, even a correct guess');
 SELECT throws_ok($$ SELECT public.pass_gate(current_setting('test.gate')::UUID, 'gate secret') $$,
    '42501', 'field_write_forbidden', 'S1: pass_gate refuses a note the caller cannot write, even a correct guess');
+-- No NULL oracle: a key sent as null is a write (it clears the field), refused alike whether the
+-- stored value is set (SPIKE-SECRET: 12.5) or already NULL (NULL-COST).
+SELECT throws_ok($$ SELECT public.import_products('[{"sku":"SPIKE-SECRET","customer_code":"THO","purchase_price":null}]'::JSONB) $$,
+   '42501', 'field_write_forbidden', 'S1: import refuses a null cost over a stored one');
+SELECT throws_ok($$ SELECT public.import_products('[{"sku":"NULL-COST","customer_code":"THO","purchase_price":null}]'::JSONB) $$,
+   '42501', 'field_write_forbidden', 'S1: import refuses a null cost over a NULL one alike');
+SELECT throws_ok($$ SELECT public.import_products('[{"sku":"NULL-COST","customer_code":"THO","supplier_code":null}]'::JSONB) $$,
+   '42501', 'field_write_forbidden', 'S1: import refuses a null supplier link over a NULL one alike');
+-- A pass without a note leaves the stored note untouched.
+SELECT lives_ok($$ SELECT public.pass_gate(current_setting('test.gate')::UUID, NULL) $$, 'pass_gate without a note passes for a caller without note write');
+SELECT is(t.peek('project_gate', 'note', current_setting('test.gate')::UUID), 'gate secret', 'pass_gate without a note keeps the stored note');
 
 -- As portal in MOESA LTD.
 RESET ROLE;
