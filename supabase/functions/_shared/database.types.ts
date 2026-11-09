@@ -5205,6 +5205,35 @@ export type Database = {
               website: string | null
             }[]
           }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: {
+              cancellation_rule: string | null
+              capacity_note: string | null
+              city: string | null
+              code: string | null
+              country: string | null
+              created_at: string | null
+              damage_notice_hours: number | null
+              default_incoterm: string | null
+              deposit_rate: number | null
+              display_name: string | null
+              id: string | null
+              last_audit_on: string | null
+              late_payment_penalty: string | null
+              notes: string | null
+              payment_terms: string | null
+              product_groups: string[] | null
+              rating: number | null
+              status: Database["public"]["Enums"]["supplier_status"] | null
+              storage_fee_rule: string | null
+              tenant_id: string | null
+              updated_at: string | null
+              website: string | null
+            }[]
+          }
     }
     Enums: {
       [_ in never]: never

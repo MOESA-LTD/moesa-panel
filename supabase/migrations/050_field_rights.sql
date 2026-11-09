@@ -810,3 +810,87 @@ REVOKE ALL ON FUNCTION private.impersonate_scope (UUID, UUID, UUID[]) FROM PUBLI
 REVOKE ALL ON FUNCTION private.unimpersonate () FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.create_test_helpers () FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.field_test_fixtures () FROM PUBLIC, anon, authenticated;
+
+-- A role's field rights are part of its members' access (my_access.fields): a change is broadcast
+-- like one of its permissions, so open pages reload them (see private.notify_access_changed, 011).
+CREATE OR REPLACE FUNCTION private.notify_access_changed () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    changed JSONB := '[]';
+    users UUID[];
+BEGIN
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+        SELECT changed || coalesce(jsonb_agg(to_jsonb(n)), '[]') INTO changed FROM new_rows n;
+    END IF;
+    IF TG_OP IN ('DELETE', 'UPDATE') THEN
+        SELECT changed || coalesce(jsonb_agg(to_jsonb(o)), '[]') INTO changed FROM old_rows o;
+    END IF;
+
+    SELECT array_agg(DISTINCT affected.user_id) INTO users
+    FROM (
+        -- user_role, tenant_user, tenant_owner: the user of the row.
+        SELECT (r ->> 'user_id')::UUID AS user_id
+        FROM jsonb_array_elements(changed) r
+        WHERE r ? 'user_id'
+        UNION
+        -- role_permission, role_field_permission: the members holding the role...
+        SELECT ur.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.user_role ur ON ur.role_id = (r ->> 'role_id')::UUID
+        WHERE TG_TABLE_NAME IN ('role_permission', 'role_field_permission')
+        UNION
+        -- ...and every owner when it is the built-in owner role.
+        SELECT o.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.role ro ON ro.id = (r ->> 'role_id')::UUID AND ro.tenant_id IS NULL AND ro.display_name = 'owner'
+        CROSS JOIN public.tenant_owner o
+        WHERE TG_TABLE_NAME IN ('role_permission', 'role_field_permission')
+        UNION
+        -- tenant: the owners above a branch opened or removed, and the tenant's own owners...
+        SELECT o.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.tenant_owner o
+          ON o.tenant_id = (r ->> 'id')::UUID
+          OR (r ->> 'parent_id')::UUID = ANY (private.owned_tenants(o.user_id))
+        WHERE TG_TABLE_NAME = 'tenant'
+        UNION
+        -- ...and its members (a renamed tenant).
+        SELECT tu.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.tenant_user tu ON tu.tenant_id = (r ->> 'id')::UUID
+        WHERE TG_TABLE_NAME = 'tenant'
+        UNION
+        -- subscription: the users of the company (see 013_init_subscriptions.sql)...
+        SELECT cu.user_id
+        FROM jsonb_array_elements(changed) r
+        CROSS JOIN LATERAL private.company_users((r ->> 'tenant_id')::UUID) cu (user_id)
+        WHERE TG_TABLE_NAME = 'subscription'
+        UNION
+        -- ...plan_module, plan_limit: those of every company on the plan.
+        SELECT cu.user_id
+        FROM jsonb_array_elements(changed) r
+        JOIN public.subscription s ON s.plan_id = (r ->> 'plan_id')::UUID
+        CROSS JOIN LATERAL private.company_users(s.tenant_id) cu (user_id)
+        WHERE TG_TABLE_NAME IN ('plan_module', 'plan_limit')
+    ) affected
+    WHERE affected.user_id IS NOT NULL;
+
+    -- What the transaction's later statements may use is no longer what private.tenant_scope kept.
+    PERFORM set_config('access.tenant_scope', '', true);
+
+    PERFORM realtime.send(
+        jsonb_build_object('table', TG_TABLE_NAME),
+        'access_changed',
+        'access:' || affected,
+        true
+    )
+    FROM unnest(users) AS affected;
+
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER notify_access_insert AFTER INSERT ON public.role_field_permission REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed();
+CREATE OR REPLACE TRIGGER notify_access_update AFTER UPDATE ON public.role_field_permission REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed();
+CREATE OR REPLACE TRIGGER notify_access_delete AFTER DELETE ON public.role_field_permission REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.notify_access_changed();

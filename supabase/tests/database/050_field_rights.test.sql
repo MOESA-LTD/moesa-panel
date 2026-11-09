@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- writer of role_field_permission (S7) and the grant ceiling (C1).
 BEGIN;
 
-SELECT plan(31);
+SELECT plan(33);
 
 -- The fixtures also set test.<key> for each id.
 SELECT private.field_test_fixtures();
@@ -132,6 +132,13 @@ SELECT private.unimpersonate();
 DELETE FROM public.tenant_user WHERE user_id = current_setting('test.koordinator')::UUID AND tenant_id = current_setting('test.moesa')::UUID;
 SELECT is(private.field_tenants(current_setting('test.koordinator')::UUID, ARRAY[current_setting('test.moesa')::UUID], 'public.supplier', 'deposit_rate', FALSE),
    '{}'::UUID[], 'a role in a tenant the user has left grants no field right');
+
+-- A change of a role's field rights is broadcast to its members, as one of its permissions.
+SELECT is((SELECT array_agg(tgname::TEXT ORDER BY tgname) FROM pg_trigger
+   WHERE tgrelid = 'public.role_field_permission'::REGCLASS AND tgfoid = 'private.notify_access_changed'::REGPROC),
+   ARRAY['notify_access_delete', 'notify_access_insert', 'notify_access_update'], 'role_field_permission changes notify access');
+SELECT ok(pg_get_functiondef('private.notify_access_changed'::REGPROC) LIKE '%IN (''role_permission'', ''role_field_permission'')%',
+   'the members of a role are notified of a change of its field rights');
 
 SELECT * FROM finish();
 ROLLBACK;

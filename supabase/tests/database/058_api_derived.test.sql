@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- S6) and the catalog-driven transfer gate (S3).
 BEGIN;
 
-SELECT plan(27);
+SELECT plan(29);
 
 SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();
@@ -61,11 +61,17 @@ SELECT is_empty($$
    SELECT 'no ROW found', w FROM unnest(ARRAY['company_subscription', 'tenant_member']) AS w WHERE NOT EXISTS (SELECT 1 FROM m WHERE m.viewname = w)
    $$, 'ROW constructors in derived views match the column count of api.user and api.subscription');
 
+SELECT ok(has_function_privilege('authenticated', 'api.supplier(api.product_with_evidence)', 'EXECUTE')
+   AND NOT has_function_privilege('anon', 'api.supplier(api.product_with_evidence)', 'EXECUTE'),
+   'R4 supplier of a product list row: authenticated only');
+
 -- As elif in MOESA LTD (t_restricted: no field rows).
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID);
 SELECT results_eq($$ SELECT purchase_price, notes FROM api.product_with_evidence WHERE id = current_setting('test.secret')::UUID $$,
    $$ VALUES (NULL::NUMERIC, NULL::TEXT) $$, 'T8b product_with_evidence is masked');
+SELECT is((SELECT count(*)::INT FROM api.product_with_evidence p CROSS JOIN LATERAL api.supplier(p) s),
+   0, 'the supplier of a product list row is not embedded across a masked link');
 SELECT results_eq($$ SELECT system_total, supplier_code, pi_total FROM api.purchase_order_overview WHERE id = current_setting('test.po_approved')::UUID $$,
    $$ VALUES (NULL::NUMERIC, NULL::TEXT, NULL::NUMERIC) $$, 'PO overview totals follow cost');
 SELECT is((SELECT count(*)::INT FROM api.dashboard_purchase_order WHERE system_total IS NOT NULL OR supplier_code IS NOT NULL), 0, 'dashboard PO masked');

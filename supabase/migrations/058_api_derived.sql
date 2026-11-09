@@ -693,6 +693,13 @@ BEGIN
 END;
 $$;
 
+-- R4 across the derived views: the app embeds the supplier of a product list row (supplier(code)),
+-- which the view's masked supplier_id cannot infer. As the generated ones (053, step 4).
+CREATE OR REPLACE FUNCTION api.supplier (api.product_with_evidence) RETURNS SETOF api.supplier ROWS 1 STABLE LANGUAGE sql SECURITY INVOKER AS
+    'SELECT x.* FROM api.supplier x WHERE x.id = $1.supplier_id AND x.tenant_id = $1.tenant_id';
+REVOKE ALL ON FUNCTION api.supplier (api.product_with_evidence) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION api.supplier (api.product_with_evidence) TO authenticated;
+
 -- 2. RPCs.
 
 -- S1 for RPCs: refuses a sensitive field the request's user may not write in the tenant, before any
