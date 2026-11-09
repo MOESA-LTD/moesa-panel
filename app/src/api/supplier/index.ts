@@ -8,6 +8,7 @@ import {
    phone,
    required,
    requiredText,
+   sensitive,
    website
 } from '@/lib/form/fields';
 import i18n from '@plugins/i18n';
@@ -106,7 +107,7 @@ export const toSupplierPayload = ({
 export const supplierContactSchema = z.object({
    id: z.string().optional(),
    supplier_id: z.string().min(1),
-   name: requiredText(),
+   name: sensitive('supplier_contact', 'name', requiredText()),
    role: optional(z.string().trim()),
    email: optional(email()),
    phone: optional(phone()),

@@ -87,15 +87,20 @@ type ViewRow<K extends keyof PublicTables & keyof ApiViews> = {
       : ApiViews[K]['Row'][C];
 };
 
-/** What a view takes: as its table, but masked fields are optional (they may not be written). */
-type ViewWrite<T, M extends PropertyKey> = Omit<T, M> & Partial<Pick<T, Extract<keyof T, M>>>;
+/**
+ * What a view takes: as its table, but masked fields are optional and may be null (a form keeps a
+ * masked field as null; saveRow leaves out the fields the user may not write).
+ */
+type ViewWrite<T, M extends PropertyKey> = Omit<T, M> & {
+   [C in Extract<keyof T, M>]?: T[C] | null;
+};
 
 /** The views of the tables, typed after them. */
 export type ApiTables = {
    [K in keyof ApiViews & keyof PublicTables]: {
       Row: ViewRow<K>;
       Insert: ViewWrite<PublicTables[K]['Insert'], Masked<K>>;
-      Update: PublicTables[K]['Update'];
+      Update: ViewWrite<PublicTables[K]['Update'], Masked<K>>;
       Relationships: ApiViews[K]['Relationships'];
    };
 };

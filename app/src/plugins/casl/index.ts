@@ -52,3 +52,12 @@ export const toAbilityRules = (permissions: PermissionClaim[] = [], fields: Fiel
       ];
    })
 ];
+
+/**
+ * Whether a field right takes `field` of `table` from the user, who may otherwise write the table:
+ * forms then neither require nor send it. Without the table permission the field rules say nothing.
+ */
+export const isFieldWriteForbidden = (table: string, field: string, on: AppAbility = ability) =>
+   (['insert', 'update'] as const).some(
+      (action) => on.can(action, table) && on.cannot(action, table, field)
+   );
