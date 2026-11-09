@@ -63,7 +63,7 @@ const grantAll = () =>
    );
 
 const model = ref<Right[]>([]);
-const mountWith = async (initial: Right[]) => {
+const mountWith = async (initial: Right[], foreignTenant = false) => {
    model.value = initial;
    const Host = defineComponent({
       setup: () => () =>
@@ -71,6 +71,7 @@ const mountWith = async (initial: Right[]) => {
             default: () =>
                h(SelectFieldPermissions, {
                   modelValue: model.value,
+                  foreignTenant,
                   'onUpdate:modelValue': (value: Right[] | undefined) => (model.value = value ?? [])
                })
          })
@@ -173,7 +174,64 @@ describe('SelectFieldPermissions', () => {
       expect(disabled('field-public.product-notes-read')).toBe(false);
       expect(disabled('field-public.product-notes-write')).toBe(true);
       expect(disabled('field-public.product-purchase_price-read')).toBe(true);
-      expect(disabled('field-group-public.product-cost-read')).toBe(true);
+      // The cost group still holds one field the editor can read: it acts on that one.
+      expect(disabled('field-group-public.product-cost-read')).toBe(false);
       expect(disabled('field-public.product-company_price_eur-write')).toBe(false);
+   });
+
+   it('a group toggle gives only the fields the editor holds, and then shows some', async () => {
+      ability.update(
+         toAbilityRules(
+            [
+               { command: 'select', resource_name: 'public.product' },
+               { command: 'update', resource_name: 'public.product' }
+            ],
+            [
+               {
+                  resource_name: 'public.product',
+                  field: 'purchase_price',
+                  can_read: false,
+                  can_write: false
+               }
+            ]
+         )
+      );
+      const w = await mountWith([]);
+      await click(w, 'field-group-public.product-cost-read');
+      expect(model.value).toEqual([
+         {
+            resource_name: 'public.product',
+            field: 'landed_cost_eur',
+            can_read: true,
+            can_write: false
+         }
+      ]);
+      expect(box(w, 'field-group-public.product-cost-read').attributes('data-state')).toBe('some');
+   });
+
+   it('write needs the editor to hold read too', async () => {
+      ability.update(
+         toAbilityRules(
+            [
+               { command: 'select', resource_name: 'public.product' },
+               { command: 'update', resource_name: 'public.product' }
+            ],
+            [{ resource_name: 'public.product', field: 'notes', can_read: false, can_write: true }]
+         )
+      );
+      const w = await mountWith([]);
+      expect(
+         box(w, 'field-public.product-notes-write').find('input').attributes('disabled')
+      ).toBeDefined();
+   });
+
+   it('disables every toggle for a role of another tenant', async () => {
+      const w = await mountWith([], true);
+      expect(
+         box(w, 'field-public.product-notes-read').find('input').attributes('disabled')
+      ).toBeDefined();
+      expect(
+         box(w, 'field-group-public.product-cost-write').find('input').attributes('disabled')
+      ).toBeDefined();
    });
 });

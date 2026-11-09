@@ -284,10 +284,13 @@ BEGIN
 
     -- The flag alone proves nothing: a right granted must be one the caller holds in the role's
     -- tenant (C1), as save_role checks before writing.
+    -- Only a right that is added is checked: on an update, a flag already held stays as it is.
     IF TG_OP <> 'DELETE' AND (NEW.can_read OR NEW.can_write) THEN
         SELECT r.tenant_id INTO role_tenant FROM public.role r WHERE r.id = NEW.role_id;
-        IF NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, FALSE)
-           OR (NEW.can_write AND NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, TRUE)) THEN
+        IF (NEW.can_read AND NOT (TG_OP = 'UPDATE' AND OLD.can_read)
+               AND NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, FALSE))
+           OR (NEW.can_write AND NOT (TG_OP = 'UPDATE' AND OLD.can_write)
+               AND NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, TRUE)) THEN
             RAISE EXCEPTION 'field_grant_exceeds_own' USING ERRCODE = '42501';
         END IF;
     END IF;
@@ -323,6 +326,8 @@ DECLARE
     saved_id UUID := (role_data ->> 'id')::UUID;
     role_tenant UUID;
     given RECORD;
+    old_read BOOLEAN;
+    old_write BOOLEAN;
 BEGIN
     IF field_rights IS NOT NULL THEN
         IF jsonb_typeof(field_rights) <> 'array' THEN
@@ -335,13 +340,24 @@ BEGIN
             SELECT r.tenant_id INTO role_tenant FROM public.role r WHERE r.id = saved_id;
         END IF;
 
-        -- C1, before any write: every right given must be one the caller holds in the role's tenant.
+        -- C1, before any write: a right the call adds (more than the role holds now for that field) must
+        -- be one the caller holds in the role's tenant. A right kept or removed is not checked, so
+        -- an editor can still rename a role carrying rights they lack. A field given twice counts
+        -- as its wider right (as written below).
         FOR given IN
-            SELECT x.resource_name, x.field, coalesce(x.can_read, FALSE) AS can_read, coalesce(x.can_write, FALSE) AS can_write
+            SELECT x.resource_name, x.field,
+                   bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)) AS can_read,
+                   bool_or(coalesce(x.can_write, FALSE)) AS can_write
             FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+            GROUP BY x.resource_name, x.field
         LOOP
-            IF ((given.can_read OR given.can_write) AND NOT private.can_grant_field(role_tenant, given.resource_name, given.field, FALSE))
-               OR (given.can_write AND NOT private.can_grant_field(role_tenant, given.resource_name, given.field, TRUE)) THEN
+            SELECT coalesce(o.can_read, FALSE), coalesce(o.can_write, FALSE) INTO old_read, old_write
+            FROM (SELECT 1) AS one
+            LEFT JOIN public.role_field_permission o
+                   ON o.role_id = saved_id AND o.resource_name = given.resource_name AND o.field = given.field;
+
+            IF (given.can_read AND NOT old_read AND NOT private.can_grant_field(role_tenant, given.resource_name, given.field, FALSE))
+               OR (given.can_write AND NOT old_write AND NOT private.can_grant_field(role_tenant, given.resource_name, given.field, TRUE)) THEN
                 RAISE EXCEPTION 'field_grant_exceeds_own' USING ERRCODE = '42501';
             END IF;
         END LOOP;
@@ -382,15 +398,29 @@ BEGIN
               WHERE x.resource_name = rfp.resource_name AND x.field = rfp.field
           );
 
-        -- A field given twice keeps the wider right; each was checked above.
+        -- A field given twice keeps the wider right. Only rows that change are written (an update, then
+        -- an insert: an upsert would fire the insert trigger for a row that exists).
+        UPDATE public.role_field_permission rfp
+        SET can_read = n.can_read, can_write = n.can_write
+        FROM (SELECT x.resource_name, x.field,
+                    bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)) AS can_read,
+                    bool_or(coalesce(x.can_write, FALSE)) AS can_write
+             FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+             GROUP BY x.resource_name, x.field) n
+        WHERE rfp.role_id = saved_id AND rfp.resource_name = n.resource_name AND rfp.field = n.field
+          AND (rfp.can_read, rfp.can_write) IS DISTINCT FROM (n.can_read, n.can_write);
+
         INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
-        SELECT saved_id, x.resource_name, x.field,
-               bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)), bool_or(coalesce(x.can_write, FALSE))
-        FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
-        GROUP BY x.resource_name, x.field
-        ON CONFLICT (role_id, resource_name, field) DO UPDATE
-        SET can_read = EXCLUDED.can_read, can_write = EXCLUDED.can_write
-        WHERE (role_field_permission.can_read, role_field_permission.can_write) IS DISTINCT FROM (EXCLUDED.can_read, EXCLUDED.can_write);
+        SELECT saved_id, n.resource_name, n.field, n.can_read, n.can_write
+        FROM (SELECT x.resource_name, x.field,
+                    bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)) AS can_read,
+                    bool_or(coalesce(x.can_write, FALSE)) AS can_write
+             FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+             GROUP BY x.resource_name, x.field) n
+        WHERE NOT EXISTS (
+            SELECT 1 FROM public.role_field_permission rfp
+            WHERE rfp.role_id = saved_id AND rfp.resource_name = n.resource_name AND rfp.field = n.field
+        );
 
         PERFORM set_config('moesa.save_role', '', TRUE);
     END IF;

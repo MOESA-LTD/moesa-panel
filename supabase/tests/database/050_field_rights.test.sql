@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- writer of role_field_permission (S7) and the grant ceiling (C1).
 BEGIN;
 
-SELECT plan(33);
+SELECT plan(37);
 
 -- The fixtures also set test.<key> for each id.
 SELECT private.field_test_fixtures();
@@ -112,6 +112,30 @@ SELECT lives_ok($$ INSERT INTO public.role_field_permission (role_id, resource_n
    VALUES (current_setting('test.t_restricted')::UUID, 'public.supplier', 'deposit_rate', TRUE, FALSE) $$,
    '... while a right the caller holds passes, as through save_role');
 SELECT set_config('moesa.save_role', '', TRUE);
+
+-- Only the rights a save adds are checked: the role holds a write the coordinator lacks (set by the
+-- owner), and the coordinator renames it, keeps it, tries to add another, then removes it.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
+SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_restricted'),
+   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true}]'::JSONB);
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+SELECT lives_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
+   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true}]'::JSONB) $$,
+   'C1: a role carrying a right the editor lacks can still be saved unchanged');
+SELECT results_eq($$ SELECT can_read, can_write FROM public.role_field_permission WHERE role_id = current_setting('test.t_restricted')::UUID AND field = 'deposit_rate' $$,
+   $$ VALUES (TRUE, TRUE) $$, '... and the right is kept');
+SELECT throws_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
+   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true},
+     {"resource_name":"public.supplier","field":"payment_terms","can_read":true,"can_write":true}]'::JSONB) $$,
+   '42501', 'field_grant_exceeds_own', 'C1: adding a right the editor lacks is still refused');
+SELECT lives_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
+   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   '[]'::JSONB) $$, 'C1: removing a right the editor lacks succeeds');
 
 -- Reading role_field_permission: only the rows of roles the caller can see.
 SELECT is((SELECT count(*)::INT FROM public.role_field_permission WHERE role_id = current_setting('test.europe_management')::UUID),

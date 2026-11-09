@@ -62,7 +62,8 @@
          "read": "Okuma",
          "write": "Yazma",
          "all": "Tümü",
-         "not_grantable": "Bu yetkiye siz sahip olmadığınız için bir role veremezsiniz."
+         "not_grantable": "Bu yetkiye siz sahip olmadığınız için bir role veremezsiniz.",
+         "other_tenant": "Bu rol başka bir kuruma ait; alan yetkileri buradan değiştirilemez."
       },
       "select_permission": {
          "table": {

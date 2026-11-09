@@ -10,6 +10,11 @@ import type { FieldRightInput } from '@/api/role';
 type Kind = 'read' | 'write';
 type FieldRef = { resource_name: string; field: string };
 
+const props = defineProps<{
+   /** The role belongs to another tenant than the active one: save_role checks the rights there. */
+   foreignTenant?: boolean;
+}>();
+
 defineOptions({ inheritAttrs: false });
 
 const { t, te } = useI18n();
@@ -55,7 +60,8 @@ const stateOf = (items: FieldRef[], kind: Kind) => {
 };
 
 /** Clears the right of `items` when all hold it, otherwise gives it to all (write implies read). */
-const toggle = (items: FieldRef[], kind: Kind) => {
+const toggle = (all: FieldRef[], kind: Kind) => {
+   const items = grantableOf(all, kind);
    const on = stateOf(items, kind) !== 'all';
    const keys = new Set(items.map(keyOf));
    const others = (modelValue.value ?? []).filter((r) => !keys.has(keyOf(r)));
@@ -84,14 +90,24 @@ const toggle = (items: FieldRef[], kind: Kind) => {
 // Resource names carry their schema ("public.product"); the field labels are keyed by table.
 const tableOf = (resource: string) => resource.replace(/^[a-z_]+\./, '');
 
-// The editor can give only the rights they hold (save_role refuses the rest).
+// The editor can give only the rights they hold (save_role refuses the rest). A write right also
+// gives read, so it needs both.
 const grantable = (item: FieldRef, kind: Kind) => {
+   if (props.foreignTenant) return false;
    const access = useFieldAccess(tableOf(item.resource_name));
-   return kind === 'read' ? access.canRead(item.field) : access.canWrite(item.field);
+   return kind === 'read'
+      ? access.canRead(item.field)
+      : access.canRead(item.field) && access.canWrite(item.field);
 };
-const disabledFor = (items: FieldRef[], kind: Kind) => items.some((i) => !grantable(i, kind));
-const hint = (items: FieldRef[], kind: Kind) =>
-   disabledFor(items, kind) ? t('component.select_field_permission.not_grantable') : undefined;
+const grantableOf = (items: FieldRef[], kind: Kind) => items.filter((i) => grantable(i, kind));
+// A box is disabled when none of its fields can be given; a group acts on the ones that can.
+const disabledFor = (items: FieldRef[], kind: Kind) => !grantableOf(items, kind).length;
+const hint = (items: FieldRef[], kind: Kind) => {
+   if (props.foreignTenant) return t('component.select_field_permission.other_tenant');
+   return grantableOf(items, kind).length < items.length
+      ? t('component.select_field_permission.not_grantable')
+      : undefined;
+};
 
 const resourceLabel = (resource: string) =>
    te(`fields.${tableOf(resource)}`) ? t(`fields.${tableOf(resource)}`) : tableOf(resource);

@@ -84,3 +84,25 @@ describe('toRolePayload', () => {
       expect(payload.fieldRights).toEqual(rights);
    });
 });
+
+describe('field rights round trip', () => {
+   it('sends an unchanged form back as the same rows', async () => {
+      const { toRoleFormValues, toRolePayload } = await import('@/api/role');
+      const rights = [
+         { resource_name: 'public.product', field: 'notes', can_read: true, can_write: true },
+         {
+            resource_name: 'public.supplier',
+            field: 'deposit_rate',
+            can_read: true,
+            can_write: false
+         }
+      ];
+      const form = toRoleFormValues({
+         id: 'r1',
+         display_name: 'R',
+         permission: [{ id: 'p1', kind: 'read', group_name: 'product' }],
+         role_field_permission: rights
+      });
+      expect(toRolePayload(form as never).fieldRights).toEqual(rights);
+   });
+});

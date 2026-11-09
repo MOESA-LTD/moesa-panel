@@ -306,7 +306,8 @@
          "read": "Read",
          "write": "Write",
          "all": "All",
-         "not_grantable": "You cannot grant a right you do not hold yourself."
+         "not_grantable": "You cannot grant a right you do not hold yourself.",
+         "other_tenant": "This role belongs to another tenant; its field rights cannot be changed from here."
       },
       "select_permission": {
          "table": {
