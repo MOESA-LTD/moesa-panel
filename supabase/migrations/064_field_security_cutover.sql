@@ -34,3 +34,23 @@ EXCEPTION
         RAISE NOTICE 'supabase_admin default privileges left as they are: %', SQLERRM;
 END;
 $$;
+
+-- The 18 public views stay (service_role reads them) but are no longer an API path.
+COMMENT ON VIEW public.company_subscription IS 'Deprecated: read api.company_subscription; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_change_request IS 'Deprecated: read api.dashboard_change_request; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_gate_pending IS 'Deprecated: read api.dashboard_gate_pending; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_incident IS 'Deprecated: read api.dashboard_incident; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_market IS 'Deprecated: read api.dashboard_market; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_notification_feed IS 'Deprecated: read api.dashboard_notification_feed; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_product_evidence IS 'Deprecated: read api.dashboard_product_evidence; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_purchase_order IS 'Deprecated: read api.dashboard_purchase_order; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_shipment IS 'Deprecated: read api.dashboard_shipment; revoked from API roles in 064.';
+COMMENT ON VIEW public.dashboard_task_due IS 'Deprecated: read api.dashboard_task_due; revoked from API roles in 064.';
+COMMENT ON VIEW public.incident_overview IS 'Deprecated: read api.incident_overview; revoked from API roles in 064.';
+COMMENT ON VIEW public.market_cell_overview IS 'Deprecated: read api.market_cell_overview; revoked from API roles in 064.';
+COMMENT ON VIEW public.media_library IS 'Deprecated: read api.media_library; revoked from API roles in 064.';
+COMMENT ON VIEW public.product_evidence IS 'Deprecated: read api.product_evidence; revoked from API roles in 064.';
+COMMENT ON VIEW public.product_with_evidence IS 'Deprecated: read api.product_with_evidence; revoked from API roles in 064.';
+COMMENT ON VIEW public.purchase_order_overview IS 'Deprecated: read api.purchase_order_overview; revoked from API roles in 064.';
+COMMENT ON VIEW public.shipment_overview IS 'Deprecated: read api.shipment_overview; revoked from API roles in 064.';
+COMMENT ON VIEW public.tenant_member IS 'Deprecated: read api.tenant_member; revoked from API roles in 064.';

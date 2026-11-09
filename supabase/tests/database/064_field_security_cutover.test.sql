@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- their grants; api_owner still cannot write the tables its views only read (Task 10's carry).
 BEGIN;
 
-SELECT plan(27);
+SELECT plan(28);
 
 SELECT is_empty($$ SELECT table_name, grantee, privilege_type FROM information_schema.role_table_grants
    WHERE table_schema = 'public' AND grantee IN ('anon','authenticated') $$, 'no public relation grants anything to anon or authenticated');
@@ -100,6 +100,39 @@ SELECT ok(NOT private.field_guard_bypassed(), 'field_guard_bypassed() is false w
 
 RESET ROLE;
 SELECT private.unimpersonate();
+
+-- Allowlist: the exact SECURITY DEFINER functions in public and api that authenticated may EXECUTE.
+-- A new definer must be added here deliberately, after checking it guards its own access.
+SELECT results_eq($$ SELECT n.nspname || '.' || p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname IN ('public','api') AND p.prosecdef AND has_function_privilege('authenticated', p.oid, 'EXECUTE') ORDER BY 1 $$,
+   $$ VALUES ('api.display_name'),
+   ('api.managed_in'),
+   ('api.owned_via'),
+   ('api.status'),
+   ('public.amazon_account_disconnect'),
+   ('public.audit_transfer_locked'),
+   ('public.can_write_user_field'),
+   ('public.create_branch'),
+   ('public.delete_branch'),
+   ('public.import_products'),
+   ('public.listing_begin_submission'),
+   ('public.listing_parent_cell'),
+   ('public.managed_in'),
+   ('public.media_max_bytes'),
+   ('public.my_access'),
+   ('public.my_memberships'),
+   ('public.next_code'),
+   ('public.owned_via'),
+   ('public.pass_gate'),
+   ('public.revert_audit_transaction'),
+   ('public.rollback_gate'),
+   ('public.save_plan'),
+   ('public.save_role'),
+   ('public.set_primary_media'),
+   ('public.set_user_roles'),
+   ('public.transfer_check_files'),
+   ('public.transfer_customer'),
+   ('public.transfer_options' $$, 'the executable SECURITY DEFINER functions are exactly the reviewed allowlist');
 
 SELECT * FROM finish();
 ROLLBACK;
