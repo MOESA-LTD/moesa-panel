@@ -6,10 +6,11 @@
 --                        (in one group). self_readable: the person a row describes may always read it.
 --                        A later migration that adds a column inserts its `field_class` row;
 --                        `049_field_catalog.test.sql` fails otherwise.
--- role_field_permission  What a role may read and write of a sensitive field. A role has no row for a
---                        field it may neither read nor write. Only sensitive fields carry rights, and
+-- role_field_permission  What a role may read and write of a sensitive field. No row, or a row with both
+--                        rights false, means no right. Only sensitive fields carry rights, and
 --                        these never go into public.permission (T18). A later migration restricts
---                        writes to save_role.
+--                        writes to save_role. A migration that makes a field
+--                        non-sensitive deletes its rights rows; nothing else re-checks them.
 -- private.field_default  The rights a built-in profile (management, coordinator, customer_viewer) has
 --                        per group; no row means no right on the group.
 --
