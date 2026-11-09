@@ -120,6 +120,10 @@ REVOKE ALL ON FUNCTION private.api_is_sensitive (TEXT, TEXT) FROM PUBLIC, anon, 
 
 GRANT EXECUTE ON FUNCTION private.api_is_sensitive (TEXT, TEXT) TO api_owner;
 
+-- The INSTEAD OF trigger behind every writable api view: it forwards the write to the public base table
+-- under the caller's rights. An explicit NULL on INSERT takes the column default (the column is left out
+-- of the INSERT list, and its field right is not checked), so a sent NULL never overrides a DEFAULT;
+-- on UPDATE a changed value, NULL included, is written.
 CREATE OR REPLACE FUNCTION private.api_forward () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -290,6 +294,7 @@ REVOKE CREATE ON SCHEMA private FROM api_owner;
 -- One select-list entry of api.<table>: the column as it is, or its masking expression over the rights
 -- subquery m (api_rights_expr). The generator and api_view_drift both use it (through api_view_query),
 -- so drift compares a view with exactly what would be generated.
+-- Superseded by 059_api_audit.sql (last definition).
 CREATE OR REPLACE FUNCTION private.api_column_expr (p_table TEXT, p_column TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE
 SET
    search_path = '' AS $$
@@ -515,6 +520,7 @@ $$;
 
 REVOKE ALL ON FUNCTION private.api_view_query (TEXT) FROM PUBLIC, anon, authenticated;
 
+-- Superseded by 057_api_core.sql (last definition).
 CREATE OR REPLACE FUNCTION private.enable_field_security (p_table TEXT, p_read_only BOOLEAN DEFAULT FALSE) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -697,6 +703,7 @@ $$;
 REVOKE ALL ON FUNCTION private.api_view_select_list (REGCLASS) FROM PUBLIC, anon, authenticated;
 
 -- VOLATILE: it builds the expected view as a temporary view and compares the two deparsed.
+-- Superseded by 059_api_audit.sql (last definition).
 CREATE OR REPLACE FUNCTION private.api_view_drift () RETURNS TABLE (relation TEXT, problem TEXT) LANGUAGE plpgsql VOLATILE
 SET
    search_path = '' AS $$
