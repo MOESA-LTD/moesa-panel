@@ -98,6 +98,17 @@
       }
    },
    "fields": {
+      "field_group": {
+         "cost": "Cost",
+         "sell_price": "Sell price",
+         "supplier_identity": "Supplier identity",
+         "supplier_contact": "Supplier contact",
+         "supplier_terms": "Supplier terms",
+         "contract": "Contract",
+         "finance": "Finance",
+         "internal_note": "Internal note",
+         "personal_data": "Personal data"
+      },
       "": "Campo",
       "password": "Password",
       "password_confirmation": "Conferma password",
@@ -289,6 +300,13 @@
          "label": "Filiali",
          "active": "Filiale attiva: i nuovi record vanno qui",
          "make_active": "Rendi attiva"
+      },
+      "select_field_permission": {
+         "label": "Field permissions",
+         "read": "Read",
+         "write": "Write",
+         "all": "All",
+         "not_grantable": "You cannot grant a right you do not hold yourself."
       },
       "select_permission": {
          "table": {

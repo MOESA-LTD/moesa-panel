@@ -8,12 +8,20 @@ defineProps<{
    scope?: string;
    state: PermissionState;
    readonly?: boolean;
+   disabled?: boolean;
+   /** Test id of the box (`data-test`). */
+   testId?: string;
 }>();
 
 const emit = defineEmits<{ toggle: [] }>();
 </script>
 <template>
-   <span class="inline-flex items-center" :data-permission-cell="scope">
+   <span
+      class="inline-flex items-center"
+      :data-permission-cell="scope"
+      :data-test="testId"
+      :data-state="state"
+   >
       <!-- A partial box selects the rest on click; a full one clears; see SelectPermissions. -->
       <Checkbox
          v-bind="$attrs"
@@ -21,6 +29,7 @@ const emit = defineEmits<{ toggle: [] }>();
          :model-value="state === 'all'"
          :indeterminate="state === 'some'"
          :readonly
+         :disabled
          @update:model-value="emit('toggle')"
       />
       <span class="sr-only">{{ $t(`component.select_permission.state.${state}`) }}</span>

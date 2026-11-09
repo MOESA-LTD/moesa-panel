@@ -57,6 +57,13 @@
          "active": "Aktif şube: yeni kayıtlar buraya eklenir",
          "make_active": "Aktif yap"
       },
+      "select_field_permission": {
+         "label": "Alan yetkileri",
+         "read": "Okuma",
+         "write": "Yazma",
+         "all": "Tümü",
+         "not_grantable": "Bu yetkiye siz sahip olmadığınız için bir role veremezsiniz."
+      },
       "select_permission": {
          "table": {
             "headers": {
@@ -666,6 +673,17 @@
       }
    },
    "fields": {
+      "field_group": {
+         "cost": "Maliyet",
+         "sell_price": "Satış fiyatı",
+         "supplier_identity": "Tedarikçi kimliği",
+         "supplier_contact": "Tedarikçi iletişimi",
+         "supplier_terms": "Tedarikçi şartları",
+         "contract": "Sözleşme",
+         "finance": "Finans",
+         "internal_note": "İç not",
+         "personal_data": "Kişisel veri"
+      },
       "": "Boş",
       "password": "Şifre",
       "password_confirmation": "Şifre Onayı",

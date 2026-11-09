@@ -57,6 +57,16 @@ await ready;
          >
             <SelectPermissions v-bind="slotProps" v-model="values.permission" />
          </FormField>
+         <FormField
+            class="!flex-auto !max-w-none w-full"
+            fluid
+            :label="$t('component.select_field_permission.label')"
+            :readonly
+            :error="errors.field_rights"
+            v-slot="slotProps"
+         >
+            <SelectFieldPermissions v-bind="slotProps" v-model="values.field_rights" />
+         </FormField>
       </FormBox>
    </div>
 </template>
