@@ -12,15 +12,18 @@
 -- private.api_json_masked  The JSON columns whose keys a view masks (Task 12 fills it and adds
 --                        mask_json_deep). Until then the generator refuses such a column.
 -- private.enable_field_security(table, read_only)
---                        Generates api.<table>: system and open columns as they are; a sensitive one (or
---                        one missing from field_class: fail-closed) as
---                          CASE WHEN (SELECT field_read_all(..)) OR t.tenant_id = ANY ((SELECT
---                          field_read_tenants(..))::UUID[]) THEN t.<c> END (the cast keeps ANY
---                          over an array, not a subquery)
---                        (on public.user: the row is the caller or one of field_user_ids(c, FALSE), S5),
---                        cast back to the column's type unless that is a NOT NULL domain. The
---                        sub-selects make each field function an InitPlan: once per query, never per
---                        row (R10). Then: owner api_owner; SELECT for authenticated; unless read_only,
+--                        Generates api.<table> (api_view_query): FROM the base t CROSS JOIN a fenced
+--                        one-row rights subquery m (SELECT (SELECT field_read_all(..)) AS a<n>,
+--                        (SELECT field_read_tenants(..)) AS t<n>, ... OFFSET 0), with a pair only for
+--                        the table's sensitive columns (n = attnum); system and open columns as they
+--                        are; a sensitive one (or one missing from field_class: fail-closed) as
+--                          CASE WHEN m.a<n> OR t.tenant_id = ANY (m.t<n>) THEN t.<c> END
+--                        (on public.user: the row is the caller or one of m.u<n> = field_user_ids(c,
+--                        FALSE), S5), cast back to the column's type unless that is a NOT NULL domain.
+--                        The sub-selects make each field function an InitPlan of m: once per query,
+--                        never per row (R10). The select list holds only Vars of m, never a SubLink,
+--                        so a whole-row argument (R4's computed relationships) does not stop the
+--                        planner from inlining the function. Then: owner api_owner; SELECT for authenticated; unless read_only,
 --                        the write privileges authenticated holds on the base (or already holds on the
 --                        view: a re-run after the cutover keeps them), a column-level UPDATE copied as
 --                        the same column list, and the trigger api_forward. R4: for every foreign key
@@ -42,12 +45,15 @@
 --                        M2: an INSERT that sends NULL explicitly gets the column default (NULL is "not
 --                        sent", as a masked NULL must be). M3: an INSERT without tenant_id that sets a
 --                        sensitive column is refused (no tenant, no write right).
--- private.api_column_expr(table, column)
---                        One select-list entry as the generator writes it (generator and drift share it).
+-- private.api_column_expr(table, column), api_rights_expr(table, column), api_view_from(table),
+-- private.api_view_query(table)
+--                        One select-list entry, a column's entries of m, the FROM and the whole query as
+--                        the generator writes them (generator and drift share them).
 -- private.api_view_drift()  For each public table with an api view: 'columns' (names or order differ);
---                        'expression <c>' (the deparsed column differs from what api_column_expr would
+--                        'expression <c>' (the deparsed column differs from what api_view_query would
 --                        generate, built as a temporary view), 'definition' (the whole query differs:
---                        FROM, WHERE, ...), plus 'unmasked <c>' and 'masked <c>';
+--                        FROM, the rights subquery m, WHERE, ...), plus 'unmasked <c>' (a sensitive
+--                        column not reading its m pair, or m without its field call) and 'masked <c>';
 --                        'owner'; 'security_invoker' (not false); 'trigger' (authenticated may write the
 --                        view but api_forward is missing); 'anon or public privilege' on the view;
 --                        'anon or public execute <fn>' on a function over the view's row type (R4);
@@ -260,8 +266,9 @@ ALTER FUNCTION private.api_forward () OWNER TO api_owner;
 
 REVOKE CREATE ON SCHEMA private FROM api_owner;
 
--- One select-list entry of api.<table>: the column as it is, or its masking expression. The generator
--- and api_view_drift both use it, so drift compares a view with exactly what would be generated.
+-- One select-list entry of api.<table>: the column as it is, or its masking expression over the rights
+-- subquery m (api_rights_expr). The generator and api_view_drift both use it (through api_view_query),
+-- so drift compares a view with exactly what would be generated.
 CREATE OR REPLACE FUNCTION private.api_column_expr (p_table TEXT, p_column TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE
 SET
    search_path = '' AS $$
@@ -269,6 +276,7 @@ DECLARE
     base REGCLASS := format('public.%I', p_table)::REGCLASS;
     resource TEXT := 'public.' || p_table;
     has_tenant BOOLEAN;
+    n INT;
     cast_to TEXT;
     expr TEXT;
 BEGIN
@@ -276,7 +284,7 @@ BEGIN
         SELECT 1 FROM pg_catalog.pg_attribute a
         WHERE a.attrelid = base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
     );
-    SELECT CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END INTO cast_to
+    SELECT a.attnum, CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END INTO n, cast_to
     FROM pg_catalog.pg_attribute a
     JOIN pg_catalog.pg_type ty ON ty.oid = a.atttypid
     WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
@@ -286,13 +294,9 @@ BEGIN
 
     IF private.api_is_sensitive(resource, p_column) THEN
         IF p_table = 'user' THEN
-            expr := format('CASE WHEN t.id = auth.uid() OR t.id = ANY ((SELECT private.field_user_ids(%L, FALSE))::UUID[]) THEN t.%I END',
-                           p_column, p_column);
+            expr := format('CASE WHEN t.id = auth.uid() OR t.id = ANY (m.u%s) THEN t.%I END', n, p_column);
         ELSIF has_tenant THEN
-            expr := format(
-                'CASE WHEN (SELECT private.field_read_all(%1$L, %2$L)) OR t.tenant_id = ANY ((SELECT private.field_read_tenants(%1$L, %2$L))::UUID[]) THEN t.%3$I END',
-                resource, p_column, p_column
-            );
+            expr := format('CASE WHEN m.a%1$s OR t.tenant_id = ANY (m.t%1$s) THEN t.%2$I END', n, p_column);
         ELSE
             RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = resource || '.' || p_column;
         END IF;
@@ -311,6 +315,81 @@ $$;
 
 REVOKE ALL ON FUNCTION private.api_column_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 
+-- The entries a column adds to the rights subquery m: none for a plain column; for a sensitive one
+-- a<n> (field_read_all) and t<n> (field_read_tenants), or u<n> (field_user_ids, public.user), n the
+-- column's attnum. Each is a sub-select, so an InitPlan of m: once per query, never per row, even
+-- when m is rescanned (R10).
+CREATE OR REPLACE FUNCTION private.api_rights_expr (p_table TEXT, p_column TEXT) RETURNS TEXT[] LANGUAGE plpgsql STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    base REGCLASS := format('public.%I', p_table)::REGCLASS;
+    resource TEXT := 'public.' || p_table;
+    n INT;
+BEGIN
+    SELECT a.attnum INTO n
+    FROM pg_catalog.pg_attribute a
+    WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'no such column: ' || resource || '.' || p_column;
+    END IF;
+    IF NOT private.api_is_sensitive(resource, p_column) THEN
+        RETURN '{}';
+    END IF;
+    IF p_table = 'user' THEN
+        RETURN ARRAY[format('(SELECT private.field_user_ids(%L, FALSE)) AS u%s', p_column, n)];
+    END IF;
+    -- A table without tenant_id: api_column_expr refuses the column.
+    RETURN ARRAY[
+        format('(SELECT private.field_read_all(%L, %L)) AS a%s', resource, p_column, n),
+        format('(SELECT private.field_read_tenants(%L, %L)) AS t%s', resource, p_column, n)
+    ];
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.api_rights_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+
+-- The FROM of api.<table>: the base as t and, when a column needs rights, the fenced one-row rights
+-- subquery m (OFFSET 0 keeps it from being pulled up). The select list then holds plain Vars of m,
+-- never a SubLink, so a whole-row argument of api.<table> (a computed relationship) is free of
+-- subplans and the function is inlined.
+CREATE OR REPLACE FUNCTION private.api_view_from (p_table TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    base REGCLASS := format('public.%I', p_table)::REGCLASS;
+    rights TEXT;
+BEGIN
+    SELECT string_agg(r.e, ', ' ORDER BY r.pos) INTO rights
+    FROM (
+        SELECT x.e, min(a.attnum * 100 + x.k) AS pos
+        FROM pg_catalog.pg_attribute a,
+             unnest(private.api_rights_expr(p_table, a.attname)) WITH ORDINALITY AS x (e, k)
+        WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped
+        GROUP BY x.e
+    ) r;
+    IF rights IS NULL THEN
+        RETURN format('%s t', base);
+    END IF;
+    RETURN format('%s t CROSS JOIN (SELECT %s OFFSET 0) m', base, rights);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.api_view_from (TEXT) FROM PUBLIC, anon, authenticated;
+
+-- The whole query of api.<table>, as the generator writes it and drift rebuilds it.
+CREATE OR REPLACE FUNCTION private.api_view_query (p_table TEXT) RETURNS TEXT LANGUAGE sql STABLE
+SET
+   search_path = '' AS $$
+    SELECT format('SELECT %s FROM %s',
+                  string_agg(private.api_column_expr(p_table, a.attname), ', ' ORDER BY a.attnum),
+                  private.api_view_from(p_table))
+    FROM pg_catalog.pg_attribute a
+    WHERE a.attrelid = format('public.%I', p_table)::REGCLASS AND a.attnum > 0 AND NOT a.attisdropped;
+$$;
+
+REVOKE ALL ON FUNCTION private.api_view_query (TEXT) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION private.enable_field_security (p_table TEXT, p_read_only BOOLEAN DEFAULT FALSE) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
@@ -318,7 +397,6 @@ DECLARE
     base REGCLASS := format('public.%I', p_table)::REGCLASS;
     resource TEXT := 'public.' || p_table;
     expr TEXT;
-    select_list TEXT[] := '{}';
     priv TEXT;
     update_cols TEXT;
     fk RECORD;
@@ -345,15 +423,8 @@ BEGIN
     END IF;
 
     -- 1. The view.
-    select_list := ARRAY(
-        SELECT private.api_column_expr(p_table, a.attname)
-        FROM pg_catalog.pg_attribute a
-        WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped
-        ORDER BY a.attnum
-    );
-
-    EXECUTE format('CREATE OR REPLACE VIEW api.%I WITH (security_invoker = false) AS SELECT %s FROM %s t',
-                   p_table, array_to_string(select_list, ', '), base);
+    EXECUTE format('CREATE OR REPLACE VIEW api.%I WITH (security_invoker = false) AS %s',
+                   p_table, private.api_view_query(p_table));
 
     -- 2. Ownership and grants. The write privileges mirror authenticated's on the base, never more
     -- (a default privilege on the schema does not count); those the view already had are kept, so a
@@ -536,12 +607,7 @@ BEGIN
                 EXECUTE 'DROP VIEW pg_temp.api_drift_expected';
             END IF;
             BEGIN
-                EXECUTE format(
-                    'CREATE TEMPORARY VIEW api_drift_expected AS SELECT %s FROM %s t',
-                    (SELECT string_agg(private.api_column_expr(v.name, a.attname), ', ' ORDER BY a.attnum)
-                     FROM pg_catalog.pg_attribute a WHERE a.attrelid = v.base AND a.attnum > 0 AND NOT a.attisdropped),
-                    v.base::REGCLASS
-                );
+                EXECUTE 'CREATE TEMPORARY VIEW api_drift_expected AS ' || private.api_view_query(v.name);
             EXCEPTION WHEN OTHERS THEN
                 expected_ok := FALSE;
                 problem := 'expected: ' || SQLERRM;
@@ -550,6 +616,8 @@ BEGIN
 
             FOR c IN
                 SELECT a.attname::TEXT AS name, s.expr, e.expr AS expected,
+                       -- m's pairs are numbered by the base column's attnum (the view's skips dropped ones).
+                       (SELECT b.attnum FROM pg_catalog.pg_attribute b WHERE b.attrelid = v.base AND b.attname = a.attname) AS n,
                        private.api_is_sensitive(resource, a.attname) AS sensitive,
                        EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = a.attname) AS json_masked
                 FROM pg_catalog.pg_attribute a
@@ -559,8 +627,11 @@ BEGIN
                 ORDER BY a.attnum
             LOOP
                 IF c.sensitive THEN
-                    IF (v.name = 'user' AND strpos(replace(c.expr, '::text', ''), format('field_user_ids(%L', c.name)) = 0)
-                       OR (v.name <> 'user' AND strpos(replace(c.expr, '::text', ''), format('field_read_tenants(%L, %L)', resource, c.name)) = 0) THEN
+                    -- The mask reads its own pair of the rights subquery m, and m holds the column's call.
+                    IF (v.name = 'user' AND (c.expr !~ format('\mm\.u%s\M', c.n)
+                                             OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_user_ids(%L', c.name)) = 0))
+                       OR (v.name <> 'user' AND (c.expr !~ format('\mm\.t%s\M', c.n)
+                                                 OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_read_tenants(%L, %L)', resource, c.name)) = 0)) THEN
                         problem := 'unmasked ' || c.name;
                         RETURN NEXT;
                     END IF;

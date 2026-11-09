@@ -151,9 +151,10 @@ SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'api_view_drift() 
 -- Tamper: api.transfer with the report unmasked is reported by drift.
 DO $$
 BEGIN
-    EXECUTE format('CREATE OR REPLACE VIEW api.transfer WITH (security_invoker = false) AS SELECT %s FROM public.transfer t',
+    EXECUTE format('CREATE OR REPLACE VIEW api.transfer WITH (security_invoker = false) AS SELECT %s FROM %s',
         (SELECT string_agg(CASE WHEN a.attname = 'report' THEN 't.report' ELSE private.api_column_expr('transfer', a.attname) END, ', ' ORDER BY a.attnum)
-         FROM pg_attribute a WHERE a.attrelid = 'public.transfer'::REGCLASS AND a.attnum > 0 AND NOT a.attisdropped));
+         FROM pg_attribute a WHERE a.attrelid = 'public.transfer'::REGCLASS AND a.attnum > 0 AND NOT a.attisdropped),
+        private.api_view_from('transfer'));
 END;
 $$;
 SELECT results_eq($$ SELECT problem FROM private.api_view_drift() WHERE relation = 'transfer' AND problem LIKE '% report' $$,

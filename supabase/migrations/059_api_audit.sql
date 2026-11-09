@@ -18,8 +18,10 @@
 --                        each other by name (authenticated has no USAGE on private); they read no table.
 -- private.api_json_masked  transfer.report, transfer.decisions (mask_json_deep) and audit_log.old_data,
 --                        audit_log.new_data (mask_audit_data over the row's table_name).
--- private.api_column_expr  Restated (053): a JSON-masked column is generated as its mask call with the
---                        rights map and the sensitive map as sub-selects (InitPlans, once per query).
+-- private.api_column_expr, private.api_rights_expr
+--                        Restated (053): a JSON-masked column is generated as its mask call over the
+--                        rights map and the sensitive map of the rights subquery m (InitPlans of m, once
+--                        per query).
 -- private.api_view_drift   Restated (053): a JSON-masked column may also carry mask_audit_data; the
 --                        whole expression is still compared with api_column_expr.
 -- api.transfer           Re-generated read-only (S4); api_owner keeps SELECT only on public.transfer.
@@ -173,7 +175,8 @@ VALUES
    ('public.audit_log', 'new_data')
 ON CONFLICT DO NOTHING;
 
--- 053's api_column_expr; a JSON-masked column is now generated as its mask call (it was refused).
+-- 053's api_column_expr; a JSON-masked column is now generated as its mask call over the maps of the
+-- rights subquery m (it was refused).
 CREATE OR REPLACE FUNCTION private.api_column_expr (p_table TEXT, p_column TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE
 SET
    search_path = '' AS $$
@@ -181,6 +184,7 @@ DECLARE
     base REGCLASS := format('public.%I', p_table)::REGCLASS;
     resource TEXT := 'public.' || p_table;
     has_tenant BOOLEAN;
+    n INT;
     cast_to TEXT;
     expr TEXT;
 BEGIN
@@ -188,7 +192,7 @@ BEGIN
         SELECT 1 FROM pg_catalog.pg_attribute a
         WHERE a.attrelid = base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
     );
-    SELECT CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END INTO cast_to
+    SELECT a.attnum, CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END INTO n, cast_to
     FROM pg_catalog.pg_attribute a
     JOIN pg_catalog.pg_type ty ON ty.oid = a.atttypid
     WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
@@ -198,13 +202,9 @@ BEGIN
 
     IF private.api_is_sensitive(resource, p_column) THEN
         IF p_table = 'user' THEN
-            expr := format('CASE WHEN t.id = auth.uid() OR t.id = ANY ((SELECT private.field_user_ids(%L, FALSE))::UUID[]) THEN t.%I END',
-                           p_column, p_column);
+            expr := format('CASE WHEN t.id = auth.uid() OR t.id = ANY (m.u%s) THEN t.%I END', n, p_column);
         ELSIF has_tenant THEN
-            expr := format(
-                'CASE WHEN (SELECT private.field_read_all(%1$L, %2$L)) OR t.tenant_id = ANY ((SELECT private.field_read_tenants(%1$L, %2$L))::UUID[]) THEN t.%3$I END',
-                resource, p_column, p_column
-            );
+            expr := format('CASE WHEN m.a%1$s OR t.tenant_id = ANY (m.t%1$s) THEN t.%2$I END', n, p_column);
         ELSE
             RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = resource || '.' || p_column;
         END IF;
@@ -214,27 +214,55 @@ BEGIN
         RETURN format('%s AS %I', expr, p_column);
     END IF;
 
-    -- A JSON column whose keys are masked per row tenant (the maps as InitPlans): the audit snapshots
-    -- by the row's own table, any other by every table's sensitive fields.
+    -- A JSON column whose keys are masked per row tenant (the maps from m): the audit snapshots by the
+    -- row's own table, any other by every table's sensitive fields.
     IF EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = p_column) THEN
         IF NOT has_tenant THEN
             RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'JSON masking needs tenant_id: ' || resource || '.' || p_column;
         ELSIF p_table = 'audit_log' THEN
-            RETURN format(
-                'private.mask_audit_data(t.table_name, t.tenant_id, t.%1$I, (SELECT private.field_rights_map()), (SELECT private.sensitive_fields_map())) AS %1$I',
-                p_column
-            );
+            RETURN format('private.mask_audit_data(t.table_name, t.tenant_id, t.%1$I, m.rights, m.sensitive) AS %1$I', p_column);
         END IF;
-        RETURN format(
-            'private.mask_json_deep(t.%1$I, t.tenant_id, (SELECT private.field_rights_map()), (SELECT private.sensitive_fields_map())) AS %1$I',
-            p_column
-        );
+        RETURN format('private.mask_json_deep(t.%1$I, t.tenant_id, m.rights, m.sensitive) AS %1$I', p_column);
     END IF;
     RETURN format('t.%I', p_column);
 END;
 $$;
 
 REVOKE ALL ON FUNCTION private.api_column_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+
+-- 053's api_rights_expr; a JSON-masked column adds the rights map and the sensitive map to m (once per
+-- view, however many such columns: api_view_from keeps one of each).
+CREATE OR REPLACE FUNCTION private.api_rights_expr (p_table TEXT, p_column TEXT) RETURNS TEXT[] LANGUAGE plpgsql STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    base REGCLASS := format('public.%I', p_table)::REGCLASS;
+    resource TEXT := 'public.' || p_table;
+    n INT;
+BEGIN
+    SELECT a.attnum INTO n
+    FROM pg_catalog.pg_attribute a
+    WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'no such column: ' || resource || '.' || p_column;
+    END IF;
+    IF NOT private.api_is_sensitive(resource, p_column) THEN
+        IF EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = p_column) THEN
+            RETURN ARRAY['(SELECT private.field_rights_map()) AS rights', '(SELECT private.sensitive_fields_map()) AS sensitive'];
+        END IF;
+        RETURN '{}';
+    END IF;
+    IF p_table = 'user' THEN
+        RETURN ARRAY[format('(SELECT private.field_user_ids(%L, FALSE)) AS u%s', p_column, n)];
+    END IF;
+    RETURN ARRAY[
+        format('(SELECT private.field_read_all(%L, %L)) AS a%s', resource, p_column, n),
+        format('(SELECT private.field_read_tenants(%L, %L)) AS t%s', resource, p_column, n)
+    ];
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.api_rights_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 
 -- 053's drift check; a JSON-masked column may carry mask_audit_data as well as mask_json_deep (the
 -- whole expression is still compared with api_column_expr).
@@ -273,12 +301,7 @@ BEGIN
                 EXECUTE 'DROP VIEW pg_temp.api_drift_expected';
             END IF;
             BEGIN
-                EXECUTE format(
-                    'CREATE TEMPORARY VIEW api_drift_expected AS SELECT %s FROM %s t',
-                    (SELECT string_agg(private.api_column_expr(v.name, a.attname), ', ' ORDER BY a.attnum)
-                     FROM pg_catalog.pg_attribute a WHERE a.attrelid = v.base AND a.attnum > 0 AND NOT a.attisdropped),
-                    v.base::REGCLASS
-                );
+                EXECUTE 'CREATE TEMPORARY VIEW api_drift_expected AS ' || private.api_view_query(v.name);
             EXCEPTION WHEN OTHERS THEN
                 expected_ok := FALSE;
                 problem := 'expected: ' || SQLERRM;
@@ -287,6 +310,8 @@ BEGIN
 
             FOR c IN
                 SELECT a.attname::TEXT AS name, s.expr, e.expr AS expected,
+                       -- m's pairs are numbered by the base column's attnum (the view's skips dropped ones).
+                       (SELECT b.attnum FROM pg_catalog.pg_attribute b WHERE b.attrelid = v.base AND b.attname = a.attname) AS n,
                        private.api_is_sensitive(resource, a.attname) AS sensitive,
                        EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = a.attname) AS json_masked
                 FROM pg_catalog.pg_attribute a
@@ -296,8 +321,11 @@ BEGIN
                 ORDER BY a.attnum
             LOOP
                 IF c.sensitive THEN
-                    IF (v.name = 'user' AND strpos(replace(c.expr, '::text', ''), format('field_user_ids(%L', c.name)) = 0)
-                       OR (v.name <> 'user' AND strpos(replace(c.expr, '::text', ''), format('field_read_tenants(%L, %L)', resource, c.name)) = 0) THEN
+                    -- The mask reads its own pair of the rights subquery m, and m holds the column's call.
+                    IF (v.name = 'user' AND (c.expr !~ format('\mm\.u%s\M', c.n)
+                                             OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_user_ids(%L', c.name)) = 0))
+                       OR (v.name <> 'user' AND (c.expr !~ format('\mm\.t%s\M', c.n)
+                                                 OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_read_tenants(%L, %L)', resource, c.name)) = 0)) THEN
                         problem := 'unmasked ' || c.name;
                         RETURN NEXT;
                     END IF;

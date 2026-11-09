@@ -8,7 +8,6 @@ DECLARE
     base REGCLASS := format('public.%I', p_table)::REGCLASS;
     resource TEXT := 'public.' || p_table;
     expr TEXT;
-    select_list TEXT[] := '{}';
     priv TEXT;
     update_cols TEXT;
     fk RECORD;
@@ -35,15 +34,8 @@ BEGIN
     END IF;
 
     -- 1. The view.
-    select_list := ARRAY(
-        SELECT private.api_column_expr(p_table, a.attname)
-        FROM pg_catalog.pg_attribute a
-        WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped
-        ORDER BY a.attnum
-    );
-
-    EXECUTE format('CREATE OR REPLACE VIEW api.%I WITH (security_invoker = false) AS SELECT %s FROM %s t',
-                   p_table, array_to_string(select_list, ', '), base);
+    EXECUTE format('CREATE OR REPLACE VIEW api.%I WITH (security_invoker = false) AS %s',
+                   p_table, private.api_view_query(p_table));
 
     -- 2. Ownership and grants. The write privileges mirror authenticated's on the base, never more
     -- (a default privilege on the schema does not count); those the view already had are kept, so a

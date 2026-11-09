@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- compared against the masked OLD, so a correct guess is refused like a wrong one (S1).
 BEGIN;
 
-SELECT plan(61);
+SELECT plan(63);
 
 -- The role and the generated objects.
 SELECT ok(NOT (SELECT rolbypassrls OR rolcanlogin FROM pg_roles WHERE rolname = 'api_owner'), 'api_owner cannot log in and does not bypass RLS');
@@ -158,15 +158,20 @@ END;
 $$;
 -- api.product as generated, with one column's text replaced.
 CREATE FUNCTION t.tampered_view (p_column TEXT, p_from TEXT, p_to TEXT) RETURNS TEXT LANGUAGE sql AS $$
-    SELECT format('CREATE OR REPLACE VIEW api.product WITH (security_invoker = false) AS SELECT %s FROM public.product t',
+    SELECT format('CREATE OR REPLACE VIEW api.product WITH (security_invoker = false) AS SELECT %s FROM %s',
                   string_agg(CASE WHEN a.attname = p_column THEN replace(private.api_column_expr('product', a.attname), p_from, p_to)
-                                  ELSE private.api_column_expr('product', a.attname) END, ', ' ORDER BY a.attnum))
+                                  ELSE private.api_column_expr('product', a.attname) END, ', ' ORDER BY a.attnum),
+                  CASE WHEN p_column = '' THEN replace(private.api_view_from('product'), p_from, p_to) ELSE private.api_view_from('product') END)
     FROM pg_attribute a WHERE a.attrelid = 'public.product'::REGCLASS AND a.attnum > 0 AND NOT a.attisdropped;
 $$;
-SELECT ok('expression purchase_price' = ANY (t.drift_after(t.tampered_view('purchase_price', 'CASE WHEN (SELECT', 'CASE WHEN TRUE OR (SELECT'))),
+SELECT ok('expression purchase_price' = ANY (t.drift_after(t.tampered_view('purchase_price', 'CASE WHEN m.', 'CASE WHEN TRUE OR m.'))),
    'drift: a leading `true OR` in the mask is reported');
-SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', '::UUID[]) THEN t.notes', '::UUID[]) OR TRUE THEN t.notes'))),
+SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', ') THEN t.notes', ') OR TRUE THEN t.notes'))),
    'drift: a trailing `OR true` in the mask is reported');
+SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', 'ANY (m.t', 'ANY (m.t35 || m.t'))),
+   'drift: a mask reading another column''s pair is reported');
+SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('', format('(SELECT private.field_read_all(%L, %L))', 'public.product', 'notes'), 'TRUE'))),
+   'drift: a rights subquery granting a field to all is reported');
 SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', 'THEN t.notes END', 'THEN t.supplier_product_code END'))),
    'drift: a THEN naming another column is reported');
 SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('id', 't.id', 't.id') || ' WHERE TRUE')), 'drift: a WHERE added to the view is reported');
