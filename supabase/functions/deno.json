@@ -6,6 +6,7 @@
     "check": "deno check **/*.ts",
     "test": "deno test --allow-env --allow-read tests/",
     "test:http": "deno test --allow-env --allow-net --allow-read http-tests/",
+    "perf:http": "deno run --allow-env --allow-net --allow-read --allow-run=docker scripts/field_perf_http.ts",
     "test:live": "deno test --allow-env --allow-read --allow-net --env-file=.env tests/amazon_live_test.ts tests/amazon_listing_live_test.ts",
     "probe": "deno run --allow-env --allow-net --env-file=.env scripts/probe.ts"
   }
