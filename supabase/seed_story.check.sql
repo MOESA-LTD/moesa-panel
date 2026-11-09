@@ -171,6 +171,7 @@ VALUES
     ('media_link', 'entity_type', 'exempt', 'media links go to products, orders, shipments and change requests'),
     ('permission', 'command', 'exempt', 'reference data, not tenant rows'),
     ('permission', 'kind', 'exempt', 'reference data, not tenant rows'),
+    ('field_class', 'class', 'exempt', 'reference data, not tenant rows'),
     ('customer_platform_account', 'api_connection', 'exempt', 'revoked comes only from Amazon (invalid_grant)'),
     ('listing_submission', 'kind', 'exempt', 'API-driven; the story holds create'),
     ('listing_submission', 'status', 'exempt', 'API-driven; the story holds done, invalid and processing');
