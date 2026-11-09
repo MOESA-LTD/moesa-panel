@@ -322,6 +322,7 @@
       "field_grant_exceeds_own": "Sahip olmadığınız bir alan yetkisini bir role veremezsiniz.",
       "role_field_permission_save_role_only": "Alan yetkileri yalnızca rol kaydedilerek değiştirilebilir.",
       "field_write_forbidden": "Bu alanı değiştirme yetkiniz yok.",
+      "field_security_unsupported": "Bu tablo alan güvenliğiyle desteklenmiyor.",
       "tenant_move_forbidden": "Bir kayıt başka bir şirkete taşınamaz.",
       "MediaFileError": "Dosya yüklenmedi",
       "media_file_immutable": "Ortam dosyası değiştirilemez; yenisini yükleyin.",

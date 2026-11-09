@@ -529,6 +529,7 @@
       "field_grant_exceeds_own": "You cannot give a role a field permission you do not hold yourself.",
       "role_field_permission_save_role_only": "Field permissions change only by saving the role.",
       "field_write_forbidden": "You do not have permission to change this field.",
+      "field_security_unsupported": "This table is not supported by field security.",
       "tenant_move_forbidden": "A record cannot be moved to another company.",
       "media_file_immutable": "A media file cannot be replaced; upload a new one.",
       "media_in_use": "The file is linked to a record or a document; unlink it first.",
