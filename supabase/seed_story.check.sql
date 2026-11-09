@@ -710,4 +710,28 @@ SELECT 'm22.fr_issue' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell c JOIN 
    WHERE c.id = '5eed0007-0000-4000-8000-000000000002' AND c.open_issue LIKE 'Amazon: %' AND s.issues @> '[{"code": "90220"}]' AND s.issues @> '[{"code": "90000900"}]');
 -- m22.status_untouched: R2, the business status of the step 07 DE and NL cells did not move
 SELECT 'm22.status_untouched', id FROM public.market_cell WHERE id IN ('5eed0007-0000-4000-8000-000000000001','5eed0007-0000-4000-8000-000000000005') AND status NOT IN ('live','suppressed');
+-- Field permissions (Task 21): what THO's portal user and koordinator read through the api views.
+-- Each block runs as that user in MOESA LTD (role authenticated, RLS and masking on), then RESET ROLE
+-- and private.unimpersonate() go back to postgres without a request.
+DO $$ BEGIN PERFORM private.impersonate((SELECT id FROM public.user WHERE email = 'portal@moesa-panel.test'), pg_temp.moesa()); END $$;
+-- fp.portal_no_cost: the portal reads THO's products without the purchase price
+SELECT 'fp.portal_no_cost' WHERE EXISTS (SELECT 1 FROM api.product p JOIN api.customer c ON c.id = p.customer_id WHERE c.code = 'THO' AND p.purchase_price IS NOT NULL);
+-- fp.portal_sell_price: but with the sell price
+SELECT 'fp.portal_sell_price' WHERE NOT EXISTS (SELECT 1 FROM api.product p JOIN api.customer c ON c.id = p.customer_id WHERE c.code = 'THO' AND p.company_price_eur IS NOT NULL);
+-- fp.portal_contract: THO's contract terms without the restricted drive URL
+SELECT 'fp.portal_contract' WHERE NOT EXISTS (SELECT 1 FROM api.customer WHERE code = 'THO' AND deposit_rate IS NOT NULL AND restricted_drive_url IS NULL);
+-- fp.portal_no_pi: no proforma invoice reaches the portal
+SELECT 'fp.portal_no_pi' WHERE EXISTS (SELECT 1 FROM api.document WHERE type = 'pi');
+-- fp.portal_no_supplier: nor any supplier
+SELECT 'fp.portal_no_supplier' WHERE EXISTS (SELECT 1 FROM api.supplier);
+RESET ROLE;
+DO $$ BEGIN PERFORM private.unimpersonate(); END $$;
+DO $$ BEGIN PERFORM private.impersonate((SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'), pg_temp.moesa()); END $$;
+-- fp.coordinator_reads_terms: koordinator reads supplier payment terms
+SELECT 'fp.coordinator_reads_terms' WHERE NOT EXISTS (SELECT 1 FROM api.supplier WHERE payment_terms IS NOT NULL);
+-- fp.coordinator_terms_readonly: and its role reads them without writing them
+SELECT 'fp.coordinator_terms_readonly' WHERE NOT EXISTS (SELECT 1 FROM api.role_field_permission rfp JOIN api.role r ON r.id = rfp.role_id
+   WHERE r.display_name = 'coordinator' AND rfp.resource_name = 'public.supplier' AND rfp.field = 'payment_terms' AND rfp.can_read AND NOT rfp.can_write);
+RESET ROLE;
+DO $$ BEGIN PERFORM private.unimpersonate(); END $$;
 ROLLBACK;
