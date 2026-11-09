@@ -185,16 +185,14 @@ DECLARE
     resource TEXT := 'public.' || p_table;
     has_tenant BOOLEAN;
     n INT;
-    cast_to TEXT;
     expr TEXT;
 BEGIN
     has_tenant := EXISTS (
         SELECT 1 FROM pg_catalog.pg_attribute a
         WHERE a.attrelid = base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
     );
-    SELECT a.attnum, CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END INTO n, cast_to
+    SELECT a.attnum INTO n
     FROM pg_catalog.pg_attribute a
-    JOIN pg_catalog.pg_type ty ON ty.oid = a.atttypid
     WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'no such column: ' || resource || '.' || p_column;
@@ -208,9 +206,9 @@ BEGIN
         ELSE
             RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = resource || '.' || p_column;
         END IF;
-        IF cast_to IS NOT NULL THEN
-            expr := format('(%s)::%s', expr, cast_to);
-        END IF;
+        -- No cast back to the column's type: a per-row typmod or domain cast is paid on every row
+        -- before Sort/Limit (R10). The view column keeps the base type without its typmod, and a
+        -- domain column its base type (as the generated TS types already map them).
         RETURN format('%s AS %I', expr, p_column);
     END IF;
 

@@ -58,30 +58,6 @@ export type Database = {
           tenant_id: string | null
           transaction_id: string | null
         }
-        Insert: {
-          created_at?: string | null
-          id?: number | null
-          new_data?: never
-          old_data?: never
-          operation?: string | null
-          record_id?: string | null
-          table_name?: string | null
-          table_schema?: string | null
-          tenant_id?: string | null
-          transaction_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: number | null
-          new_data?: never
-          old_data?: never
-          operation?: string | null
-          record_id?: string | null
-          table_name?: string | null
-          table_schema?: string | null
-          tenant_id?: string | null
-          transaction_id?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "audit_log_transaction_id_fkey"
@@ -203,72 +179,6 @@ export type Database = {
           title: string | null
           updated_at: string | null
           urgency: Database["public"]["Enums"]["change_request_urgency"] | null
-        }
-        Insert: {
-          affected_document_id?: string | null
-          affected_gate_code?: Database["public"]["Enums"]["gate_code"] | null
-          change_kinds?: Database["public"]["Enums"]["change_kind"][] | null
-          closed_on?: string | null
-          code?: string | null
-          company_approved_by?: string | null
-          company_approved_on?: string | null
-          cost_impact?: string | null
-          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
-          created_at?: string | null
-          current_value?: string | null
-          customer_approval_document_id?: string | null
-          customer_approved_on?: string | null
-          customer_id?: string | null
-          decision_due_on?: string | null
-          decision_note?: never
-          delay_days?: number | null
-          id?: string | null
-          listing_impact?: string | null
-          other_documents?: string | null
-          project_id?: string | null
-          quality_impact?: string | null
-          reason?: string | null
-          requested_value?: string | null
-          result_document_id?: string | null
-          source?: Database["public"]["Enums"]["change_request_source"] | null
-          status?: Database["public"]["Enums"]["change_request_status"] | null
-          tenant_id?: string | null
-          title?: string | null
-          updated_at?: string | null
-          urgency?: Database["public"]["Enums"]["change_request_urgency"] | null
-        }
-        Update: {
-          affected_document_id?: string | null
-          affected_gate_code?: Database["public"]["Enums"]["gate_code"] | null
-          change_kinds?: Database["public"]["Enums"]["change_kind"][] | null
-          closed_on?: string | null
-          code?: string | null
-          company_approved_by?: string | null
-          company_approved_on?: string | null
-          cost_impact?: string | null
-          cost_payer?: Database["public"]["Enums"]["cost_payer"] | null
-          created_at?: string | null
-          current_value?: string | null
-          customer_approval_document_id?: string | null
-          customer_approved_on?: string | null
-          customer_id?: string | null
-          decision_due_on?: string | null
-          decision_note?: never
-          delay_days?: number | null
-          id?: string | null
-          listing_impact?: string | null
-          other_documents?: string | null
-          project_id?: string | null
-          quality_impact?: string | null
-          reason?: string | null
-          requested_value?: string | null
-          result_document_id?: string | null
-          source?: Database["public"]["Enums"]["change_request_source"] | null
-          status?: Database["public"]["Enums"]["change_request_status"] | null
-          tenant_id?: string | null
-          title?: string | null
-          updated_at?: string | null
-          urgency?: Database["public"]["Enums"]["change_request_urgency"] | null
         }
         Relationships: [
           {
@@ -507,52 +417,6 @@ export type Database = {
           updated_at: string | null
           website: string | null
         }
-        Insert: {
-          code?: string | null
-          commercial_model?:
-            | Database["public"]["Enums"]["commercial_model"]
-            | null
-          contract_accepted_on?: never
-          contract_document_id?: never
-          country?: string | null
-          created_at?: string | null
-          deposit_rate?: never
-          display_name?: string | null
-          eu_responsible_person?: string | null
-          extra_cost_rule?: never
-          id?: string | null
-          notes?: never
-          packages?: string[] | null
-          restricted_drive_url?: never
-          start_on?: never
-          status?: Database["public"]["Enums"]["customer_status"] | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          website?: string | null
-        }
-        Update: {
-          code?: string | null
-          commercial_model?:
-            | Database["public"]["Enums"]["commercial_model"]
-            | null
-          contract_accepted_on?: never
-          contract_document_id?: never
-          country?: string | null
-          created_at?: string | null
-          deposit_rate?: never
-          display_name?: string | null
-          eu_responsible_person?: string | null
-          extra_cost_rule?: never
-          id?: string | null
-          notes?: never
-          packages?: string[] | null
-          restricted_drive_url?: never
-          start_on?: never
-          status?: Database["public"]["Enums"]["customer_status"] | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          website?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "customer_tenant_id_fkey"
@@ -633,26 +497,6 @@ export type Database = {
           role: string | null
           tenant_id: string | null
         }
-        Insert: {
-          can_approve?: boolean | null
-          customer_id?: string | null
-          email?: never
-          id?: string | null
-          name?: never
-          phone?: never
-          role?: string | null
-          tenant_id?: string | null
-        }
-        Update: {
-          can_approve?: boolean | null
-          customer_id?: string | null
-          email?: never
-          id?: string | null
-          name?: never
-          phone?: never
-          role?: string | null
-          tenant_id?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "customer_contact_customer_fkey"
@@ -690,32 +534,6 @@ export type Database = {
           platform_id: string | null
           seller_id: string | null
           tenant_id: string | null
-        }
-        Insert: {
-          access?: Database["public"]["Enums"]["platform_access"] | null
-          account_holder?: never
-          api_connection?: Database["public"]["Enums"]["api_connection"] | null
-          authorized_at?: string | null
-          countries?: string[] | null
-          customer_id?: string | null
-          id?: string | null
-          notes?: never
-          platform_id?: string | null
-          seller_id?: string | null
-          tenant_id?: string | null
-        }
-        Update: {
-          access?: Database["public"]["Enums"]["platform_access"] | null
-          account_holder?: never
-          api_connection?: Database["public"]["Enums"]["api_connection"] | null
-          authorized_at?: string | null
-          countries?: string[] | null
-          customer_id?: string | null
-          id?: string | null
-          notes?: never
-          platform_id?: string | null
-          seller_id?: string | null
-          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -764,38 +582,6 @@ export type Database = {
           receiving_person: string | null
           tenant_id: string | null
           type: Database["public"]["Enums"]["warehouse_type"] | null
-        }
-        Insert: {
-          address?: string | null
-          appointment_rule?: string | null
-          city?: string | null
-          country?: string | null
-          customer_id?: string | null
-          display_name?: string | null
-          dock_hours?: string | null
-          id?: string | null
-          is_default?: boolean | null
-          pallet_standard?: string | null
-          postal_code?: string | null
-          receiving_person?: never
-          tenant_id?: string | null
-          type?: Database["public"]["Enums"]["warehouse_type"] | null
-        }
-        Update: {
-          address?: string | null
-          appointment_rule?: string | null
-          city?: string | null
-          country?: string | null
-          customer_id?: string | null
-          display_name?: string | null
-          dock_hours?: string | null
-          id?: string | null
-          is_default?: boolean | null
-          pallet_standard?: string | null
-          postal_code?: string | null
-          receiving_person?: never
-          tenant_id?: string | null
-          type?: Database["public"]["Enums"]["warehouse_type"] | null
         }
         Relationships: [
           {
@@ -1175,48 +961,6 @@ export type Database = {
           url: string | null
           version: number | null
         }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          customer_id?: string | null
-          entity_id?: string | null
-          entity_type?: Database["public"]["Enums"]["document_entity"] | null
-          file_name?: string | null
-          id?: string | null
-          is_signed?: boolean | null
-          is_stamped?: boolean | null
-          issued_on?: string | null
-          media_id?: string | null
-          notes?: never
-          sent_from_official_email?: boolean | null
-          status?: Database["public"]["Enums"]["document_status"] | null
-          tenant_id?: string | null
-          type?: Database["public"]["Enums"]["document_type"] | null
-          updated_at?: string | null
-          url?: string | null
-          version?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          customer_id?: string | null
-          entity_id?: string | null
-          entity_type?: Database["public"]["Enums"]["document_entity"] | null
-          file_name?: string | null
-          id?: string | null
-          is_signed?: boolean | null
-          is_stamped?: boolean | null
-          issued_on?: string | null
-          media_id?: string | null
-          notes?: never
-          sent_from_official_email?: boolean | null
-          status?: Database["public"]["Enums"]["document_status"] | null
-          tenant_id?: string | null
-          type?: Database["public"]["Enums"]["document_type"] | null
-          updated_at?: string | null
-          url?: string | null
-          version?: number | null
-        }
         Relationships: [
           {
             foreignKeyName: "document_customer_fkey"
@@ -1338,74 +1082,6 @@ export type Database = {
           title: string | null
           updated_at: string | null
           what_happened: string | null
-        }
-        Insert: {
-          affected_parties?: never
-          closed_by?: string | null
-          closed_on?: string | null
-          code?: string | null
-          created_at?: string | null
-          current_state?: string | null
-          customer_closure_notified_on?: string | null
-          customer_id?: string | null
-          customer_notice_due_at?: string | null
-          customer_notified_at?: string | null
-          entity_id?: string | null
-          entity_type?: Database["public"]["Enums"]["document_entity"] | null
-          family?: Database["public"]["Enums"]["incident_family"] | null
-          id?: string | null
-          immediate_action?: string | null
-          impact_note?: never
-          incident_type?: string | null
-          lessons?: never
-          management_notified_at?: string | null
-          opened_at?: string | null
-          outcome?: Database["public"]["Enums"]["incident_outcome"] | null
-          owner_id?: string | null
-          preventive_action?: string | null
-          reported_by?: string | null
-          root_cause?: Database["public"]["Enums"]["incident_root_cause"] | null
-          root_cause_note?: never
-          severity?: Database["public"]["Enums"]["incident_severity"] | null
-          status?: Database["public"]["Enums"]["incident_status"] | null
-          tenant_id?: string | null
-          title?: string | null
-          updated_at?: string | null
-          what_happened?: string | null
-        }
-        Update: {
-          affected_parties?: never
-          closed_by?: string | null
-          closed_on?: string | null
-          code?: string | null
-          created_at?: string | null
-          current_state?: string | null
-          customer_closure_notified_on?: string | null
-          customer_id?: string | null
-          customer_notice_due_at?: string | null
-          customer_notified_at?: string | null
-          entity_id?: string | null
-          entity_type?: Database["public"]["Enums"]["document_entity"] | null
-          family?: Database["public"]["Enums"]["incident_family"] | null
-          id?: string | null
-          immediate_action?: string | null
-          impact_note?: never
-          incident_type?: string | null
-          lessons?: never
-          management_notified_at?: string | null
-          opened_at?: string | null
-          outcome?: Database["public"]["Enums"]["incident_outcome"] | null
-          owner_id?: string | null
-          preventive_action?: string | null
-          reported_by?: string | null
-          root_cause?: Database["public"]["Enums"]["incident_root_cause"] | null
-          root_cause_note?: never
-          severity?: Database["public"]["Enums"]["incident_severity"] | null
-          status?: Database["public"]["Enums"]["incident_status"] | null
-          tenant_id?: string | null
-          title?: string | null
-          updated_at?: string | null
-          what_happened?: string | null
         }
         Relationships: [
           {
@@ -1533,38 +1209,6 @@ export type Database = {
           note: string | null
           tenant_id: string | null
           updated_at: string | null
-        }
-        Insert: {
-          author_id?: string | null
-          cost_amount?: never
-          cost_currency?: never
-          cost_payer?: never
-          counterparty?: never
-          created_at?: string | null
-          customer_approved?: boolean | null
-          decision?: string | null
-          id?: string | null
-          incident_id?: string | null
-          logged_at?: string | null
-          note?: never
-          tenant_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          author_id?: string | null
-          cost_amount?: never
-          cost_currency?: never
-          cost_payer?: never
-          counterparty?: never
-          created_at?: string | null
-          customer_approved?: boolean | null
-          decision?: string | null
-          id?: string | null
-          incident_id?: string | null
-          logged_at?: string | null
-          note?: never
-          tenant_id?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1805,68 +1449,6 @@ export type Database = {
           target_launch_on: string | null
           tenant_id: string | null
           updated_at: string | null
-        }
-        Insert: {
-          compliance?: Database["public"]["Enums"]["market_compliance"] | null
-          compliance_note?: string | null
-          content_status?: Database["public"]["Enums"]["content_status"] | null
-          country?: string | null
-          created_at?: string | null
-          currency?: string | null
-          customer_id?: string | null
-          fulfillment_channel?: string | null
-          id?: string | null
-          last_checked_on?: string | null
-          launched_on?: string | null
-          listing_checked_at?: string | null
-          listing_language?: string | null
-          listing_match?: Json | null
-          listing_state?: Database["public"]["Enums"]["listing_state"] | null
-          notes?: never
-          open_issue?: string | null
-          platform_id?: string | null
-          platform_product_id?: string | null
-          platform_sku?: string | null
-          price?: number | null
-          priority?: number | null
-          product_id?: string | null
-          project_id?: string | null
-          status?: Database["public"]["Enums"]["market_cell_status"] | null
-          stock_source?: Database["public"]["Enums"]["stock_source"] | null
-          target_launch_on?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          compliance?: Database["public"]["Enums"]["market_compliance"] | null
-          compliance_note?: string | null
-          content_status?: Database["public"]["Enums"]["content_status"] | null
-          country?: string | null
-          created_at?: string | null
-          currency?: string | null
-          customer_id?: string | null
-          fulfillment_channel?: string | null
-          id?: string | null
-          last_checked_on?: string | null
-          launched_on?: string | null
-          listing_checked_at?: string | null
-          listing_language?: string | null
-          listing_match?: Json | null
-          listing_state?: Database["public"]["Enums"]["listing_state"] | null
-          notes?: never
-          open_issue?: string | null
-          platform_id?: string | null
-          platform_product_id?: string | null
-          platform_sku?: string | null
-          price?: number | null
-          priority?: number | null
-          product_id?: string | null
-          project_id?: string | null
-          status?: Database["public"]["Enums"]["market_cell_status"] | null
-          stock_source?: Database["public"]["Enums"]["stock_source"] | null
-          target_launch_on?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -2493,110 +2075,6 @@ export type Database = {
           updated_at: string | null
           variant_label: string | null
         }
-        Insert: {
-          amazon_product_type?: string | null
-          amazon_schema_version?: string | null
-          brand?: string | null
-          carton_dims_mm?: string | null
-          carton_gross_kg?: number | null
-          carton_net_kg?: number | null
-          carton_pack_qty?: number | null
-          category?: string | null
-          company_price_eur?: never
-          compliance_status?:
-            | Database["public"]["Enums"]["compliance_status"]
-            | null
-          created_at?: string | null
-          customer_id?: string | null
-          display_name?: string | null
-          eu_responsible_person?: string | null
-          golden_sample_locations?: string | null
-          golden_sample_on?: string | null
-          gs1_prefix_owner?: string | null
-          gtin?: string | null
-          hs_code?: string | null
-          id?: string | null
-          is_hazmat?: boolean | null
-          landed_cost_eur?: never
-          landed_cost_on?: never
-          listing_attributes?: Json | null
-          lot_rule?: string | null
-          manufacturer_art_no?: never
-          notes?: never
-          origin_country?: string | null
-          pack_dims_mm?: string | null
-          pack_gross_g?: number | null
-          pack_qty?: number | null
-          pallet_carton_qty?: number | null
-          pallet_type?: string | null
-          parent_id?: string | null
-          price_list_version?: never
-          purchase_currency?: never
-          purchase_incoterm?: never
-          purchase_price?: never
-          sku?: string | null
-          status?: Database["public"]["Enums"]["product_status"] | null
-          supplier_id?: never
-          supplier_product_code?: never
-          target_price_eur?: never
-          tenant_id?: string | null
-          unit_dims_mm?: string | null
-          unit_net_g?: number | null
-          updated_at?: string | null
-          variant_label?: string | null
-        }
-        Update: {
-          amazon_product_type?: string | null
-          amazon_schema_version?: string | null
-          brand?: string | null
-          carton_dims_mm?: string | null
-          carton_gross_kg?: number | null
-          carton_net_kg?: number | null
-          carton_pack_qty?: number | null
-          category?: string | null
-          company_price_eur?: never
-          compliance_status?:
-            | Database["public"]["Enums"]["compliance_status"]
-            | null
-          created_at?: string | null
-          customer_id?: string | null
-          display_name?: string | null
-          eu_responsible_person?: string | null
-          golden_sample_locations?: string | null
-          golden_sample_on?: string | null
-          gs1_prefix_owner?: string | null
-          gtin?: string | null
-          hs_code?: string | null
-          id?: string | null
-          is_hazmat?: boolean | null
-          landed_cost_eur?: never
-          landed_cost_on?: never
-          listing_attributes?: Json | null
-          lot_rule?: string | null
-          manufacturer_art_no?: never
-          notes?: never
-          origin_country?: string | null
-          pack_dims_mm?: string | null
-          pack_gross_g?: number | null
-          pack_qty?: number | null
-          pallet_carton_qty?: number | null
-          pallet_type?: string | null
-          parent_id?: string | null
-          price_list_version?: never
-          purchase_currency?: never
-          purchase_incoterm?: never
-          purchase_price?: never
-          sku?: string | null
-          status?: Database["public"]["Enums"]["product_status"] | null
-          supplier_id?: never
-          supplier_product_code?: never
-          target_price_eur?: never
-          tenant_id?: string | null
-          unit_dims_mm?: string | null
-          unit_net_g?: number | null
-          updated_at?: string | null
-          variant_label?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "product_customer_fkey"
@@ -2801,42 +2279,6 @@ export type Database = {
           type: Database["public"]["Enums"]["project_type"] | null
           updated_at: string | null
         }
-        Insert: {
-          code?: string | null
-          coordinator_id?: string | null
-          created_at?: string | null
-          current_phase?: Database["public"]["Enums"]["project_phase"] | null
-          customer_id?: string | null
-          display_name?: string | null
-          id?: string | null
-          notes?: never
-          packages?: string[] | null
-          path?: Database["public"]["Enums"]["project_path"] | null
-          status?: Database["public"]["Enums"]["project_status"] | null
-          target_delivery_on?: string | null
-          target_live_on?: string | null
-          tenant_id?: string | null
-          type?: Database["public"]["Enums"]["project_type"] | null
-          updated_at?: string | null
-        }
-        Update: {
-          code?: string | null
-          coordinator_id?: string | null
-          created_at?: string | null
-          current_phase?: Database["public"]["Enums"]["project_phase"] | null
-          customer_id?: string | null
-          display_name?: string | null
-          id?: string | null
-          notes?: never
-          packages?: string[] | null
-          path?: Database["public"]["Enums"]["project_path"] | null
-          status?: Database["public"]["Enums"]["project_status"] | null
-          target_delivery_on?: string | null
-          target_live_on?: string | null
-          tenant_id?: string | null
-          type?: Database["public"]["Enums"]["project_type"] | null
-          updated_at?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "project_coordinator_id_fkey"
@@ -2886,42 +2328,6 @@ export type Database = {
           rolled_back_reason: string | null
           status: Database["public"]["Enums"]["gate_status"] | null
           tenant_id: string | null
-        }
-        Insert: {
-          approval_document_id?: string | null
-          code?: Database["public"]["Enums"]["gate_code"] | null
-          created_at?: string | null
-          customer_approved_on?: string | null
-          decided_by_role?: string | null
-          evidence_document_ids?: string[] | null
-          id?: string | null
-          needs_customer_approval?: boolean | null
-          note?: never
-          passed_at?: string | null
-          position?: number | null
-          project_id?: string | null
-          rolled_back_incident_id?: string | null
-          rolled_back_reason?: string | null
-          status?: Database["public"]["Enums"]["gate_status"] | null
-          tenant_id?: string | null
-        }
-        Update: {
-          approval_document_id?: string | null
-          code?: Database["public"]["Enums"]["gate_code"] | null
-          created_at?: string | null
-          customer_approved_on?: string | null
-          decided_by_role?: string | null
-          evidence_document_ids?: string[] | null
-          id?: string | null
-          needs_customer_approval?: boolean | null
-          note?: never
-          passed_at?: string | null
-          position?: number | null
-          project_id?: string | null
-          rolled_back_incident_id?: string | null
-          rolled_back_reason?: string | null
-          status?: Database["public"]["Enums"]["gate_status"] | null
-          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -3187,68 +2593,6 @@ export type Database = {
           tolerance_pct: number | null
           updated_at: string | null
         }
-        Insert: {
-          code?: string | null
-          created_at?: string | null
-          currency?: string | null
-          customer_id?: string | null
-          deposit_rate?: never
-          id?: string | null
-          incoterm?: never
-          incoterm_place?: never
-          notes?: never
-          packing_instruction_document_id?: string | null
-          penalty_rule?: never
-          pi_balance_amount?: never
-          pi_check?: never
-          pi_checked_at?: string | null
-          pi_checked_by?: string | null
-          pi_deposit_amount?: never
-          pi_discount_amount?: never
-          pi_document_id?: never
-          pi_extra_amount?: never
-          pi_number?: never
-          pi_subtotal?: never
-          pi_total?: never
-          project_id?: string | null
-          ready_on?: string | null
-          status?: Database["public"]["Enums"]["purchase_order_status"] | null
-          supplier_id?: never
-          tenant_id?: string | null
-          tolerance_pct?: never
-          updated_at?: string | null
-        }
-        Update: {
-          code?: string | null
-          created_at?: string | null
-          currency?: string | null
-          customer_id?: string | null
-          deposit_rate?: never
-          id?: string | null
-          incoterm?: never
-          incoterm_place?: never
-          notes?: never
-          packing_instruction_document_id?: string | null
-          penalty_rule?: never
-          pi_balance_amount?: never
-          pi_check?: never
-          pi_checked_at?: string | null
-          pi_checked_by?: string | null
-          pi_deposit_amount?: never
-          pi_discount_amount?: never
-          pi_document_id?: never
-          pi_extra_amount?: never
-          pi_number?: never
-          pi_subtotal?: never
-          pi_total?: never
-          project_id?: string | null
-          ready_on?: string | null
-          status?: Database["public"]["Enums"]["purchase_order_status"] | null
-          supplier_id?: never
-          tenant_id?: string | null
-          tolerance_pct?: never
-          updated_at?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "purchase_order_customer_fkey"
@@ -3324,38 +2668,6 @@ export type Database = {
           tenant_id: string | null
           unit_price: number | null
           updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string | null
-          line_total?: never
-          notes?: never
-          pi_line_total?: never
-          position?: number | null
-          product_id?: string | null
-          purchase_order_id?: string | null
-          quantity?: number | null
-          spec_document_id?: string | null
-          tenant_id?: string | null
-          unit_price?: never
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string | null
-          line_total?: never
-          notes?: never
-          pi_line_total?: never
-          position?: number | null
-          product_id?: string | null
-          purchase_order_id?: string | null
-          quantity?: number | null
-          spec_document_id?: string | null
-          tenant_id?: string | null
-          unit_price?: never
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -3544,34 +2856,6 @@ export type Database = {
           purchase_order_id: string | null
           tenant_id: string | null
           updated_at: string | null
-        }
-        Insert: {
-          amount?: never
-          created_at?: string | null
-          currency?: never
-          id?: string | null
-          kind?: Database["public"]["Enums"]["payment_kind"] | null
-          notes?: never
-          paid_by?: Database["public"]["Enums"]["payment_payer"] | null
-          paid_on?: string | null
-          planned_on?: string | null
-          purchase_order_id?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          amount?: never
-          created_at?: string | null
-          currency?: never
-          id?: string | null
-          kind?: Database["public"]["Enums"]["payment_kind"] | null
-          notes?: never
-          paid_by?: Database["public"]["Enums"]["payment_payer"] | null
-          paid_on?: string | null
-          planned_on?: string | null
-          purchase_order_id?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -3882,84 +3166,6 @@ export type Database = {
           updated_at: string | null
           volume_m3: number | null
         }
-        Insert: {
-          accepted_by?: string | null
-          accepted_on?: string | null
-          booking_confirmed_on?: string | null
-          carrier?: string | null
-          carton_count?: number | null
-          code?: string | null
-          container_no?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          customs_broker?: string | null
-          customs_cleared_on?: string | null
-          delivered_at?: string | null
-          delivery_warehouse_id?: string | null
-          demurrage_note?: string | null
-          dispute_deadline_at?: string | null
-          eta?: string | null
-          etd?: string | null
-          forwarder?: string | null
-          free_days_detention?: number | null
-          free_days_port?: number | null
-          gross_kg?: number | null
-          has_damage?: boolean | null
-          id?: string | null
-          incoterm_buy?: never
-          incoterm_sell?: string | null
-          is_insured?: boolean | null
-          mode?: Database["public"]["Enums"]["shipment_mode"] | null
-          notes?: never
-          pallet_count?: number | null
-          planned_delivery_on?: string | null
-          quantity_matches?: boolean | null
-          ready_on?: string | null
-          seal_no?: string | null
-          status?: Database["public"]["Enums"]["shipment_status"] | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          volume_m3?: number | null
-        }
-        Update: {
-          accepted_by?: string | null
-          accepted_on?: string | null
-          booking_confirmed_on?: string | null
-          carrier?: string | null
-          carton_count?: number | null
-          code?: string | null
-          container_no?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          customs_broker?: string | null
-          customs_cleared_on?: string | null
-          delivered_at?: string | null
-          delivery_warehouse_id?: string | null
-          demurrage_note?: string | null
-          dispute_deadline_at?: string | null
-          eta?: string | null
-          etd?: string | null
-          forwarder?: string | null
-          free_days_detention?: number | null
-          free_days_port?: number | null
-          gross_kg?: number | null
-          has_damage?: boolean | null
-          id?: string | null
-          incoterm_buy?: never
-          incoterm_sell?: string | null
-          is_insured?: boolean | null
-          mode?: Database["public"]["Enums"]["shipment_mode"] | null
-          notes?: never
-          pallet_count?: number | null
-          planned_delivery_on?: string | null
-          quantity_matches?: boolean | null
-          ready_on?: string | null
-          seal_no?: string | null
-          status?: Database["public"]["Enums"]["shipment_status"] | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          volume_m3?: number | null
-        }
         Relationships: [
           {
             foreignKeyName: "shipment_customer_fkey"
@@ -4005,34 +3211,6 @@ export type Database = {
           tenant_id: string | null
           to_party: string | null
           updated_at: string | null
-        }
-        Insert: {
-          channel?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          from_party?: never
-          happened_at?: string | null
-          id?: string | null
-          note?: never
-          shipment_id?: string | null
-          step?: number | null
-          tenant_id?: string | null
-          to_party?: never
-          updated_at?: string | null
-        }
-        Update: {
-          channel?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          from_party?: never
-          happened_at?: string | null
-          id?: string | null
-          note?: never
-          shipment_id?: string | null
-          step?: number | null
-          tenant_id?: string | null
-          to_party?: never
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -4413,54 +3591,6 @@ export type Database = {
           updated_at: string | null
           website: string | null
         }
-        Insert: {
-          cancellation_rule?: never
-          capacity_note?: string | null
-          city?: string | null
-          code?: string | null
-          country?: string | null
-          created_at?: string | null
-          damage_notice_hours?: never
-          default_incoterm?: never
-          deposit_rate?: never
-          display_name?: string | null
-          id?: string | null
-          last_audit_on?: never
-          late_payment_penalty?: never
-          notes?: never
-          payment_terms?: never
-          product_groups?: string[] | null
-          rating?: never
-          status?: Database["public"]["Enums"]["supplier_status"] | null
-          storage_fee_rule?: never
-          tenant_id?: string | null
-          updated_at?: string | null
-          website?: string | null
-        }
-        Update: {
-          cancellation_rule?: never
-          capacity_note?: string | null
-          city?: string | null
-          code?: string | null
-          country?: string | null
-          created_at?: string | null
-          damage_notice_hours?: never
-          default_incoterm?: never
-          deposit_rate?: never
-          display_name?: string | null
-          id?: string | null
-          last_audit_on?: never
-          late_payment_penalty?: never
-          notes?: never
-          payment_terms?: never
-          product_groups?: string[] | null
-          rating?: never
-          status?: Database["public"]["Enums"]["supplier_status"] | null
-          storage_fee_rule?: never
-          tenant_id?: string | null
-          updated_at?: string | null
-          website?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "supplier_tenant_id_fkey"
@@ -4488,26 +3618,6 @@ export type Database = {
           role: string | null
           supplier_id: string | null
           tenant_id: string | null
-        }
-        Insert: {
-          email?: never
-          id?: string | null
-          is_primary?: boolean | null
-          name?: never
-          phone?: never
-          role?: never
-          supplier_id?: string | null
-          tenant_id?: string | null
-        }
-        Update: {
-          email?: never
-          id?: string | null
-          is_primary?: boolean | null
-          name?: never
-          phone?: never
-          role?: never
-          supplier_id?: string | null
-          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -4754,48 +3864,6 @@ export type Database = {
           updated_at: string | null
           xact_id: unknown | null
         }
-        Insert: {
-          audit_transaction_ids?: string[] | null
-          created_at?: string | null
-          customer_id?: string | null
-          decisions?: never
-          files?: Json | null
-          files_status?: string | null
-          id?: string | null
-          id_map?: Json | null
-          missing_files?: string[] | null
-          mode?: string | null
-          path?: string | null
-          product_ids?: string[] | null
-          report?: never
-          source_tenant_id?: string | null
-          started_by?: string | null
-          target_customer_id?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          xact_id?: unknown | null
-        }
-        Update: {
-          audit_transaction_ids?: string[] | null
-          created_at?: string | null
-          customer_id?: string | null
-          decisions?: never
-          files?: Json | null
-          files_status?: string | null
-          id?: string | null
-          id_map?: Json | null
-          missing_files?: string[] | null
-          mode?: string | null
-          path?: string | null
-          product_ids?: string[] | null
-          report?: never
-          source_tenant_id?: string | null
-          started_by?: string | null
-          target_customer_id?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          xact_id?: unknown | null
-        }
         Relationships: [
           {
             foreignKeyName: "transfer_source_tenant_id_fkey"
@@ -4834,20 +3902,6 @@ export type Database = {
           id: string | null
           phone: string | null
           user_metadata: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          phone?: never
-          user_metadata?: never
-        }
-        Update: {
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          phone?: never
-          user_metadata?: never
         }
         Relationships: []
       }
@@ -10211,8 +9265,8 @@ export type Database = {
       }
       can_write_user_field: {
         Args: {
-          p_field: string
           p_user: string
+          p_field: string
         }
         Returns: boolean
       }
