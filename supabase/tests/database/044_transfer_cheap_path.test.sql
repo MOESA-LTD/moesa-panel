@@ -153,6 +153,9 @@ BEGIN
     RETURN seen;
 END;
 $$;
+-- Europe's TR1 is set up as postgres without a request (S2): akif's claims, left by RESET ROLE,
+-- would apply the field write guard to it.
+SELECT private.unimpersonate();
 SELECT set_config('test.mapped_tr1', pg_temp.move_with_mapped_tr1()::TEXT, TRUE);
 
 -- 18 (run before the move, checked last). In an exception block, the company's size cap lowered to

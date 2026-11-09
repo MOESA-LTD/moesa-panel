@@ -12,6 +12,7 @@ SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
     ('moesa', (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')),
     ('koordinator', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')),
+    ('akif', (SELECT id FROM public.user WHERE email = 'akif@moesa-panel.test')),
     ('tho', (SELECT id FROM public.customer WHERE code = 'THO')),
     ('tr1', (SELECT id FROM public.supplier WHERE code = 'TR1')),
     ('cn1', (SELECT id FROM public.supplier WHERE code = 'CN1')),
@@ -29,8 +30,13 @@ SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_se
 INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
 SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD'
 FROM (VALUES ('00000000-0000-4000-8000-000000033011'::UUID), ('00000000-0000-4000-8000-000000033012'), ('00000000-0000-4000-8000-000000033013'), ('00000000-0000-4000-8000-000000033014')) AS x (id);
+-- As management: payments are finance, which the coordinator only reads.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order_payment (tenant_id, purchase_order_id, kind, amount, currency, planned_on)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000033012', 'balance', 100, 'USD', '2027-02-01');
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road', current_setting('test.rosbach')::UUID FROM (VALUES ('00000000-0000-4000-8000-000000033041'::UUID), ('00000000-0000-4000-8000-000000033042'), ('00000000-0000-4000-8000-000000033043')) AS x (id);
 RESET ROLE;

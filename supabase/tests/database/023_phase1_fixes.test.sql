@@ -132,8 +132,8 @@ SELECT private.impersonate(
 
 SELECT throws_ok(
     $$ UPDATE public.customer SET deposit_rate = 50 WHERE id = current_setting('test.tho')::UUID $$,
-    '23514',
-    'customer_contract_restricted',
+    '42501',
+    'field_write_forbidden',
     'the coordinator cannot change a customer''s deposit rate'
 );
 

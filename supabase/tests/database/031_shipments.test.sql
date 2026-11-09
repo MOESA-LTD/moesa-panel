@@ -16,6 +16,7 @@ SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
     ('moesa', (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')),
     ('koordinator', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')),
+    ('akif', (SELECT id FROM public.user WHERE email = 'akif@moesa-panel.test')),
     ('tho', (SELECT id FROM public.customer WHERE code = 'THO')),
     ('tr1', (SELECT id FROM public.supplier WHERE code = 'TR1')),
     ('cn1', (SELECT id FROM public.supplier WHERE code = 'CN1')),
@@ -36,9 +37,14 @@ INSERT INTO public.customer_warehouse (id, tenant_id, customer_id, display_name)
 VALUES ('00000000-0000-4000-8000-000000031002', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000031001', 'WZ');
 INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name)
 VALUES ('00000000-0000-4000-8000-000000031003', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000031001', 'ZZZ-1', 'Zed lamp');
+-- As management: the orders set their Incoterm and tolerance (supplier terms), which the coordinator only reads.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency, incoterm, tolerance_pct)
 VALUES ('00000000-0000-4000-8000-000000031011', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.cn1')::UUID, 'USD', 'FOB', 5), ('00000000-0000-4000-8000-000000031012', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', NULL, NULL),
        ('00000000-0000-4000-8000-000000031013', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000031001', current_setting('test.tr1')::UUID, 'USD', NULL, NULL);
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
 VALUES ('00000000-0000-4000-8000-000000031021', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000031011', current_setting('test.mop')::UUID, 1000, 2), ('00000000-0000-4000-8000-000000031022', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000031012', current_setting('test.cones')::UUID, 10, 1), ('00000000-0000-4000-8000-000000031023', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000031013', '00000000-0000-4000-8000-000000031003', 1, 1);
 RESET ROLE;

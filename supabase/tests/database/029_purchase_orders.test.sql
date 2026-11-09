@@ -13,6 +13,7 @@ SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
     ('moesa', (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')),
     ('koordinator', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')),
+    ('akif', (SELECT id FROM public.user WHERE email = 'akif@moesa-panel.test')),
     ('tho', (SELECT id FROM public.customer WHERE code = 'THO')),
     ('tr1', (SELECT id FROM public.supplier WHERE code = 'TR1')),
     ('cn1', (SELECT id FROM public.supplier WHERE code = 'CN1')),
@@ -33,8 +34,13 @@ INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name)
 VALUES ('00000000-0000-4000-8000-000000029002', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000029001', 'ZZZ-1', 'Zed lamp');
 INSERT INTO public.project (id, tenant_id, customer_id, display_name, type, path, packages)
 VALUES ('00000000-0000-4000-8000-000000029003', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000029001', 'Zed lamp', 'npi', 'a_sourcing', ARRAY['A1']);
+-- Supplier terms: management (the coordinator only reads them).
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.supplier (id, tenant_id, code, display_name, country, default_incoterm, status)
 VALUES ('00000000-0000-4000-8000-000000029004', current_setting('test.moesa')::UUID, 'TR9', 'Dokuz', 'Türkiye', 'Ex Works', 'approved');
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency, code)
 VALUES ('00000000-0000-4000-8000-000000029011', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', 'X');
 
@@ -45,7 +51,8 @@ SELECT is((SELECT incoterm || ':' || deposit_rate FROM public.purchase_order WHE
 
 RESET ROLE;
 UPDATE public.setting SET value = '25' WHERE tenant_id = current_setting('test.moesa')::UUID AND key = 'deposit_rate_default';
-SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+-- Management from here: the orders below set the Incoterm and PI fields, which the coordinator only reads.
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency, incoterm)
 VALUES ('00000000-0000-4000-8000-000000029012', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, '00000000-0000-4000-8000-000000029004', 'USD', 'FOB');
 

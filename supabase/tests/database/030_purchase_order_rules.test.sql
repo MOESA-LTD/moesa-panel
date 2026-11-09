@@ -14,6 +14,7 @@ SELECT set_config('test.' || x.k, x.v::TEXT, TRUE)
 FROM (VALUES
     ('moesa', (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')),
     ('koordinator', (SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test')),
+    ('akif', (SELECT id FROM public.user WHERE email = 'akif@moesa-panel.test')),
     ('tho', (SELECT id FROM public.customer WHERE code = 'THO')),
     ('tr1', (SELECT id FROM public.supplier WHERE code = 'TR1')),
     ('cn1', (SELECT id FROM public.supplier WHERE code = 'CN1')),
@@ -30,10 +31,15 @@ SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_se
 -- Fixtures, as the coordinator. Every order is THO / TR1 / USD (EXW and 30 % from TR1); f has no deposit.
 INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name, status, supplier_id)
 VALUES ('00000000-0000-4000-8000-000000030001', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'THO-NEW-1', 'New mop', 'development', current_setting('test.tr1')::UUID);
+-- As management: order f sets its deposit rate (supplier terms), which the coordinator only reads.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency, deposit_rate)
 VALUES ('00000000-0000-4000-8000-000000030011', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', NULL), ('00000000-0000-4000-8000-000000030012', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', NULL),
        ('00000000-0000-4000-8000-000000030013', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', NULL), ('00000000-0000-4000-8000-000000030014', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', NULL),
        ('00000000-0000-4000-8000-000000030015', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', NULL), ('00000000-0000-4000-8000-000000030016', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD', 0);
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price, spec_document_id)
 VALUES ('00000000-0000-4000-8000-000000030021', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030011', current_setting('test.mop')::UUID, 1000, 2, NULL), ('00000000-0000-4000-8000-000000030022', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030011', current_setting('test.tips')::UUID, 10, 1, NULL),
        ('00000000-0000-4000-8000-000000030023', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030013', '00000000-0000-4000-8000-000000030001', 5, 1, NULL), ('00000000-0000-4000-8000-000000030024', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030014', current_setting('test.tips')::UUID, 5, 1, NULL),
@@ -131,8 +137,13 @@ SELECT throws_ok($$ UPDATE public.purchase_order SET currency = 'EUR' WHERE id =
 SELECT throws_ok($$ UPDATE public.purchase_order SET status = 'deposit_paid' WHERE id = '00000000-0000-4000-8000-000000030011' $$,
                  '23514', 'po_deposit_unpaid', 'a paid deposit first');
 
+-- As management: payments are finance, which the coordinator only reads.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order_payment (id, tenant_id, purchase_order_id, kind, amount, currency, paid_on)
 VALUES ('00000000-0000-4000-8000-000000030041', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030011', 'deposit', 633, 'USD', current_date);
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 UPDATE public.purchase_order SET status = 'deposit_paid' WHERE id = '00000000-0000-4000-8000-000000030011';
 UPDATE public.purchase_order SET status = 'in_production' WHERE id = '00000000-0000-4000-8000-000000030011';
 UPDATE public.purchase_order SET status = 'ready' WHERE id = '00000000-0000-4000-8000-000000030011';
@@ -140,8 +151,13 @@ UPDATE public.purchase_order SET status = 'ready' WHERE id = '00000000-0000-4000
 SELECT throws_ok($$ UPDATE public.purchase_order SET status = 'balance_paid' WHERE id = '00000000-0000-4000-8000-000000030011' $$,
                  '23514', 'po_balance_unpaid', 'a paid balance first');
 
+-- As management: payments are finance, which the coordinator only reads.
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 INSERT INTO public.purchase_order_payment (id, tenant_id, purchase_order_id, kind, amount, currency, paid_on)
 VALUES ('00000000-0000-4000-8000-000000030042', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000030011', 'balance', 1477, 'USD', current_date);
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
 SELECT lives_ok($$ UPDATE public.purchase_order SET status = 'balance_paid' WHERE id = '00000000-0000-4000-8000-000000030011' $$,
                 'a paid balance lets the order move on');

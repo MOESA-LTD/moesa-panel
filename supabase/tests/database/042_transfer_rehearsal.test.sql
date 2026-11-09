@@ -320,6 +320,8 @@ SELECT ok(
 
 -- 31b. Without a display name the report names the user by a short id, never by e-mail (K8).
 RESET ROLE;
+-- As postgres without a request (S2): akif's claims, left by RESET ROLE, would apply the field write guard.
+SELECT private.unimpersonate();
 UPDATE public.user SET user_metadata = user_metadata - 'display_name' WHERE id = current_setting('test.koordinator')::UUID;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.r_nameless', pg_temp.rehearse('copy')::TEXT, TRUE);
@@ -331,6 +333,7 @@ SELECT ok(
     'a user without a display name is named by a short id, not by e-mail'
 );
 RESET ROLE;
+SELECT private.unimpersonate();
 UPDATE public.user SET user_metadata = user_metadata || '{"display_name": "Koordinatör"}' WHERE id = current_setting('test.koordinator')::UUID;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
