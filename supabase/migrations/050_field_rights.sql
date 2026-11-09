@@ -23,11 +23,17 @@
 -- role_field_permission_save_role_only
 --                          S7: role_field_permission is written only by save_role (which sets
 --                          moesa.save_role for its own statements), a bypassed session, or the
---                          cascade of a deleted role.
+--                          cascade of a deleted role. Any session can set the flag, so with the
+--                          flag alone a granted right must still pass can_grant_field (C1).
 -- save_role                Gains `field_rights`: NULL leaves a role's rows alone (a new role has none,
 --                          R1), an array becomes exactly its rows. A right beyond the caller's own
 --                          raises field_grant_exceeds_own before anything is written.
 -- my_access                Gains `fields`: field_rights in the active tenant.
+-- select on role_field_permission
+--                          Only the rows of roles the caller can see (it was every row).
+--
+-- Reverting an audit transaction that touched role_field_permission fails with
+-- role_field_permission_save_role_only: fail-closed by design until Task 12.
 --
 -- Test support (supabase/tests/database), executable by nobody but their owner: impersonate_scope,
 -- unimpersonate, create_test_helpers (schema t) and field_test_fixtures.
@@ -70,6 +76,8 @@ BEGIN
         JOIN public.role_field_permission rfp ON rfp.role_id = r.id
         WHERE ur.user_id = p_user
           AND r.tenant_id = ANY (p_tenants)
+          -- user_role outlives a membership (removing a member deletes only tenant_user).
+          AND EXISTS (SELECT 1 FROM public.tenant_user tu WHERE tu.user_id = p_user AND tu.tenant_id = r.tenant_id)
           AND rfp.resource_name = p_resource AND rfp.field = p_field
           AND CASE WHEN p_write THEN rfp.can_write ELSE rfp.can_read END
     );
@@ -257,17 +265,33 @@ BEGIN
 END;
 $$;
 
--- S7. SECURITY DEFINER: it calls the bypass and parent_gone, which the caller may not execute.
+-- S7. SECURITY DEFINER: it calls the bypass and parent_gone, which the caller may not execute, and
+-- reads the role's tenant whatever the caller may see.
 CREATE OR REPLACE FUNCTION private.role_field_permission_save_role_only () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
+DECLARE
+    role_tenant UUID;
 BEGIN
     IF private.field_guard_bypassed()
-       OR coalesce(current_setting('moesa.save_role', TRUE), '') = '1'
        OR (TG_OP = 'DELETE' AND private.parent_gone('public.role', OLD.role_id)) THEN
         RETURN coalesce(NEW, OLD);
     END IF;
-    RAISE EXCEPTION 'role_field_permission_save_role_only' USING ERRCODE = '42501';
+
+    IF coalesce(current_setting('moesa.save_role', TRUE), '') <> '1' THEN
+        RAISE EXCEPTION 'role_field_permission_save_role_only' USING ERRCODE = '42501';
+    END IF;
+
+    -- The flag alone proves nothing: a right granted must be one the caller holds in the role's
+    -- tenant (C1), as save_role checks before writing.
+    IF TG_OP <> 'DELETE' AND (NEW.can_read OR NEW.can_write) THEN
+        SELECT r.tenant_id INTO role_tenant FROM public.role r WHERE r.id = NEW.role_id;
+        IF NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, FALSE)
+           OR (NEW.can_write AND NOT private.can_grant_field(role_tenant, NEW.resource_name, NEW.field, TRUE)) THEN
+            RAISE EXCEPTION 'field_grant_exceeds_own' USING ERRCODE = '42501';
+        END IF;
+    END IF;
+    RETURN coalesce(NEW, OLD);
 END;
 $$;
 
@@ -277,6 +301,17 @@ OR
 UPDATE
 OR DELETE ON public.role_field_permission FOR EACH ROW
 EXECUTE FUNCTION private.role_field_permission_save_role_only ();
+
+-- Reading role_field_permission: the rows of the roles the caller can see (public.role's own select
+-- policy applies inside the condition), rather than every row. The permission row's trigger
+-- (private.manage_policies) rebuilds the policy.
+UPDATE public.permission
+SET
+   bypass = FALSE,
+   resource_condition = 'EXISTS (SELECT 1 FROM public.role r WHERE r.id = role_id)'
+WHERE
+   resource_name = 'public.role_field_permission'
+   AND command = 'select';
 
 -- A role, its permissions and (when given) its field rights.
 DROP FUNCTION public.save_role (JSONB, UUID[]);

@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- writer of role_field_permission (S7) and the grant ceiling (C1).
 BEGIN;
 
-SELECT plan(26);
+SELECT plan(31);
 
 -- The fixtures also set test.<key> for each id.
 SELECT private.field_test_fixtures();
@@ -19,6 +19,10 @@ JOIN public.permission p ON p.resource_name IN ('public.role', 'public.role_perm
    AND p.command IN ('insert', 'update', 'delete')
 WHERE r.tenant_id = current_setting('test.moesa')::UUID AND r.display_name = 'coordinator'
 ON CONFLICT DO NOTHING;
+
+SELECT set_config(CASE t.display_name WHEN 'MOESA LTD' THEN 'test.moesa_management' ELSE 'test.europe_management' END, r.id::TEXT, TRUE)
+FROM public.role r JOIN public.tenant t ON t.id = r.tenant_id
+WHERE r.display_name = 'management' AND t.display_name IN ('MOESA LTD', 'MOESA Europe');
 
 -- As koordinator in MOESA LTD.
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
@@ -99,12 +103,35 @@ SELECT throws_ok($$ SELECT public.save_role(jsonb_build_object('id', current_set
 SELECT ok(public.my_access(current_setting('test.moesa')::UUID) -> 'fields'
    @> '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":false}]'::JSONB, 'my_access lists field rights');
 
+-- S7 with a hand-set flag: a right written directly must still be the caller's own (C1).
+SELECT set_config('moesa.save_role', '1', TRUE);
+SELECT throws_ok($$ INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
+   VALUES (current_setting('test.t_restricted')::UUID, 'public.supplier', 'deposit_rate', TRUE, TRUE) $$,
+   '42501', 'field_grant_exceeds_own', 'S7: a hand-set save_role flag grants nothing beyond the caller''s own');
+SELECT lives_ok($$ INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
+   VALUES (current_setting('test.t_restricted')::UUID, 'public.supplier', 'deposit_rate', TRUE, FALSE) $$,
+   '... while a right the caller holds passes, as through save_role');
+SELECT set_config('moesa.save_role', '', TRUE);
+
+-- Reading role_field_permission: only the rows of roles the caller can see.
+SELECT is((SELECT count(*)::INT FROM public.role_field_permission WHERE role_id = current_setting('test.europe_management')::UUID),
+   0, 'a user sees no field rights of a role in a tenant outside their scope');
+SELECT ok((SELECT count(*) FROM public.role_field_permission WHERE role_id = current_setting('test.moesa_management')::UUID) > 0,
+   '... and sees those of their own tenant''s roles');
+
 -- As baris (owner) in MOESA LTD.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
 SELECT is((SELECT count(*)::INT FROM public.role_field_permission rfp JOIN public.role r ON r.id = rfp.role_id
    WHERE r.tenant_id = (public.create_branch(current_setting('test.moesa')::UUID, '{"display_name":"t_branch"}'::JSONB)).id),
    0, 'a new branch seeds no field rows (its owner holds every field)');
+
+-- user_role outlives a membership: a member who left keeps their roles' rows, which grant nothing.
+RESET ROLE;
+SELECT private.unimpersonate();
+DELETE FROM public.tenant_user WHERE user_id = current_setting('test.koordinator')::UUID AND tenant_id = current_setting('test.moesa')::UUID;
+SELECT is(private.field_tenants(current_setting('test.koordinator')::UUID, ARRAY[current_setting('test.moesa')::UUID], 'public.supplier', 'deposit_rate', FALSE),
+   '{}'::UUID[], 'a role in a tenant the user has left grants no field right');
 
 SELECT * FROM finish();
 ROLLBACK;
