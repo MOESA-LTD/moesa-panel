@@ -2147,7 +2147,6 @@ const SENSITIVE = [
    'price_list_version',
    'supplier_id',
    'supplier_product_code',
-   'manufacturer_art_no',
    'notes'
 ];
 
@@ -2155,6 +2154,8 @@ Deno.test('amazon-listing selects no sensitive product or cell column', () => {
    const product = PRODUCT_LISTING_COLUMNS.split(',').map((s) => s.trim());
    const cell = MARKET_CELL_LISTING_COLUMNS.split(',').map((s) => s.trim());
    for (const c of SENSITIVE) assert(!product.includes(c), c);
+   // Read through the caller's api client only (masked NULL without the right).
+   assert(product.includes('manufacturer_art_no'));
    assert(!cell.includes('notes'));
 });
 
@@ -2177,4 +2178,9 @@ Deno.test('amazon-listing never selects * from a table with sensitive columns', 
    );
    assertEquals(wide, []);
    assert(state.selects.some((s) => s.table === 'product'));
+   // The supplier identity number is never selected by the service client.
+   assertEquals(
+      state.selects.filter((s) => s.client === 'service' && s.columns.includes('manufacturer_art_no')),
+      []
+   );
 });
