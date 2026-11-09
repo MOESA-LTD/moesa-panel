@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- api.user and the revert refused when a changed field is not writable (C3, R8).
 BEGIN;
 
-SELECT plan(20);
+SELECT plan(27);
 
 SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();
@@ -32,6 +32,21 @@ UPDATE api.product SET purchase_price = 78 WHERE id = current_setting('test.spik
 RESET ROLE;
 SELECT private.unimpersonate();
 SELECT set_config('audit.transaction_id', '', TRUE);
+-- Writes authenticated is not granted through api, made by postgres (no request): a setting's key, a
+-- gate's position, and a listing submission created then deleted.
+UPDATE public.setting SET key = 'renamed_key' WHERE tenant_id = current_setting('test.moesa')::UUID AND key = 'deposit_rate_default';
+SELECT set_config('audit.transaction_id', '', TRUE);
+UPDATE public.project_gate SET position = position + 100 WHERE id = current_setting('test.gate')::UUID;
+SELECT set_config('audit.transaction_id', '', TRUE);
+INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+VALUES (current_setting('test.moesa')::UUID, current_setting('test.live_cell')::UUID, 'create', 'LS-T12', 'A1PA6795UKMFR9', '{}');
+SELECT set_config('audit.transaction_id', '', TRUE);
+DELETE FROM public.listing_submission WHERE sku = 'LS-T12';
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT set_config('test.akif_name', (SELECT user_metadata ->> 'display_name' FROM public.user WHERE id = current_setting('test.akif')::UUID), TRUE);
+SELECT set_config('test.tx_setting', (SELECT l.transaction_id FROM public.audit_log l WHERE l.table_name = 'setting' AND l.old_data ? 'key' ORDER BY l.id DESC LIMIT 1)::TEXT, TRUE);
+SELECT set_config('test.tx_gate', (SELECT l.transaction_id FROM public.audit_log l WHERE l.table_name = 'project_gate' AND l.old_data ? 'position' ORDER BY l.id DESC LIMIT 1)::TEXT, TRUE);
+SELECT set_config('test.tx_ls', (SELECT l.transaction_id FROM public.audit_log l WHERE l.table_name = 'listing_submission' AND l.operation = 'DELETE' AND l.old_data ->> 'sku' = 'LS-T12' ORDER BY l.id DESC LIMIT 1)::TEXT, TRUE);
 
 SELECT set_config('test.tx_cost', (SELECT l.transaction_id FROM public.audit_log l WHERE l.record_id = current_setting('test.secret')::UUID AND l.old_data ? 'purchase_price' ORDER BY l.id DESC LIMIT 1)::TEXT, TRUE);
 SELECT set_config('test.tx_name', (SELECT l.transaction_id FROM public.audit_log l WHERE l.record_id = current_setting('test.secret')::UUID AND l.old_data ? 'display_name' ORDER BY l.id DESC LIMIT 1)::TEXT, TRUE);
@@ -65,6 +80,10 @@ SELECT is((SELECT count(*)::INT FROM api.audit_log WHERE (new_data ->> 'purchase
 SELECT is((SELECT count(*)::INT FROM api.dashboard_notification_feed WHERE new_data ->> 'notes' LIKE 'secret%'), 0, 'notification feed masked');
 SELECT results_eq($$ SELECT a.id, a.email FROM api.audit_transaction t, api.actor(t) a WHERE t.id = current_setting('test.tx_cost')::UUID $$,
    $$ VALUES (current_setting('test.akif')::UUID, NULL::TEXT) $$, 'R9: the actor is embedded, with the e-mail masked');
+SELECT results_eq($$ SELECT api.display_name(a), a.email, a.user_metadata FROM api.audit_transaction t, api.actor(t) a WHERE t.id = current_setting('test.tx_cost')::UUID $$,
+   $$ VALUES (current_setting('test.akif_name'), NULL::TEXT, NULL::JSONB) $$, 'R9: the actor''s display name, without the e-mail or the rest of user_metadata');
+SELECT is((SELECT user_name FROM api.dashboard_notification_feed WHERE id = current_setting('test.tx_cost')::UUID), current_setting('test.akif_name'),
+   'R9: the feed shows the actor''s display name');
 SELECT set_config('audit.transaction_id', '', TRUE);
 SELECT lives_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_name')::UUID) $$, 'C3: reverting an open-field change works for a restricted user');
 SELECT set_config('audit.transaction_id', '', TRUE);
@@ -96,8 +115,19 @@ SELECT ok(private.field_calls_only_in_initplans('SELECT * FROM api.audit_log ORD
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('audit.transaction_id', '', TRUE);
-SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_rfp')::UUID) $$, '42501', 'role_field_permission_save_role_only',
-   'a revert touching role_field_permission is refused (S7), never partial');
+SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_rfp')::UUID) $$, '42501', 'audit_revert_field_forbidden',
+   'a revert touching role_field_permission (read-only api view; S7 behind it) is refused whole, never partial');
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_setting')::UUID) $$, '42501', 'audit_revert_field_forbidden',
+   'revert refused: setting.key has no UPDATE grant on api.setting');
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_gate')::UUID) $$, '42501', 'audit_revert_field_forbidden',
+   'revert refused: project_gate.position has no UPDATE grant on api.project_gate');
+SELECT set_config('audit.transaction_id', '', TRUE);
+SELECT throws_ok($$ SELECT public.revert_audit_transaction(current_setting('test.tx_ls')::UUID) $$, '42501', 'audit_revert_field_forbidden',
+   'revert of a listing_submission DELETE refused: no INSERT grant on api.listing_submission');
+SELECT is(t.peek('setting', 'key', (SELECT id FROM public.setting WHERE key = 'renamed_key' AND tenant_id = current_setting('test.moesa')::UUID)), 'renamed_key',
+   'nothing was written back');
 
 -- As postgres: the pure functions and the catalog.
 RESET ROLE;
@@ -111,6 +141,9 @@ SELECT is(private.mask_audit_data('transfer', current_setting('test.moesa')::UUI
 SELECT ok(pg_get_viewdef('api.transfer'::REGCLASS) LIKE '%mask_json_deep(t.report%' AND pg_get_viewdef('api.transfer'::REGCLASS) LIKE '%mask_json_deep(t.decisions%',
    'S4: api.transfer masks report and decisions');
 SELECT is((SELECT pg_get_userbyid(proowner)::TEXT FROM pg_proc WHERE oid = 'public.revert_audit_transaction(uuid)'::REGPROCEDURE), 'api_owner', 'R8: revert runs as api_owner');
+SELECT is_empty($$ SELECT p.oid::REGPROCEDURE FROM pg_proc p WHERE p.oid IN ('private.mask_json_keys(jsonb,text[])'::REGPROCEDURE,
+   'private.mask_json_deep(jsonb,uuid,jsonb,jsonb)'::REGPROCEDURE, 'private.mask_audit_data(text,uuid,jsonb,jsonb,jsonb)'::REGPROCEDURE,
+   'api.display_name(api.user)'::REGPROCEDURE) AND pg_get_userbyid(p.proowner) <> 'api_owner' $$, 'R8: the masking definers and display_name are owned by api_owner');
 SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'api_view_drift() is empty');
 
 -- Tamper: api.transfer with the report unmasked is reported by drift.

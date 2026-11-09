@@ -14,8 +14,8 @@
 --                        tenant's readers may not read becomes {"masked": true} ("changed", without the
 --                        value); for transfer, report and decisions go through mask_json_deep. A NULL
 --                        tenant masks every sensitive key.
---                        Both are SECURITY DEFINER only so their bodies may call each other by name
---                        (authenticated has no USAGE on private); they read no table.
+--                        Both are SECURITY DEFINER owned by api_owner (R8) only so their bodies may call
+--                        each other by name (authenticated has no USAGE on private); they read no table.
 -- private.api_json_masked  transfer.report, transfer.decisions (mask_json_deep) and audit_log.old_data,
 --                        audit_log.new_data (mask_audit_data over the row's table_name).
 -- private.api_column_expr  Restated (053): a JSON-masked column is generated as its mask call with the
@@ -27,23 +27,33 @@
 --                        Generated read-only, owner api_owner: plain columns, old_data/new_data masked.
 -- api.actor, api.reverter (api.audit_transaction)
 --                        SECURITY INVOKER over api.user: a colleague's personal data masked per S5.
+-- api.display_name(api.user)
+--                        R9: user_metadata ->> 'display_name' of a user the caller can see in api.user,
+--                        while the rest of user_metadata stays personal data (the feed's user_name).
 -- api.dashboard_notification_feed
 --                        010's feed over api.audit_transaction, api.audit_log and api.user (security
 --                        invoker, explicit column list, SELECT for authenticated only).
 -- public.revert_audit_transaction
 --                        040's revert as a SECURITY DEFINER owned by api_owner (R8). Before anything is
---                        written it collects the changed sensitive keys of the transaction's rows
---                        (UPDATE: the keys of old_data, which holds only the changed ones; INSERT: the
---                        non-NULL keys of new_data; DELETE: the non-NULL keys of old_data) and refuses
---                        when one is not writable in the row's tenant (C3). System paths pass as at the
---                        base write guard (private.field_guard_bypassed, S2). The conflict check still
---                        compares with the base rows.
---                        A transaction that touched public.role_field_permission still fails with
---                        role_field_permission_save_role_only (S7): its trigger refuses any write
---                        outside save_role, so such a revert is refused whole, never applied in part.
+--                        written it walks the changed keys of the transaction's rows (UPDATE: the keys
+--                        of old_data, which holds only the changed ones; INSERT: undone by a delete, the
+--                        non-NULL keys of new_data; DELETE: undone by an insert, the non-NULL keys of
+--                        old_data) and refuses
+--                          - a write authenticated is not granted on api.<table>: column UPDATE, column
+--                            INSERT, table DELETE (the api grants mirror the base grants and survive the
+--                            cutover, so api_owner's wider base grants never widen a revert);
+--                          - a sensitive key the caller may not write in the row's tenant (C3; system
+--                            paths pass as at the base write guard, S2).
+--                        The conflict check still compares with the base rows. A row the table refuses
+--                        (check, not-null, exclusion) is audit_conflict without the error's DETAIL,
+--                        which would show the row's values.
+--                        A transaction that touched public.role_field_permission (a read-only api view)
+--                        is refused by the grant check; were it not, its S7 trigger
+--                        (role_field_permission_save_role_only) would refuse it: refused whole, never
+--                        applied in part.
 --
---   audit_revert_field_forbidden (42501) the revert would write a field the caller may not write;
---                                DETAIL <table>.<field>
+--   audit_revert_field_forbidden (42501) the revert would write a field (or delete a row) the caller
+--                                may not; DETAIL <table>.<field> (or <table>)
 
 -- 1. Masking functions.
 
@@ -139,6 +149,18 @@ REVOKE ALL ON FUNCTION private.mask_audit_data (TEXT, UUID, JSONB, JSONB, JSONB)
 GRANT EXECUTE ON FUNCTION private.mask_json_deep (JSONB, UUID, JSONB, JSONB) TO authenticated;
 
 GRANT EXECUTE ON FUNCTION private.mask_audit_data (TEXT, UUID, JSONB, JSONB, JSONB) TO authenticated;
+
+-- R8: no definer is owned by postgres. api_owner reaches private by its own USAGE; changing the owner
+-- needs its CREATE on private for these statements only (as in 053).
+GRANT CREATE ON SCHEMA private TO api_owner;
+
+ALTER FUNCTION private.mask_json_keys (JSONB, TEXT[]) OWNER TO api_owner;
+
+ALTER FUNCTION private.mask_json_deep (JSONB, UUID, JSONB, JSONB) OWNER TO api_owner;
+
+ALTER FUNCTION private.mask_audit_data (TEXT, UUID, JSONB, JSONB, JSONB) OWNER TO api_owner;
+
+REVOKE CREATE ON SCHEMA private FROM api_owner;
 
 -- 2. The JSON-masked columns and the generator.
 
@@ -391,13 +413,34 @@ GRANT EXECUTE ON FUNCTION api.actor (api.audit_transaction) TO authenticated, se
 
 GRANT EXECUTE ON FUNCTION api.reverter (api.audit_transaction) TO authenticated, service_role;
 
+-- R9: the actor's name without the rest of user_metadata (personal data). Definer (api_owner) to read
+-- the one key; only for a user the caller can see in api.user, whatever row is passed in.
+CREATE OR REPLACE FUNCTION api.display_name (api.user) RETURNS TEXT LANGUAGE sql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+    SELECT u.user_metadata ->> 'display_name'
+    FROM public.user u
+    JOIN api.user v ON v.id = u.id
+    WHERE u.id = $1.id
+$$;
+
+REVOKE ALL ON FUNCTION api.display_name (api.user) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION api.display_name (api.user) TO authenticated, service_role;
+
+GRANT CREATE ON SCHEMA api TO api_owner;
+
+ALTER FUNCTION api.display_name (api.user) OWNER TO api_owner;
+
+REVOKE CREATE ON SCHEMA api FROM api_owner;
+
 -- The dashboard's latest changes (010) over the api views.
 CREATE OR REPLACE VIEW api.dashboard_notification_feed WITH (security_invoker = true) AS
 SELECT
    t.id,
    t.tenant_id,
    t.actor_id AS user_id,
-   u.user_metadata ->> 'display_name' AS user_name,
+   api.display_name (ROW (u.id, u.user_metadata, u.email, u.phone, u.created_at)::api.user) AS user_name,
    u.email AS user_email,
    t.operation,
    t.table_name,
@@ -456,6 +499,8 @@ DECLARE
     affected INT;
     blocked TEXT;
     forbidden TEXT;
+    chk RECORD;
+    api_view REGCLASS;
 BEGIN
     SELECT * INTO target FROM public.audit_transaction t WHERE t.id = revert_audit_transaction.transaction_id;
 
@@ -478,23 +523,45 @@ BEGIN
             DETAIL = json_build_object('status', 409, 'headers', json_build_object())::TEXT;
     END IF;
 
-    -- C3: every field the revert would write back must be writable by the caller in the row's
-    -- tenant. The changed keys: UPDATE rows hold only those in old_data; an INSERT is undone by
-    -- deleting its non-NULL values, a DELETE by inserting its non-NULL values again.
-    IF NOT private.field_guard_bypassed() THEN
-        SELECT l.table_name || '.' || k.key INTO forbidden
+    -- Before anything is written, every change the revert makes must be one the caller could make
+    -- through the api: an UPDATE writes back the keys of old_data (UPDATE rows hold only the changed
+    -- ones), an INSERT is undone by a delete, a DELETE by inserting its non-NULL values again.
+    --   Grants: the column UPDATE/INSERT or table DELETE authenticated holds on api.<table> (they
+    --   mirror its base grants and stay after the cutover); no api view, nothing is granted.
+    --   C3: a sensitive key must be writable by the caller in the row's tenant (system paths pass, S2).
+    FOR chk IN
+        SELECT l.table_schema, l.table_name, l.operation, l.tenant_id, k.key,
+               coalesce(a.attgenerated = '', FALSE) AS stored
         FROM public.audit_log l
-        CROSS JOIN LATERAL jsonb_each(CASE WHEN l.operation = 'INSERT' THEN l.new_data ELSE l.old_data END) AS k (key, value)
+        LEFT JOIN LATERAL (
+            SELECT e.key FROM jsonb_each(CASE WHEN l.operation = 'INSERT' THEN l.new_data ELSE l.old_data END) AS e (key, value)
+            WHERE l.operation = 'UPDATE' OR e.value <> 'null'::JSONB
+        ) AS k ON TRUE
+        LEFT JOIN pg_catalog.pg_attribute a
+          ON a.attrelid = to_regclass(format('%I.%I', l.table_schema, l.table_name)) AND a.attname = k.key
+         AND a.attnum > 0 AND NOT a.attisdropped
         WHERE l.transaction_id = target.id AND l.created_at = target.created_at
-          AND (l.operation = 'UPDATE' OR k.value <> 'null'::JSONB)
-          AND private.api_is_sensitive(l.table_schema || '.' || l.table_name, k.key)
-          AND NOT coalesce(l.tenant_id = ANY (private.field_write_tenants(l.table_schema || '.' || l.table_name, k.key)), FALSE)
         ORDER BY l.id, k.key
-        LIMIT 1;
+    LOOP
+        api_view := CASE WHEN chk.table_schema = 'public' THEN to_regclass(format('api.%I', chk.table_name)) END;
+        IF api_view IS NULL
+           OR (chk.operation = 'INSERT' AND NOT has_table_privilege('authenticated', api_view, 'DELETE')) THEN
+            forbidden := chk.table_name;
+        ELSIF chk.key IS NULL THEN
+            CONTINUE;
+        ELSIF chk.stored AND chk.operation = 'UPDATE' AND NOT has_column_privilege('authenticated', api_view, chk.key, 'UPDATE') THEN
+            forbidden := chk.table_name || '.' || chk.key;
+        ELSIF chk.stored AND chk.operation = 'DELETE' AND NOT has_column_privilege('authenticated', api_view, chk.key, 'INSERT') THEN
+            forbidden := chk.table_name || '.' || chk.key;
+        ELSIF NOT private.field_guard_bypassed()
+              AND private.api_is_sensitive(chk.table_schema || '.' || chk.table_name, chk.key)
+              AND NOT coalesce(chk.tenant_id = ANY (private.field_write_tenants(chk.table_schema || '.' || chk.table_name, chk.key)), FALSE) THEN
+            forbidden := chk.table_name || '.' || chk.key;
+        END IF;
         IF forbidden IS NOT NULL THEN
             RAISE EXCEPTION 'audit_revert_field_forbidden' USING ERRCODE = '42501', DETAIL = forbidden;
         END IF;
-    END IF;
+    END LOOP;
 
     -- Read by private.audit_begin when this transaction's first write is logged.
     PERFORM set_config('audit.reverts', target.id::TEXT, true);
@@ -558,6 +625,12 @@ BEGIN
                 -- A deleted row that was created again.
                 WHEN unique_violation THEN
                     affected := 0;
+                -- A row the table refuses: a conflict, without the DETAIL (it would show the row's values,
+                -- read with api_owner's rights).
+                WHEN check_violation OR not_null_violation OR exclusion_violation THEN
+                    RAISE SQLSTATE 'PGRST' USING
+                        MESSAGE = json_build_object('code', 'P0001', 'message', 'audit_conflict')::TEXT,
+                        DETAIL = json_build_object('status', 409, 'headers', json_build_object())::TEXT;
             END;
 
             IF affected = 0 THEN
