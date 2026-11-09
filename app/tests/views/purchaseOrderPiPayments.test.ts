@@ -21,12 +21,13 @@ import {
 } from '@/views/pages/ops/purchase-order/usePurchaseOrderForm';
 import i18n, { i18NPlugin } from '@plugins/i18n';
 import { abilitiesPlugin } from '@casl/vue';
-import { flushPromises, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
+enableAutoUnmount(afterEach);
 
 const api = vi.hoisted(() => ({
    updateRow: vi.fn(),
