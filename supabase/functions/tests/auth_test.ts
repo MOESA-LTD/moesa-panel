@@ -1,6 +1,6 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import { type Access, buildAbility, isAuthorized, resolveTenantId } from '../_shared/auth.ts';
-import { supabaseClient } from '../_shared/supabaseClient.ts';
+import { supabaseAdmin, supabaseClient, supabaseService } from '../_shared/supabaseClient.ts';
 import { stubFetch } from './helpers.ts';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
@@ -84,4 +84,20 @@ Deno.test('the user client reads the api schema and calls RPCs in public', async
    }
    assertEquals(seen[0].get('Accept-Profile'), 'api');
    assertEquals(seen[1].get('Accept-Profile') ?? seen[1].get('Content-Profile'), 'public');
+});
+
+Deno.test('the service-role clients pin the public profile', async () => {
+   const seen: Headers[] = [];
+   const restore = stubFetch((_url, init) => {
+      seen.push(new Headers(init?.headers));
+      return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
+   });
+   try {
+      await supabaseAdmin().from('product').select('id');
+      await supabaseService({ role: 'amazon-poll' }).from('product').select('id');
+   } finally {
+      restore();
+   }
+   assertEquals(seen[0].get('Accept-Profile'), 'public');
+   assertEquals(seen[1].get('Accept-Profile'), 'public');
 });

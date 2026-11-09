@@ -14,6 +14,9 @@ const options = {
    }
 };
 
+// Service reads never depend on the order of the exposed schemas: pin the profile to public.
+const serviceOptions = { ...options, db: { schema: 'public' as const } };
+
 const FORWARDED_HEADERS = ['Authorization', 'x-tenant-id', 'x-tenant-ids'];
 
 let admin: SupabaseClient<Database> | undefined;
@@ -23,7 +26,7 @@ export const supabaseAdmin = () =>
    (admin ??= createClient<Database>(
       requireEnv('SUPABASE_URL'),
       requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
-      options
+      serviceOptions
    ));
 
 /** The functions that may label their service-role writes in the audit (046 audit_service_actor). */
@@ -41,7 +44,7 @@ export type AuditRole =
  */
 export const supabaseService = (audit: { role: AuditRole; actorId?: string }) =>
    createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
-      ...options,
+      ...serviceOptions,
       global: {
          headers: {
             'x-audit-role': audit.role,
