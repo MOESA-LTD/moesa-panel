@@ -88,7 +88,7 @@ SELECT throws_ok($$ SELECT public.import_products('[{"sku":"NULL-COST","customer
 SELECT throws_ok($$ SELECT public.import_products('[{"sku":"NULL-COST","customer_code":"THO","supplier_code":null}]'::JSONB) $$,
    '42501', 'field_write_forbidden', 'S1: import refuses a null supplier link over a NULL one alike');
 -- A pass without a note leaves the stored note untouched.
-SELECT lives_ok($$ SELECT public.pass_gate(current_setting('test.gate')::UUID, NULL) $$, 'pass_gate without a note passes for a caller without note write');
+SELECT lives_ok($$ SELECT public.pass_gate(current_setting('test.gate')::UUID, '  ') $$, 'pass_gate with a blank note (as the app sends it) passes for a caller without note write');
 SELECT is(t.peek('project_gate', 'note', current_setting('test.gate')::UUID), 'gate secret', 'pass_gate without a note keeps the stored note');
 
 -- As portal in MOESA LTD.

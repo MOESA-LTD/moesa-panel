@@ -965,10 +965,10 @@ BEGIN
             DETAIL = json_build_object('status', 404, 'headers', json_build_object())::TEXT;
     END IF;
 
-    -- S1: a note given is a write of project_gate.note, whatever the stored one. A NULL note is no
+    -- S1: a note given is a write of project_gate.note, whatever the stored one. A NULL or blank note is no
     -- note: the stored one stays as it is (never cleared), so a pass without a note writes nothing
     -- there and tells nothing about it.
-    IF pass_gate.note IS NOT NULL THEN
+    IF nullif(btrim(pass_gate.note), '') IS NOT NULL THEN
         PERFORM private.require_field_write('public.project_gate', 'note', gate_tenant);
     END IF;
 
@@ -976,7 +976,7 @@ BEGIN
     SET status = 'passed',
         passed_at = now(),
         decided_by_role = NULL,
-        note = coalesce(pass_gate.note, g.note),
+        note = coalesce(nullif(btrim(pass_gate.note), ''), g.note),
         customer_approved_on = pass_gate.customer_approved_on,
         approval_document_id = pass_gate.approval_document_id,
         evidence_document_ids = coalesce(pass_gate.evidence_document_ids, '{}')
