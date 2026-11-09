@@ -7,8 +7,9 @@
 -- full DML on the bases its writable views forward to, SELECT only on the read-only ones), and every
 -- function EXECUTE grant (the converted RPCs, my_access and friends are unchanged).
 --
--- Production: expose the `api` schema (Dashboard -> Settings -> API -> Exposed schemas: public, api)
--- before `supabase db push`, push 048-064 in one go, and deploy the app in the same window (README).
+-- Production order (README): (1) Exposed schemas = `public, api`, in that order (the first is the
+-- default profile); (2) `supabase db push` 048-065; (3) `supabase functions deploy` right after the
+-- push, never before (the new functions need `api`); (4) deploy the app in the same window, reload tabs.
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
 
 -- Tables created later by postgres in public grant nothing to the client roles either; a new table

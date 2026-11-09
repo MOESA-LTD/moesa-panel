@@ -255,16 +255,20 @@ Deploy the four functions with
 
 ### Field-level permissions (064)
 
-Migrations 048–064 move every user-side read and write to the masked views in the `api` schema,
+Migrations 048–065 move every user-side read and write to the masked views in the `api` schema,
 and 064 revokes anon's and authenticated's grants on every `public` table and view. From then on
 a signed-in request that names `public` gets 42501. The service role keeps its grants. To ship it:
 
-1. Before `supabase db push`, set Dashboard → Settings → API → Exposed schemas to `public, api`, or
-   send the same PATCH that CI sends to staging:
+1. Set Dashboard → Settings → API → Exposed schemas to `public, api`, in that order, or send the
+   same PATCH that CI sends to staging:
    `curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' "https://api.supabase.com/v1/projects/<ref>/postgrest" --data '{"db_schema":"public,api"}'`.
-2. Push 048–064 in one go.
-3. Deploy the app in the same window. Open tabs must reload: a stale bundle still asks for
-   `public` and gets 42501.
+   The order matters: the first schema is the default profile, the one a request without
+   `Accept-Profile` reads, so `public` must stay first.
+2. `supabase db push` for 048–065, in one go.
+3. `supabase functions deploy` immediately after the push, never before: the new functions read
+   through `api`, which does not exist until the push.
+4. Deploy the app in the same window and reload open tabs: a stale bundle still asks for `public`
+   and gets 42501 (the app reloads itself once on that error).
 
 ### Schedules (pg_cron + pg_net)
 
