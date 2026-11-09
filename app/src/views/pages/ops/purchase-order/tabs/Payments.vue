@@ -63,6 +63,7 @@ const depositDiffers = (payment: PurchaseOrderPaymentRow) => {
       payment.kind === 'deposit' &&
       deposit !== null &&
       deposit !== undefined &&
+      payment.amount !== null &&
       toUnits(payment.amount, 2) !== toUnits(deposit, 2)
    );
 };

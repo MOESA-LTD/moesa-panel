@@ -873,6 +873,7 @@
    },
    "audit_log": {
       "no_changes_detected": "未检测到更改",
+      "masked": "已更改",
       "add": "添加",
       "update": "更新",
       "delete": "删除",

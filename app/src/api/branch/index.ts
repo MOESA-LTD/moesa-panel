@@ -4,7 +4,7 @@ import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { email, optional, phone, requiredText, website } from '@/lib/form/fields';
 import i18n from '@plugins/i18n';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -73,7 +73,7 @@ export const branchRepository = {
          return data as Branch;
       }
 
-      const { data } = await supabase
+      const { data } = await publicSchema
          .rpc('create_branch', { parent_id: parent_id!, branch })
          .throwOnError();
       return data as Branch;
@@ -115,7 +115,7 @@ export const branchRepository = {
 
    /** Removes a branch without branches of its own, with everything in it (see delete_branch). */
    async remove(id: string) {
-      await supabase.rpc('delete_branch', { branch_id: id }).throwOnError();
+      await publicSchema.rpc('delete_branch', { branch_id: id }).throwOnError();
    }
 };
 

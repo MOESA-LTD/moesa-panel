@@ -31,6 +31,10 @@ const getLogTagProps = (log: Log) => {
    }
 };
 
+/** The marker the api puts in place of a field the reader may not read (api.audit_log). */
+const isMasked = (value: unknown) =>
+   _isPlainObject(value) && _size(value as object) === 1 && _get(value, 'masked') === true;
+
 const getChanges = (log: Log | null | undefined): Log => {
    if (!_isObject(log)) return {};
 
@@ -65,7 +69,10 @@ const getChanges = (log: Log | null | undefined): Log => {
    // An update keeps the old values of the changed columns only; objects show their changed parts.
    log.changes = _toPairs(oldData).map(([key, oldValue]): LogChange => {
       const newValue = _get(rowData, key);
-      return _isPlainObject(oldValue) && _isPlainObject(newValue)
+      return _isPlainObject(oldValue) &&
+         _isPlainObject(newValue) &&
+         !isMasked(oldValue) &&
+         !isMasked(newValue)
          ? {
               key,
               type: 'update',
@@ -108,6 +115,8 @@ function getLogEntryRoute(entry: LogChange) {
 
 function formatValue(value: any, indentSize = 0): any {
    if (_isNil(value)) return '—';
+
+   if (isMasked(value)) return t('audit_log.masked');
 
    if (_isString(value) && isValidDate({ value })) {
       return localeDateString({ value });
@@ -199,7 +208,8 @@ const log = shallowRef(getChanges(props.data && { ...props.data }));
                      (log.operation !== 'INSERT' || entry?.type !== 'delete') &&
                      !!fieldRoutes[entry.key] &&
                      _endsWith(entry.key, '_id') &&
-                     !!entry?.newValue
+                     !!entry?.newValue &&
+                     !isMasked(entry.newValue)
                   "
                   :to="getLogEntryRoute(entry)"
                   v-slot="{ navigate }"

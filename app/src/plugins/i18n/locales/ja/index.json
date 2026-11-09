@@ -873,6 +873,7 @@
    },
    "audit_log": {
       "no_changes_detected": "変更が検出されませんでした",
+      "masked": "変更済み",
       "add": "追加",
       "update": "更新",
       "delete": "削除",

@@ -17,6 +17,12 @@ describe('UserModel', () => {
       expect(toModel(UserModel, user({ display_name: '' })).displayName).toBe('ada@example.com');
       expect(toModel(UserModel, user(null)).displayName).toBe('ada@example.com');
    });
+
+   it('prefers the display name the api computes, which survives a masked user', () => {
+      const masked = { ...user(null), email: null, display_name: 'Ada' };
+      expect(toModel(UserModel, masked).displayName).toBe('Ada');
+      expect(toModel(UserModel, { ...masked, display_name: null }).displayName).toBe('');
+   });
 });
 
 describe('AuditTransactionModel', () => {

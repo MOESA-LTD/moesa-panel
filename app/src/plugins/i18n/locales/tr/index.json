@@ -819,6 +819,7 @@
    },
    "audit_log": {
       "no_changes_detected": "Değişiklik tespit edilmedi",
+      "masked": "değişti",
       "add": "Ekle",
       "update": "Güncelle",
       "delete": "Sil",

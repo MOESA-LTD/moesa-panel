@@ -3,7 +3,7 @@ import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { LIMIT_KEYS } from '@/api/subscription';
 import { useTenantKey } from '@/api/useTenantKey';
 import { requiredText } from '@/lib/form/fields';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import i18n from '@plugins/i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -44,7 +44,7 @@ export const planRepository = {
 
    /** Saves the plan with its modules and limits in one transaction (see save_plan). */
    async save({ plan, moduleIds, limits }: PlanInput) {
-      const { data: id } = await supabase
+      const { data: id } = await publicSchema
          .rpc('save_plan', { plan_data: plan, module_ids: moduleIds, limits })
          .throwOnError();
       return planRepository.get(id, new AbortController().signal);

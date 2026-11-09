@@ -212,6 +212,12 @@ describe('status flow', () => {
          'in_production',
          'cancelled'
       ]);
+      // A masked rate: both ways are offered, the database takes the right one.
+      expect(nextPurchaseOrderStatuses({ status: 'pi_approved', deposit_rate: null })).toEqual([
+         'deposit_paid',
+         'in_production',
+         'cancelled'
+      ]);
       expect(nextPurchaseOrderStatuses({ status: 'balance_paid', deposit_rate: 30 })).toEqual([
          'closed',
          'cancelled'

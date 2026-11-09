@@ -4,7 +4,7 @@ import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { serializeCsv } from '@/lib/csv/serialize';
 import { NAMED_ERRORS } from '@/lib/form/postgrestErrors';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import i18n from '@plugins/i18n';
@@ -173,7 +173,7 @@ export async function fetchTransferOptions(
    customerId: string | null = null
 ): Promise<TransferOptions> {
    // The generated Args type has no null for the defaulted parameter; null is its default.
-   const { data } = await supabase
+   const { data } = await publicSchema
       .rpc('transfer_options', { source_tenant: sourceTenant, customer_id: customerId as string })
       .throwOnError();
    return data as TransferOptions;
@@ -181,7 +181,7 @@ export async function fetchTransferOptions(
 
 // The generated Args type has no null for the defaulted parameters; null is their default.
 const transferCall = (args: TransferArgs, dryRun: boolean, reportHash: string | null) =>
-   supabase
+   publicSchema
       .rpc('transfer_customer', {
          source_tenant: args.source_tenant,
          target_tenant: args.target_tenant,
@@ -238,7 +238,7 @@ export async function copyTransferFiles(transfer: TransferRow): Promise<Transfer
    }
    if (failed.length) console.warn('Transfer files not copied', transfer.id, failed);
 
-   const { data } = await supabase
+   const { data } = await publicSchema
       .rpc('transfer_check_files', { transfer_id: transfer.id })
       .throwOnError();
    const checked = data as TransferRow;

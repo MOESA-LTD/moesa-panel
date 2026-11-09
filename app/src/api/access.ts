@@ -1,5 +1,5 @@
 import type { PermissionClaim } from '@plugins/casl';
-import { supabase } from '@/lib/supabase';
+import { publicSchema } from '@/lib/supabase';
 
 export type Tenant = {
    id: string;
@@ -59,6 +59,8 @@ export type Access = {
  * user does not belong to it (any more).
  */
 export async function fetchAccess(requested: string | null): Promise<Access | null> {
-   const { data } = await supabase.rpc('my_access', requested ? { requested } : {}).throwOnError();
+   const { data } = await publicSchema
+      .rpc('my_access', requested ? { requested } : {})
+      .throwOnError();
    return data as Access | null;
 }

@@ -161,20 +161,19 @@ export const isPurchaseOrderLocked = (status: PurchaseOrderStatus) =>
 
 /**
  * Where the order may go (rule 1 of purchase_order_guard): the next step, then cancelled. Without a
- * deposit (rate 0) pi_approved goes straight to in_production. Closed and cancelled are final.
+ * deposit (rate 0) pi_approved goes straight to in_production; when the rate is masked (null) both
+ * are offered and the database refuses the wrong one. Closed and cancelled are final.
  */
 export function nextPurchaseOrderStatuses({
    status,
    deposit_rate
 }: Pick<PurchaseOrderRow, 'status' | 'deposit_rate'>): PurchaseOrderStatus[] {
    if (status === 'closed' || status === 'cancelled') return [];
-   const next: PurchaseOrderStatus =
-      status === 'pi_approved'
-         ? deposit_rate > 0
-            ? 'deposit_paid'
-            : 'in_production'
-         : PURCHASE_ORDER_STATUSES[statusIndex(status) + 1]!;
-   return [next, 'cancelled'];
+   if (status !== 'pi_approved') {
+      return [PURCHASE_ORDER_STATUSES[statusIndex(status) + 1]!, 'cancelled'];
+   }
+   if (deposit_rate === null) return ['deposit_paid', 'in_production', 'cancelled'];
+   return [deposit_rate > 0 ? 'deposit_paid' : 'in_production', 'cancelled'];
 }
 
 /** All 30 PI check items are "ok", as approving the PI requires (po_pi_checklist_incomplete). */
@@ -210,7 +209,7 @@ export const supplierDefaults = ({
 export const PURCHASE_ORDER_SELECT = [
    '*',
    'customer!purchase_order_customer_fkey(code, display_name)',
-   'supplier!purchase_order_supplier_fkey(code, display_name, default_incoterm, deposit_rate)',
+   'supplier(code, display_name, default_incoterm, deposit_rate)',
    'project!purchase_order_project_fkey(code, display_name)',
    'purchase_order_line!purchase_order_line_po_fkey(*, product!purchase_order_line_product_fkey(id, sku, display_name, status, purchase_price, purchase_currency), spec_document:document!purchase_order_line_spec_fkey(id, version, status))',
    'purchase_order_payment!purchase_order_payment_po_fkey(*)'

@@ -873,6 +873,7 @@
    },
    "audit_log": {
       "no_changes_detected": "변경 사항이 감지되지 않았습니다.",
+      "masked": "변경됨",
       "add": "추가",
       "update": "수정",
       "delete": "삭제",

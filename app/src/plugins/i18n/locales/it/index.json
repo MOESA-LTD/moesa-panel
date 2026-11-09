@@ -179,6 +179,7 @@
    },
    "audit_log": {
       "no_changes_detected": "Nessuna modifica rilevata",
+      "masked": "modificato",
       "add": "Aggiungi",
       "update": "Aggiorna",
       "delete": "Elimina",

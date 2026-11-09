@@ -179,6 +179,7 @@
    },
    "audit_log": {
       "no_changes_detected": "لم يتم اكتشاف أي تغييرات",
+      "masked": "تم التغيير",
       "add": "إضافة",
       "update": "تحديث",
       "delete": "حذف",

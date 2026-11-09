@@ -2,7 +2,7 @@ import { forTenant } from '@/api/formTenant';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { email, requiredText } from '@/lib/form/fields';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
@@ -81,7 +81,7 @@ export const userRepository = {
       // read, the others' roles would be visible to it, and removed.
       if (roleIds) {
          await forTenant(
-            supabase.rpc('set_user_roles', { user_id: userId, role_ids: roleIds }),
+            publicSchema.rpc('set_user_roles', { user_id: userId, role_ids: roleIds }),
             tenantId
          ).throwOnError();
       }

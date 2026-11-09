@@ -1,5 +1,5 @@
 import type { Tenant } from '@/api/access';
-import { supabase } from '@/lib/supabase';
+import { publicSchema } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import i18n from '@plugins/i18n';
 import { useQuery } from '@tanstack/vue-query';
@@ -22,7 +22,7 @@ export type Membership = {
 
 /** The user's roles per tenant; a tenant reached only through ownership has no row. */
 export async function fetchMyRoles(): Promise<TenantRoles[]> {
-   const { data } = await supabase.rpc('my_memberships').throwOnError();
+   const { data } = await publicSchema.rpc('my_memberships').throwOnError();
    return data ?? [];
 }
 

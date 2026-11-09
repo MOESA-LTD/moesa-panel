@@ -873,6 +873,7 @@
    },
    "audit_log": {
       "no_changes_detected": "Keine Änderungen erkannt",
+      "masked": "geändert",
       "add": "Hinzufügen",
       "update": "Aktualisieren",
       "delete": "Löschen",

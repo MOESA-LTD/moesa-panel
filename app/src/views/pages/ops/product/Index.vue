@@ -154,7 +154,8 @@ const fetchExportRows = async () => {
          .range(from, from + EXPORT_PAGE - 1);
       if (customerFilter.customerId) query = query.eq('customer_id', customerFilter.customerId);
       const { data } = await query.throwOnError();
-      products.push(...(data as ProductExportRow[]));
+      // `supplier` is the api's computed relationship, which the generated types do not know.
+      products.push(...(data as unknown as ProductExportRow[]));
       if (data.length < EXPORT_PAGE) return products;
    }
 };

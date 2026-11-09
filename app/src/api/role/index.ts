@@ -1,7 +1,7 @@
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { requiredText } from '@/lib/form/fields';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -17,19 +17,24 @@ export type RoleInput = {
 
 export const roleRepository = {
    async get(id: string, signal: AbortSignal) {
+      // Through the link table: across the `api` views the many-to-many embed is ambiguous.
       const { data } = await supabase
          .from('role')
-         .select('*, permission(id, kind, group_name)')
+         .select('*, role_permission(permission(id, kind, group_name))')
          .eq('id', id)
          .abortSignal(signal)
          .maybeSingle()
          .throwOnError();
-      return data as RoleWithPermissions | null;
+      if (!data) return null;
+      const { role_permission, ...role } = data as unknown as Tables['role']['Row'] & {
+         role_permission: { permission: Permission }[];
+      };
+      return { ...role, permission: role_permission.map(({ permission }) => permission) };
    },
 
    /** Saves the role and its permissions in one transaction (see save_role). */
    async save({ role, permissionIds }: RoleInput) {
-      const { data: id } = await supabase
+      const { data: id } = await publicSchema
          .rpc('save_role', {
             // A new role belongs to the current tenant; the tenant policies check it.
             role_data: { ...role, tenant_id: useAuthStore().currentTenant?.id },

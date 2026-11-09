@@ -4,7 +4,7 @@ import type { DocumentEntity } from '@/api/document';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { optional } from '@/lib/form/fields';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -162,7 +162,7 @@ export const toMediaPayload = ({
 const maxBytesQuery = (tenantId: string | null) => ({
    queryKey: queryKeys.list(tenantId, 'setting', { rpc: 'media_max_bytes' }),
    queryFn: async () => {
-      const { data } = await supabase.rpc('media_max_bytes').throwOnError();
+      const { data } = await publicSchema.rpc('media_max_bytes').throwOnError();
       return data;
    }
 });
@@ -294,7 +294,9 @@ export function useSetLinkRole() {
 /** Makes a link its record's primary image; the old one becomes a gallery image (see 025). */
 export function useSetPrimaryMedia() {
    return useMediaMutation(async ({ linkId }: { linkId: string }) => {
-      const { data } = await supabase.rpc('set_primary_media', { link_id: linkId }).throwOnError();
+      const { data } = await publicSchema
+         .rpc('set_primary_media', { link_id: linkId })
+         .throwOnError();
       return data as MediaLinkRow;
    });
 }
