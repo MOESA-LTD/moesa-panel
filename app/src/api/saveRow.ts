@@ -1,4 +1,16 @@
 import { supabase } from '@/lib/supabase';
+import { ability } from '@plugins/casl';
+
+/**
+ * Leaves out the fields the user may not write (my_access.fields): a form keeps a masked field as
+ * null, which must not overwrite the stored value. The `api` views refuse them anyway.
+ */
+function writable<T extends object>(table: string, action: 'insert' | 'update', values: T): T {
+   if (!ability.can(action, table)) return values;
+   return Object.fromEntries(
+      Object.entries(values).filter(([field]) => ability.can(action, table, field))
+   ) as T;
+}
 
 /**
  * Inserts a new row (it goes to the active tenant, see customFetch) or updates the existing one
@@ -12,8 +24,8 @@ export function saveRow<Row>(table: keyof Tables, values: object, select = '*') 
 
    return (
       id
-         ? query.update(changes).eq('id', id)
-         : query.insert(tenant_id ? { ...changes, tenant_id } : changes)
+         ? query.update(writable(table, 'update', changes)).eq('id', id)
+         : query.insert(writable(table, 'insert', tenant_id ? { ...changes, tenant_id } : changes))
    )
       .select(select)
       .single()
@@ -46,7 +58,7 @@ export function updateRow<T extends keyof Tables>(
    const query = supabase.from(table as keyof Tables) as unknown as PatchBuilder<Tables[T]['Row']>;
 
    return query
-      .update(patch)
+      .update(writable(table, 'update', patch as object))
       .eq('id', id)
       .select()
       .single()

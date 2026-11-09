@@ -1,4 +1,6 @@
-import type { PermissionClaim } from '@plugins/casl';
+import type { FieldRight, PermissionClaim } from '@plugins/casl';
+
+export type { FieldRight };
 import { publicSchema } from '@/lib/supabase';
 
 export type Tenant = {
@@ -12,6 +14,8 @@ export type Tenant = {
    owned?: boolean;
    /** The user's permissions in it. */
    permissions?: PermissionClaim[];
+   /** The user's field rights in it, when given (else those of `Access.fields` for the active one). */
+   fields?: FieldRight[];
 };
 
 /** The limits of a plan (a missing one is unlimited), see public.plan_limit. */
@@ -49,6 +53,8 @@ export type Access = {
    tenant_id: string | null;
    tenants: Tenant[];
    permissions: PermissionClaim[];
+   /** The user's right on each sensitive field in the active tenant (public.field_class). */
+   fields: FieldRight[];
    subscription: SubscriptionSummary | null;
    is_super_admin: boolean;
 };

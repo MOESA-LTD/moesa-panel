@@ -88,15 +88,26 @@ export const useAuthStore = defineStore('auth', () => {
       return [active, ...others.sort()].join(',');
    });
 
+   // The active tenant's permissions and field rights; reloaded with the access (refreshAccess),
+   // so forms and tables follow a change without a page reload.
    watch(
-      () => access.value?.permissions,
-      (permissions) => ability.update(toAbilityRules(permissions)),
+      () => [access.value?.permissions, access.value?.fields] as const,
+      ([permissions, fields]) => ability.update(toAbilityRules(permissions, fields)),
       { immediate: true }
    );
 
    // Each tenant's own permissions, for rows of the other branches shown.
    const tenantAbilities = computed(
-      () => new Map(branches.value.map(({ id, permissions }) => [id, createAbility(permissions)]))
+      () =>
+         new Map(
+            branches.value.map(({ id, permissions, fields }) => [
+               id,
+               createAbility(
+                  permissions,
+                  fields ?? (id === access.value?.tenant_id ? access.value?.fields : undefined)
+               )
+            ])
+         )
    );
 
    /**

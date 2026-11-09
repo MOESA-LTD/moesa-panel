@@ -61,7 +61,14 @@ export function useSaveRole() {
 
    return useMutation({
       mutationFn: roleRepository.save,
-      onSuccess: () => invalidateTables(queryClient, ['role', 'role_permission'])
+      onSuccess: () => {
+         invalidateTables(queryClient, ['role', 'role_permission']);
+         // The user may hold the role: their permissions and field rights may have changed, and
+         // a change of field rights alone is not broadcast (see private.notify_access_changed).
+         useAuthStore()
+            .refreshAccess()
+            .catch(() => {});
+      }
    });
 }
 
