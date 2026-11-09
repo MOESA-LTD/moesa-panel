@@ -1,7 +1,7 @@
 -- Supabase grants ALL on every public table to anon and authenticated. TRUNCATE ignores RLS, so any
 -- signed-in user could empty a table; REFERENCES and TRIGGER are no use to the API roles either.
 -- Views and materialized views carry the same grants and are covered. SELECT/INSERT/UPDATE/DELETE stay
--- until the field-permissions cutover.
+-- until the field-permissions cutover. supabase_admin defaults are left alone: migrations run as postgres.
 DO $$
 DECLARE
     t RECORD;
