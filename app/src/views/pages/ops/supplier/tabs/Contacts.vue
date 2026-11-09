@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canInsertFields } from '@/composables/useFieldAccess';
 import type { ResourceTableProps } from '@/components/service-components/resource-table/ResourceTable.vue';
 import {
    createFilters,
@@ -62,7 +63,7 @@ const rowActions: Props['rowActions'] = [
          <span class="flex items-center justify-between gap-4">
             <span class="font-semibold">{{ $t('ops.supplier.tabs.contacts') }}</span>
             <CustomLink
-               v-if="$can('create', 'supplier_contact')"
+               v-if="$can('create', 'supplier_contact') && canInsertFields('supplier_contact')"
                :to="{
                   name: 'ops-supplier-contact-add',
                   params: { supplierId: id },

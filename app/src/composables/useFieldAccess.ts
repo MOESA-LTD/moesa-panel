@@ -1,4 +1,4 @@
-import { ability } from '@plugins/casl';
+import { ability, isFieldWriteForbidden } from '@plugins/casl';
 import { inject, provide, shallowRef, type InjectionKey } from 'vue';
 
 // Bumped whenever the rights change, so templates and computeds asking below follow them.
@@ -57,3 +57,29 @@ export const readableColumns = <C extends { field?: unknown }>(table: string, co
    const { canRead } = useFieldAccess(VIEW_TABLES[table] ?? table);
    return columns.filter(({ field }) => typeof field !== 'string' || canRead(field));
 };
+
+/**
+ * The sensitive columns a new row cannot do without: NOT NULL, without a default and not filled by
+ * a trigger (purchase_order's incoterm and deposit_rate come from the supplier). saveRow leaves out
+ * a column the user may not write, so the insert would fail (23502); no form offers it then.
+ * user.email is left out: users are invited through the user Edge Function, not saveRow.
+ */
+export const REQUIRED_MASKED_FIELDS: Readonly<Record<string, readonly string[]>> = {
+   customer_contact: ['name'],
+   incident_log: ['note'],
+   purchase_order: ['supplier_id'],
+   purchase_order_line: ['unit_price'],
+   purchase_order_payment: ['amount', 'currency'],
+   supplier_contact: ['name']
+};
+
+/**
+ * Whether the field rights leave a new row of `table` possible: no column it needs is one the user
+ * may not write. The table permission (`create`) is asked separately.
+ */
+export function canInsertFields(table: string): boolean {
+   void version.value;
+   return !(REQUIRED_MASKED_FIELDS[table] ?? []).some((field) =>
+      isFieldWriteForbidden(table, field)
+   );
+}

@@ -345,6 +345,21 @@ describe('lines tab', () => {
       expect(wrapper.findAll('[data-link="ops-purchase-order-line-edit"]')).toHaveLength(2);
    });
 
+   it('offers no new line to a user who may not write the unit price (NOT NULL)', () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         ...['insert', 'update'].map((action) => ({
+            action,
+            subject: 'purchase_order_line',
+            fields: ['unit_price'],
+            inverted: true
+         }))
+      ]);
+      const wrapper = mountTab(Lines, standInForm(order('sent', lines)));
+      expect(wrapper.find('[data-link="ops-purchase-order-line-add"]').exists()).toBe(false);
+      expect(wrapper.findAll('[data-link="ops-purchase-order-line-edit"]')).toHaveLength(2);
+   });
+
    it('hides adding and editing once the order is locked', () => {
       const wrapper = mountTab(Lines, standInForm(order('pi_approved', lines)));
       expect(wrapper.find('[data-link="ops-purchase-order-line-add"]').exists()).toBe(false);

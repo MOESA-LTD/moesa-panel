@@ -1,4 +1,4 @@
-import { readableColumns, useFieldAccess } from '@/composables/useFieldAccess';
+import { canInsertFields, readableColumns, useFieldAccess } from '@/composables/useFieldAccess';
 import { ability, toAbilityRules } from '@/plugins/casl';
 import { describe, expect, it } from 'vitest';
 import { computed } from 'vue';
@@ -62,5 +62,34 @@ describe('readableColumns', () => {
          { resource_name: 'public.product', field: 'notes', can_read: false, can_write: false }
       ]);
       expect(readableColumns('product_with_evidence', [{ field: 'notes' }])).toEqual([]);
+   });
+});
+
+describe('canInsertFields', () => {
+   const lines = (canWrite: boolean) =>
+      ability.update(
+         toAbilityRules(
+            [{ command: 'insert', resource_name: 'public.purchase_order_line' }],
+            [
+               {
+                  resource_name: 'public.purchase_order_line',
+                  field: 'unit_price',
+                  can_read: true,
+                  can_write: canWrite
+               }
+            ]
+         )
+      );
+
+   it('refuses a PO line to a user who may not write its unit price (NOT NULL)', () => {
+      lines(false);
+      expect(canInsertFields('purchase_order_line')).toBe(false);
+      lines(true);
+      expect(canInsertFields('purchase_order_line')).toBe(true);
+   });
+
+   it('leaves a table without required masked columns to its permission', () => {
+      lines(false);
+      expect(canInsertFields('product')).toBe(true);
    });
 });

@@ -1,5 +1,6 @@
 import type { RouteLocationNormalized, RouteRecordRaw } from 'vue-router';
 import CustomRouteView from '@/components/layout/CustomRouteView.vue';
+import { canInsertFields } from '@/composables/useFieldAccess';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
 // A document is opened from its record's list (see EntityDocuments), which passes the record in
@@ -896,15 +897,19 @@ const routes: RouteRecordRaw[] = [
                label: 'route.label.ops_purchase_order',
                icon: PrimeIcons.SHOPPING_CART,
                requiredPermissions: [{ action: 'select', subject: 'purchase_order' }],
-               contextMenuItems: [
-                  {
-                     label: 'action.add',
-                     route: {
-                        name: 'ops-purchase-order-manage',
-                        query: { showDialog: DIALOG_POSITIONS.CENTER }
-                     }
-                  }
-               ]
+               // A new order needs its supplier (NOT NULL, supplier_identity): none without it.
+               contextMenuItems: () =>
+                  canInsertFields('purchase_order')
+                     ? [
+                          {
+                             label: 'action.add',
+                             route: {
+                                name: 'ops-purchase-order-manage',
+                                query: { showDialog: DIALOG_POSITIONS.CENTER }
+                             }
+                          }
+                       ]
+                     : []
             },
             component: CustomRouteView,
             redirect: { name: 'ops-purchase-order-list' },

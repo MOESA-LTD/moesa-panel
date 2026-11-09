@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatAmount, type PurchaseOrderCardLine } from '@/api/purchaseOrder';
-import { useFieldAccess } from '@/composables/useFieldAccess';
+import { canInsertFields, useFieldAccess } from '@/composables/useFieldAccess';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import {
    injectPurchaseOrderForm,
@@ -36,7 +36,12 @@ const lineAccess = useFieldAccess('purchase_order_line');
          <span class="flex items-center justify-between gap-4">
             <span class="font-semibold">{{ $t('ops.purchase_order.tabs.lines') }}</span>
             <CustomLink
-               v-if="orderId && !locked && $can('create', 'purchase_order_line')"
+               v-if="
+                  orderId &&
+                  !locked &&
+                  $can('create', 'purchase_order_line') &&
+                  canInsertFields('purchase_order_line')
+               "
                :to="{
                   name: 'ops-purchase-order-line-add',
                   params: { purchaseOrderId: orderId },

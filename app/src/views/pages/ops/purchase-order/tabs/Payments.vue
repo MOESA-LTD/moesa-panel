@@ -7,7 +7,7 @@ import {
 } from '@/api/purchaseOrder';
 import { toUnits } from '@/api/purchaseOrder/figures';
 import { invalidateTables } from '@/api/queryKeys';
-import { useFieldAccess } from '@/composables/useFieldAccess';
+import { canInsertFields, useFieldAccess } from '@/composables/useFieldAccess';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -92,12 +92,9 @@ const plan = async () => {
    }
 };
 
-// Recording a payment takes its amount and currency (finance): a user who may only read them (a
-// coordinator) neither plans nor adds payments.
+// The amounts a user may not read stay out; recording a payment needs them writable (a
+// coordinator may only read them, see canInsertFields).
 const paymentAccess = useFieldAccess('purchase_order_payment');
-const canRecordAmounts = computed(
-   () => paymentAccess.canWrite('amount') && paymentAccess.canWrite('currency')
-);
 </script>
 
 <template>
@@ -110,7 +107,7 @@ const canRecordAmounts = computed(
                   v-if="
                      suggestions.length &&
                      $can('create', 'purchase_order_payment') &&
-                     canRecordAmounts
+                     canInsertFields('purchase_order_payment')
                   "
                   data-test="plan-payments"
                   variant="outlined"
@@ -119,7 +116,10 @@ const canRecordAmounts = computed(
                   @click="plan"
                />
                <CustomLink
-                  v-if="$can('create', 'purchase_order_payment') && canRecordAmounts"
+                  v-if="
+                     $can('create', 'purchase_order_payment') &&
+                     canInsertFields('purchase_order_payment')
+                  "
                   :to="{
                      name: 'ops-purchase-order-payment-add',
                      params: { purchaseOrderId: orderId },

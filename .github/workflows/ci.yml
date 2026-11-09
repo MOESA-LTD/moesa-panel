@@ -75,6 +75,15 @@ jobs:
             - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
             - run: supabase test db
 
+            # The generated masked-field list (app/src/@types/maskedFields.generated.ts) against
+            # public.field_class, in the database container (docker exec, as locally).
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - run: node --test scripts/masked-fields.test.mjs
+              env:
+                  MASKED_FIELDS_REQUIRE_DB: '1'
+
     # Cloudflare Pages previews read the staging project (moesa-panel-staging). After a pull
     # request's database tests pass, staging is rebuilt from that branch's migrations and seed,
     # so the newest preview and its database match. Older previews are not kept working.
