@@ -55,6 +55,7 @@ export const resolveTenantId = (access: Access | null, requested?: string | null
 /** The caller's access, read from the database as RLS reads it (so changes apply at once). */
 export const loadAccess = async (req: Request, requested: string | null) => {
    const { data } = await supabaseClient(req)
+      .schema('public')
       .rpc('my_access', requested ? { requested } : {})
       .throwOnError();
    return data as Access | null;

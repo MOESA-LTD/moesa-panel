@@ -6,7 +6,7 @@ import { HttpError } from '../_shared/http.ts';
 import type { AmazonSchema, GetDefinitionResponse } from '../_shared/listingCompleteness.ts';
 import { MARKETPLACE_IDS, toDefinitionRow } from '../_shared/listingCompleteness.ts';
 import { withAuthorization } from '../_shared/auth.ts';
-import { refreshListingStatus } from '../_shared/listingStatus.ts';
+import { MARKET_CELL_LISTING_COLUMNS, refreshListingStatus } from '../_shared/listingStatus.ts';
 import { serviceRole } from '../_shared/serviceRole.ts';
 import { handler, type HandlerDeps } from '../amazon-listing/index.ts';
 import {
@@ -19,6 +19,7 @@ import {
    type MarketCellRow,
    mediaRefs,
    parseSubmission,
+   PRODUCT_LISTING_COLUMNS,
    type ProductRow,
    publicImageUrl,
    requireLanguageTag,
@@ -513,6 +514,7 @@ type State = {
    storage: Record<string, Map<string, Blob>>;
    uploads: Array<{ bucket: string; path: string; contentType?: string }>;
    downloads: Array<{ bucket: string; path: string }>;
+   selects: Array<{ table: string; columns: string; client: string }>;
 };
 
 let ids = 0;
@@ -524,7 +526,8 @@ const newState = (tables: Record<string, Row[]>): State => ({
    updates: [],
    storage: { media: new Map(), 'listing-images': new Map() },
    uploads: [],
-   downloads: []
+   downloads: [],
+   selects: []
 });
 
 const cellRow = (state: State, id: string) =>
@@ -666,6 +669,7 @@ const fakeDb = (state: State, client: string) => {
       let order: { column: string; ascending: boolean } | undefined;
       let limit: number | undefined;
       let single: 'single' | 'maybe' | undefined;
+      let columns = '*';
 
       const run = () => {
          const rows = (state.tables[table] ??= []);
@@ -697,6 +701,13 @@ const fakeDb = (state: State, client: string) => {
             );
          }
          if (limit !== undefined) found = found.slice(0, limit);
+         // Like PostgREST: only the selected columns come back.
+         if (mode === 'select' && columns !== '*') {
+            const wanted = columns.split(',').map((c) => c.trim());
+            found = found.map((row) =>
+               Object.fromEntries(wanted.filter((c) => c in row).map((c) => [c, row[c]]))
+            );
+         }
          if (single === 'maybe') return { data: found[0] ?? null, error: null };
          if (single === 'single')
             return found[0]
@@ -706,7 +717,11 @@ const fakeDb = (state: State, client: string) => {
       };
 
       const builder: Record<string, unknown> = {
-         select: () => builder,
+         select: (cols = '*') => {
+            columns = cols;
+            if (mode === 'select') state.selects.push({ table, columns: cols, client });
+            return builder;
+         },
          insert: (row: Row | Row[]) => ((mode = 'insert'), (payload = row), builder),
          update: (patch: Row) => ((mode = 'update'), (payload = patch), builder),
          eq: (column: string, value: unknown) => (
@@ -753,9 +768,11 @@ const fakeDb = (state: State, client: string) => {
       })
    };
 
-   return {
+   const fake = {
       from,
       storage,
+      // RPCs live in public; the user client reads api (the same fake answers both).
+      schema: () => fake,
       rpc: (name: string, args: Record<string, unknown>) => {
          state.rpcs.push({ name, args, client });
          // 046: Amazon's outcome is granted to the service role only.
@@ -766,7 +783,8 @@ const fakeDb = (state: State, client: string) => {
             });
          return Promise.resolve(rpc(state, name, args, client));
       }
-   } as unknown as SupabaseClient<Database>;
+   };
+   return fake as unknown as SupabaseClient<Database>;
 };
 
 const ENV: AmazonEnv = {
@@ -2114,4 +2132,49 @@ Deno.test('the image copy uses only the two storage operations of ServiceRole', 
       `put ${TENANT}/${MEDIA}/mop-primary.png image/png`,
       `read ${TENANT}/${MEDIA}/mop-primary.png`
    ]);
+});
+
+// --- Field permissions: no sensitive column leaves through the service role -----------------------
+
+const SENSITIVE = [
+   'purchase_price',
+   'purchase_currency',
+   'purchase_incoterm',
+   'landed_cost_eur',
+   'landed_cost_on',
+   'target_price_eur',
+   'company_price_eur',
+   'price_list_version',
+   'supplier_id',
+   'supplier_product_code',
+   'manufacturer_art_no',
+   'notes'
+];
+
+Deno.test('amazon-listing selects no sensitive product or cell column', () => {
+   const product = PRODUCT_LISTING_COLUMNS.split(',').map((s) => s.trim());
+   const cell = MARKET_CELL_LISTING_COLUMNS.split(',').map((s) => s.trim());
+   for (const c of SENSITIVE) assert(!product.includes(c), c);
+   assert(!cell.includes('notes'));
+});
+
+Deno.test('amazon-listing never selects * from a table with sensitive columns', async () => {
+   clearTokenCache();
+   const state = withMediaObject(story());
+   Object.assign(state.tables.product[0], {
+      purchase_price: 12.5,
+      supplier_id: 's1',
+      notes: 'secret note'
+   });
+   Object.assign(state.tables.market_cell[0], { notes: 'secret cell note' });
+   const { deps: amazon } = fakeAmazon(() => PUT_ACCEPTED());
+   const res = await handler(post({ action: 'check', cell_id: CELL }), deps(state, amazon));
+   const body = JSON.stringify(await res.json());
+   for (const c of SENSITIVE) assert(!body.includes(`"${c}"`), c);
+   assert(!body.includes('secret'));
+   const wide = state.selects.filter(
+      (s) => ['product', 'market_cell', 'listing_submission'].includes(s.table) && s.columns === '*'
+   );
+   assertEquals(wide, []);
+   assert(state.selects.some((s) => s.table === 'product'));
 });

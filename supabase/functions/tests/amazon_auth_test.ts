@@ -122,6 +122,8 @@ const fakeDb = (rows: Row[] = [amazonRow()]) => {
          );
          return builder;
       },
+      // RPCs live in public; the user client reads api (the same fake answers both).
+      schema: () => db,
       rpc(name: string, args: Record<string, unknown>) {
          rpcs.push({ name, args });
          if (name === 'amazon_account_connect') {

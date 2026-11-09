@@ -1,5 +1,7 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import { type Access, buildAbility, isAuthorized, resolveTenantId } from '../_shared/auth.ts';
+import { supabaseClient } from '../_shared/supabaseClient.ts';
+import { stubFetch } from './helpers.ts';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const OTHER_TENANT = '22222222-2222-2222-2222-222222222222';
@@ -63,4 +65,23 @@ Deno.test('resolveTenantId rejects a requested tenant the caller does not belong
 Deno.test('resolveTenantId rejects a caller without a tenant', () => {
    assertEquals(resolveTenantId(access({ tenant_id: null })), null);
    assertEquals(resolveTenantId(null), null);
+});
+
+Deno.test('the user client reads the api schema and calls RPCs in public', async () => {
+   const seen: Headers[] = [];
+   const restore = stubFetch((_url, init) => {
+      seen.push(new Headers(init?.headers));
+      return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
+   });
+   try {
+      const client = supabaseClient(
+         new Request('http://x', { headers: { Authorization: 'Bearer t' } })
+      );
+      await client.from('product').select('id');
+      await client.schema('public').rpc('is_super_admin', { user_id: 'u' });
+   } finally {
+      restore();
+   }
+   assertEquals(seen[0].get('Accept-Profile'), 'api');
+   assertEquals(seen[1].get('Accept-Profile') ?? seen[1].get('Content-Profile'), 'public');
 });

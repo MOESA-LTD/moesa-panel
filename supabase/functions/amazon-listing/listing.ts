@@ -30,7 +30,38 @@ export {
 
 export type { ListingSubmissionRow, MarketCellRow } from '../_shared/listingStatus.ts';
 import type { MarketCellRow } from '../_shared/listingStatus.ts';
-export type ProductRow = Database['public']['Tables']['product']['Row'];
+/** The product as the listing reads it: only the open columns of PRODUCT_LISTING_COLUMNS. */
+export type ProductRow = Pick<
+   Database['public']['Tables']['product']['Row'],
+   | 'id'
+   | 'tenant_id'
+   | 'customer_id'
+   | 'parent_id'
+   | 'sku'
+   | 'display_name'
+   | 'variant_label'
+   | 'brand'
+   | 'gtin'
+   | 'amazon_product_type'
+   | 'amazon_schema_version'
+   | 'listing_attributes'
+   | 'unit_dims_mm'
+   | 'unit_net_g'
+   | 'pack_dims_mm'
+   | 'pack_gross_g'
+   | 'pack_qty'
+   | 'origin_country'
+   | 'is_hazmat'
+>;
+
+/**
+ * The product columns the listing reads: open ones only. The product card columns (unit/pack size,
+ * weight, quantity, origin, hazmat) feed the derived attributes. The listing never needs cost,
+ * supplier or notes, and a service-role read must not carry them along with a `*`. The manufacturer
+ * article number is supplier identity: it is not read, so no attribute is derived from it.
+ */
+export const PRODUCT_LISTING_COLUMNS =
+   'id, tenant_id, customer_id, parent_id, sku, display_name, variant_label, brand, gtin, amazon_product_type, amazon_schema_version, listing_attributes, unit_dims_mm, unit_net_g, pack_dims_mm, pack_gross_g, pack_qty, origin_country, is_hazmat';
 
 export type CellContext = {
    cell: MarketCellRow;

@@ -10209,6 +10209,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_write_user_field: {
+        Args: {
+          p_field: string
+          p_user: string
+        }
+        Returns: boolean
+      }
       create_branch: {
         Args: {
           parent_id: string

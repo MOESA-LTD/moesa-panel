@@ -10,8 +10,18 @@ import type { ServiceRole } from './serviceRole.ts';
 
 type Db = SupabaseClient<Database>;
 type Tables = Database['public']['Tables'];
-export type MarketCellRow = Tables['market_cell']['Row'];
+/** The cell as the function reads it: everything but the internal notes (MARKET_CELL_LISTING_COLUMNS). */
+export type MarketCellRow = Omit<Tables['market_cell']['Row'], 'notes'>;
 export type ListingSubmissionRow = Tables['listing_submission']['Row'];
+
+/** The market_cell columns the listing reads and derives from: every column but the internal notes. */
+export const MARKET_CELL_LISTING_COLUMNS =
+   'id, tenant_id, customer_id, product_id, project_id, platform_id, country, status, price, currency, platform_sku, platform_product_id, listing_state, listing_language, listing_match, listing_checked_at, fulfillment_channel, stock_source, open_issue, compliance, compliance_note, content_status, priority, last_checked_on, launched_on, target_launch_on, created_at, updated_at';
+
+/** The listing_submission columns the function reads (no sensitive field in the table). */
+export const LISTING_SUBMISSION_COLUMNS =
+   'id, tenant_id, cell_id, kind, status, sku, marketplace_id, amazon_submission_id, issues, payload, created_by, created_at, updated_at';
+
 export type ListingState = Database['public']['Enums']['listing_state'];
 export type SubmissionStatus = Database['public']['Enums']['listing_submission_status'];
 
@@ -129,7 +139,7 @@ export async function loadListingCell(
 ): Promise<MarketCellRow> {
    const { data, error } = await db
       .from('market_cell')
-      .select('*')
+      .select(MARKET_CELL_LISTING_COLUMNS)
       .eq('id', cellId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
@@ -146,7 +156,7 @@ export async function loadSubmission(
 ): Promise<ListingSubmissionRow> {
    const { data, error } = await db
       .from('listing_submission')
-      .select('*')
+      .select(LISTING_SUBMISSION_COLUMNS)
       .eq('id', submissionId)
       .eq('tenant_id', tenantId)
       .maybeSingle();

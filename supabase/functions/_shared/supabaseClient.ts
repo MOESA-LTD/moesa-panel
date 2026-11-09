@@ -50,10 +50,16 @@ export const supabaseService = (audit: { role: AuditRole; actorId?: string }) =>
       }
    });
 
-/** Client acting as the requesting user, so RLS applies. */
+/**
+ * Client acting as the requesting user, so RLS applies. Tables are read through the `api` schema,
+ * where a sensitive field the user may not read comes back NULL (supabase/migrations/053+); RPCs
+ * are in `public`: call them as `.schema('public').rpc(...)`. Typed as `public` (the same columns,
+ * not nullable) because the app's own types for api views are all nullable.
+ */
 export const supabaseClient = (req: Request) =>
    createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
       ...options,
+      db: { schema: 'api' as 'public' },
       global: {
          headers: Object.fromEntries(
             FORWARDED_HEADERS.flatMap((name) => {
