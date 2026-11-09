@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- their grants; api_owner still cannot write the tables its views only read (Task 10's carry).
 BEGIN;
 
-SELECT plan(23);
+SELECT plan(27);
 
 SELECT is_empty($$ SELECT table_name, grantee, privilege_type FROM information_schema.role_table_grants
    WHERE table_schema = 'public' AND grantee IN ('anon','authenticated') $$, 'no public relation grants anything to anon or authenticated');
@@ -27,6 +27,17 @@ SELECT ok(NOT has_table_privilege('api_owner', 'public.transfer', 'INSERT') AND 
    AND NOT has_table_privilege('api_owner', 'public.transfer', 'DELETE'), 'api_owner cannot write public.transfer');
 SELECT ok(NOT has_table_privilege('api_owner', 'public.role_field_permission', 'INSERT') AND NOT has_table_privilege('api_owner', 'public.role_field_permission', 'UPDATE')
    AND NOT has_table_privilege('api_owner', 'public.role_field_permission', 'DELETE'), 'api_owner cannot write public.role_field_permission');
+
+-- Task 11's guard: outside tests authenticated has no USAGE on private (create_test_helpers grants it
+-- for the transaction, so this runs first), and the roles PostgREST can reach have only the expected
+-- memberships: no JWT role claim can switch into an owner that bypasses the masked views.
+SELECT ok(NOT has_schema_privilege('authenticated', 'private', 'USAGE'), 'authenticated has no USAGE on schema private');
+SELECT is(ARRAY(SELECT m.roleid::REGROLE::TEXT FROM pg_auth_members m WHERE m.member = 'api_owner'::REGROLE ORDER BY 1), ARRAY['authenticated'],
+   'api_owner is a member of authenticated only');
+SELECT is(ARRAY(SELECT m.roleid::REGROLE::TEXT FROM pg_auth_members m WHERE m.member = 'rfp_writer'::REGROLE ORDER BY 1), ARRAY['authenticated'],
+   'rfp_writer is a member of authenticated only');
+SELECT is(ARRAY(SELECT m.roleid::REGROLE::TEXT FROM pg_auth_members m WHERE m.member = 'authenticator'::REGROLE ORDER BY 1), ARRAY['anon', 'authenticated', 'service_role'],
+   'authenticator can switch only to anon, authenticated and service_role');
 
 SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();

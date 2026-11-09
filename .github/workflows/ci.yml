@@ -75,6 +75,16 @@ jobs:
             - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
             - run: supabase test db
 
+            # The field-security attack suite over real HTTP (local PostgREST, GoTrue, Storage); the
+            # Edge Function case skips itself here (edge-runtime is not started). Keys stay in env.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.x
+            - name: HTTP attack suite
+              run: |
+                  eval "$(supabase status -o env | sed 's/^/export /')"
+                  cd supabase/functions && deno task test:http
+
             # The generated masked-field list (app/src/@types/maskedFields.generated.ts) against
             # public.field_class, in the database container (docker exec, as locally).
             - uses: actions/setup-node@v4
