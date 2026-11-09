@@ -19,14 +19,14 @@ SELECT private.impersonate(
     current_setting('test.tenant_id')::UUID
 );
 
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model)
 VALUES ('00000000-0000-4000-8000-000000000202', current_setting('test.tenant_id')::UUID, 'IMP', 'Import Trading',
         'trading_partner'),
        ('00000000-0000-4000-8000-000000000203', current_setting('test.tenant_id')::UUID, 'OTH', 'Other Trading',
         'trading_partner');
 
 -- An active product of another customer holding a GTIN the import must not take.
-INSERT INTO public.product (tenant_id, customer_id, sku, display_name, gtin)
+INSERT INTO api.product (tenant_id, customer_id, sku, display_name, gtin)
 VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000203', 'OTH-001', 'Held GTIN',
         '4260696025855');
 
@@ -66,7 +66,7 @@ SELECT is(
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.product p WHERE p.customer_id = '00000000-0000-4000-8000-000000000202'),
+    (SELECT count(*)::INT FROM api.product p WHERE p.customer_id = '00000000-0000-4000-8000-000000000202'),
     2,
     'a failed import writes nothing, not even its valid rows'
 );
@@ -114,8 +114,8 @@ SELECT is(
 );
 
 SELECT is(
-    (SELECT c.parent_id FROM public.product c WHERE c.customer_id = '00000000-0000-4000-8000-000000000202' AND c.sku = 'IMP-020-S'),
-    (SELECT p.id FROM public.product p WHERE p.customer_id = '00000000-0000-4000-8000-000000000202' AND p.sku = 'IMP-020'),
+    (SELECT c.parent_id FROM api.product c WHERE c.customer_id = '00000000-0000-4000-8000-000000000202' AND c.sku = 'IMP-020-S'),
+    (SELECT p.id FROM api.product p WHERE p.customer_id = '00000000-0000-4000-8000-000000000202' AND p.sku = 'IMP-020'),
     'the variant points at its parent'
 );
 

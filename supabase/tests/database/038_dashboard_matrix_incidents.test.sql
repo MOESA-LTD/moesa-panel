@@ -20,17 +20,17 @@ FROM (VALUES
 ) AS x (k, v);
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
-INSERT INTO public.market_cell (id, tenant_id, product_id, platform_id, country)
+INSERT INTO api.market_cell (id, tenant_id, product_id, platform_id, country)
 SELECT x.id, current_setting('test.moesa')::UUID, x.product, x.platform, x.country
 FROM (VALUES ('00000000-0000-4000-8000-000000038011'::UUID, current_setting('test.mop')::UUID, 'amazon', 'DE'),
              ('00000000-0000-4000-8000-000000038012', current_setting('test.mop')::UUID, 'amazon', 'FR'),
              ('00000000-0000-4000-8000-000000038013', current_setting('test.tips')::UUID, 'ebay', 'DE'),
              ('00000000-0000-4000-8000-000000038014', current_setting('test.cones')::UUID, 'amazon', 'IT')) AS x (id, product, platform, country);
-INSERT INTO public.incident (id, tenant_id, customer_id, family, severity, title, what_happened, opened_at)
+INSERT INTO api.incident (id, tenant_id, customer_id, family, severity, title, what_happened, opened_at)
 VALUES ('00000000-0000-4000-8000-000000038021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'ol', 's1', 'Truck refused', 'The warehouse refused the truck.', now() - INTERVAL '5 hours'),
        ('00000000-0000-4000-8000-000000038022', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'ot', 's3', 'Late sample', 'The supplier sent the sample late.', now()),
        ('00000000-0000-4000-8000-000000038023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'om', 's3', 'Old', 'Closed.', now());
-INSERT INTO public.change_request (id, tenant_id, customer_id, title, source, change_kinds, current_value, requested_value, reason, created_at)
+INSERT INTO api.change_request (id, tenant_id, customer_id, title, source, change_kinds, current_value, requested_value, reason, created_at)
 VALUES ('00000000-0000-4000-8000-000000038031', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Carton print', 'company', ARRAY['packaging']::public.change_kind[],
         'Black print', 'Two-colour print', 'Brand guide v2.', now() - INTERVAL '10 days'),
        ('00000000-0000-4000-8000-000000038032', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'Price', 'supplier', ARRAY['price']::public.change_kind[],
@@ -50,23 +50,23 @@ ALTER TABLE public.change_request ENABLE TRIGGER change_request_due;
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
-SELECT is((SELECT live_count || ':' || preparing_count || ':' || suppressed_count || ':' || target_count FROM public.dashboard_market WHERE customer_id = current_setting('test.tho')::UUID),
+SELECT is((SELECT live_count || ':' || preparing_count || ':' || suppressed_count || ':' || target_count FROM api.dashboard_market WHERE customer_id = current_setting('test.tho')::UUID),
           '1:1:1:3', 'live, preparing and suppressed against the target (candidates are not targets)');
-SELECT is((SELECT count(*)::INT FROM public.dashboard_incident WHERE incident_id IN ('00000000-0000-4000-8000-000000038021', '00000000-0000-4000-8000-000000038022', '00000000-0000-4000-8000-000000038023')),
+SELECT is((SELECT count(*)::INT FROM api.dashboard_incident WHERE incident_id IN ('00000000-0000-4000-8000-000000038021', '00000000-0000-4000-8000-000000038022', '00000000-0000-4000-8000-000000038023')),
           2, 'open incidents only');
-SELECT is((SELECT management_notice_missing FROM public.dashboard_incident WHERE incident_id = '00000000-0000-4000-8000-000000038021'), TRUE,
+SELECT is((SELECT management_notice_missing FROM api.dashboard_incident WHERE incident_id = '00000000-0000-4000-8000-000000038021'), TRUE,
           'an S1 without the management notice is flagged');
-SELECT is((SELECT customer_notice_late FROM public.dashboard_incident WHERE incident_id = '00000000-0000-4000-8000-000000038021'), TRUE,
+SELECT is((SELECT customer_notice_late FROM api.dashboard_incident WHERE incident_id = '00000000-0000-4000-8000-000000038021'), TRUE,
           'four hours passed without telling the customer');
-SELECT is((SELECT overdue FROM public.dashboard_change_request WHERE change_request_id = '00000000-0000-4000-8000-000000038031'), TRUE,
+SELECT is((SELECT overdue FROM api.dashboard_change_request WHERE change_request_id = '00000000-0000-4000-8000-000000038031'), TRUE,
           'a request past its decision date');
-SELECT is((SELECT count(*)::INT FROM public.dashboard_change_request WHERE change_request_id = '00000000-0000-4000-8000-000000038032'), 0,
+SELECT is((SELECT count(*)::INT FROM api.dashboard_change_request WHERE change_request_id = '00000000-0000-4000-8000-000000038032'), 0,
           'applied requests leave the dashboard');
 
 RESET ROLE;
 SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'ayse@moesa-panel.test'),
                            (SELECT id FROM public.tenant WHERE display_name = 'Atlas Danışmanlık'));
-SELECT is((SELECT count(*)::INT FROM public.dashboard_market), 0, 'another tenant sees none');
+SELECT is((SELECT count(*)::INT FROM api.dashboard_market), 0, 'another tenant sees none');
 
 SELECT * FROM finish();
 ROLLBACK;

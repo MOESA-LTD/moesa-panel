@@ -19,17 +19,17 @@ SELECT private.impersonate(
     current_setting('test.tenant_id')::UUID
 );
 
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model, packages)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model, packages)
 VALUES ('00000000-0000-4000-8000-000000000182', current_setting('test.tenant_id')::UUID, 'THO', 'Thor Trading',
         'trading_partner', ARRAY['A0', 'B']);
 
-INSERT INTO public.customer_warehouse (tenant_id, customer_id, display_name, type, is_default)
+INSERT INTO api.customer_warehouse (tenant_id, customer_id, display_name, type, is_default)
 VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000182', 'Hamburg', 'third_party', TRUE);
 
 -- Positive control: the rows the negative checks below compare against are there and visible.
 SELECT is(
-    (SELECT count(*)::INT FROM public.customer c
-     JOIN public.customer_warehouse w ON w.customer_id = c.id
+    (SELECT count(*)::INT FROM api.customer c
+     JOIN api.customer_warehouse w ON w.customer_id = c.id
      WHERE c.code = 'THO' AND c.tenant_id = current_setting('test.tenant_id')::UUID),
     1,
     'Atlas sees its own THO and its warehouse'
@@ -37,7 +37,7 @@ SELECT is(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.customer (tenant_id, code, display_name, commercial_model)
+        INSERT INTO api.customer (tenant_id, code, display_name, commercial_model)
         VALUES (current_setting('test.tenant_id')::UUID, 'tho', 'Lowercase', 'trading_partner')
     $$,
     '23514',
@@ -47,7 +47,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        UPDATE public.customer SET code = 'THX' WHERE id = '00000000-0000-4000-8000-000000000182'
+        UPDATE api.customer SET code = 'THX' WHERE id = '00000000-0000-4000-8000-000000000182'
     $$,
     '23514',
     'customer_code_immutable',
@@ -56,7 +56,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.customer (tenant_id, code, display_name, commercial_model, packages)
+        INSERT INTO api.customer (tenant_id, code, display_name, commercial_model, packages)
         VALUES (current_setting('test.tenant_id')::UUID, 'PKG', 'Unknown package', 'trading_partner', ARRAY['X'])
     $$,
     '23514',
@@ -66,7 +66,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.customer_platform_account (tenant_id, customer_id, platform_id)
+        INSERT INTO api.customer_platform_account (tenant_id, customer_id, platform_id)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000182', 'no_such_platform')
     $$,
     '23503',
@@ -76,7 +76,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.customer_warehouse (tenant_id, customer_id, display_name, type)
+        INSERT INTO api.customer_warehouse (tenant_id, customer_id, display_name, type)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000181', 'Intruder', 'own')
     $$,
     '23503',
@@ -86,7 +86,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, url)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, url)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000181', 'customer',
                 '00000000-0000-4000-8000-000000000182', 'contract', 'https://example.test/contract.pdf')
     $$,
@@ -98,7 +98,7 @@ SELECT throws_ok(
 -- Customers are closed (status), not deleted.
 SELECT throws_ok(
     $$
-        DELETE FROM public.customer WHERE id = '00000000-0000-4000-8000-000000000182'
+        DELETE FROM api.customer WHERE id = '00000000-0000-4000-8000-000000000182'
     $$,
     '42501',
     NULL,
@@ -114,7 +114,7 @@ SELECT private.impersonate(
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.customer WHERE id = '00000000-0000-4000-8000-000000000182'),
+    (SELECT count(*)::INT FROM api.customer WHERE id = '00000000-0000-4000-8000-000000000182'),
     0,
     'another tenant does not see the customer'
 );

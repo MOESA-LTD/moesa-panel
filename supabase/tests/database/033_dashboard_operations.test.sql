@@ -27,17 +27,17 @@ FROM (VALUES
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
 -- Four orders (one left a draft, one cancelled below) and three shipments (one accepted below).
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
 SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, 'USD'
 FROM (VALUES ('00000000-0000-4000-8000-000000033011'::UUID), ('00000000-0000-4000-8000-000000033012'), ('00000000-0000-4000-8000-000000033013'), ('00000000-0000-4000-8000-000000033014')) AS x (id);
 -- As management: payments are finance, which the coordinator only reads.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.purchase_order_payment (tenant_id, purchase_order_id, kind, amount, currency, planned_on)
+INSERT INTO api.purchase_order_payment (tenant_id, purchase_order_id, kind, amount, currency, planned_on)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000033012', 'balance', 100, 'USD', '2027-02-01');
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+INSERT INTO api.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road', current_setting('test.rosbach')::UUID FROM (VALUES ('00000000-0000-4000-8000-000000033041'::UUID), ('00000000-0000-4000-8000-000000033042'), ('00000000-0000-4000-8000-000000033043')) AS x (id);
 RESET ROLE;
 SELECT set_config('moesa.rules_bypass', '1', TRUE);
@@ -51,21 +51,21 @@ WHERE shipment.id = x.id;
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
-SELECT is((SELECT string_agg(status::TEXT, ',' ORDER BY status) FROM public.dashboard_purchase_order
+SELECT is((SELECT string_agg(status::TEXT, ',' ORDER BY status) FROM api.dashboard_purchase_order
            WHERE purchase_order_id IN ('00000000-0000-4000-8000-000000033011', '00000000-0000-4000-8000-000000033012', '00000000-0000-4000-8000-000000033013', '00000000-0000-4000-8000-000000033014')),
           'sent,in_production', 'open orders only');
-SELECT is((SELECT balance_planned_on FROM public.dashboard_purchase_order WHERE purchase_order_id = '00000000-0000-4000-8000-000000033012'),
+SELECT is((SELECT balance_planned_on FROM api.dashboard_purchase_order WHERE purchase_order_id = '00000000-0000-4000-8000-000000033012'),
           '2027-02-01'::DATE, 'the balance date');
-SELECT is((SELECT overdue FROM public.dashboard_shipment WHERE shipment_id = '00000000-0000-4000-8000-000000033041'), TRUE, 'a passed ETA is late');
-SELECT is((SELECT days_to_eta FROM public.dashboard_shipment WHERE shipment_id = '00000000-0000-4000-8000-000000033042'), 3, 'days to ETA');
-SELECT is((SELECT count(*)::INT FROM public.dashboard_shipment WHERE shipment_id = '00000000-0000-4000-8000-000000033043'), 0,
+SELECT is((SELECT overdue FROM api.dashboard_shipment WHERE shipment_id = '00000000-0000-4000-8000-000000033041'), TRUE, 'a passed ETA is late');
+SELECT is((SELECT days_to_eta FROM api.dashboard_shipment WHERE shipment_id = '00000000-0000-4000-8000-000000033042'), 3, 'days to ETA');
+SELECT is((SELECT count(*)::INT FROM api.dashboard_shipment WHERE shipment_id = '00000000-0000-4000-8000-000000033043'), 0,
           'accepted shipments leave the dashboard');
 
 -- Another company's user: private is not reachable while impersonating, so back to postgres first.
 RESET ROLE;
 SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'ayse@moesa-panel.test'),
                            (SELECT id FROM public.tenant WHERE display_name = 'Atlas Danışmanlık'));
-SELECT is((SELECT count(*)::INT FROM public.dashboard_shipment), 0, 'another tenant sees none');
+SELECT is((SELECT count(*)::INT FROM api.dashboard_shipment), 0, 'another tenant sees none');
 
 SELECT * FROM finish();
 

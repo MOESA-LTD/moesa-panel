@@ -91,9 +91,9 @@ SELECT enum_has_labels('public', 'listing_submission_status', ARRAY['accepted', 
 -- 16–23. akif in MOESA LTD.
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
-SELECT lives_ok($$ SELECT * FROM public.amazon_product_type_definition $$, 'a user reads the definition cache');
+SELECT lives_ok($$ SELECT * FROM api.amazon_product_type_definition $$, 'a user reads the definition cache');
 SELECT throws_ok(
-    $$ INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, schema, property_groups)
+    $$ INSERT INTO api.amazon_product_type_definition (marketplace_id, product_type, locale, version, schema, property_groups)
        VALUES ('X', 'Y', 'en_GB', '1', '{}', '[]') $$,
     '42501',
     NULL,
@@ -101,7 +101,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-    $$ INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload, status, amazon_submission_id)
+    $$ INSERT INTO api.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload, status, amazon_submission_id)
        VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_se')::UUID, 'create', 'FORGED-SKU', 'A2NODRKZP88ZB9', '{}',
                'done', 'forged') $$,
     '42501',
@@ -109,26 +109,26 @@ SELECT throws_ok(
     'a user cannot insert a submission'
 );
 SELECT throws_ok(
-    $$ UPDATE public.listing_submission SET status = 'done' $$,
+    $$ UPDATE api.listing_submission SET status = 'done' $$,
     '42501',
     NULL,
     'a user cannot update a submission'
 );
 SELECT throws_ok(
-    $$ DELETE FROM public.listing_submission $$,
+    $$ DELETE FROM api.listing_submission $$,
     '42501',
     NULL,
     'a user cannot delete a submission'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.market_cell SET listing_state = 'live' WHERE id = current_setting('test.cell_pl')::UUID $$,
+    $$ UPDATE api.market_cell SET listing_state = 'live' WHERE id = current_setting('test.cell_pl')::UUID $$,
     '23514',
     'market_cell_listing_server_only',
     'listing_state is server-only'
 );
 SELECT throws_ok(
-    $$ UPDATE public.customer_platform_account SET api_connection = 'connected' WHERE id = current_setting('test.acct')::UUID $$,
+    $$ UPDATE api.customer_platform_account SET api_connection = 'connected' WHERE id = current_setting('test.acct')::UUID $$,
     '23514',
     'platform_account_api_server_only',
     'api_connection is server-only'
@@ -144,7 +144,7 @@ RESET ROLE;
 
 -- 24. A user of Eski Ticaret.
 SELECT private.impersonate(current_setting('test.selin')::UUID, current_setting('test.eski')::UUID);
-SELECT is((SELECT count(*) FROM public.listing_submission)::INT, 0, 'another tenant sees no submission');
+SELECT is((SELECT count(*) FROM api.listing_submission)::INT, 0, 'another tenant sees no submission');
 RESET ROLE;
 
 -- 25–30. The service role: connect, the token, disconnect.
@@ -171,8 +171,8 @@ INSERT INTO public.customer (tenant_id, code, display_name, commercial_model)
 VALUES (current_setting('test.moesa')::UUID, 'ZZC', 'Zed Charlie', 'trading_partner');
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT throws_ok(
-    $$ UPDATE public.customer_platform_account
-       SET customer_id = (SELECT c.id FROM public.customer c WHERE c.tenant_id = current_setting('test.moesa')::UUID AND c.code = 'ZZC')
+    $$ UPDATE api.customer_platform_account
+       SET customer_id = (SELECT c.id FROM api.customer c WHERE c.tenant_id = current_setting('test.moesa')::UUID AND c.code = 'ZZC')
        WHERE id = current_setting('test.acct')::UUID $$,
     '42501',
     'platform_account_connected',
@@ -269,10 +269,10 @@ SELECT set_config('test.sub_begin', (public.listing_begin_submission(
 )).id::TEXT, TRUE);
 SELECT ok(
     (SELECT status = 'processing' AND created_by = current_setting('test.akif')::UUID AND issues = '[]'::JSONB
-     FROM public.listing_submission WHERE id = current_setting('test.sub_begin')::UUID),
+     FROM api.listing_submission WHERE id = current_setting('test.sub_begin')::UUID),
     'begin records a processing submission by the caller'
 );
-SELECT is((SELECT listing_state::TEXT FROM public.market_cell WHERE id = current_setting('test.cell_gb')::UUID), 'submitted', 'begin marks the cell submitted before Amazon is called');
+SELECT is((SELECT listing_state::TEXT FROM api.market_cell WHERE id = current_setting('test.cell_gb')::UUID), 'submitted', 'begin marks the cell submitted before Amazon is called');
 SELECT throws_ok(
     $$ SELECT public.listing_begin_submission(current_setting('test.cell_be')::UUID, 'create', '{}') $$,
     'P0001',
@@ -538,14 +538,14 @@ SELECT throws_ok(
     'a user cannot apply Amazon''s answer in another''s name'
 );
 SELECT throws_ok(
-    $$ INSERT INTO public.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
+    $$ INSERT INTO api.listing_submission (tenant_id, cell_id, kind, sku, marketplace_id, payload)
        VALUES (current_setting('test.moesa')::UUID, current_setting('test.cell_se')::UUID, 'create', 'X', 'Y', '{}') $$,
     '42501',
     NULL,
     'a user with the permission still cannot insert a submission directly'
 );
 SELECT throws_ok(
-    $$ UPDATE public.listing_submission SET status = 'done' WHERE id = current_setting('test.sub_user')::UUID $$,
+    $$ UPDATE api.listing_submission SET status = 'done' WHERE id = current_setting('test.sub_user')::UUID $$,
     '42501',
     NULL,
     'a user with the permission still cannot update a submission directly'

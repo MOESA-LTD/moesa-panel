@@ -19,17 +19,17 @@ SELECT private.impersonate(
     current_setting('test.tenant_id')::UUID
 );
 
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model)
 VALUES ('00000000-0000-4000-8000-000000000212', current_setting('test.tenant_id')::UUID, 'THO', 'Thor Trading',
         'trading_partner');
 
-INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name)
+INSERT INTO api.product (id, tenant_id, customer_id, sku, display_name)
 VALUES ('00000000-0000-4000-8000-000000000213', current_setting('test.tenant_id')::UUID,
         '00000000-0000-4000-8000-000000000212', 'THO-001', 'Garden Hose 15 m');
 
 -- A brand sourcing project (path A, package A1), one with listing (A1 + C), a reorder, a variant
 -- and a private label project (path B, package A2).
-INSERT INTO public.project (id, tenant_id, customer_id, display_name, type, path, packages)
+INSERT INTO api.project (id, tenant_id, customer_id, display_name, type, path, packages)
 VALUES ('00000000-0000-4000-8000-000000000214', current_setting('test.tenant_id')::UUID,
         '00000000-0000-4000-8000-000000000212', 'Garden hose', 'npi', 'a_sourcing', ARRAY['A1']),
        ('00000000-0000-4000-8000-000000000215', current_setting('test.tenant_id')::UUID,
@@ -41,18 +41,18 @@ VALUES ('00000000-0000-4000-8000-000000000214', current_setting('test.tenant_id'
        ('00000000-0000-4000-8000-000000000220', current_setting('test.tenant_id')::UUID,
         '00000000-0000-4000-8000-000000000212', 'Own brand hose', 'npi', 'b_private_label', ARRAY['A2']);
 
-INSERT INTO public.project_product (project_id, product_id, tenant_id)
+INSERT INTO api.project_product (project_id, product_id, tenant_id)
 VALUES ('00000000-0000-4000-8000-000000000214', '00000000-0000-4000-8000-000000000213',
         current_setting('test.tenant_id')::UUID);
 
 -- The incident the rollbacks below cite (036: a gate rolls back only through an open incident of
 -- the project's customer).
-INSERT INTO public.incident (id, tenant_id, customer_id, family, severity, title, what_happened)
+INSERT INTO api.incident (id, tenant_id, customer_id, family, severity, title, what_happened)
 VALUES ('00000000-0000-4000-8000-000000036901', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212',
         'om', 's3', 'Brief changed', 'The customer changed the brief.');
 
 -- The gates the checks below use.
-SELECT set_config('test.' || x.name, (SELECT g.id FROM public.project_gate g
+SELECT set_config('test.' || x.name, (SELECT g.id FROM api.project_gate g
     WHERE g.project_id = x.project_id AND g.code = x.code)::TEXT, TRUE)
 FROM (VALUES ('g1', '00000000-0000-4000-8000-000000000214'::UUID, 'G1'::public.gate_code),
              ('g2', '00000000-0000-4000-8000-000000000214', 'G2'),
@@ -65,7 +65,7 @@ FROM (VALUES ('g1', '00000000-0000-4000-8000-000000000214'::UUID, 'G1'::public.g
 
 -- The customer's written approvals, one approval-like document of the wrong type, and the
 -- product's signed spec sheet (added later).
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 SELECT x.id, current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'project_gate',
        current_setting('test.' || x.gate)::UUID, x.type, 'approved', 'https://example.test/' || x.gate || '.pdf'
 FROM (VALUES ('00000000-0000-4000-8000-000000000216'::UUID, 'g1', 'gate_approval'::public.document_type),
@@ -77,48 +77,48 @@ FROM (VALUES ('00000000-0000-4000-8000-000000000216'::UUID, 'g1', 'gate_approval
 
 -- Positive control: the project the checks below look at is there and visible.
 SELECT is(
-    (SELECT count(*)::INT FROM public.project p
+    (SELECT count(*)::INT FROM api.project p
      WHERE p.id = '00000000-0000-4000-8000-000000000214' AND p.tenant_id = current_setting('test.tenant_id')::UUID),
     1,
     'Atlas sees its own project'
 );
 
 SELECT is(
-    (SELECT array_agg(g.code ORDER BY g.position)::TEXT FROM public.project_gate g
+    (SELECT array_agg(g.code ORDER BY g.position)::TEXT FROM api.project_gate g
      WHERE g.project_id = '00000000-0000-4000-8000-000000000214'),
     '{G1,G2,G3,G4,G5}',
     'a brand sourcing project gets G1 to G5, in order'
 );
 
 SELECT is(
-    (SELECT array_agg(g.code ORDER BY g.position)::TEXT FROM public.project_gate g
+    (SELECT array_agg(g.code ORDER BY g.position)::TEXT FROM api.project_gate g
      WHERE g.project_id = '00000000-0000-4000-8000-000000000214' AND NOT g.needs_customer_approval),
     '{G4}',
     'every gate but G4 needs the customer''s approval'
 );
 
 SELECT is(
-    (SELECT array_agg(g.code ORDER BY g.position)::TEXT FROM public.project_gate g
+    (SELECT array_agg(g.code ORDER BY g.position)::TEXT FROM api.project_gate g
      WHERE g.project_id = '00000000-0000-4000-8000-000000000215'),
     '{G1,G2,G3,G4,G5,L_G1,L_G2}',
     'package C adds the listing gates L-G1 and L-G2 at the end'
 );
 
 SELECT is(
-    (SELECT p.code FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
+    (SELECT p.code FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
     'THO-' || extract(year FROM now())::INT || '-001',
     'the project code is the customer code, the year and a number'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.project SET code = 'THO-1999-999' WHERE id = '00000000-0000-4000-8000-000000000214' $$,
+    $$ UPDATE api.project SET code = 'THO-1999-999' WHERE id = '00000000-0000-4000-8000-000000000214' $$,
     '23514',
     'project_code_immutable',
     'a project''s code cannot be changed'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.project SET packages = ARRAY['A1', 'C'] WHERE id = '00000000-0000-4000-8000-000000000214' $$,
+    $$ UPDATE api.project SET packages = ARRAY['A1', 'C'] WHERE id = '00000000-0000-4000-8000-000000000214' $$,
     '23514',
     'project_immutable_field',
     'a project''s packages cannot be changed once its gates exist'
@@ -126,7 +126,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.project (tenant_id, customer_id, display_name, type, path, packages)
+        INSERT INTO api.project (tenant_id, customer_id, display_name, type, path, packages)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000211', 'Foreign', 'npi',
                 'a_sourcing', ARRAY['A1'])
     $$,
@@ -136,28 +136,28 @@ SELECT throws_ok(
 );
 
 SELECT is(
-    (SELECT array_agg(DISTINCT t.phase)::TEXT || ':' || count(*) FROM public.project_task t
+    (SELECT array_agg(DISTINCT t.phase)::TEXT || ':' || count(*) FROM api.project_task t
      WHERE t.project_id = '00000000-0000-4000-8000-000000000214'),
-    '{P1}:' || (SELECT count(*) FROM public.task_template tt WHERE tt.phase = 'P1'),
+    '{P1}:' || (SELECT count(*) FROM api.task_template tt WHERE tt.phase = 'P1'),
     'a new product project gets the P1 checklist only'
 );
 
 -- Projects that are not new products start in the phase their first gate closes.
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000218'),
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000218'),
     'P3',
     'a reorder project starts at P3'
 );
 
 SELECT is(
-    (SELECT array_agg(DISTINCT t.phase)::TEXT || ':' || count(*) FROM public.project_task t
+    (SELECT array_agg(DISTINCT t.phase)::TEXT || ':' || count(*) FROM api.project_task t
      WHERE t.project_id = '00000000-0000-4000-8000-000000000218'),
-    '{P3}:' || (SELECT count(*) FROM public.task_template tt WHERE tt.phase = 'P3'),
+    '{P3}:' || (SELECT count(*) FROM api.task_template tt WHERE tt.phase = 'P3'),
     'a reorder project gets the P3 checklist, not P1''s'
 );
 
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000219'),
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000219'),
     'P2',
     'a variant project starts at P2'
 );
@@ -186,7 +186,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.project_gate SET status = 'passed' WHERE id = current_setting('test.c1')::UUID $$,
+    $$ UPDATE api.project_gate SET status = 'passed' WHERE id = current_setting('test.c1')::UUID $$,
     '23514',
     'gate_customer_approval_required',
     'a direct update of a gate obeys the same rules'
@@ -203,7 +203,7 @@ SELECT throws_ok(
     'G1 cannot pass while a blocking P1 task is not done'
 );
 
-UPDATE public.project_task SET status = 'done'
+UPDATE api.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000214' AND phase = 'P1' AND blocks_gate;
 
 SELECT throws_ok(
@@ -216,7 +216,7 @@ SELECT throws_ok(
     'the approval document must be a gate approval of this gate'
 );
 
-UPDATE public.project SET status = 'on_hold' WHERE id = '00000000-0000-4000-8000-000000000215';
+UPDATE api.project SET status = 'on_hold' WHERE id = '00000000-0000-4000-8000-000000000215';
 
 SELECT throws_ok(
     $$ SELECT public.pass_gate(current_setting('test.c1')::UUID, 'paused') $$,
@@ -234,19 +234,19 @@ SELECT lives_ok(
 );
 
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
     'P2',
     'passing G1 on path A moves the project to P2'
 );
 
 SELECT is(
-    (SELECT array_agg(DISTINCT t.phase)::TEXT FROM public.project_task t
+    (SELECT array_agg(DISTINCT t.phase)::TEXT FROM api.project_task t
      WHERE t.project_id = '00000000-0000-4000-8000-000000000214'),
     '{P1,P2}',
     'entering P2 adds the P2 checklist'
 );
 
-UPDATE public.project_task SET status = 'done'
+UPDATE api.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000214' AND phase = 'P2' AND blocks_gate;
 
 SELECT throws_ok(
@@ -269,7 +269,7 @@ SELECT throws_ok(
     'G2 cannot pass while a product of the project has no signed spec sheet'
 );
 
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, version, status, issued_on,
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, version, status, issued_on,
                              is_signed, is_stamped, sent_from_official_email, url)
 VALUES ('00000000-0000-4000-8000-000000000225', current_setting('test.tenant_id')::UUID,
         '00000000-0000-4000-8000-000000000212', 'product', '00000000-0000-4000-8000-000000000213', 'spec_sheet', 1,
@@ -310,14 +310,14 @@ SELECT throws_ok(
 SELECT public.rollback_gate(current_setting('test.g1')::UUID, 'customer changed the brief', '00000000-0000-4000-8000-000000036901');
 
 SELECT is(
-    (SELECT array_agg(g.code || ':' || g.status ORDER BY g.position)::TEXT FROM public.project_gate g
+    (SELECT array_agg(g.code || ':' || g.status ORDER BY g.position)::TEXT FROM api.project_gate g
      WHERE g.project_id = '00000000-0000-4000-8000-000000000214' AND g.code IN ('G1', 'G2', 'G3')),
     '{G1:rolled_back,G2:rolled_back,G3:pending}',
     'rolling back G1 rolls back the gates passed after it'
 );
 
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
     'P1',
     'rolling back G1 takes the project back to P1'
 );
@@ -334,18 +334,18 @@ SELECT lives_ok(
 SELECT public.pass_gate(current_setting('test.g2')::UUID, 'samples ok', '2026-11-04',
                         '00000000-0000-4000-8000-000000000217');
 
-UPDATE public.project_task SET status = 'done'
+UPDATE api.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000214' AND phase = 'P3' AND blocks_gate;
 
 -- G3 needs an approved PI of one of the project's orders (032): an order of the project whose PI
 -- is approved, seeded past the PO rules.
-INSERT INTO public.supplier (id, tenant_id, code, display_name, country, status)
+INSERT INTO api.supplier (id, tenant_id, code, display_name, country, status)
 VALUES ('00000000-0000-4000-8000-000000021901', current_setting('test.tenant_id')::UUID, 'AT1', 'Atlas Hose Works', 'Türkiye', 'approved');
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, project_id, currency, incoterm)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, project_id, currency, incoterm)
 VALUES ('00000000-0000-4000-8000-000000021902', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', '00000000-0000-4000-8000-000000021901', '00000000-0000-4000-8000-000000000214', 'USD', 'FOB');
-INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+INSERT INTO api.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
 VALUES ('00000000-0000-4000-8000-000000021903', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000021902', '00000000-0000-4000-8000-000000000213', 10, 1);
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, url)
 VALUES ('00000000-0000-4000-8000-000000021904', current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'purchase_order', '00000000-0000-4000-8000-000000021902', 'pi', 'https://example.test/pi.pdf');
 RESET ROLE;
 SELECT set_config('moesa.rules_bypass', '1', TRUE);
@@ -357,7 +357,7 @@ SELECT public.pass_gate(current_setting('test.g3')::UUID, 'PI ok', '2026-11-05',
                         '00000000-0000-4000-8000-000000000221',
                         ARRAY['00000000-0000-4000-8000-000000021904']::UUID[]);
 
-UPDATE public.project_task SET status = 'done'
+UPDATE api.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000214' AND phase = 'P4' AND blocks_gate;
 
 SELECT throws_ok(
@@ -376,8 +376,8 @@ SELECT lives_ok(
 );
 
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000214')
-    || ' ' || (SELECT array_agg(DISTINCT t.phase)::TEXT FROM public.project_task t
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000214')
+    || ' ' || (SELECT array_agg(DISTINCT t.phase)::TEXT FROM api.project_task t
                WHERE t.project_id = '00000000-0000-4000-8000-000000000214'),
     'P5 {P1,P2,P3,P4,P5,P6}',
     'after G4 the project is in P5 with the checklists of P5 and P6 (G5 closes P6)'
@@ -385,14 +385,14 @@ SELECT is(
 
 -- Un-passing a gate directly: only a rollback, with a reason, from the last passed gate back.
 SELECT throws_ok(
-    $$ UPDATE public.project_gate SET status = 'pending' WHERE id = current_setting('test.g4')::UUID $$,
+    $$ UPDATE api.project_gate SET status = 'pending' WHERE id = current_setting('test.g4')::UUID $$,
     '23514',
     'gate_not_pending',
     'a passed gate cannot be set back to pending'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.project_gate SET status = 'rolled_back' WHERE id = current_setting('test.g4')::UUID $$,
+    $$ UPDATE api.project_gate SET status = 'rolled_back' WHERE id = current_setting('test.g4')::UUID $$,
     '23514',
     'gate_reason_required',
     'a direct rollback needs a reason'
@@ -400,7 +400,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'brief changed'
+        UPDATE api.project_gate SET status = 'rolled_back', rolled_back_reason = 'brief changed'
         WHERE id = current_setting('test.g1')::UUID
     $$,
     '23514',
@@ -408,23 +408,23 @@ SELECT throws_ok(
     'a gate cannot be rolled back directly while a later gate is still passed'
 );
 
-UPDATE public.project_gate SET status = 'rolled_back', rolled_back_reason = 'PSI to be redone',
+UPDATE api.project_gate SET status = 'rolled_back', rolled_back_reason = 'PSI to be redone',
     rolled_back_incident_id = '00000000-0000-4000-8000-000000036901'
 WHERE id = current_setting('test.g4')::UUID;
 
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000214'),
     'P4',
     'a direct rollback of the last passed gate takes the project back to the phase it closes'
 );
 
 -- One pass per project per statement.
-UPDATE public.project SET status = 'active' WHERE id = '00000000-0000-4000-8000-000000000215';
+UPDATE api.project SET status = 'active' WHERE id = '00000000-0000-4000-8000-000000000215';
 
-UPDATE public.project_task SET status = 'done'
+UPDATE api.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000215' AND blocks_gate;
 
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 SELECT x.id, current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000212', 'project_gate',
        current_setting('test.' || x.gate)::UUID, 'gate_approval', 'approved', 'https://example.test/' || x.gate || '.pdf'
 FROM (VALUES ('00000000-0000-4000-8000-000000000227'::UUID, 'c1'),
@@ -432,7 +432,7 @@ FROM (VALUES ('00000000-0000-4000-8000-000000000227'::UUID, 'c1'),
 
 SELECT throws_ok(
     $$
-        UPDATE public.project_gate
+        UPDATE api.project_gate
         SET status = 'passed',
             customer_approved_on = '2026-11-03',
             approval_document_id = CASE code
@@ -448,21 +448,21 @@ SELECT throws_ok(
 
 -- Path B: G1 leads to PL1, and PL_G1 closes PL2.
 SELECT is(
-    (SELECT array_agg(DISTINCT t.phase)::TEXT FROM public.project_task t
+    (SELECT array_agg(DISTINCT t.phase)::TEXT FROM api.project_task t
      WHERE t.project_id = '00000000-0000-4000-8000-000000000220'),
     '{P1}',
     'a new private label project has the P1 checklist only'
 );
 
-UPDATE public.project_task SET status = 'done'
+UPDATE api.project_task SET status = 'done'
 WHERE project_id = '00000000-0000-4000-8000-000000000220' AND phase = 'P1' AND blocks_gate;
 
 SELECT public.pass_gate(current_setting('test.b1')::UUID, 'go', '2026-11-03',
                         '00000000-0000-4000-8000-000000000223');
 
 SELECT is(
-    (SELECT p.current_phase::TEXT FROM public.project p WHERE p.id = '00000000-0000-4000-8000-000000000220')
-    || ' ' || (SELECT array_agg(DISTINCT t.phase)::TEXT FROM public.project_task t
+    (SELECT p.current_phase::TEXT FROM api.project p WHERE p.id = '00000000-0000-4000-8000-000000000220')
+    || ' ' || (SELECT array_agg(DISTINCT t.phase)::TEXT FROM api.project_task t
                WHERE t.project_id = '00000000-0000-4000-8000-000000000220'),
     'PL1 {P1,PL1,PL2}',
     'after G1 on path B the project is in PL1 with the checklists of PL1 and PL2'
@@ -477,7 +477,7 @@ SELECT private.impersonate(
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.project_gate g WHERE g.project_id = '00000000-0000-4000-8000-000000000214'),
+    (SELECT count(*)::INT FROM api.project_gate g WHERE g.project_id = '00000000-0000-4000-8000-000000000214'),
     0,
     'Nova sees none of Atlas''s gates'
 );

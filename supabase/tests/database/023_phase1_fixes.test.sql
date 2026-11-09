@@ -22,13 +22,13 @@ SELECT private.impersonate(
 -- The product list's view.
 SELECT is(
     (SELECT string_agg(v.sku || ':' || v.has_signed_spec, ',' ORDER BY v.sku)
-     FROM public.product_with_evidence v WHERE v.tenant_id = current_setting('test.tenant_id')::UUID),
+     FROM api.product_with_evidence v WHERE v.tenant_id = current_setting('test.tenant_id')::UUID),
     'THO-CONES-100:false,THO-MOP40-2P:true,THO-TIPS-6-50:false',
     'product_with_evidence: only THO-MOP40-2P has a signed spec sheet'
 );
 
 SELECT is(
-    (SELECT v.spec_version FROM public.product_with_evidence v
+    (SELECT v.spec_version FROM api.product_with_evidence v
      WHERE v.tenant_id = current_setting('test.tenant_id')::UUID AND v.sku = 'THO-MOP40-2P'),
     2,
     'product_with_evidence carries the spec sheet''s version'
@@ -37,7 +37,7 @@ SELECT is(
 -- Approved documents need the signature, the stamp, the official e-mail and the date.
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, status, url)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, status, url)
         VALUES (current_setting('test.tenant_id')::UUID, current_setting('test.tho')::UUID, 'product',
                 current_setting('test.tips')::UUID, 'spec_sheet', 'approved', 'https://example.test/tips-v1.pdf')
     $$,
@@ -49,7 +49,7 @@ SELECT throws_ok(
 -- Other approved documents (a gate approval is an e-mail or e-signature record) need no flags.
 SELECT lives_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, status, url)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, status, url)
         VALUES (current_setting('test.tenant_id')::UUID, current_setting('test.tho')::UUID, 'customer',
                 current_setting('test.tho')::UUID, 'gate_approval', 'approved', 'https://example.test/tho-ok.pdf')
     $$,
@@ -57,55 +57,55 @@ SELECT lives_ok(
 );
 
 SELECT is(
-    (SELECT e.has_signed_spec FROM public.product_evidence e WHERE e.product_id = current_setting('test.tips')::UUID),
+    (SELECT e.has_signed_spec FROM api.product_evidence e WHERE e.product_id = current_setting('test.tips')::UUID),
     FALSE,
     'the product still has no signed spec sheet'
 );
 
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, version, status, url,
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, version, status, url,
                              is_signed, is_stamped, sent_from_official_email, issued_on)
 VALUES ('00000000-0000-4000-8000-000000000231', current_setting('test.tenant_id')::UUID,
         current_setting('test.tho')::UUID, 'product', current_setting('test.tips')::UUID, 'spec_sheet', 1, 'approved',
         'https://example.test/tips-v1.pdf', TRUE, TRUE, TRUE, current_date);
 
 SELECT is(
-    (SELECT e.has_signed_spec FROM public.product_evidence e WHERE e.product_id = current_setting('test.tips')::UUID),
+    (SELECT e.has_signed_spec FROM api.product_evidence e WHERE e.product_id = current_setting('test.tips')::UUID),
     TRUE,
     'a fully flagged approved spec sheet counts as a signed spec sheet'
 );
 
 -- Version 2 supersedes version 1, which stays superseded.
-INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, version, status, url)
+INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, version, status, url)
 VALUES (current_setting('test.tenant_id')::UUID, current_setting('test.tho')::UUID, 'product',
         current_setting('test.tips')::UUID, 'spec_sheet', 2, 'draft', 'https://example.test/tips-v2.pdf');
 
 SELECT throws_ok(
-    $$ UPDATE public.document SET status = 'signed' WHERE id = '00000000-0000-4000-8000-000000000231' $$,
+    $$ UPDATE api.document SET status = 'signed' WHERE id = '00000000-0000-4000-8000-000000000231' $$,
     '23514',
     'document_superseded_sticky',
     'a superseded document cannot be signed again'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.document SET version = 3 WHERE id = '00000000-0000-4000-8000-000000000231' $$,
+    $$ UPDATE api.document SET version = 3 WHERE id = '00000000-0000-4000-8000-000000000231' $$,
     '23514',
     'document_identity_immutable',
     'a document''s version cannot be changed'
 );
 
 SELECT lives_ok(
-    $$ UPDATE public.document SET notes = 'kept for the record' WHERE id = '00000000-0000-4000-8000-000000000231' $$,
+    $$ UPDATE api.document SET notes = 'kept for the record' WHERE id = '00000000-0000-4000-8000-000000000231' $$,
     'a superseded document''s notes can still be edited'
 );
 
 -- A closed customer gets no new projects.
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model, status)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model, status)
 VALUES ('00000000-0000-4000-8000-000000000232', current_setting('test.tenant_id')::UUID, 'CLS', 'Closed Trading',
         'trading_partner', 'closed');
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.project (tenant_id, customer_id, display_name, type, path, packages)
+        INSERT INTO api.project (tenant_id, customer_id, display_name, type, path, packages)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000232', 'Too late', 'npi',
                 'a_sourcing', ARRAY['A1'])
     $$,
@@ -116,12 +116,12 @@ SELECT throws_ok(
 
 -- Contract terms: management only.
 SELECT lives_ok(
-    $$ UPDATE public.customer SET deposit_rate = 40 WHERE id = current_setting('test.tho')::UUID $$,
+    $$ UPDATE api.customer SET deposit_rate = 40 WHERE id = current_setting('test.tho')::UUID $$,
     'management changes a customer''s deposit rate'
 );
 
 -- Back to the seed's rate, then act as the coordinator.
-UPDATE public.customer SET deposit_rate = 30 WHERE id = current_setting('test.tho')::UUID;
+UPDATE api.customer SET deposit_rate = 30 WHERE id = current_setting('test.tho')::UUID;
 
 RESET ROLE;
 
@@ -131,19 +131,19 @@ SELECT private.impersonate(
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.customer SET deposit_rate = 50 WHERE id = current_setting('test.tho')::UUID $$,
+    $$ UPDATE api.customer SET deposit_rate = 50 WHERE id = current_setting('test.tho')::UUID $$,
     '42501',
     'field_write_forbidden',
     'the coordinator cannot change a customer''s deposit rate'
 );
 
 SELECT lives_ok(
-    $$ UPDATE public.customer SET display_name = display_name || ' GmbH' WHERE id = current_setting('test.tho')::UUID $$,
+    $$ UPDATE api.customer SET display_name = display_name || ' GmbH' WHERE id = current_setting('test.tho')::UUID $$,
     'the coordinator changes a customer''s name'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.customer SET restricted_drive_url = 'https://drive.example.test/x' WHERE id = current_setting('test.tho')::UUID $$,
+    $$ UPDATE api.customer SET restricted_drive_url = 'https://drive.example.test/x' WHERE id = current_setting('test.tho')::UUID $$,
     '23514',
     'customer_contract_restricted',
     'the coordinator cannot change the restricted Drive link'

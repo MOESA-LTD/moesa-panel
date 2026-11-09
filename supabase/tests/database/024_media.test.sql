@@ -61,7 +61,7 @@ SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_se
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
+        INSERT INTO api.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
         VALUES (current_setting('test.m244')::UUID, current_setting('test.moesa')::UUID,
                 current_setting('test.moesa') || '/' || current_setting('test.m244') || '/none.png', 'none.png', 'image/png', 1)
     $$,
@@ -71,19 +71,19 @@ SELECT throws_ok(
 );
 
 -- The client claims another type and size; Storage's win.
-INSERT INTO public.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
+INSERT INTO api.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
 VALUES (current_setting('test.m241')::UUID, current_setting('test.moesa')::UUID,
         current_setting('test.moesa') || '/' || current_setting('test.m241') || '/a.png', 'a.png', 'video/mp4', 5);
 
 SELECT is(
-    (SELECT mime_type || ':' || size_bytes FROM public.media WHERE id = current_setting('test.m241')::UUID),
+    (SELECT mime_type || ':' || size_bytes FROM api.media WHERE id = current_setting('test.m241')::UUID),
     'image/png:1000',
     'type and size come from Storage'
 );
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
+        INSERT INTO api.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
         VALUES (current_setting('test.m242')::UUID, current_setting('test.moesa')::UUID,
                 current_setting('test.moesa') || '/' || current_setting('test.m242') || '/x.svg', 'x.svg', 'image/png', 1000)
     $$,
@@ -94,7 +94,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
+        INSERT INTO api.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
         VALUES (current_setting('test.m243')::UUID, current_setting('test.moesa')::UUID,
                 current_setting('test.moesa') || '/' || current_setting('test.m243') || '/big.png', 'big.png', 'image/png', 1000)
     $$,
@@ -105,7 +105,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
+        INSERT INTO api.media (id, tenant_id, storage_path, file_name, mime_type, size_bytes)
         VALUES (current_setting('test.m245')::UUID, current_setting('test.moesa')::UUID,
                 current_setting('test.moesa') || '/' || current_setting('test.m241') || '/a.png', 'a.png', 'image/png', 1000)
     $$,
@@ -115,7 +115,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.media SET storage_path = storage_path || 'x' WHERE id = current_setting('test.m241')::UUID $$,
+    $$ UPDATE api.media SET storage_path = storage_path || 'x' WHERE id = current_setting('test.m241')::UUID $$,
     '23514',
     'media_file_immutable',
     'the file is fixed'
@@ -148,7 +148,7 @@ RESET ROLE;
 SELECT private.impersonate(current_setting('test.ayse')::UUID, current_setting('test.atlas')::UUID);
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.media WHERE id = current_setting('test.m241')::UUID),
+    (SELECT count(*)::INT FROM api.media WHERE id = current_setting('test.m241')::UUID),
     0,
     'another tenant cannot read the media'
 );
@@ -175,7 +175,7 @@ RESET ROLE;
 -- Management deletes a file: the row first, then its object, which the policy now lets go.
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
-DELETE FROM public.media WHERE id = current_setting('test.m241')::UUID;
+DELETE FROM api.media WHERE id = current_setting('test.m241')::UUID;
 
 SELECT results_eq(
     $$

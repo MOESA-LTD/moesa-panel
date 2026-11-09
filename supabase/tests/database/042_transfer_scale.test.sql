@@ -21,9 +21,9 @@ SELECT private.impersonate(
 );
 SELECT set_config('test.t0', clock_timestamp()::TEXT, TRUE);
 SELECT set_config('test.r', public.transfer_customer(
-    (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD'),
-    (SELECT id FROM public.tenant WHERE display_name = 'MOESA Europe'),
-    (SELECT id FROM public.customer WHERE code = 'THO' AND tenant_id = (SELECT id FROM public.tenant WHERE display_name = 'MOESA LTD')),
+    (SELECT id FROM api.tenant WHERE display_name = 'MOESA LTD'),
+    (SELECT id FROM api.tenant WHERE display_name = 'MOESA Europe'),
+    (SELECT id FROM api.customer WHERE code = 'THO' AND tenant_id = (SELECT id FROM api.tenant WHERE display_name = 'MOESA LTD')),
     'copy'
 )::TEXT, TRUE);
 SELECT set_config('test.elapsed', extract(EPOCH FROM clock_timestamp() - current_setting('test.t0')::TIMESTAMPTZ)::TEXT, TRUE);

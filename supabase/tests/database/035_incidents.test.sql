@@ -29,82 +29,82 @@ FROM (VALUES
 ) AS x (k, v);
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model)
 VALUES ('00000000-0000-4000-8000-000000035001', current_setting('test.moesa')::UUID, 'ZZZ', 'Zed Trading', 'trading_partner');
-INSERT INTO public.project (id, tenant_id, customer_id, display_name, type, path, packages)
+INSERT INTO api.project (id, tenant_id, customer_id, display_name, type, path, packages)
 VALUES ('00000000-0000-4000-8000-000000035002', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035001', 'Zed lamp', 'npi', 'a_sourcing', ARRAY['A1']);
 -- An S1 on Friday morning about the pilot, an S2 on Saturday about a document request.
-INSERT INTO public.incident (id, tenant_id, customer_id, code, family, severity, title, what_happened, entity_type, entity_id, opened_at)
+INSERT INTO api.incident (id, tenant_id, customer_id, code, family, severity, title, what_happened, entity_type, entity_id, opened_at)
 VALUES ('00000000-0000-4000-8000-000000035011', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'X', 'ol', 's1', 'Pallets short at Rosbach',
         'Two pallets fewer than the packing list.', 'project', current_setting('test.pilot')::UUID, '2026-11-06 09:00+00'),
        ('00000000-0000-4000-8000-000000035012', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, NULL, 'oa', 's2', 'GPSR document request',
         'Amazon DE asks for the GPSR safety information.', NULL, NULL, '2026-11-07 10:00+00');
-INSERT INTO public.incident_deadline (id, tenant_id, incident_id, kind)
+INSERT INTO api.incident_deadline (id, tenant_id, incident_id, kind)
 VALUES ('00000000-0000-4000-8000-000000035021', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035012', 'document_request'),
        ('00000000-0000-4000-8000-000000035022', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035011', 'supplier_damage');
 
-SELECT is((SELECT code || ':' || status FROM public.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
+SELECT is((SELECT code || ':' || status FROM api.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
           'OL-THO-' || extract(year FROM now())::INT || '-001:open', 'the code is the family, the customer, the year and the number');
-SELECT is((SELECT customer_notice_due_at FROM public.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
+SELECT is((SELECT customer_notice_due_at FROM api.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
           '2026-11-06 13:00+00'::TIMESTAMPTZ, 'S1: the customer within four hours');
-SELECT is((SELECT customer_notice_due_at FROM public.incident WHERE id = '00000000-0000-4000-8000-000000035012'),
+SELECT is((SELECT customer_notice_due_at FROM api.incident WHERE id = '00000000-0000-4000-8000-000000035012'),
           '2026-11-09 23:59:59+00'::TIMESTAMPTZ, 'S2 on a Saturday: by the end of Monday');
 SELECT is(public.add_business_days('2026-11-06', 5), '2026-11-13'::DATE, 'five business days from a Friday');
 SELECT is(public.add_business_days('2026-11-07', 0), '2026-11-09'::DATE, 'a weekend day rolls to Monday');
-SELECT is((SELECT due_at FROM public.incident_deadline WHERE id = '00000000-0000-4000-8000-000000035021'),
+SELECT is((SELECT due_at FROM api.incident_deadline WHERE id = '00000000-0000-4000-8000-000000035021'),
           '2026-11-13 23:59:59+00'::TIMESTAMPTZ, 'a document request: five business days');
-SELECT is((SELECT due_at FROM public.incident_deadline WHERE id = '00000000-0000-4000-8000-000000035022'),
+SELECT is((SELECT due_at FROM api.incident_deadline WHERE id = '00000000-0000-4000-8000-000000035022'),
           '2026-11-08 09:00+00'::TIMESTAMPTZ, 'the supplier damage notice: 48 hours');
-SELECT throws_ok($$ INSERT INTO public.incident_deadline (tenant_id, incident_id, kind) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035011', 'other') $$,
+SELECT throws_ok($$ INSERT INTO api.incident_deadline (tenant_id, incident_id, kind) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035011', 'other') $$,
                  '23502', NULL, 'another deadline needs its date');
-SELECT is((SELECT entity_label FROM public.incident_overview WHERE id = '00000000-0000-4000-8000-000000035011'),
-          (SELECT code FROM public.project WHERE id = current_setting('test.pilot')::UUID), 'the overview names the linked record');
-SELECT is((SELECT next_deadline_at FROM public.incident_overview WHERE id = '00000000-0000-4000-8000-000000035012'),
+SELECT is((SELECT entity_label FROM api.incident_overview WHERE id = '00000000-0000-4000-8000-000000035011'),
+          (SELECT code FROM api.project WHERE id = current_setting('test.pilot')::UUID), 'the overview names the linked record');
+SELECT is((SELECT next_deadline_at FROM api.incident_overview WHERE id = '00000000-0000-4000-8000-000000035012'),
           '2026-11-13 23:59:59+00'::TIMESTAMPTZ, 'the next deadline');
-SELECT throws_ok($$ UPDATE public.incident SET incident_type = 'OA-02' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET incident_type = 'OA-02' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_type_family', 'the Y10 card is of the incident''s family');
-SELECT throws_ok($$ UPDATE public.incident SET incident_type = 'OL-1' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET incident_type = 'OL-1' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', NULL, 'a Y10 card code');
-SELECT throws_ok($$ UPDATE public.incident SET family = 'om' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET family = 'om' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_immutable_field', 'the family is fixed with the code');
-SELECT throws_ok($$ UPDATE public.incident SET entity_id = '00000000-0000-4000-8000-000000035002' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET entity_id = '00000000-0000-4000-8000-000000035002' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_entity_invalid', 'not another customer''s record');
-SELECT throws_ok($$ UPDATE public.incident SET status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_management_notice_required', 'S1 leaves open only once management is told');
 
-SELECT throws_ok($$ UPDATE public.incident SET severity = 's3', status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET severity = 's3', status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '42501', 'incident_severity_downgrade_requires_management', 'only management lowers an S1 or S2');
 
-UPDATE public.incident SET management_notified_at = '2026-11-06 09:30+00', status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011';
+UPDATE api.incident SET management_notified_at = '2026-11-06 09:30+00', status = 'contained' WHERE id = '00000000-0000-4000-8000-000000035011';
 
-SELECT throws_ok($$ UPDATE public.incident SET status = 'closed' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET status = 'closed' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_closure_incomplete', 'closing needs the outcome, root cause and preventive action');
-SELECT throws_ok($$ UPDATE public.incident SET status = 'closed', outcome = 'partial_recovery', root_cause = 'carrier', preventive_action = 'Y07 §4.3: count pallets at loading (v1.2)'
+SELECT throws_ok($$ UPDATE api.incident SET status = 'closed', outcome = 'partial_recovery', root_cause = 'carrier', preventive_action = 'Y07 §4.3: count pallets at loading (v1.2)'
                     WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '42501', 'incident_close_management', 'management closes an S1');
 
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-UPDATE public.incident SET status = 'closed', outcome = 'partial_recovery', root_cause = 'carrier', preventive_action = 'Y07 §4.3: count pallets at loading (v1.2)'
+UPDATE api.incident SET status = 'closed', outcome = 'partial_recovery', root_cause = 'carrier', preventive_action = 'Y07 §4.3: count pallets at loading (v1.2)'
 WHERE id = '00000000-0000-4000-8000-000000035011';
 
-SELECT is((SELECT status || ':' || (closed_on = current_date) FROM public.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
+SELECT is((SELECT status || ':' || (closed_on = current_date) FROM api.incident WHERE id = '00000000-0000-4000-8000-000000035011'),
           'closed:true', 'closing dates it');
-SELECT lives_ok($$ UPDATE public.incident SET severity = 's3' WHERE id = '00000000-0000-4000-8000-000000035012' $$,
+SELECT lives_ok($$ UPDATE api.incident SET severity = 's3' WHERE id = '00000000-0000-4000-8000-000000035012' $$,
                 'management lowers an S2');
-SELECT throws_ok($$ INSERT INTO public.incident_log (tenant_id, incident_id, note) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035011', 'late note') $$,
+SELECT throws_ok($$ INSERT INTO api.incident_log (tenant_id, incident_id, note) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035011', 'late note') $$,
                  '23514', 'incident_closed', 'a closed incident''s log no longer changes');
-SELECT throws_ok($$ UPDATE public.incident SET status = 'open' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
+SELECT throws_ok($$ UPDATE api.incident SET status = 'open' WHERE id = '00000000-0000-4000-8000-000000035011' $$,
                  '23514', 'incident_status_order', 'closed is final');
-SELECT throws_ok($$ INSERT INTO public.incident_log (tenant_id, incident_id, note, cost_amount) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035012', 'storage fee', 100) $$,
+SELECT throws_ok($$ INSERT INTO api.incident_log (tenant_id, incident_id, note, cost_amount) VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000035012', 'storage fee', 100) $$,
                  '23514', NULL, 'a cost names its currency and payer');
-SELECT throws_ok($$ DELETE FROM public.incident WHERE id = '00000000-0000-4000-8000-000000035012' $$,
+SELECT throws_ok($$ DELETE FROM api.incident WHERE id = '00000000-0000-4000-8000-000000035012' $$,
                  '42501', NULL, 'incidents are not deleted');
 
 RESET ROLE;
 SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'ayse@moesa-panel.test'),
                            (SELECT id FROM public.tenant WHERE display_name = 'Atlas Danışmanlık'));
-SELECT is((SELECT count(*)::INT FROM public.incident), 0, 'another tenant sees none');
+SELECT is((SELECT count(*)::INT FROM api.incident), 0, 'another tenant sees none');
 
 SELECT * FROM finish();
 

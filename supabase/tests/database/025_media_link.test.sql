@@ -64,32 +64,32 @@ SELECT has_table('public', 'media_link', 'media_link table');
 
 SELECT lives_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id, role)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_png')::UUID, 'product',
                 current_setting('test.mop40')::UUID, 'primary_image')
     $$,
     'a coordinator links a primary image to a product'
 );
 
-INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id, role)
 VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_png2')::UUID, 'product',
         current_setting('test.mop40')::UUID, 'primary_image');
 
 SELECT is(
     (SELECT string_agg(m.file_name || ':' || l.role, ',' ORDER BY m.file_name)
-     FROM public.media_link l JOIN public.media m ON m.id = l.media_id
+     FROM api.media_link l JOIN api.media m ON m.id = l.media_id
      WHERE l.entity_id = current_setting('test.mop40')::UUID),
     'a.png:gallery,b.png:primary_image',
     'a second primary demotes the first'
 );
 
 SELECT public.set_primary_media(
-    (SELECT l.id FROM public.media_link l WHERE l.media_id = current_setting('test.m_png')::UUID)
+    (SELECT l.id FROM api.media_link l WHERE l.media_id = current_setting('test.m_png')::UUID)
 );
 
 SELECT is(
     (SELECT string_agg(m.file_name || ':' || l.role, ',' ORDER BY m.file_name)
-     FROM public.media_link l JOIN public.media m ON m.id = l.media_id
+     FROM api.media_link l JOIN api.media m ON m.id = l.media_id
      WHERE l.entity_id = current_setting('test.mop40')::UUID),
     'a.png:primary_image,b.png:gallery',
     'set_primary_media swaps the primary'
@@ -97,7 +97,7 @@ SELECT is(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id, role)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_pdf')::UUID, 'product',
                 current_setting('test.cones')::UUID, 'primary_image')
     $$,
@@ -108,7 +108,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_png')::UUID, 'supplier',
                 current_setting('test.tr1')::UUID)
     $$,
@@ -119,7 +119,7 @@ SELECT throws_ok(
 
 SELECT lives_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_shared')::UUID, 'supplier',
                 current_setting('test.tr1')::UUID)
     $$,
@@ -128,7 +128,7 @@ SELECT lives_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_shared')::UUID, 'product', gen_random_uuid())
     $$,
     '23503',
@@ -138,7 +138,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_shared')::UUID, 'product',
                 current_setting('test.atlas_product')::UUID)
     $$,
@@ -149,7 +149,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_shared')::UUID, 'shipment', gen_random_uuid())
     $$,
     '23503',
@@ -158,21 +158,21 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.media_link SET entity_id = current_setting('test.cones')::UUID WHERE media_id = current_setting('test.m_png')::UUID $$,
+    $$ UPDATE api.media_link SET entity_id = current_setting('test.cones')::UUID WHERE media_id = current_setting('test.m_png')::UUID $$,
     '23514',
     'media_link_identity_immutable',
     'a link does not move'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.media SET customer_id = NULL WHERE id = current_setting('test.m_png')::UUID $$,
+    $$ UPDATE api.media SET customer_id = NULL WHERE id = current_setting('test.m_png')::UUID $$,
     '23514',
     'media_customer_locked',
     'a linked file keeps its customer'
 );
 
 SELECT throws_ok(
-    $$ DELETE FROM public.media WHERE id = current_setting('test.m_pdf')::UUID $$,
+    $$ DELETE FROM api.media WHERE id = current_setting('test.m_pdf')::UUID $$,
     '42501',
     NULL,
     'a coordinator does not delete media'
@@ -191,7 +191,7 @@ SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_se
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id)
+        INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.m_shared')::UUID, 'product',
                 current_setting('test.cones')::UUID)
     $$,
@@ -201,7 +201,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-    $$ DELETE FROM public.media_link WHERE media_id = current_setting('test.m_png2')::UUID $$,
+    $$ DELETE FROM api.media_link WHERE media_id = current_setting('test.m_png2')::UUID $$,
     '42501',
     'media_link_forbidden',
     'so does unlinking'
@@ -209,13 +209,13 @@ SELECT throws_ok(
 
 SELECT is(
     (SELECT link_count || ':' || (linked_entities @> ARRAY['product:' || current_setting('test.mop40')])
-     FROM public.media_library WHERE id = current_setting('test.m_png')::UUID),
+     FROM api.media_library WHERE id = current_setting('test.m_png')::UUID),
     '1:true',
     'the library counts links'
 );
 
 SELECT is(
-    (SELECT primary_image_path FROM public.product_with_evidence WHERE id = current_setting('test.mop40')::UUID),
+    (SELECT primary_image_path FROM api.product_with_evidence WHERE id = current_setting('test.mop40')::UUID),
     current_setting('test.moesa') || '/' || current_setting('test.m_png') || '/a.png',
     'the product list gets the primary image'
 );
@@ -225,14 +225,14 @@ RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
 SELECT throws_ok(
-    $$ DELETE FROM public.media WHERE id = current_setting('test.m_png')::UUID $$,
+    $$ DELETE FROM api.media WHERE id = current_setting('test.m_png')::UUID $$,
     '23503',
     'media_in_use',
     'linked media is not deleted'
 );
 
 SELECT lives_ok(
-    $$ DELETE FROM public.media WHERE id = current_setting('test.m_pdf')::UUID $$,
+    $$ DELETE FROM api.media WHERE id = current_setting('test.m_pdf')::UUID $$,
     'management deletes unlinked media'
 );
 
