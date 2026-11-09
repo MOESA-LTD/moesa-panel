@@ -6,7 +6,9 @@
 -- and the api.supplier(p) computed relationship) and Q6 (the purchase-order overview) run against
 -- api.* and against the same query on public.* (temporarily granted to authenticated, so both sides
 -- pay the same RLS). Each side: one warm-up, then 5 alternating runs; the median planning + execution
--- time of EXPLAIN ANALYZE. Budget (R10): internal ≤ +15%, restricted and mixed ≤ +40%.
+-- time of EXPLAIN ANALYZE. Budget (R10): reads, internal ≤ +15%, restricted and mixed ≤ +40%. Every
+-- case here is a read; writes (R10 as amended 2026-11-09: ≤ +15 ms absolute) are measured over HTTP
+-- by supabase/functions/scripts/field_perf_http.ts.
 \set ON_ERROR_STOP 1
 \pset pager off
 \set QUIET 1

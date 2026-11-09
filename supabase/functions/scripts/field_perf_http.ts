@@ -10,8 +10,10 @@
 //    no public relation grants anything to anon/authenticated afterwards (exit 3 if one does).
 // 3. The same requests through api. 30 per case per actor (after 3 warm-ups): the product list
 //    (50, with customer(code),supplier(code)), the purchase-order overview (50) and a PATCH with
-//    return=representation. Medians compared against R10's budget: internal ≤ +15%, restricted and
-//    mixed ≤ +40%. Exit 1 when over budget.
+//    return=representation. Medians compared against R10's budget: reads internal ≤ +15%,
+//    restricted and mixed ≤ +40%; writes (a case with a method) ≤ +15 ms absolute, whatever the
+//    actor (R10 as amended 2026-11-09: the forwarder's fixed cost dominates a ~7 ms write).
+//    Exit 1 when over budget.
 //
 // No secret is printed; the service key stays in helpers.ts. Not run in CI.
 import { adminSetup, adminTeardown, API_URL, type Fixture, rest, signIn } from '../http-tests/helpers.ts';
@@ -19,6 +21,8 @@ import { adminSetup, adminTeardown, API_URL, type Fixture, rest, signIn } from '
 const CONTAINER = 'supabase_db_moesa-panel';
 const N = 30;
 const WARMUP = 3;
+// R10 as amended 2026-11-09: a write may cost at most this much more than its public baseline (median).
+const WRITE_BUDGET_MS = 15;
 const PERF_PRODUCT = 'feed0001-0000-4000-8000-000000000001';
 const MEASURED = [
    'public.product',
@@ -147,11 +151,16 @@ try {
          const key = `${a.name}|${c.name}`;
          const b = base.get(key)!;
          const x = api.get(key)!;
+         const write = c.method !== undefined;
          const limit = a.name === 'internal' ? 1.15 : 1.4;
-         const verdict = !(x / b <= limit) ? 'OVER' : 'ok';
+         const ok = write ? x - b <= WRITE_BUDGET_MS : x / b <= limit;
+         const verdict = !ok ? 'OVER' : 'ok';
          if (verdict === 'OVER') over.push(key);
-         const delta = Number.isNaN(x / b) ? 'error' : `${x / b >= 1 ? '+' : ''}${((x / b - 1) * 100).toFixed(1)}%`;
-         rows.push(`| ${a.name} | ${c.name} | ${b.toFixed(2)} | ${x.toFixed(2)} | ${delta} | +${Math.round((limit - 1) * 100)}% | ${verdict} |`);
+         const delta = Number.isNaN(x / b)
+            ? 'error'
+            : `${x / b >= 1 ? '+' : ''}${((x / b - 1) * 100).toFixed(1)}% (${x - b >= 0 ? '+' : ''}${(x - b).toFixed(2)} ms)`;
+         const budget = write ? `+${WRITE_BUDGET_MS} ms` : `+${Math.round((limit - 1) * 100)}%`;
+         rows.push(`| ${a.name} | ${c.name} | ${b.toFixed(2)} | ${x.toFixed(2)} | ${delta} | ${budget} | ${verdict} |`);
       }
    }
    console.log(`\nHTTP medians of ${N} requests (after ${WARMUP} warm-ups), PostgREST at ${API_URL}`);
