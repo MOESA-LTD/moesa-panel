@@ -195,6 +195,15 @@ BEGIN
     END LOOP;
 
     IF TG_OP = 'UPDATE' THEN
+        -- One pass per project per statement (project_gate_guard): the forwarder writes one row at a time, each
+        -- its own base statement, so the guard's flag is cleared between rows. Rows of one view statement share
+        -- the statement timestamp; a second pass of a project under the same one is refused.
+        IF TG_TABLE_NAME = 'project_gate' AND new_j ->> 'status' = 'passed' AND old_j ->> 'status' IS DISTINCT FROM 'passed' THEN
+            IF pg_catalog.current_setting('moesa.api_gate_pass_' || replace(new_j ->> 'project_id', '-', '_'), TRUE) = pg_catalog.statement_timestamp()::TEXT THEN
+                RAISE EXCEPTION 'gate_one_at_a_time' USING ERRCODE = 'check_violation';
+            END IF;
+            PERFORM pg_catalog.set_config('moesa.api_gate_pass_' || replace(new_j ->> 'project_id', '-', '_'), pg_catalog.statement_timestamp()::TEXT, TRUE);
+        END IF;
         IF cardinality(cols) = 0 THEN
             -- Nothing to write, but RLS still decides: FOR UPDATE applies the UPDATE policies (a
             -- caller without update is refused as by a real UPDATE). Not a no-op UPDATE, which would
