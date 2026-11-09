@@ -1397,7 +1397,8 @@
                "parent_unknown": "müşterinin bu SKU ile ana ürünü yok",
                "gtin_in_use": "GTIN, aktif {sku} ürününde kullanılıyor",
                "gtin_duplicate": "GTIN dosyada birden fazla kez geçiyor",
-               "sku_duplicate": "SKU bu müşteri için dosyada birden fazla kez geçiyor"
+               "sku_duplicate": "SKU bu müşteri için dosyada birden fazla kez geçiyor",
+               "csv_column_not_writable": "bu sütundaki alanı yazma yetkiniz yok, sütunu boş bırakın"
             },
             "warnings": {
                "unknown_column": "bilinmeyen sütun, yok sayıldı",

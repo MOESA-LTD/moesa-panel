@@ -5,6 +5,7 @@ import {
    type ProductRow,
    type ProductStatus
 } from '@/api/product';
+import type { FieldAccess } from '@/composables/useFieldAccess';
 import { serializeCsv } from '@/lib/csv/serialize';
 import { gtinValid } from '@/lib/gtin';
 import * as z from 'zod';
@@ -134,7 +135,8 @@ export type ImportErrorCode =
    | 'parent_unknown'
    | 'gtin_in_use'
    | 'gtin_duplicate'
-   | 'sku_duplicate';
+   | 'sku_duplicate'
+   | 'csv_column_not_writable';
 
 /**
  * A cell of a column the file has (a column it lacks stays undefined: the product keeps its value).
@@ -403,6 +405,21 @@ export const S10_TO_PRODUCT: Record<string, ImportField> = {
    not: 'notes'
 };
 
+/**
+ * The product field (a column of the `product` table, as field rights name it) behind each S10
+ * header; null for a header with no field of its own (deferred and computed columns).
+ */
+export const S10_FIELD_OF: Record<(typeof S10_COLUMNS)[number], string | null> = Object.fromEntries(
+   S10_COLUMNS.map((column) => {
+      const field = S10_TO_PRODUCT[column] as string | undefined;
+      const named =
+         { customer_code: 'customer_id', supplier_code: 'supplier_id', parent_sku: 'parent_id' }[
+            field ?? ''
+         ] ?? field;
+      return [column, named ?? null];
+   })
+) as Record<(typeof S10_COLUMNS)[number], string | null>;
+
 /** The S10 column of each import field, to name it to the user. */
 export const PRODUCT_TO_S10 = Object.fromEntries(
    Object.entries(S10_TO_PRODUCT).map(([column, field]) => [field, column])
@@ -451,7 +468,8 @@ const withHazmatNote = (row: ProductImportRow, hazmat: string | undefined): Prod
  */
 export function mapS10Rows(
    header: readonly string[],
-   rows: readonly (readonly string[])[]
+   rows: readonly (readonly string[])[],
+   { canWrite }: Pick<FieldAccess, 'canWrite'>
 ): { rows: ProductImportRow[]; warnings: ImportWarning[]; errors: ImportError[] } {
    const columns = header.map((column) => column.trim().toLowerCase());
    const warnings: ImportWarning[] = [];
@@ -475,6 +493,14 @@ export function mapS10Rows(
 
    const mapped: ProductImportRow[] = [];
    const errors: ImportError[] = [];
+
+   // A column the user may not write must stay empty; the server refuses it as well (row 0 = the header).
+   columns.forEach((column, index) => {
+      const field = S10_FIELD_OF[column as (typeof S10_COLUMNS)[number]];
+      if (field && !canWrite(field) && rows.some((row) => row[index]?.trim())) {
+         errors.push({ row: 0, field: column, code: 'csv_column_not_writable' });
+      }
+   });
    rows.forEach((row, index) => {
       const input = Object.fromEntries(
          [...fields].map(([field, column]) => [field, row[column] ?? ''])
@@ -531,9 +557,13 @@ const formatCell = (value: unknown) => {
 
 /**
  * The products as an S10 file: the template's columns in order, the customer and supplier as their
- * codes and the parent as its SKU (among the products given). Deferred columns stay empty.
+ * codes and the parent as its SKU (among the products given). Deferred columns stay empty; the
+ * columns of fields the user may not read are left out.
  */
-export function toS10Csv(products: readonly ProductExportRow[]): string {
+export function toS10Csv(
+   products: readonly ProductExportRow[],
+   { canRead }: Pick<FieldAccess, 'canRead'>
+): string {
    const skuById = new Map(products.map(({ id, sku }) => [id, sku]));
 
    const valueOf = (product: ProductExportRow, column: string): unknown => {
@@ -551,8 +581,12 @@ export function toS10Csv(products: readonly ProductExportRow[]): string {
       }
    };
 
+   const columns = S10_COLUMNS.filter((column) => {
+      const field = S10_FIELD_OF[column];
+      return !field || canRead(field);
+   });
    return serializeCsv(
-      S10_COLUMNS,
-      products.map((product) => S10_COLUMNS.map((column) => formatCell(valueOf(product, column))))
+      columns,
+      products.map((product) => columns.map((column) => formatCell(valueOf(product, column))))
    );
 }

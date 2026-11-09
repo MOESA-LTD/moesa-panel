@@ -1397,7 +1397,8 @@
                "parent_unknown": "no parent product with this SKU for the customer",
                "gtin_in_use": "GTIN already used by active product {sku}",
                "gtin_duplicate": "GTIN appears more than once in the file",
-               "sku_duplicate": "SKU appears more than once in the file for this customer"
+               "sku_duplicate": "SKU appears more than once in the file for this customer",
+               "csv_column_not_writable": "non hai il permesso di scrivere questa colonna, lasciala vuota"
             },
             "warnings": {
                "unknown_column": "unknown column, ignored",

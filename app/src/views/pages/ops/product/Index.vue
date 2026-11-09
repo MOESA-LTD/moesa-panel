@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDialogRef } from '@/composables/useDialogRef';
+import { useFieldAccess } from '@/composables/useFieldAccess';
 import type {
    ResourceTableProps,
    TableRow
@@ -34,6 +35,7 @@ const attrs = useAttrs();
 const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
+const fieldAccess = useFieldAccess('product');
 
 const columns = computed<Props['columns']>(() => [
    // The primary image (its thumbnail), named for screen readers only.
@@ -164,9 +166,12 @@ const exportCsv = async () => {
    exporting.value = true;
    try {
       // With a byte order mark, so spreadsheets read the file as UTF-8.
-      const blob = new Blob([String.fromCharCode(0xfeff), toS10Csv(await fetchExportRows())], {
-         type: 'text/csv;charset=utf-8'
-      });
+      const blob = new Blob(
+         [String.fromCharCode(0xfeff), toS10Csv(await fetchExportRows(), fieldAccess)],
+         {
+            type: 'text/csv;charset=utf-8'
+         }
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
