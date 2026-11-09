@@ -1155,6 +1155,10 @@ GRANT EXECUTE ON FUNCTION public.import_products (JSONB) TO authenticated, servi
 
 GRANT EXECUTE ON FUNCTION public.save_role (JSONB, UUID[], JSONB) TO authenticated, service_role;
 
+-- save_role writes a role's field rights through this postgres-owned helper (050): api_owner holds no
+-- write on role_field_permission (S7).
+GRANT EXECUTE ON FUNCTION private.save_role_field_rights (UUID, JSONB) TO api_owner;
+
 GRANT EXECUTE ON FUNCTION public.set_user_roles (UUID, UUID[]) TO authenticated, service_role;
 
 GRANT EXECUTE ON FUNCTION public.pass_gate (UUID, TEXT, DATE, UUID, UUID[]) TO authenticated, service_role;

@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- writer of role_field_permission (S7) and the grant ceiling (C1).
 BEGIN;
 
-SELECT plan(39);
+SELECT plan(41);
 
 -- The fixtures also set test.<key> for each id.
 SELECT private.field_test_fixtures();
@@ -76,13 +76,15 @@ SELECT is(private.field_read_tenants('public.product','purchase_price'), '{}'::U
 -- As akif (management) in MOESA LTD. save_role in a scalar subquery: called once, not per row.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-SELECT is((SELECT count(*)::INT FROM public.role_field_permission WHERE role_id = (SELECT public.save_role(jsonb_build_object('display_name','t_new','tenant_id',current_setting('test.moesa')), '{}'::UUID[]))),
+SELECT is((SELECT count(*)::INT FROM api.role_field_permission WHERE role_id = (SELECT public.save_role(jsonb_build_object('display_name','t_new','tenant_id',current_setting('test.moesa')), '{}'::UUID[]))),
    0, 'a new role starts from sensitive denied');
 SELECT lives_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_restricted'),
-   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
    '[{"resource_name":"public.product","field":"notes","can_read":true,"can_write":false}]'::JSONB) $$, 'save_role syncs field rights');
-SELECT results_eq($$ SELECT field, can_read, can_write FROM public.role_field_permission WHERE role_id = current_setting('test.t_restricted')::UUID $$,
+SELECT results_eq($$ SELECT field, can_read, can_write FROM api.role_field_permission WHERE role_id = current_setting('test.t_restricted')::UUID $$,
    $$ VALUES ('notes', TRUE, FALSE) $$, '... to exactly the given rows');
+-- S7: direct writes as postgres with akif's claims (the role save_role's helper writes as) are refused.
+RESET ROLE;
 SELECT throws_ok($$ INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
    VALUES (current_setting('test.t_restricted')::UUID, 'public.product', 'purchase_price', TRUE, TRUE) $$,
    '42501', 'role_field_permission_save_role_only', 'S7: no direct insert');
@@ -90,20 +92,24 @@ SELECT throws_ok($$ UPDATE public.role_field_permission SET can_write = TRUE WHE
    '42501', 'role_field_permission_save_role_only', 'S7: no direct update');
 SELECT throws_ok($$ DELETE FROM public.role_field_permission WHERE role_id = current_setting('test.t_restricted')::UUID $$,
    '42501', 'role_field_permission_save_role_only', 'S7: no direct delete');
-SELECT lives_ok($$ DELETE FROM public.role WHERE display_name = 't_new' AND tenant_id = current_setting('test.moesa')::UUID $$,
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT lives_ok($$ DELETE FROM api.role WHERE display_name = 't_new' AND tenant_id = current_setting('test.moesa')::UUID $$,
    'deleting a role cascades its field rows (S7 lets the cascade through)');
 
 -- As koordinator in MOESA LTD: may edit roles (granted above), holds no write on supplier terms.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 SELECT throws_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_restricted'),
-   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
    '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true}]'::JSONB) $$,
    '42501', 'field_grant_exceeds_own', 'C1: a grant beyond the caller''s own answers field_grant_exceeds_own');
 SELECT ok(public.my_access(current_setting('test.moesa')::UUID) -> 'fields'
    @> '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":false}]'::JSONB, 'my_access lists field rights');
 
 -- S7 with a hand-set flag: a right written directly must still be the caller's own (C1).
+-- S7 is the table's own guard: these direct writes run as postgres with the caller's claims, the role
+-- save_role's helper (private.save_role_field_rights) writes as; users reach no write on the table.
+RESET ROLE;
 SELECT set_config('moesa.save_role', '1', TRUE);
 SELECT throws_ok($$ INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
    VALUES (current_setting('test.t_restricted')::UUID, 'public.supplier', 'deposit_rate', TRUE, TRUE) $$,
@@ -118,41 +124,58 @@ SELECT throws_ok($$ UPDATE public.role_field_permission SET resource_name = 'pub
    WHERE role_id = current_setting('test.t_restricted')::UUID AND resource_name = 'public.product' AND field = 'notes' $$,
    '42501', 'field_grant_exceeds_own', 'S7: moving a held write to a field the caller cannot write is a new grant');
 SELECT set_config('moesa.save_role', '', TRUE);
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
 -- Only the rights a save adds are checked: the role holds a write the coordinator lacks (set by the
 -- owner), and the coordinator renames it, keeps it, tries to add another, then removes it.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
 SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_restricted'),
-   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
    '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true}]'::JSONB);
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 SELECT lives_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
-   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
    '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true}]'::JSONB) $$,
    'C1: a role carrying a right the editor lacks can still be saved unchanged');
-SELECT results_eq($$ SELECT can_read, can_write FROM public.role_field_permission WHERE role_id = current_setting('test.t_restricted')::UUID AND field = 'deposit_rate' $$,
+SELECT results_eq($$ SELECT can_read, can_write FROM api.role_field_permission WHERE role_id = current_setting('test.t_restricted')::UUID AND field = 'deposit_rate' $$,
    $$ VALUES (TRUE, TRUE) $$, '... and the right is kept');
 SELECT throws_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
-   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
    '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":true},
      {"resource_name":"public.supplier","field":"payment_terms","can_read":true,"can_write":true}]'::JSONB) $$,
    '42501', 'field_grant_exceeds_own', 'C1: adding a right the editor lacks is still refused');
 SELECT lives_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
-   ARRAY(SELECT permission_id FROM public.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
    '[]'::JSONB) $$, 'C1: removing a right the editor lacks succeeds');
 
 -- Reading role_field_permission: only the rows of roles the caller can see.
-SELECT is((SELECT count(*)::INT FROM public.role_field_permission WHERE role_id = current_setting('test.europe_management')::UUID),
+SELECT is((SELECT count(*)::INT FROM api.role_field_permission WHERE role_id = current_setting('test.europe_management')::UUID),
    0, 'a user sees no field rights of a role in a tenant outside their scope');
-SELECT ok((SELECT count(*) FROM public.role_field_permission WHERE role_id = current_setting('test.moesa_management')::UUID) > 0,
+SELECT ok((SELECT count(*) FROM api.role_field_permission WHERE role_id = current_setting('test.moesa_management')::UUID) > 0,
    '... and sees those of their own tenant''s roles');
+
+-- save_role writes field rights through a postgres-owned helper (RLS does not filter postgres), which
+-- restates the table's policies: without role_field_permission insert, adding even a right the caller
+-- holds is refused as the policy refuses it. Only api_owner (save_role's owner) may call the helper.
+SELECT ok(has_function_privilege('api_owner', 'private.save_role_field_rights(uuid,jsonb)', 'EXECUTE')
+   AND NOT has_function_privilege('authenticated', 'private.save_role_field_rights(uuid,jsonb)', 'EXECUTE'),
+   'only api_owner executes save_role_field_rights');
+RESET ROLE;
+DELETE FROM public.role_permission rp USING public.role r, public.permission p
+WHERE rp.role_id = r.id AND rp.permission_id = p.id AND r.tenant_id = current_setting('test.moesa')::UUID
+  AND r.display_name = 'coordinator' AND p.resource_name = 'public.role_field_permission' AND p.command = 'insert';
+SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
+SELECT throws_ok($$ SELECT public.save_role(jsonb_build_object('id', current_setting('test.t_restricted'), 'display_name', 't_renamed'),
+   ARRAY(SELECT permission_id FROM api.role_permission WHERE role_id = current_setting('test.t_restricted')::UUID),
+   '[{"resource_name":"public.supplier","field":"deposit_rate","can_read":true,"can_write":false}]'::JSONB) $$,
+   '42501', 'You don''t have permission to "create" on role', 'save_role keeps the role_field_permission insert policy');
 
 -- As baris (owner) in MOESA LTD.
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
-SELECT is((SELECT count(*)::INT FROM public.role_field_permission rfp JOIN public.role r ON r.id = rfp.role_id
+SELECT is((SELECT count(*)::INT FROM api.role_field_permission rfp JOIN api.role r ON r.id = rfp.role_id
    WHERE r.tenant_id = (public.create_branch(current_setting('test.moesa')::UUID, '{"display_name":"t_branch"}'::JSONB)).id),
    0, 'a new branch seeds no field rows (its owner holds every field)');
 

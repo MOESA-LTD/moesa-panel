@@ -319,6 +319,82 @@ WHERE
    resource_name = 'public.role_field_permission'
    AND command = 'select';
 
+-- save_role's field-rights sync: the role's rows become exactly `p_field_rights`. It writes as postgres
+-- because save_role runs as api_owner (058), whose api view of role_field_permission is read-only and
+-- which holds no write on the table (S7), not even after the cutover (064). RLS does not filter
+-- postgres, so the table's policies are restated: each command that touches a row needs the caller's
+-- role_field_permission permission in the active tenant (check_permission), on a role of a tenant.
+-- The policies' role visibility is the caller's own write of the role row just before, under RLS.
+-- The S7 trigger still checks every right added against the caller's own (C1). Only api_owner may
+-- execute it (058).
+CREATE OR REPLACE FUNCTION private.save_role_field_rights (p_role UUID, p_field_rights JSONB) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    -- A field given twice keeps the wider right; a write implies a read.
+    wanted JSONB := (
+        SELECT coalesce(jsonb_agg(g), '[]'::JSONB)
+        FROM (SELECT x.resource_name, x.field,
+                     bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)) AS can_read,
+                     bool_or(coalesce(x.can_write, FALSE)) AS can_write
+              FROM jsonb_to_recordset(p_field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+              GROUP BY x.resource_name, x.field) g
+    );
+    in_tenant BOOLEAN := EXISTS (SELECT 1 FROM public.role r WHERE r.id = p_role AND r.tenant_id IS NOT NULL);
+BEGIN
+    -- The policies, before any write.
+    IF EXISTS (SELECT 1 FROM public.role_field_permission rfp
+               WHERE rfp.role_id = p_role
+                 AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT)
+                                 WHERE n.resource_name = rfp.resource_name AND n.field = rfp.field))
+       AND NOT (in_tenant AND private.check_permission('public.role_field_permission', 'delete')) THEN
+        PERFORM public.throw_rls_policy_error('You don''t have permission to modify on role');
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.role_field_permission rfp
+               JOIN jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+                 ON n.resource_name = rfp.resource_name AND n.field = rfp.field
+               WHERE rfp.role_id = p_role AND (rfp.can_read, rfp.can_write) IS DISTINCT FROM (n.can_read, n.can_write))
+       AND NOT (in_tenant AND private.check_permission('public.role_field_permission', 'update')) THEN
+        PERFORM public.throw_rls_policy_error('You don''t have permission to modify on role');
+    END IF;
+    IF EXISTS (SELECT 1 FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT)
+               WHERE NOT EXISTS (SELECT 1 FROM public.role_field_permission rfp
+                                 WHERE rfp.role_id = p_role AND rfp.resource_name = n.resource_name AND rfp.field = n.field))
+       AND NOT (in_tenant AND private.check_permission('public.role_field_permission', 'insert')) THEN
+        PERFORM public.throw_rls_policy_error('You don''t have permission to "create" on role');
+    END IF;
+
+    PERFORM set_config('moesa.save_role', '1', TRUE);
+
+    DELETE FROM public.role_field_permission rfp
+    WHERE rfp.role_id = p_role
+      AND NOT EXISTS (
+          SELECT 1 FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT)
+          WHERE n.resource_name = rfp.resource_name AND n.field = rfp.field
+      );
+
+    -- Only rows that change are written (an update, then an insert: an upsert would fire the insert
+    -- trigger for a row that exists).
+    UPDATE public.role_field_permission rfp
+    SET can_read = n.can_read, can_write = n.can_write
+    FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+    WHERE rfp.role_id = p_role AND rfp.resource_name = n.resource_name AND rfp.field = n.field
+      AND (rfp.can_read, rfp.can_write) IS DISTINCT FROM (n.can_read, n.can_write);
+
+    INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
+    SELECT p_role, n.resource_name, n.field, n.can_read, n.can_write
+    FROM jsonb_to_recordset(wanted) AS n (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM public.role_field_permission rfp
+        WHERE rfp.role_id = p_role AND rfp.resource_name = n.resource_name AND rfp.field = n.field
+    );
+
+    PERFORM set_config('moesa.save_role', '', TRUE);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.save_role_field_rights (UUID, JSONB) FROM PUBLIC, anon, authenticated;
+
 -- A role, its permissions and (when given) its field rights.
 DROP FUNCTION public.save_role (JSONB, UUID[]);
 
@@ -392,40 +468,7 @@ BEGIN
     );
 
     IF field_rights IS NOT NULL THEN
-        PERFORM set_config('moesa.save_role', '1', TRUE);
-
-        DELETE FROM public.role_field_permission rfp
-        WHERE rfp.role_id = saved_id
-          AND NOT EXISTS (
-              SELECT 1 FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT)
-              WHERE x.resource_name = rfp.resource_name AND x.field = rfp.field
-          );
-
-        -- A field given twice keeps the wider right. Only rows that change are written (an update, then
-        -- an insert: an upsert would fire the insert trigger for a row that exists).
-        UPDATE public.role_field_permission rfp
-        SET can_read = n.can_read, can_write = n.can_write
-        FROM (SELECT x.resource_name, x.field,
-                    bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)) AS can_read,
-                    bool_or(coalesce(x.can_write, FALSE)) AS can_write
-             FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
-             GROUP BY x.resource_name, x.field) n
-        WHERE rfp.role_id = saved_id AND rfp.resource_name = n.resource_name AND rfp.field = n.field
-          AND (rfp.can_read, rfp.can_write) IS DISTINCT FROM (n.can_read, n.can_write);
-
-        INSERT INTO public.role_field_permission (role_id, resource_name, field, can_read, can_write)
-        SELECT saved_id, n.resource_name, n.field, n.can_read, n.can_write
-        FROM (SELECT x.resource_name, x.field,
-                    bool_or(coalesce(x.can_read, FALSE) OR coalesce(x.can_write, FALSE)) AS can_read,
-                    bool_or(coalesce(x.can_write, FALSE)) AS can_write
-             FROM jsonb_to_recordset(field_rights) AS x (resource_name TEXT, field TEXT, can_read BOOLEAN, can_write BOOLEAN)
-             GROUP BY x.resource_name, x.field) n
-        WHERE NOT EXISTS (
-            SELECT 1 FROM public.role_field_permission rfp
-            WHERE rfp.role_id = saved_id AND rfp.resource_name = n.resource_name AND rfp.field = n.field
-        );
-
-        PERFORM set_config('moesa.save_role', '', TRUE);
+        PERFORM private.save_role_field_rights(saved_id, field_rights);
     END IF;
 
     RETURN saved_id;
