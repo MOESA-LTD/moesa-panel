@@ -1542,6 +1542,9 @@ DECLARE
     v_attributes_all JSONB;
     v_sent JSONB;
 BEGIN
+    -- The connection and listing columns are server-only (052): the story writes them as the server.
+    PERFORM private.begin_server_write();
+
     INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, display_name, schema, property_groups)
     SELECT m, v_definition ->> 'productType', v_definition ->> 'locale', v_definition -> 'productTypeVersion' ->> 'version',
            v_definition ->> 'displayName', v_definition -> 'schema', v_groups
@@ -1608,6 +1611,7 @@ BEGIN
     PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000004', 'ready', NULL);
     PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000005', 'draft', NULL);
 
+    PERFORM set_config('moesa.server_write', '', TRUE);
     PERFORM private.story_end('2 days');
 END;
 $$;
