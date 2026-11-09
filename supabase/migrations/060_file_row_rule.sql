@@ -10,28 +10,55 @@
 -- written by hand. The permission generator (private.enable_tenant_level_security) drops only the
 -- policies it names (restrict_*, select_public_<table>, ...), so a re-run keeps these; 060's test runs it.
 --
--- private.hidden_media_ids() reads document and media_link, which these very policies filter. A reader
--- subject to them would never see the rows to hide, so it is owned by file_rule_owner (NOLOGIN, not
--- BYPASSRLS, a member of authenticated, so the permission policies still apply to the caller's rows)
--- and the two policies on those tables let that one role through. It is not api_owner: api_owner owns
--- the api views, and exempting it would lift the rule for every api read. No definer here is postgres.
--- The function is STABLE and called as (SELECT ...), an InitPlan: once per query, never per row (R10).
+-- DEVIATION from R8: hidden_media_ids, media_restriction and field_group_readable are SECURITY DEFINER
+-- owned by postgres, like private.parent_gone (Task 3). Each only answers a yes/no or id question for a
+-- policy or the Storage check, and must not depend on the caller's session scope or on the caller's
+-- other table rights (a role with media select but no document or media_link select, or an active
+-- tenant outside the object's), so they read the base tables directly. EXECUTE is revoked from public
+-- and anon; the policy path (authenticated) keeps it, and authenticated has no USAGE on private.
+-- hidden_media_ids is STABLE and called as (SELECT ...), an InitPlan: once per query (R10).
+-- The Storage check (can_read_media_file) takes the tenant from the path and no scope, so it asks
+-- field_group_readable for that tenant explicitly.
 
-DO $$
+CREATE OR REPLACE FUNCTION private.field_group_readable (p_tenant UUID, p_group TEXT) RETURNS BOOLEAN LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+DECLARE
+    f RECORD;
+    seen BOOLEAN := FALSE;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'file_rule_owner') THEN
-        CREATE ROLE file_rule_owner NOLOGIN NOBYPASSRLS;
+    IF p_tenant IS NULL THEN
+        RETURN FALSE;
     END IF;
+    FOR f IN SELECT c.resource_name, c.field FROM public.field_class c WHERE c.class = 'sensitive' AND c.group_name = p_group LOOP
+        seen := TRUE;
+        IF NOT (p_tenant = ANY (private.field_tenants(auth.uid(), ARRAY[p_tenant], f.resource_name, f.field, FALSE))) THEN
+            RETURN FALSE;
+        END IF;
+    END LOOP;
+    RETURN seen;
 END;
 $$;
 
-GRANT authenticated TO file_rule_owner;
-
-GRANT file_rule_owner TO postgres;
-
-GRANT USAGE ON SCHEMA private TO file_rule_owner;
-
-GRANT SELECT ON public.document, public.media_link TO file_rule_owner;
+-- The field groups that guard a media file: supplier_identity when it is linked to a supplier or purchase
+-- order, or is the file of a document on one; supplier_terms when it is the file of a price document.
+CREATE OR REPLACE FUNCTION private.media_restriction (p_media UUID) RETURNS TEXT[] LANGUAGE sql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+    SELECT coalesce(array_agg(DISTINCT g.grp), '{}'::TEXT[])
+    FROM (
+        SELECT 'supplier_identity' AS grp
+        WHERE EXISTS (SELECT 1 FROM public.media_link l WHERE l.media_id = p_media AND l.entity_type IN ('supplier', 'purchase_order'))
+           OR EXISTS (SELECT 1 FROM public.document d WHERE d.media_id = p_media AND d.entity_type IN ('supplier', 'purchase_order'))
+        UNION ALL
+        SELECT 'supplier_terms'
+        WHERE EXISTS (
+            SELECT 1 FROM public.document d
+            WHERE d.media_id = p_media
+              AND (d.type IN ('pi', 'commercial_invoice', 'po') OR (d.type = 'contract' AND d.entity_type = 'supplier'))
+        )
+    ) g;
+$$;
 
 CREATE OR REPLACE FUNCTION private.hidden_media_ids () RETURNS UUID[] LANGUAGE sql STABLE SECURITY DEFINER
 SET
@@ -40,12 +67,14 @@ SET
     FROM (
         SELECT l.media_id
         FROM public.media_link l
-        WHERE l.entity_type IN ('supplier', 'purchase_order')
+        WHERE l.tenant_id = ANY (private.tenant_scope())
+          AND l.entity_type IN ('supplier', 'purchase_order')
           AND NOT (l.tenant_id = ANY ((SELECT private.field_group_read_tenants('supplier_identity'))::UUID[]))
         UNION
         SELECT d.media_id
         FROM public.document d
-        WHERE d.media_id IS NOT NULL
+        WHERE d.tenant_id = ANY (private.tenant_scope())
+          AND d.media_id IS NOT NULL
           AND (
               (d.type IN ('pi', 'commercial_invoice', 'po') OR (d.type = 'contract' AND d.entity_type = 'supplier'))
                   AND NOT (d.tenant_id = ANY ((SELECT private.field_group_read_tenants('supplier_terms'))::UUID[]))
@@ -55,22 +84,16 @@ SET
     ) h;
 $$;
 
--- Owner file_rule_owner needs CREATE on the schema, as in 053/058; taken away at once.
-GRANT CREATE ON SCHEMA private TO file_rule_owner;
-
-ALTER FUNCTION private.hidden_media_ids () OWNER TO file_rule_owner;
-
-REVOKE CREATE ON SCHEMA private FROM file_rule_owner;
-
 REVOKE ALL ON FUNCTION private.hidden_media_ids () FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION private.field_group_readable (UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.media_restriction (UUID) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION private.hidden_media_ids () TO authenticated;
 
 DROP POLICY IF EXISTS document_field_groups ON public.document;
 CREATE POLICY document_field_groups ON public.document AS RESTRICTIVE FOR SELECT TO authenticated
 USING (
-    current_user = 'file_rule_owner'
-    OR (
+    (
         (
             (type NOT IN ('pi', 'commercial_invoice', 'po') AND NOT (type = 'contract' AND entity_type = 'supplier'))
             OR tenant_id = ANY ((SELECT private.field_group_read_tenants('supplier_terms'))::UUID[])
@@ -85,8 +108,7 @@ USING (
 DROP POLICY IF EXISTS media_link_field_groups ON public.media_link;
 CREATE POLICY media_link_field_groups ON public.media_link AS RESTRICTIVE FOR SELECT TO authenticated
 USING (
-    current_user = 'file_rule_owner'
-    OR entity_type NOT IN ('supplier', 'purchase_order')
+    entity_type NOT IN ('supplier', 'purchase_order')
     OR tenant_id = ANY ((SELECT private.field_group_read_tenants('supplier_identity'))::UUID[])
 );
 
@@ -94,17 +116,31 @@ DROP POLICY IF EXISTS media_field_groups ON public.media;
 CREATE POLICY media_field_groups ON public.media AS RESTRICTIVE FOR SELECT TO authenticated
 USING (NOT (id = ANY ((SELECT private.hidden_media_ids())::UUID[])));
 
--- 024's helper restated, with the new condition: the folder names a media id that is not hidden.
+-- 024's helper restated, with the new condition: the folder names a media id; its row (when there is
+-- one) is in the path's tenant; and the caller reads, in that tenant, every field group that guards it.
+-- It uses no session scope, so another active tenant or none gives no way round.
 CREATE OR REPLACE FUNCTION private.can_read_media_file (object_name TEXT) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER STABLE
 SET
    search_path = '' AS $$
 DECLARE
     tenant UUID := private.storage_tenant(object_name);
     folder UUID := private.storage_folder_id(object_name);
+    row_tenant UUID;
+    grp TEXT;
 BEGIN
-    RETURN tenant IS NOT NULL
-       AND folder IS NOT NULL
-       AND tenant = ANY (private.tenants_permitting(auth.uid(), ARRAY[tenant], 'public.media', 'select'))
-       AND NOT (folder = ANY (private.hidden_media_ids()));
+    IF tenant IS NULL OR folder IS NULL
+       OR NOT (tenant = ANY (private.tenants_permitting(auth.uid(), ARRAY[tenant], 'public.media', 'select'))) THEN
+        RETURN FALSE;
+    END IF;
+    SELECT m.tenant_id INTO row_tenant FROM public.media m WHERE m.id = folder;
+    IF row_tenant IS NOT NULL AND row_tenant <> tenant THEN
+        RETURN FALSE;
+    END IF;
+    FOREACH grp IN ARRAY private.media_restriction(folder) LOOP
+        IF NOT private.field_group_readable(tenant, grp) THEN
+            RETURN FALSE;
+        END IF;
+    END LOOP;
+    RETURN TRUE;
 END;
 $$;
