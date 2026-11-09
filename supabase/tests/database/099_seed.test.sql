@@ -24,8 +24,8 @@ SELECT is(
      LEFT JOIN (public.user_role ur JOIN public.role r ON r.id = ur.role_id)
          ON ur.user_id = tu.user_id AND r.tenant_id = tu.tenant_id
      WHERE tu.tenant_id = current_setting('test.tenant_id')::UUID),
-    'akif@moesa-panel.test:management,baris@moesa-panel.test:owner,koordinator@moesa-panel.test:coordinator',
-    'MOESA LTD has its owner, a management member and a coordinator'
+    'akif@moesa-panel.test:management,baris@moesa-panel.test:owner,koordinator@moesa-panel.test:coordinator,portal@moesa-panel.test:customer_viewer',
+    'MOESA LTD has its owner, a management member, a coordinator and a portal user'
 );
 
 -- Management: everything of the business modules.

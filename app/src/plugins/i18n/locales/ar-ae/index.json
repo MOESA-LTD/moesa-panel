@@ -525,6 +525,7 @@
       "media_file_missing": "The file was not uploaded. Try again.",
       "media_type_not_allowed": "Only PNG, JPEG, WebP, PDF and MP4 files can be uploaded.",
       "media_too_large": "The file is larger than the upload limit in the settings.",
+      "field_not_sensitive": "Only sensitive fields can carry field permissions.",
       "media_file_immutable": "A media file cannot be replaced; upload a new one.",
       "media_in_use": "The file is linked to a record or a document; unlink it first.",
       "media_link_entity_missing": "The record to link to does not exist.",

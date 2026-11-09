@@ -25,6 +25,7 @@ NOTIFY pgrst,
 --   baris@moesa-panel.test    owner of MOESA LTD (Enterprise; the business modules' demo data)
 --   akif@moesa-panel.test     management, MOESA LTD
 --   koordinator@moesa-panel.test  coordinator, MOESA LTD
+--   portal@moesa-panel.test   customer_viewer (customer portal), MOESA LTD
 --
 -- Transfer demo tenants (M21): MOESA Europe, a branch of MOESA LTD with the Phase 1 roles (akif
 -- is management there), and MOESA Trading GmbH, a second company (Enterprise) owned by baris with
@@ -106,6 +107,9 @@ BEGIN
         ELSE p.group_name = 'audit_log' OR p.command = 'select'
     END
     WHERE r.tenant_id = seed_roles.tenant_id;
+
+    -- Every field of the tables a role holds rights on (as the migration's backfill does).
+    PERFORM private.grant_all_fields(r.id) FROM public.role r WHERE r.tenant_id = seed_roles.tenant_id;
 END;
 $$;
 
@@ -118,7 +122,7 @@ SET
 BEGIN
     INSERT INTO public.role (display_name, tenant_id)
     SELECT name, seed_ops_roles.tenant_id
-    FROM unnest(ARRAY['management', 'coordinator']) AS name;
+    FROM unnest(ARRAY['management', 'coordinator', 'customer_viewer']) AS name;
 
     INSERT INTO public.role_permission (role_id, permission_id)
     SELECT r.id, p.id
@@ -135,6 +139,27 @@ BEGIN
                     OR p.resource_name = 'public.media' AND p.command = 'delete'
                     OR p.group_name = 'transfer'))
     WHERE r.tenant_id = seed_ops_roles.tenant_id AND r.display_name IN ('management', 'coordinator');
+
+    -- The customer portal user: reads only, and only the tables of its own customer's work.
+    INSERT INTO public.role_permission (role_id, permission_id)
+    SELECT r.id, p.id
+    FROM public.role r
+    JOIN public.permission p
+        ON p.command = 'select'
+       AND p.resource_name IN ('public.customer', 'public.customer_brand', 'public.customer_contact',
+                               'public.customer_platform_account', 'public.customer_warehouse',
+                               'public.product', 'public.project', 'public.project_gate',
+                               'public.project_product', 'public.shipment', 'public.shipment_event',
+                               'public.shipment_line', 'public.market_cell', 'public.incident',
+                               'public.incident_deadline', 'public.change_request',
+                               'public.change_request_product', 'public.document', 'public.media',
+                               'public.media_link')
+    WHERE r.tenant_id = seed_ops_roles.tenant_id AND r.display_name = 'customer_viewer';
+
+    PERFORM private.apply_field_defaults(r.id, r.display_name)
+    FROM public.role r
+    WHERE r.tenant_id = seed_ops_roles.tenant_id
+      AND r.display_name IN ('management', 'coordinator', 'customer_viewer');
 END;
 $$;
 
@@ -177,6 +202,7 @@ DECLARE
     baris UUID := private.seed_user('baris@moesa-panel.test', 'Barış Ayçiçek');
     akif UUID := private.seed_user('akif@moesa-panel.test', 'Akif Ayçiçek');
     koordinator UUID := private.seed_user('koordinator@moesa-panel.test', 'Koordinatör');
+    portal UUID := private.seed_user('portal@moesa-panel.test', 'Müşteri Portalı');
     atlas UUID;
     kadikoy UUID;
     nova UUID;
@@ -219,6 +245,7 @@ BEGIN
     PERFORM private.seed_owner(moesa, baris);
     PERFORM private.seed_member(moesa, akif, 'management');
     PERFORM private.seed_member(moesa, koordinator, 'coordinator');
+    PERFORM private.seed_member(moesa, portal, 'customer_viewer');
 
     -- MOESA Europe (a branch of MOESA LTD) and MOESA Trading GmbH (a company of baris): the
     -- transfer demo.

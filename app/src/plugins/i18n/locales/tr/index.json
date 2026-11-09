@@ -318,6 +318,7 @@
       "media_file_missing": "Dosya yüklenmedi. Tekrar deneyin.",
       "media_type_not_allowed": "Yalnızca PNG, JPEG, WebP, PDF ve MP4 dosyaları yüklenebilir.",
       "media_too_large": "Dosya, ayarlardaki yükleme sınırından büyük.",
+      "field_not_sensitive": "Bu alan hassas olarak sınıflandırılmadığı için alan yetkisi verilemez.",
       "MediaFileError": "Dosya yüklenmedi",
       "media_file_immutable": "Ortam dosyası değiştirilemez; yenisini yükleyin.",
       "media_in_use": "Dosya bir kayda ya da belgeye bağlı; önce bağlantıyı kaldırın.",
