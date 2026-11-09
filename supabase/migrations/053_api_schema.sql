@@ -32,15 +32,25 @@
 --                        primary key. UPDATE (S1): a column whose sent value differs from the masked OLD
 --                        is a write; a sensitive one the caller may not write in the row's tenant raises
 --                        field_write_forbidden, so a correct guess is refused like a wrong one. Only the
---                        changed columns are forwarded; with none, nothing is written. INSERT: a non-NULL
+--                        changed columns are forwarded; with none, nothing is written, but the row is
+--                        locked FOR UPDATE so the UPDATE policies still decide. INSERT: a non-NULL
 --                        sensitive column the caller may not write in NEW.tenant_id raises the same; the
 --                        non-NULL columns are forwarded and the base defaults fill the rest. Both re-read
 --                        the row through the view, so RETURNING is masked (a re-read that finds nothing
 --                        returns NEW as sent). A forwarded UPDATE or DELETE that reaches no base row (RLS)
 --                        returns NULL, so the statement reports the rows actually changed.
--- private.api_view_drift()  For each public table with an api view: 'columns' (names or order differ),
---                        'unmasked <c>', 'masked <c>', 'owner', 'guard'. 053_api_schema.test.sql
---                        requires it empty.
+--                        M2: an INSERT that sends NULL explicitly gets the column default (NULL is "not
+--                        sent", as a masked NULL must be). M3: an INSERT without tenant_id that sets a
+--                        sensitive column is refused (no tenant, no write right).
+-- private.api_column_expr(table, column)
+--                        One select-list entry as the generator writes it (generator and drift share it).
+-- private.api_view_drift()  For each public table with an api view: 'columns' (names or order differ);
+--                        'expression <c>' (the deparsed column differs from what api_column_expr would
+--                        generate, built as a temporary view), plus 'unmasked <c>' and 'masked <c>';
+--                        'owner'; 'security_invoker' (not false); 'trigger' (authenticated may write the
+--                        view but api_forward is missing); 'anon or public privilege' on the view;
+--                        'anon or public execute <fn>' on a function over the view's row type (R4);
+--                        'guard'. 053_api_schema.test.sql requires it empty.
 -- private.field_calls_only_in_initplans(sql)
 --                        Test support, executable by nobody but its owner: TRUE when every plan node
 --                        naming a field function lies inside an InitPlan.
@@ -185,7 +195,17 @@ BEGIN
 
     IF TG_OP = 'UPDATE' THEN
         IF cardinality(cols) = 0 THEN
-            key_j := old_j;
+            -- Nothing to write, but RLS still decides: FOR UPDATE applies the UPDATE policies (a
+            -- caller without update is refused as by a real UPDATE). Not a no-op UPDATE, which would
+            -- bump updated_at and log an audit row.
+            EXECUTE pg_catalog.format(
+                'SELECT to_jsonb(b) FROM %s b WHERE %s FOR UPDATE', base,
+                (SELECT pg_catalog.string_agg(pg_catalog.format('b.%1$I = ($1).%1$I', k), ' AND ') FROM unnest(pk) AS k)
+            ) INTO key_j USING OLD;
+            GET DIAGNOSTICS n = ROW_COUNT;
+            IF n = 0 THEN
+                RETURN NULL;
+            END IF;
         ELSE
             EXECUTE pg_catalog.format(
                 'UPDATE %s b SET (%s) = ROW (%s) WHERE %s RETURNING to_jsonb(b)', base,
@@ -230,15 +250,63 @@ ALTER FUNCTION private.api_forward () OWNER TO api_owner;
 
 REVOKE CREATE ON SCHEMA private FROM api_owner;
 
+-- One select-list entry of api.<table>: the column as it is, or its masking expression. The generator
+-- and api_view_drift both use it, so drift compares a view with exactly what would be generated.
+CREATE OR REPLACE FUNCTION private.api_column_expr (p_table TEXT, p_column TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE
+SET
+   search_path = '' AS $$
+DECLARE
+    base REGCLASS := format('public.%I', p_table)::REGCLASS;
+    resource TEXT := 'public.' || p_table;
+    has_tenant BOOLEAN;
+    cast_to TEXT;
+    expr TEXT;
+BEGIN
+    has_tenant := EXISTS (
+        SELECT 1 FROM pg_catalog.pg_attribute a
+        WHERE a.attrelid = base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
+    );
+    SELECT CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END INTO cast_to
+    FROM pg_catalog.pg_attribute a
+    JOIN pg_catalog.pg_type ty ON ty.oid = a.atttypid
+    WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'no such column: ' || resource || '.' || p_column;
+    END IF;
+
+    IF private.api_is_sensitive(resource, p_column) THEN
+        IF p_table = 'user' THEN
+            expr := format('CASE WHEN t.id = auth.uid() OR t.id = ANY ((SELECT private.field_user_ids(%L, FALSE))::UUID[]) THEN t.%I END',
+                           p_column, p_column);
+        ELSIF has_tenant THEN
+            expr := format(
+                'CASE WHEN (SELECT private.field_read_all(%1$L, %2$L)) OR t.tenant_id = ANY ((SELECT private.field_read_tenants(%1$L, %2$L))::UUID[]) THEN t.%3$I END',
+                resource, p_column, p_column
+            );
+        ELSE
+            RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = resource || '.' || p_column;
+        END IF;
+        IF cast_to IS NOT NULL THEN
+            expr := format('(%s)::%s', expr, cast_to);
+        END IF;
+        RETURN format('%s AS %I', expr, p_column);
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = p_column) THEN
+        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'JSON masking needs mask_json_deep: ' || resource || '.' || p_column;
+    END IF;
+    RETURN format('t.%I', p_column);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.api_column_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION private.enable_field_security (p_table TEXT, p_read_only BOOLEAN DEFAULT FALSE) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET
    search_path = '' AS $$
 DECLARE
     base REGCLASS := format('public.%I', p_table)::REGCLASS;
     resource TEXT := 'public.' || p_table;
-    is_user BOOLEAN := p_table = 'user';
-    has_tenant BOOLEAN;
-    col RECORD;
     expr TEXT;
     select_list TEXT[] := '{}';
     priv TEXT;
@@ -266,44 +334,13 @@ BEGIN
         );
     END IF;
 
-    has_tenant := EXISTS (
-        SELECT 1 FROM pg_catalog.pg_attribute a
-        WHERE a.attrelid = base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped
-    );
-
     -- 1. The view.
-    FOR col IN
-        SELECT a.attname::TEXT AS name,
-               private.api_is_sensitive(resource, a.attname) AS sensitive,
-               EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = a.attname) AS json_masked,
-               CASE WHEN ty.typtype = 'd' AND ty.typnotnull THEN NULL ELSE format_type(a.atttypid, a.atttypmod) END AS cast_to
+    select_list := ARRAY(
+        SELECT private.api_column_expr(p_table, a.attname)
         FROM pg_catalog.pg_attribute a
-        JOIN pg_catalog.pg_type ty ON ty.oid = a.atttypid
         WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped
         ORDER BY a.attnum
-    LOOP
-        IF col.sensitive THEN
-            IF is_user THEN
-                expr := format('CASE WHEN t.id = auth.uid() OR t.id = ANY ((SELECT private.field_user_ids(%L, FALSE))::UUID[]) THEN t.%I END',
-                               col.name, col.name);
-            ELSIF has_tenant THEN
-                expr := format(
-                    'CASE WHEN (SELECT private.field_read_all(%1$L, %2$L)) OR t.tenant_id = ANY ((SELECT private.field_read_tenants(%1$L, %2$L))::UUID[]) THEN t.%3$I END',
-                    resource, col.name, col.name
-                );
-            ELSE
-                RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = resource || '.' || col.name;
-            END IF;
-            IF col.cast_to IS NOT NULL THEN
-                expr := format('(%s)::%s', expr, col.cast_to);
-            END IF;
-            select_list := select_list || format('%s AS %I', expr, col.name);
-        ELSIF col.json_masked THEN
-            RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'JSON masking needs mask_json_deep: ' || resource || '.' || col.name;
-        ELSE
-            select_list := select_list || format('t.%I', col.name);
-        END IF;
-    END LOOP;
+    );
 
     EXECUTE format('CREATE OR REPLACE VIEW api.%I WITH (security_invoker = false) AS SELECT %s FROM %s t',
                    p_table, array_to_string(select_list, ', '), base);
@@ -453,16 +490,20 @@ $$;
 
 REVOKE ALL ON FUNCTION private.api_view_select_list (REGCLASS) FROM PUBLIC, anon, authenticated;
 
-CREATE OR REPLACE FUNCTION private.api_view_drift () RETURNS TABLE (relation TEXT, problem TEXT) LANGUAGE plpgsql STABLE
+-- VOLATILE: it builds the expected view as a temporary view and compares the two deparsed.
+CREATE OR REPLACE FUNCTION private.api_view_drift () RETURNS TABLE (relation TEXT, problem TEXT) LANGUAGE plpgsql VOLATILE
 SET
    search_path = '' AS $$
 DECLARE
     v RECORD;
     c RECORD;
     resource TEXT;
+    expected_ok BOOLEAN;
+    anon_oid OID := (SELECT r.oid FROM pg_catalog.pg_roles r WHERE r.rolname = 'anon');
 BEGIN
     FOR v IN
-        SELECT b.oid AS base, w.oid AS view, b.relname::TEXT AS name, pg_catalog.pg_get_userbyid(w.relowner)::TEXT AS owner
+        SELECT b.oid AS base, w.oid AS view, w.reltype, w.reloptions, w.relacl, b.relname::TEXT AS name,
+               pg_catalog.pg_get_userbyid(w.relowner)::TEXT AS owner
         FROM pg_catalog.pg_class w
         JOIN pg_catalog.pg_namespace wn ON wn.oid = w.relnamespace AND wn.nspname = 'api'
         JOIN pg_catalog.pg_class b ON b.relname = w.relname AND b.relkind IN ('r', 'p')
@@ -479,12 +520,31 @@ BEGIN
             problem := 'columns';
             RETURN NEXT;
         ELSE
+            -- What the generator would produce, deparsed the same way as the live view.
+            expected_ok := TRUE;
+            IF to_regclass('pg_temp.api_drift_expected') IS NOT NULL THEN
+                EXECUTE 'DROP VIEW pg_temp.api_drift_expected';
+            END IF;
+            BEGIN
+                EXECUTE format(
+                    'CREATE TEMPORARY VIEW api_drift_expected AS SELECT %s FROM %s t',
+                    (SELECT string_agg(private.api_column_expr(v.name, a.attname), ', ' ORDER BY a.attnum)
+                     FROM pg_catalog.pg_attribute a WHERE a.attrelid = v.base AND a.attnum > 0 AND NOT a.attisdropped),
+                    v.base::REGCLASS
+                );
+            EXCEPTION WHEN OTHERS THEN
+                expected_ok := FALSE;
+                problem := 'expected: ' || SQLERRM;
+                RETURN NEXT;
+            END;
+
             FOR c IN
-                SELECT a.attname::TEXT AS name, s.expr,
+                SELECT a.attname::TEXT AS name, s.expr, e.expr AS expected,
                        private.api_is_sensitive(resource, a.attname) AS sensitive,
                        EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = a.attname) AS json_masked
                 FROM pg_catalog.pg_attribute a
                 JOIN private.api_view_select_list(v.view) s ON s.n = a.attnum
+                LEFT JOIN private.api_view_select_list(CASE WHEN expected_ok THEN to_regclass('pg_temp.api_drift_expected') END) e ON e.n = a.attnum
                 WHERE a.attrelid = v.view AND a.attnum > 0
                 ORDER BY a.attnum
             LOOP
@@ -498,13 +558,60 @@ BEGIN
                     problem := 'masked ' || c.name;
                     RETURN NEXT;
                 END IF;
+                -- The whole expression, so `true OR ...` or a THEN naming another column is caught.
+                IF expected_ok AND c.expr IS DISTINCT FROM c.expected THEN
+                    problem := 'expression ' || c.name;
+                    RETURN NEXT;
+                END IF;
             END LOOP;
+            IF to_regclass('pg_temp.api_drift_expected') IS NOT NULL THEN
+                EXECUTE 'DROP VIEW pg_temp.api_drift_expected';
+            END IF;
         END IF;
 
         IF v.owner <> 'api_owner' THEN
             problem := 'owner';
             RETURN NEXT;
         END IF;
+
+        IF NOT coalesce('security_invoker=false' = ANY (v.reloptions), FALSE) THEN
+            problem := 'security_invoker';
+            RETURN NEXT;
+        END IF;
+
+        -- Read-only is a view authenticated may not write; any other needs the forwarder.
+        IF (has_table_privilege('authenticated', v.view, 'INSERT') OR has_table_privilege('authenticated', v.view, 'DELETE')
+            OR has_any_column_privilege('authenticated', v.view, 'UPDATE'))
+           AND NOT EXISTS (
+               SELECT 1 FROM pg_catalog.pg_trigger t
+               WHERE t.tgrelid = v.view AND t.tgname = 'api_forward' AND t.tgenabled = 'O'
+                 AND t.tgfoid = 'private.api_forward()'::REGPROCEDURE
+           ) THEN
+            problem := 'trigger';
+            RETURN NEXT;
+        END IF;
+
+        IF EXISTS (SELECT 1 FROM aclexplode(v.relacl) x WHERE x.grantee IN (0, anon_oid))
+           OR EXISTS (
+               SELECT 1 FROM pg_catalog.pg_attribute a, aclexplode(a.attacl) x
+               WHERE a.attrelid = v.view AND x.grantee IN (0, anon_oid)
+           ) THEN
+            problem := 'anon or public privilege';
+            RETURN NEXT;
+        END IF;
+
+        -- The R4 functions over this view: no ACL means EXECUTE for PUBLIC.
+        FOR c IN
+            SELECT p.proname::TEXT AS name
+            FROM pg_catalog.pg_proc p
+            JOIN pg_catalog.pg_namespace pn ON pn.oid = p.pronamespace AND pn.nspname = 'api'
+            WHERE (v.reltype = ANY (p.proargtypes::OID[]) OR p.prorettype = v.reltype)
+              AND (p.proacl IS NULL OR EXISTS (SELECT 1 FROM aclexplode(p.proacl) x WHERE x.grantee IN (0, anon_oid)))
+            ORDER BY p.proname
+        LOOP
+            problem := 'anon or public execute ' || c.name;
+            RETURN NEXT;
+        END LOOP;
 
         IF (EXISTS (SELECT 1 FROM pg_catalog.pg_attribute a WHERE a.attrelid = v.base AND a.attname = 'tenant_id' AND a.attnum > 0 AND NOT a.attisdropped)
             OR EXISTS (SELECT 1 FROM public.field_class f WHERE f.resource_name = resource AND f.class = 'sensitive'))

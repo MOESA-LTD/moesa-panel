@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- compared against the masked OLD, so a correct guess is refused like a wrong one (S1).
 BEGIN;
 
-SELECT plan(49);
+SELECT plan(59);
 
 -- The role and the generated objects.
 SELECT ok(NOT (SELECT rolbypassrls OR rolcanlogin FROM pg_roles WHERE rolname = 'api_owner'), 'api_owner cannot log in and does not bypass RLS');
@@ -124,6 +124,56 @@ SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('
 SELECT results_eq($$ SELECT s.code, (SELECT count(*)::INT FROM api.product_by_supplier(s) x WHERE x.id = current_setting('test.secret')::UUID)
                      FROM api.product p, api.supplier(p) s WHERE p.id = current_setting('test.secret')::UUID $$,
    $$ VALUES ('TS1', 1) $$, 'R4 a readable link embeds both ways');
+
+-- M1: an UPDATE that changes nothing still meets the UPDATE policies (elif loses product update).
+RESET ROLE;
+SELECT private.unimpersonate();
+SELECT set_config('moesa.rules_bypass', '1', TRUE);
+DELETE FROM public.role_permission rp USING public.permission p
+WHERE rp.role_id = current_setting('test.t_restricted')::UUID AND rp.permission_id = p.id
+  AND p.resource_name = 'public.product' AND p.command = 'update';
+SELECT set_config('moesa.rules_bypass', '', TRUE);
+SELECT private.impersonate(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID);
+SELECT isnt(t.error_of($$ UPDATE api.product SET display_name = display_name, purchase_price = NULL WHERE id = current_setting('test.secret')::UUID $$), 'ok',
+   'M1: a user without product update is refused an UPDATE that changes nothing');
+
+-- Drift: each tamper is reported (t.drift_after undoes it again).
+RESET ROLE;
+SELECT private.unimpersonate();
+SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'drift is empty with api.supplier and the R4 functions');
+CREATE FUNCTION t.drift_after (p_sql TEXT) RETURNS TEXT[] LANGUAGE plpgsql AS $$
+DECLARE
+    problems TEXT[];
+BEGIN
+    BEGIN
+        EXECUTE p_sql;
+        problems := ARRAY(SELECT d.problem FROM private.api_view_drift() d WHERE d.relation = 'product');
+        RAISE SQLSTATE 'TZ001' USING MESSAGE = 't.drift_after: undo';
+    EXCEPTION
+        WHEN SQLSTATE 'TZ001' THEN
+            RETURN problems;
+    END;
+END;
+$$;
+-- api.product as generated, with one column's text replaced.
+CREATE FUNCTION t.tampered_view (p_column TEXT, p_from TEXT, p_to TEXT) RETURNS TEXT LANGUAGE sql AS $$
+    SELECT format('CREATE OR REPLACE VIEW api.product WITH (security_invoker = false) AS SELECT %s FROM public.product t',
+                  string_agg(CASE WHEN a.attname = p_column THEN replace(private.api_column_expr('product', a.attname), p_from, p_to)
+                                  ELSE private.api_column_expr('product', a.attname) END, ', ' ORDER BY a.attnum))
+    FROM pg_attribute a WHERE a.attrelid = 'public.product'::REGCLASS AND a.attnum > 0 AND NOT a.attisdropped;
+$$;
+SELECT ok('expression purchase_price' = ANY (t.drift_after(t.tampered_view('purchase_price', 'CASE WHEN (SELECT', 'CASE WHEN TRUE OR (SELECT'))),
+   'drift: a leading `true OR` in the mask is reported');
+SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', '::UUID[]) THEN t.notes', '::UUID[]) OR TRUE THEN t.notes'))),
+   'drift: a trailing `OR true` in the mask is reported');
+SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', 'THEN t.notes END', 'THEN t.supplier_product_code END'))),
+   'drift: a THEN naming another column is reported');
+SELECT ok('security_invoker' = ANY (t.drift_after('ALTER VIEW api.product SET (security_invoker = true)')), 'drift: security_invoker = true is reported');
+SELECT ok('trigger' = ANY (t.drift_after('DROP TRIGGER api_forward ON api.product')), 'drift: a writable view without the forwarder is reported');
+SELECT ok('anon or public privilege' = ANY (t.drift_after('GRANT SELECT ON api.product TO anon')), 'drift: a grant to anon is reported');
+SELECT ok('anon or public execute supplier' = ANY (t.drift_after('GRANT EXECUTE ON FUNCTION api.supplier (api.product) TO PUBLIC')),
+   'drift: EXECUTE on an R4 function for PUBLIC is reported');
+SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'every tamper was undone');
 
 -- Drift: a hand-written view (every column plain) and a wrong owner are reported.
 RESET ROLE;
