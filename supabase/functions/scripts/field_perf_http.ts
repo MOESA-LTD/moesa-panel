@@ -3,7 +3,7 @@
 //   eval "$(supabase status -o env | sed 's/^/export /')" && cd supabase/functions && deno task perf:http
 //   then: supabase db reset (the load is committed) and pnpm dev:seed-story from app/.
 //
-// 1. Loads supabase/tests/perf/field_security_perf_load.sql (committed; skipped when already loaded)
+// 1. Loads supabase/perf/field_security_perf_load.sql (committed; skipped when already loaded)
 //    and the HTTP fixtures (http-tests/helpers.ts adminSetup).
 // 2. Baseline, measured live: GRANT SELECT, UPDATE on the measured public tables TO authenticated,
 //    the same requests with Accept-Profile: public, then REVOKE in a finally block, and a check that
@@ -112,7 +112,7 @@ let f: Fixture | undefined;
 let exitCode = 0;
 try {
    if ((await psql(`SELECT count(*) FROM public.product WHERE id = '${PERF_PRODUCT}';`)) === '0') {
-      const load = await Deno.readTextFile(new URL('../../tests/perf/field_security_perf_load.sql', import.meta.url));
+      const load = await Deno.readTextFile(new URL('../../perf/field_security_perf_load.sql', import.meta.url));
       console.log('loading field_security_perf_load.sql (committed) …');
       await psql(`BEGIN;\n${load}\nCOMMIT;\n`);
    }

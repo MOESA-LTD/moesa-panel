@@ -1,5 +1,5 @@
 // The field-security performance budget in SQL (Task 20, spec R10): pipes
-// supabase/tests/perf/field_security_perf.sql (with field_security_perf_load.sql inlined at its \ir
+// supabase/perf/field_security_perf.sql (with field_security_perf_load.sql inlined at its \ir
 // line) to psql in the local database container, as seed-story.mjs does, and prints the table.
 // The script runs inside BEGIN … ROLLBACK and raises 'budget: …' when a ratio is over budget, so
 // the exit code is the verdict. Local only: it refuses any container but the local stack's.
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const CONTAINER = 'supabase_db_moesa-panel';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PERF_DIR = path.join(ROOT, 'supabase', 'tests', 'perf');
+const PERF_DIR = path.join(ROOT, 'supabase', 'perf');
 const INCLUDE = /^\\ir field_security_perf_load\.sql$/m;
 
 const container = process.env.PERF_CONTAINER ?? CONTAINER;
