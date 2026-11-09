@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- S6) and the catalog-driven transfer gate (S3).
 BEGIN;
 
-SELECT plan(29);
+SELECT plan(31);
 
 SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();
@@ -121,6 +121,19 @@ SELECT is_empty($$ SELECT p.proname FROM pg_proc p JOIN pg_type ty ON ty.oid = p
 SELECT ok(NOT has_function_privilege('authenticated', 'public.listing_set_state(uuid, public.listing_state, jsonb, timestamptz, uuid)', 'EXECUTE'),
    'listing service RPCs stay service-only');
 SELECT is_empty($$ SELECT * FROM private.api_view_drift() $$, 'api_view_drift() is empty');
+CREATE FUNCTION t.plan_text (p_sql TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
+DECLARE
+    line TEXT;
+    result TEXT := '';
+BEGIN
+    FOR line IN EXECUTE 'EXPLAIN (COSTS OFF) ' || p_sql LOOP
+        result := result || line || E'
+';
+    END LOOP;
+    RETURN result;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION t.plan_text (TEXT) TO authenticated;
 
 -- As can in MOESA LTD (t_no_notes).
 SELECT private.impersonate(current_setting('test.can')::UUID, current_setting('test.moesa')::UUID);
@@ -131,6 +144,12 @@ SELECT throws_ok($$ SELECT public.transfer_options(current_setting('test.moesa')
 RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT lives_ok($$ SELECT public.transfer_options(current_setting('test.moesa')::UUID) $$, 'the transfer gate passes with every field right');
+-- R10: PostgREST's embed shape (a lateral subquery with LIMIT/OFFSET over the computed relationship):
+-- the function is inlined, never a per-row Function Scan.
+SELECT unalike(t.plan_text($$ SELECT p.id, s.code FROM api.product_with_evidence p LEFT JOIN LATERAL (SELECT x.code FROM api.supplier(p) x LIMIT ALL OFFSET 0) s ON TRUE ORDER BY p.created_at DESC LIMIT 50 $$),
+   '%Function Scan%', 'R10: api.supplier(api.product_with_evidence) is inlined');
+SELECT unalike(t.plan_text($$ SELECT p.id, s.code FROM api.purchase_order p LEFT JOIN LATERAL (SELECT x.code FROM api.supplier(p) x LIMIT ALL OFFSET 0) s ON TRUE LIMIT 50 $$),
+   '%Function Scan%', 'R10: api.supplier(api.purchase_order) is inlined');
 
 -- save_role runs as api_owner: field rights save without authenticated's USAGE on schema private.
 RESET ROLE;
