@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { PURCHASE_CURRENCIES } from '@/api/product';
 import { injectProductForm } from '../useProductForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('product');
 
 // What the product costs: the purchase from the supplier, the landed cost and the prices.
 const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } =
@@ -26,6 +30,7 @@ const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
    >
       <FormBox :legend="$t('ops.product.sections.purchase')" class="!flex-auto">
          <FormField
+            field="purchase_price"
             fluid
             :label="$t('ops.product.fields.purchase_price')"
             :error="errors.purchase_price"
@@ -40,6 +45,7 @@ const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
             />
          </FormField>
          <FormField
+            field="purchase_currency"
             fluid
             :label="$t('ops.product.fields.purchase_currency')"
             :error="errors.purchase_currency"
@@ -58,6 +64,7 @@ const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
       <FormBox :legend="$t('ops.product.sections.prices')" class="!flex-auto">
          <FormField
             v-for="{ field, digits } in PRICES"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.product.fields.${field}`)"
@@ -73,6 +80,7 @@ const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
             />
          </FormField>
          <FormField
+            field="landed_cost_on"
             fluid
             :label="$t('ops.product.fields.landed_cost_on')"
             :error="errors.landed_cost_on"
@@ -89,6 +97,7 @@ const TEXTS = ['purchase_incoterm', 'price_list_version'] as const;
          </FormField>
          <FormField
             v-for="field in TEXTS"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.product.fields.${field}`)"

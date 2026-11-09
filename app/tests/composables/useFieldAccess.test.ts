@@ -1,4 +1,4 @@
-import { useFieldAccess } from '@/composables/useFieldAccess';
+import { readableColumns, useFieldAccess } from '@/composables/useFieldAccess';
 import { ability, toAbilityRules } from '@/plugins/casl';
 import { describe, expect, it } from 'vitest';
 import { computed } from 'vue';
@@ -42,5 +42,25 @@ describe('useFieldAccess', () => {
          { resource_name: 'public.product', field: 'notes', can_read: false, can_write: false }
       ]);
       expect(visible.value).toBe(false);
+   });
+});
+
+describe('readableColumns', () => {
+   it('drops the columns of fields the user may not read', () => {
+      grant([
+         { resource_name: 'public.product', field: 'notes', can_read: false, can_write: false }
+      ]);
+      const columns = [{ field: 'sku' }, { field: 'notes' }, { header: 'actions' }];
+      expect(readableColumns('product', columns)).toEqual([
+         { field: 'sku' },
+         { header: 'actions' }
+      ]);
+   });
+
+   it("follows the table's rights in a view of its rows", () => {
+      grant([
+         { resource_name: 'public.product', field: 'notes', can_read: false, can_write: false }
+      ]);
+      expect(readableColumns('product_with_evidence', [{ field: 'notes' }])).toEqual([]);
    });
 });

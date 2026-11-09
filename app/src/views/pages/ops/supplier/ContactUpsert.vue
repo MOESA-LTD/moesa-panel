@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    supplierContactResource,
    supplierContactSchema,
@@ -6,6 +7,9 @@ import {
    toSupplierContactPayload
 } from '@/api/supplier';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('supplier_contact');
 
 // Opened as a dialog from a supplier's contacts: a new contact belongs to the route's supplier.
 const props = defineProps<{
@@ -43,6 +47,7 @@ await ready;
          :readonly
       >
          <FormField
+            field="name"
             fluid
             :label="$t('ops.supplier.contact.fields.name')"
             :error="errors.name"
@@ -52,6 +57,7 @@ await ready;
             <InputText v-bind="slotProps" v-model="values.name" />
          </FormField>
          <FormField
+            field="role"
             fluid
             :label="$t('ops.supplier.contact.fields.role')"
             :error="errors.role"
@@ -61,6 +67,7 @@ await ready;
             <InputText v-bind="slotProps" v-model="values.role" />
          </FormField>
          <FormField
+            field="email"
             fluid
             :label="$t('ops.supplier.contact.fields.email')"
             :error="errors.email"
@@ -70,6 +77,7 @@ await ready;
             <InputText v-bind="slotProps" v-model="values.email" type="email" />
          </FormField>
          <FormField
+            field="phone"
             fluid
             :label="$t('ops.supplier.contact.fields.phone')"
             :error="errors.phone"

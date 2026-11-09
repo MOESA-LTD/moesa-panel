@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    WAREHOUSE_TYPES,
    customerWarehouseResource,
@@ -7,6 +8,9 @@ import {
    toCustomerWarehousePayload
 } from '@/api/customer';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('customer_warehouse');
 
 // Opened as a dialog from a customer's warehouses: a new warehouse belongs to the route's customer.
 const props = defineProps<{
@@ -85,6 +89,7 @@ const RECEIVING = [
          </FormField>
          <FormField
             v-for="field in [...ADDRESS, ...RECEIVING]"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.customer.warehouse.fields.${field}`)"

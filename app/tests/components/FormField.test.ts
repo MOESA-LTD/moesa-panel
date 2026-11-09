@@ -5,7 +5,10 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { defineComponent, h } from 'vue';
+import { provideFieldAccess } from '@/composables/useFieldAccess';
+import { ability, toAbilityRules } from '@/plugins/casl';
 
 const mountField = (props: Record<string, unknown>) =>
    mount(FormField, {
@@ -39,5 +42,73 @@ describe('FormField term', () => {
 
       expect(label.find('abbr').exists()).toBe(false);
       expect(label.text()).toBe('Number');
+   });
+});
+
+describe('FormField field rights', () => {
+   beforeEach(() => {
+      setActivePinia(createPinia());
+      ability.update(
+         toAbilityRules(
+            [
+               { command: 'select', resource_name: 'public.purchase_order' },
+               { command: 'update', resource_name: 'public.purchase_order' }
+            ],
+            [
+               {
+                  resource_name: 'public.purchase_order',
+                  field: 'notes',
+                  can_read: false,
+                  can_write: false
+               },
+               {
+                  resource_name: 'public.purchase_order',
+                  field: 'deposit_rate',
+                  can_read: true,
+                  can_write: false
+               }
+            ]
+         )
+      );
+   });
+   afterEach(() => ability.update([]));
+
+   const mountInForm = (field: string) =>
+      mount(
+         defineComponent({
+            setup() {
+               provideFieldAccess('purchase_order');
+               return () =>
+                  h(
+                     FormField,
+                     { id: 'f', label: 'Field', field },
+                     {
+                        default: (slot: { tabIndex?: number }) =>
+                           h('input', { tabindex: slot.tabIndex ?? 0 })
+                     }
+                  );
+            }
+         }),
+         {
+            global: {
+               plugins: [createPinia(), i18NPlugin, PrimeVue],
+               directives: { tooltip: Tooltip }
+            }
+         }
+      );
+
+   it('is not rendered when the user may not read the field', () => {
+      expect(mountInForm('notes').find('.form_field').exists()).toBe(false);
+   });
+
+   it('is read-only when the user may read but not write the field', () => {
+      const wrapper = mountInForm('deposit_rate');
+      expect(wrapper.find('.form_field').exists()).toBe(true);
+      expect(wrapper.find('input').attributes('tabindex')).toBe('-1');
+   });
+
+   it('is editable for a field the user may write', () => {
+      const wrapper = mountInForm('currency');
+      expect(wrapper.find('input').attributes('tabindex')).not.toBe('-1');
    });
 });

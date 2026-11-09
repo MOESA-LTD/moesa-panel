@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    DOCUMENT_STATUSES,
    DOCUMENT_TYPES,
@@ -12,6 +13,9 @@ import {
 } from '@/api/document';
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import DocumentFileField from './DocumentFileField.vue';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('document');
 
 // Opened as a dialog from a record's document list, which passes the record in the query.
 const props = defineProps<{
@@ -156,6 +160,7 @@ const statusFixed = computed(() => !!values.value.id && values.value.status === 
             </span>
          </FormBox>
          <FormField
+            field="notes"
             class="!flex-auto !max-w-none w-full"
             fluid
             :label="$t('ops.document.fields.notes')"

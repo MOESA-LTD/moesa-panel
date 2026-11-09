@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    PLATFORM_ACCESSES,
    customerPlatformAccountResource,
@@ -10,6 +11,9 @@ import {
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import dayjs from 'dayjs';
 import AmazonConnection from './AmazonConnection.vue';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('customer_platform_account');
 
 // Opened as a dialog from a customer's platform accounts: a new account belongs to the route's
 // customer. Only who holds the account and whether the tenant has access are kept: no passwords
@@ -94,6 +98,7 @@ const countryOptions = computed(
             />
          </FormField>
          <FormField
+            field="account_holder"
             fluid
             :label="$t('ops.customer.platform.fields.account_holder')"
             :error="errors.account_holder"
@@ -117,6 +122,7 @@ const countryOptions = computed(
             />
          </FormField>
          <FormField
+            field="notes"
             class="!flex-auto !max-w-none w-full"
             fluid
             :label="$t('ops.customer.platform.fields.notes')"

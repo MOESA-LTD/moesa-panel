@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { COMPLIANCE_STATUSES, PRODUCT_STATUSES } from '@/api/product';
 import ParentSelect from '../ParentSelect.vue';
 import { injectProductForm } from '../useProductForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('product');
 
 // Identity, supplier and compliance of the product, in the card's shared form.
 const { values, errors, isDirty, isSubmitting, readonly, reset, submit, draft } =
@@ -106,6 +110,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
          </FormField>
          <FormField
             v-for="field in IDENTITY"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.product.fields.${field}`)"
@@ -119,6 +124,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
 
       <FormBox :legend="$t('ops.product.sections.supplier')" class="!flex-auto">
          <FormField
+            field="supplier_id"
             fluid
             :label="$t('ops.product.fields.supplier_id')"
             :error="errors.supplier_id"
@@ -129,6 +135,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
          </FormField>
          <FormField
             v-for="field in SUPPLIER"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.product.fields.${field}`)"
@@ -201,6 +208,7 @@ const COMPLIANCE = ['hs_code', 'eu_responsible_person', 'golden_sample_locations
       </FormBox>
 
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.product.fields.notes')"

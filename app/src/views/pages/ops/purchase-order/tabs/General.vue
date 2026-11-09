@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    INCOTERMS,
    PO_LOCKED_FIELDS,
@@ -7,6 +8,9 @@ import {
 } from '@/api/purchaseOrder';
 import ProjectSelect from '../ProjectSelect.vue';
 import { injectPurchaseOrderForm, useOrderLocked } from '../usePurchaseOrderForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+const fieldAccess = provideFieldAccess('purchase_order');
 
 // The order's parties and terms, in the card's shared form. The customer and the supplier are
 // chosen on a new order only; the terms are fixed from pi_approved on (PO_LOCKED_FIELDS).
@@ -28,15 +32,20 @@ const packingOptions = useEntityDocumentOptions(() => ({
    entityId: id.value
 }));
 
-/** A picked supplier's incoterm and deposit fill the terms the order has none of yet. */
+/**
+ * A picked supplier's incoterm and deposit fill the terms the order has none of yet, if the user
+ * may write them (a coordinator reads the supplier terms only).
+ */
 const applySupplier = (
    supplier: Parameters<typeof supplierDefaults>[0] | null | undefined
 ): void => {
    if (!supplier) return;
    const defaults = supplierDefaults(supplier);
-   if (!values.value.incoterm && defaults.incoterm) values.value.incoterm = defaults.incoterm;
+   if (!values.value.incoterm && defaults.incoterm && fieldAccess.canWrite('incoterm'))
+      values.value.incoterm = defaults.incoterm;
    if (
       (values.value.deposit_rate === null || values.value.deposit_rate === undefined) &&
+      fieldAccess.canWrite('deposit_rate') &&
       defaults.deposit_rate !== null
    )
       values.value.deposit_rate = defaults.deposit_rate;
@@ -70,6 +79,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="supplier_id"
          fluid
          :label="$t('ops.purchase_order.fields.supplier')"
          :error="errors.supplier_id"
@@ -112,6 +122,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="incoterm"
          fluid
          :label="$t('ops.purchase_order.fields.incoterm')"
          :error="errors.incoterm"
@@ -128,6 +139,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="incoterm_place"
          fluid
          :label="$t('ops.purchase_order.fields.incoterm_place')"
          :error="errors.incoterm_place"
@@ -143,6 +155,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="deposit_rate"
          fluid
          :label="$t('ops.purchase_order.fields.deposit_rate')"
          :error="errors.deposit_rate"
@@ -178,6 +191,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="tolerance_pct"
          fluid
          :label="$t('ops.purchase_order.fields.tolerance_pct')"
          :error="errors.tolerance_pct"
@@ -194,6 +208,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="penalty_rule"
          fluid
          :label="$t('ops.purchase_order.fields.penalty_rule')"
          :error="errors.penalty_rule"
@@ -221,6 +236,7 @@ const applySupplier = (
          />
       </FormField>
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.purchase_order.fields.notes')"

@@ -380,6 +380,42 @@ describe('payments tab', () => {
       expect(wrapper.find('[data-test="deposit-differs"]').exists()).toBe(false);
    });
 
+   it('records no payment for a user who may read but not write the amounts', () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         ...['amount', 'currency'].flatMap((field) =>
+            ['insert', 'update'].map((action) => ({
+               action,
+               subject: 'purchase_order_payment',
+               fields: [field],
+               inverted: true
+            }))
+         )
+      ]);
+      const wrapper = mountTab(
+         Payments,
+         standInForm(order('pi_approved', { purchase_order_payment: [payment('deposit', 600)] })),
+         S09_OVERVIEW
+      );
+      expect(wrapper.find('[data-test="plan-payments"]').exists()).toBe(false);
+      expect(wrapper.find('[data-link="ops-purchase-order-payment-add"]').exists()).toBe(false);
+      // The amounts stay visible.
+      expect(wrapper.text()).toContain('600');
+   });
+
+   it('leaves out the amounts a user may not read', () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         { action: 'select', subject: 'purchase_order_payment', fields: ['amount'], inverted: true }
+      ]);
+      const wrapper = mountTab(
+         Payments,
+         standInForm(order('pi_approved', { purchase_order_payment: [payment('deposit', 600)] })),
+         S09_OVERVIEW
+      );
+      expect(wrapper.text()).not.toContain(en.ops.purchase_order.payment.fields.amount);
+   });
+
    it('hides planning, adding and editing on a closed order', () => {
       const wrapper = mountTab(
          Payments,

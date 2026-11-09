@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    SUPPLIER_STATUSES,
    supplierResource,
@@ -8,6 +9,9 @@ import {
    type SupplierRow
 } from '@/api/supplier';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('supplier');
 
 const props = defineProps<{ id?: string | null }>();
 const emit = defineEmits<{ saved: [supplier: SupplierRow] }>();
@@ -140,6 +144,7 @@ const TERMS = [
             <Textarea v-bind="slotProps" v-model="values.capacity_note" auto-resize rows="2" />
          </FormField>
          <FormField
+            field="rating"
             fluid
             :label="$t('ops.supplier.fields.rating')"
             :error="errors.rating"
@@ -149,6 +154,7 @@ const TERMS = [
             <InputNumber v-bind="slotProps" v-model="values.rating" :min="1" :max="5" />
          </FormField>
          <FormField
+            field="last_audit_on"
             fluid
             :label="$t('ops.supplier.fields.last_audit_on')"
             :error="errors.last_audit_on"
@@ -167,6 +173,7 @@ const TERMS = [
 
       <FormBox :legend="$t('ops.supplier.sections.terms')" class="!flex-auto">
          <FormField
+            field="default_incoterm"
             fluid
             :label="$t('ops.supplier.fields.default_incoterm')"
             :error="errors.default_incoterm"
@@ -176,6 +183,7 @@ const TERMS = [
             <InputText v-bind="slotProps" v-model="values.default_incoterm" placeholder="FOB" />
          </FormField>
          <FormField
+            field="deposit_rate"
             fluid
             :label="$t('ops.supplier.fields.deposit_rate')"
             :error="errors.deposit_rate"
@@ -192,6 +200,7 @@ const TERMS = [
             />
          </FormField>
          <FormField
+            field="damage_notice_hours"
             fluid
             :label="$t('ops.supplier.fields.damage_notice_hours')"
             :error="errors.damage_notice_hours"
@@ -202,6 +211,7 @@ const TERMS = [
          </FormField>
          <FormField
             v-for="term in TERMS"
+            :field="term"
             :key="term"
             class="!flex-auto !max-w-none w-full"
             fluid
@@ -215,6 +225,7 @@ const TERMS = [
       </FormBox>
 
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.supplier.fields.notes')"

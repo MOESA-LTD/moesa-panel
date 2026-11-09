@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { PACKAGES } from '@/api/customer';
 import {
    PROJECT_PATHS,
@@ -15,6 +16,9 @@ import { useDialogRef } from '@/composables/useDialogRef';
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { useCustomerFilter } from '@/store/customerFilter';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('project');
 
 // A project's own fields: opened alone to create one, and in the card's overview to edit it. The
 // customer, type, path and packages decide the gates, so they are fixed once saved.
@@ -193,6 +197,7 @@ const DATES = ['target_delivery_on', 'target_live_on'] as const;
       </FormBox>
 
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.project.fields.notes')"

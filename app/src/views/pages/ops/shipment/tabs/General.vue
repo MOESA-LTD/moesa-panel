@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { INCOTERMS } from '@/api/purchaseOrder';
 import { SHIPMENT_MODES } from '@/api/shipment';
 import { injectShipmentForm } from '../useShipmentForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('shipment');
 
 // The shipment's customer, warehouse, mode, parties, terms, transport and packed quantities, in
 // the card's shared form. The customer is chosen on a new shipment only; the warehouse is one of
@@ -126,6 +130,7 @@ const PACKED_AMOUNTS = [
       </FormField>
       <FormField
          v-for="field in ['incoterm_buy', 'incoterm_sell'] as const"
+         :field="field"
          :key="field"
          fluid
          :label="$t(`ops.shipment.fields.${field}`)"
@@ -216,6 +221,7 @@ const PACKED_AMOUNTS = [
          />
       </FormField>
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.shipment.fields.notes')"

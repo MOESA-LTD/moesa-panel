@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="F extends TableName, T = TableRow<F>">
 import { applyTableMeta, type ColumnFilter, type TableMeta } from '@/api/postgrest/tableQuery';
+import { readableColumns } from '@/composables/useFieldAccess';
 import { useRouteLoading } from '@/composables/useRouteStatus';
 import CustomTable, { CustomTableProps } from '@/components/ui/custom-table/CustomTable.vue';
 import type { CustomTableSlots } from '@/components/ui/custom-table/types';
@@ -154,14 +155,16 @@ const showBranch = computed(
 );
 const branchName = (id: string | null | undefined) =>
    authStore.branches.find((branch) => branch.id === id)?.display_name ?? '';
-const columns = computed(() =>
-   showBranch.value
+// Without the columns of fields the user may not read (my_access.fields): the api returns them null.
+const columns = computed(() => {
+   const readable = readableColumns(props.from, props.columns);
+   return showBranch.value
       ? [
-           ...props.columns,
+           ...readable,
            { field: 'tenant_id', header: t('component.branch_picker.column'), sortable: true }
         ]
-      : props.columns
-);
+      : readable;
+});
 
 // The branch filter: a list of branches (shown or not, the filter state always has it, as the
 // table reads its filters once).
