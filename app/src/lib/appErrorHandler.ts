@@ -1,6 +1,25 @@
 import ToastEventBus from 'primevue/toasteventbus';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
+const RELOAD_KEY = 'staleBundleReloadAt';
+const RELOAD_WINDOW_MS = 60_000;
+
+const isStaleBundleError = (error: any) =>
+   error?.code === '42501' && /^permission denied for (table|view) /.test(error.message ?? '');
+
+/** Reloads the page unless it already did within the last minute. Returns whether it reloaded. */
+const reloadForStaleBundle = () => {
+   try {
+      const last = Number(sessionStorage.getItem(RELOAD_KEY));
+      if (last && Date.now() - last < RELOAD_WINDOW_MS) return false;
+      sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+   } catch {
+      return false;
+   }
+   location.reload();
+   return true;
+};
+
 export const appErrorHandler = async (error: any) => {
    if (error instanceof FunctionsHttpError) {
       const body = await error.context.json();
@@ -13,6 +32,10 @@ export const appErrorHandler = async (error: any) => {
    // errors to report.
    const classified = !!(error?.status || error?.code);
    if (!classified && !(error instanceof Error)) return;
+
+   // "permission denied for table/view ..." is a request that hit a closed public relation: an old
+   // bundle after the cutover. Reload once (at most every 60 s, so it cannot loop).
+   if (isStaleBundleError(error) && reloadForStaleBundle()) return;
 
    // Refused: the user's permissions may have changed since they were loaded.
    if (error.code === '42501' || error.status === 403)
