@@ -233,30 +233,12 @@ REVOKE ALL ON FUNCTION private.api_column_expr (TEXT, TEXT) FROM PUBLIC, anon, a
 CREATE OR REPLACE FUNCTION private.api_rights_expr (p_table TEXT, p_column TEXT) RETURNS TEXT[] LANGUAGE plpgsql STABLE
 SET
    search_path = '' AS $$
-DECLARE
-    base REGCLASS := format('public.%I', p_table)::REGCLASS;
-    resource TEXT := 'public.' || p_table;
-    n INT;
 BEGIN
-    SELECT a.attnum INTO n
-    FROM pg_catalog.pg_attribute a
-    WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'no such column: ' || resource || '.' || p_column;
+    IF EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = 'public.' || p_table AND j.field = p_column)
+       AND NOT private.api_is_sensitive('public.' || p_table, p_column) THEN
+        RETURN ARRAY['(SELECT private.field_rights_map()) AS rights', '(SELECT private.sensitive_fields_map()) AS sensitive'];
     END IF;
-    IF NOT private.api_is_sensitive(resource, p_column) THEN
-        IF EXISTS (SELECT 1 FROM private.api_json_masked j WHERE j.resource_name = resource AND j.field = p_column) THEN
-            RETURN ARRAY['(SELECT private.field_rights_map()) AS rights', '(SELECT private.sensitive_fields_map()) AS sensitive'];
-        END IF;
-        RETURN '{}';
-    END IF;
-    IF p_table = 'user' THEN
-        RETURN ARRAY[format('(SELECT private.field_user_ids(%L, FALSE)) AS u%s', p_column, n)];
-    END IF;
-    RETURN ARRAY[
-        format('(SELECT private.field_read_all(%L, %L)) AS a%s', resource, p_column, n),
-        format('(SELECT private.field_read_tenants(%L, %L)) AS t%s', resource, p_column, n)
-    ];
+    RETURN '{}';
 END;
 $$;
 
@@ -319,11 +301,11 @@ BEGIN
                 ORDER BY a.attnum
             LOOP
                 IF c.sensitive THEN
-                    -- The mask reads its own pair of the rights subquery m, and m holds the column's call.
+                    -- The mask reads its own pair of the rights subquery m, and m holds the view's rights call.
                     IF (v.name = 'user' AND (c.expr !~ format('\mm\.u%s\M', c.n)
-                                             OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_user_ids(%L', c.name)) = 0))
+                                             OR strpos(pg_catalog.pg_get_viewdef(v.view), 'private.field_user_rights(') = 0))
                        OR (v.name <> 'user' AND (c.expr !~ format('\mm\.t%s\M', c.n)
-                                                 OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_read_tenants(%L, %L)', resource, c.name)) = 0)) THEN
+                                                 OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('private.field_read_rights(%L', resource)) = 0)) THEN
                         problem := 'unmasked ' || c.name;
                         RETURN NEXT;
                     END IF;

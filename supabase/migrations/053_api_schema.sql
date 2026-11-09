@@ -13,16 +13,16 @@
 --                        mask_json_deep). Until then the generator refuses such a column.
 -- private.enable_field_security(table, read_only)
 --                        Generates api.<table> (api_view_query): FROM the base t CROSS JOIN a fenced
---                        one-row rights subquery m (SELECT (SELECT field_read_all(..)) AS a<n>,
---                        (SELECT field_read_tenants(..)) AS t<n>, ... OFFSET 0), with a pair only for
---                        the table's sensitive columns (n = attnum); system and open columns as they
+--                        one-row rights subquery m: ONE call field_read_rights(resource, fields) in a
+--                        CTE, unpacked into a<n> (field_read_all) and t<n> (field_read_tenants, NULL
+--                        when empty) per sensitive column (n = base attnum; see api_view_from); system and open columns as they
 --                        are; a sensitive one (or one missing from field_class: fail-closed) as
 --                          CASE WHEN m.a<n> OR t.tenant_id = ANY (m.t<n>) THEN t.<c> END
---                        (on public.user: the row is the caller or one of m.u<n> = field_user_ids(c,
---                        FALSE), S5), without a cast back to the column's type (typmod and domain are
+--                        (on public.user: the row is the caller or one of m.u<n>, field_user_rights =
+--                        field_user_ids(c, FALSE), S5), without a cast back to the column's type (typmod and domain are
 --                        dropped: a per-row cast costs before Sort/Limit).
---                        The sub-selects make each field function an InitPlan of m: once per query,
---                        never per row (R10). The select list holds only Vars of m, never a SubLink,
+--                        The CTE runs the rights call once per query and each pair is an InitPlan
+--                        reading it: never per row (R10). The select list holds only Vars of m, never a SubLink,
 --                        so a whole-row argument (R4's computed relationships) does not stop the
 --                        planner from inlining the function. Then: owner api_owner; SELECT for authenticated; unless read_only,
 --                        the write privileges authenticated holds on the base (or already holds on the
@@ -61,7 +61,10 @@
 --                        'guard'. 053_api_schema.test.sql requires it empty.
 -- private.field_calls_only_in_initplans(sql)
 --                        Test support, executable by nobody but its owner: TRUE when every plan node
---                        naming a field function lies inside an InitPlan.
+--                        naming a field function lies inside an InitPlan or a CTE and ran at most once
+--                        (EXPLAIN ANALYZE).
+-- private.field_read_rights(resource, fields), field_user_rights(fields)
+--                        The rights of all a view's sensitive fields in one call (R10).
 --
 --   field_write_forbidden      (42501) a written field the caller may not write; DETAIL <table>.<field>
 --   field_security_unsupported (generator) a table without tenant_id other than public.user has a
@@ -314,63 +317,169 @@ $$;
 
 REVOKE ALL ON FUNCTION private.api_column_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 
--- The entries a column adds to the rights subquery m: none for a plain column; for a sensitive one
--- a<n> (field_read_all) and t<n> (field_read_tenants), or u<n> (field_user_ids, public.user), n the
--- column's attnum. Each is a sub-select, so an InitPlan of m: once per query, never per row, even
--- when m is rescanned (R10).
-CREATE OR REPLACE FUNCTION private.api_rights_expr (p_table TEXT, p_column TEXT) RETURNS TEXT[] LANGUAGE plpgsql STABLE
+-- The read rights of a list of fields of one resource in ONE call (R10: one call per view, not two per
+-- column). For field i of p_fields, element i holds
+--   readable_all  field_read_all(p_resource, field)
+--   ids           field_read_tenants(p_resource, field), NULL when empty (a per-row ANY over NULL is
+--                 NULL at once, and NULL masks: fail closed)
+-- It is field_tenants (050, the one rule) for every field at once, with the caller and scope read once:
+-- empty scope: nothing; a field classified other than 'sensitive': the whole scope; no caller: nothing;
+-- a super admin: the whole scope; otherwise the scope tenants where a role of the caller's (with a live
+-- membership) grants can_read, or that the caller owns. 053_api_schema.test.sql compares it with
+-- field_read_all / field_read_tenants for every sensitive field and several callers and scopes.
+DO $$
+BEGIN
+    IF to_regtype('private.field_read_right') IS NULL THEN
+        CREATE TYPE private.field_read_right AS (readable_all BOOLEAN, ids UUID[]);
+    END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION private.field_read_rights (p_resource TEXT, p_fields TEXT[]) RETURNS private.field_read_right[] LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET
    search_path = '' AS $$
 DECLARE
-    base REGCLASS := format('public.%I', p_table)::REGCLASS;
-    resource TEXT := 'public.' || p_table;
-    n INT;
+    uid UUID := auth.uid();
+    scope UUID[] := coalesce(private.tenant_scope(), '{}');
+    every_tenant BOOLEAN;
+    owned UUID[];
 BEGIN
-    SELECT a.attnum INTO n
-    FROM pg_catalog.pg_attribute a
-    WHERE a.attrelid = base AND a.attname = p_column AND a.attnum > 0 AND NOT a.attisdropped;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'field_security_unsupported' USING DETAIL = 'no such column: ' || resource || '.' || p_column;
+    IF cardinality(scope) = 0 THEN
+        RETURN ARRAY(
+            SELECT ROW(FALSE, NULL)::private.field_read_right FROM unnest(p_fields) WITH ORDINALITY AS f (field, n) ORDER BY f.n
+        );
     END IF;
-    IF NOT private.api_is_sensitive(resource, p_column) THEN
-        RETURN '{}';
-    END IF;
-    IF p_table = 'user' THEN
-        RETURN ARRAY[format('(SELECT private.field_user_ids(%L, FALSE)) AS u%s', p_column, n)];
-    END IF;
-    -- A table without tenant_id: api_column_expr refuses the column.
-    RETURN ARRAY[
-        format('(SELECT private.field_read_all(%L, %L)) AS a%s', resource, p_column, n),
-        format('(SELECT private.field_read_tenants(%L, %L)) AS t%s', resource, p_column, n)
-    ];
+    every_tenant := uid IS NOT NULL AND private.check_super_admin(uid);
+    owned := CASE WHEN uid IS NULL THEN '{}'::UUID[] ELSE coalesce(private.owned_tenants(uid), '{}') END;
+    RETURN ARRAY(
+        WITH by_role AS (
+            SELECT rfp.field, array_agg(DISTINCT r.tenant_id) AS tenants
+            FROM public.user_role ur
+            JOIN public.role r ON r.id = ur.role_id
+            JOIN public.role_field_permission rfp ON rfp.role_id = r.id
+            WHERE uid IS NOT NULL AND ur.user_id = uid
+              AND r.tenant_id = ANY (scope)
+              -- user_role outlives a membership (as field_tenants).
+              AND EXISTS (SELECT 1 FROM public.tenant_user tu WHERE tu.user_id = uid AND tu.tenant_id = r.tenant_id)
+              AND rfp.resource_name = p_resource AND rfp.field = ANY (p_fields)
+              AND rfp.can_read
+            GROUP BY rfp.field
+        )
+        SELECT ROW(scope <@ g.ids, nullif(g.ids, '{}'))::private.field_read_right
+        FROM unnest(p_fields) WITH ORDINALITY AS f (field, n)
+        LEFT JOIN by_role b ON b.field = f.field
+        CROSS JOIN LATERAL (
+            SELECT CASE
+                WHEN EXISTS (
+                    SELECT 1 FROM public.field_class c
+                    WHERE c.resource_name = p_resource AND c.field = f.field AND c.class <> 'sensitive'
+                ) THEN scope
+                WHEN uid IS NULL THEN '{}'::UUID[]
+                WHEN every_tenant THEN scope
+                ELSE ARRAY(
+                    SELECT u.id FROM unnest(scope) WITH ORDINALITY AS u (id, k)
+                    WHERE u.id = ANY (owned) OR u.id = ANY (coalesce(b.tenants, '{}'))
+                    GROUP BY u.id ORDER BY min(u.k)
+                )
+            END AS ids
+        ) g
+        ORDER BY f.n
+    );
+END;
+$$;
+
+-- public.user (S5) in ONE call: element i holds in ids the users whose field p_fields[i] the caller may
+-- read, i.e. field_user_ids(field, FALSE) (the members and owners of the tenants granting it), NULL when
+-- none; readable_all is FALSE (unused).
+CREATE OR REPLACE FUNCTION private.field_user_rights (p_fields TEXT[]) RETURNS private.field_read_right[] LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN ARRAY(
+        SELECT ROW(FALSE, nullif(ARRAY(
+                   SELECT tu.user_id FROM public.tenant_user tu WHERE tu.tenant_id = ANY (r.ids)
+                   UNION
+                   SELECT o.user_id FROM public.tenant_owner o WHERE o.tenant_id = ANY (r.ids)
+               ), '{}'))::private.field_read_right
+        FROM unnest(private.field_read_rights('public.user', p_fields)) WITH ORDINALITY AS r (readable_all, ids, n)
+        ORDER BY r.n
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.field_read_rights (TEXT, TEXT[]) FROM PUBLIC, anon;
+
+REVOKE ALL ON FUNCTION private.field_user_rights (TEXT[]) FROM PUBLIC, anon;
+
+-- The api views call them by oid, as the caller (as field_read_tenants, 050).
+GRANT EXECUTE ON FUNCTION private.field_read_rights (TEXT, TEXT[]) TO authenticated;
+
+GRANT EXECUTE ON FUNCTION private.field_user_rights (TEXT[]) TO authenticated;
+
+-- Entries a column adds to the rights subquery m besides its sensitive pair (api_view_from writes those):
+-- none here; 059 adds the JSON maps.
+CREATE OR REPLACE FUNCTION private.api_rights_expr (p_table TEXT, p_column TEXT) RETURNS TEXT[] LANGUAGE plpgsql STABLE
+SET
+   search_path = '' AS $$
+BEGIN
+    RETURN '{}';
 END;
 $$;
 
 REVOKE ALL ON FUNCTION private.api_rights_expr (TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 
 -- The FROM of api.<table>: the base as t and, when a column needs rights, the fenced one-row rights
--- subquery m (OFFSET 0 keeps it from being pulled up). The select list then holds plain Vars of m,
--- never a SubLink, so a whole-row argument of api.<table> (a computed relationship) is free of
--- subplans and the function is inlined.
+-- subquery m (OFFSET 0 keeps it from being pulled up):
+--   CROSS JOIN (WITH r AS MATERIALIZED (SELECT private.field_read_rights('public.<t>', '{<f1>,...}') AS x)
+--               SELECT (SELECT (r.x[1]).readable_all FROM r) AS a<n1>, (SELECT (r.x[1]).ids FROM r) AS t<n1>,
+--                      ... OFFSET 0) m
+-- (public.user: field_user_rights, and only u<n> = ids). The sensitive columns in attnum order, n the
+-- base attnum. One field call per view, in the CTE (evaluated once); each pair is an InitPlan reading it,
+-- so a rescan of m re-runs nothing. The select list then holds plain Vars of m, never a SubLink, so a
+-- whole-row argument of api.<table> (a computed relationship) is free of subplans and is inlined.
 CREATE OR REPLACE FUNCTION private.api_view_from (p_table TEXT) RETURNS TEXT LANGUAGE plpgsql STABLE
 SET
    search_path = '' AS $$
 DECLARE
     base REGCLASS := format('public.%I', p_table)::REGCLASS;
-    rights TEXT;
+    resource TEXT := 'public.' || p_table;
+    fields TEXT[];
+    nums INT[];
+    entries TEXT[] := '{}';
+    rights TEXT := '';
+    i INT;
 BEGIN
-    SELECT string_agg(r.e, ', ' ORDER BY r.pos) INTO rights
-    FROM (
-        SELECT x.e, min(a.attnum * 100 + x.k) AS pos
+    SELECT array_agg(a.attname::TEXT ORDER BY a.attnum), array_agg(a.attnum::INT ORDER BY a.attnum) INTO fields, nums
+    FROM pg_catalog.pg_attribute a
+    WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped AND private.api_is_sensitive(resource, a.attname);
+    IF fields IS NOT NULL THEN
+        rights := format(
+            'WITH r AS MATERIALIZED (SELECT %s AS x) ',
+            CASE WHEN p_table = 'user' THEN format('private.field_user_rights(%L::TEXT[])', fields)
+                 ELSE format('private.field_read_rights(%L, %L::TEXT[])', resource, fields) END
+        );
+        FOR i IN 1 .. cardinality(fields) LOOP
+            IF p_table = 'user' THEN
+                entries := entries || format('(SELECT (r.x[%s]).ids FROM r) AS u%s', i, nums[i]);
+            ELSE
+                entries := entries || format('(SELECT (r.x[%s]).readable_all FROM r) AS a%s', i, nums[i])
+                                   || format('(SELECT (r.x[%s]).ids FROM r) AS t%s', i, nums[i]);
+            END IF;
+        END LOOP;
+    END IF;
+    -- Other entries (059: the JSON maps), one of each.
+    entries := entries || ARRAY(
+        SELECT x.e
         FROM pg_catalog.pg_attribute a,
              unnest(private.api_rights_expr(p_table, a.attname)) WITH ORDINALITY AS x (e, k)
         WHERE a.attrelid = base AND a.attnum > 0 AND NOT a.attisdropped
         GROUP BY x.e
-    ) r;
-    IF rights IS NULL THEN
+        ORDER BY min(a.attnum * 100 + x.k)
+    );
+    IF cardinality(entries) = 0 THEN
         RETURN format('%s t', base);
     END IF;
-    RETURN format('%s t CROSS JOIN (SELECT %s OFFSET 0) m', base, rights);
+    RETURN format('%s t CROSS JOIN (%sSELECT %s OFFSET 0) m', base, rights, array_to_string(entries, ', '));
 END;
 $$;
 
@@ -626,11 +735,11 @@ BEGIN
                 ORDER BY a.attnum
             LOOP
                 IF c.sensitive THEN
-                    -- The mask reads its own pair of the rights subquery m, and m holds the column's call.
+                    -- The mask reads its own pair of the rights subquery m, and m holds the view's rights call.
                     IF (v.name = 'user' AND (c.expr !~ format('\mm\.u%s\M', c.n)
-                                             OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_user_ids(%L', c.name)) = 0))
+                                             OR strpos(pg_catalog.pg_get_viewdef(v.view), 'private.field_user_rights(') = 0))
                        OR (v.name <> 'user' AND (c.expr !~ format('\mm\.t%s\M', c.n)
-                                                 OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('field_read_tenants(%L, %L)', resource, c.name)) = 0)) THEN
+                                                 OR strpos(replace(pg_catalog.pg_get_viewdef(v.view), '::text', ''), format('private.field_read_rights(%L', resource)) = 0)) THEN
                         problem := 'unmasked ' || c.name;
                         RETURN NEXT;
                     END IF;
@@ -710,26 +819,28 @@ $$;
 
 REVOKE ALL ON FUNCTION private.api_view_drift () FROM PUBLIC, anon, authenticated;
 
--- Test support (R10): runs EXPLAIN as the caller.
+-- Test support (R10): runs EXPLAIN ANALYZE as the caller (a SELECT only). TRUE when every plan node
+-- naming a field function lies inside an InitPlan or a CTE (the views' rights subquery) and ran at most
+-- once: once per query, never per row.
 CREATE OR REPLACE FUNCTION private.field_calls_only_in_initplans (p_sql TEXT) RETURNS BOOLEAN LANGUAGE plpgsql
 SET
    search_path = '' AS $$
 DECLARE
     plan JSONB;
 BEGIN
-    EXECUTE 'EXPLAIN (VERBOSE, FORMAT JSON) ' || p_sql INTO plan;
+    EXECUTE 'EXPLAIN (ANALYZE, VERBOSE, FORMAT JSON) ' || p_sql INTO plan;
     RETURN NOT EXISTS (
-        WITH RECURSIVE nodes (node, in_initplan) AS (
-            SELECT plan -> 0 -> 'Plan', coalesce(plan -> 0 -> 'Plan' ->> 'Subplan Name', '') LIKE 'InitPlan%'
+        WITH RECURSIVE nodes (node, fenced) AS (
+            SELECT plan -> 0 -> 'Plan', coalesce(plan -> 0 -> 'Plan' ->> 'Subplan Name', '') ~ '^(InitPlan|CTE) '
             UNION ALL
-            SELECT c.node, p.in_initplan OR coalesce(c.node ->> 'Subplan Name', '') LIKE 'InitPlan%'
+            SELECT c.node, p.fenced OR coalesce(c.node ->> 'Subplan Name', '') ~ '^(InitPlan|CTE) '
             FROM nodes p, jsonb_array_elements(p.node -> 'Plans') AS c (node)
         )
         SELECT 1 FROM nodes
-        WHERE NOT in_initplan
-          -- Output and Filter, and every other expression of the node (Sort Key, Index Cond, ...).
-          AND (node - 'Plans')::TEXT
-              ~ '(field_read_tenants|field_read_all|field_user_ids|field_rights_map|hidden_media_ids)'
+        -- Output and Filter, and every other expression of the node (Sort Key, Index Cond, ...).
+        WHERE (node - 'Plans')::TEXT
+              ~ '(field_read_tenants|field_read_all|field_user_ids|field_read_rights|field_user_rights|field_rights_map|hidden_media_ids)'
+          AND (NOT fenced OR coalesce((node ->> 'Actual Loops')::NUMERIC, 0) > 1)
     );
 END;
 $$;

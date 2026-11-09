@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- compared against the masked OLD, so a correct guess is refused like a wrong one (S1).
 BEGIN;
 
-SELECT plan(63);
+SELECT plan(71);
 
 -- The role and the generated objects.
 SELECT ok(NOT (SELECT rolbypassrls OR rolcanlogin FROM pg_roles WHERE rolname = 'api_owner'), 'api_owner cannot log in and does not bypass RLS');
@@ -26,6 +26,48 @@ SELECT private.field_test_fixtures();
 SELECT private.create_test_helpers();
 -- Test support only, revoked from everyone; this transaction lets the impersonated user call it.
 GRANT EXECUTE ON FUNCTION private.field_calls_only_in_initplans (TEXT) TO authenticated;
+
+-- R10: field_read_rights / field_user_rights (one call per view) agree with field_read_all,
+-- field_read_tenants and field_user_ids for every sensitive field, for several callers and scopes.
+CREATE TEMPORARY TABLE t_sensitive AS
+SELECT resource_name, array_agg(field::TEXT ORDER BY field) AS fields FROM public.field_class WHERE class = 'sensitive' GROUP BY resource_name;
+GRANT SELECT ON t_sensitive TO authenticated;
+CREATE FUNCTION t.rights_mismatch () RETURNS SETOF TEXT LANGUAGE sql AS $$
+    SELECT s.resource_name || '.' || s.fields[r.n]
+    FROM t_sensitive s
+    CROSS JOIN LATERAL unnest(private.field_read_rights(s.resource_name, s.fields)) WITH ORDINALITY AS r (readable_all, ids, n)
+    WHERE r.readable_all IS DISTINCT FROM private.field_read_all(s.resource_name, s.fields[r.n])
+       OR coalesce(r.ids, '{}') IS DISTINCT FROM private.field_read_tenants(s.resource_name, s.fields[r.n])
+    UNION ALL
+    SELECT 'user ids ' || s.fields[u.n]
+    FROM t_sensitive s
+    CROSS JOIN LATERAL unnest(private.field_user_rights(s.fields)) WITH ORDINALITY AS u (readable_all, ids, n)
+    CROSS JOIN LATERAL (SELECT private.field_user_ids(s.fields[u.n], FALSE) AS expected) e
+    WHERE s.resource_name = 'public.user'
+      AND NOT (coalesce(u.ids, '{}') @> e.expected AND coalesce(u.ids, '{}') <@ e.expected)
+$$;
+GRANT EXECUTE ON FUNCTION t.rights_mismatch () TO authenticated;
+SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: owner');
+RESET ROLE;
+SELECT private.impersonate(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID);
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: restricted');
+RESET ROLE;
+SELECT private.impersonate_scope(current_setting('test.elif')::UUID, current_setting('test.moesa')::UUID,
+    ARRAY[current_setting('test.moesa')::UUID, (SELECT id FROM public.tenant WHERE display_name = 'MOESA Europe')]);
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: mixed scope');
+RESET ROLE;
+SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'), current_setting('test.moesa')::UUID);
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: koordinator');
+RESET ROLE;
+SELECT private.impersonate((SELECT id FROM public.user WHERE email = 'portal@moesa-panel.test'), current_setting('test.moesa')::UUID);
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: portal');
+RESET ROLE;
+SELECT private.unimpersonate();
+SELECT is_empty($$ SELECT * FROM t.rights_mismatch() $$, 'batched rights = per-field rights: no caller');
+SELECT ok(EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'public.document'::REGCLASS AND attisdropped)
+          AND NOT EXISTS (SELECT 1 FROM private.api_view_drift() WHERE relation = 'document'),
+   'drift numbers m''s pairs by base attnum: document, with a dropped column, has no drift');
 -- Products are archived, never deleted (019: no DELETE for authenticated, no delete policy), so the
 -- view gets no DELETE either. The DELETE path is exercised with a policy and grant local to this test.
 CREATE POLICY t_delete_t5b ON public.product FOR DELETE TO authenticated USING (sku = 'T5B');
@@ -170,8 +212,10 @@ SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', ') TH
    'drift: a trailing `OR true` in the mask is reported');
 SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', 'ANY (m.t', 'ANY (m.t35 || m.t'))),
    'drift: a mask reading another column''s pair is reported');
-SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('', format('(SELECT private.field_read_all(%L, %L))', 'public.product', 'notes'), 'TRUE'))),
+SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('', 'readable_all FROM r) AS a43', 'readable_all OR TRUE FROM r) AS a43'))),
    'drift: a rights subquery granting a field to all is reported');
+SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('', ',notes}', '}'))),
+   'drift: a rights call without the field (pairs shifted) is reported');
 SELECT ok('expression notes' = ANY (t.drift_after(t.tampered_view('notes', 'THEN t.notes END', 'THEN t.supplier_product_code END'))),
    'drift: a THEN naming another column is reported');
 SELECT ok('definition' = ANY (t.drift_after(t.tampered_view('id', 't.id', 't.id') || ' WHERE TRUE')), 'drift: a WHERE added to the view is reported');
