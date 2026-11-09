@@ -56,15 +56,24 @@ export const userRepository = {
       const { data } = await forTenant(
          supabase
             .from('user')
-            // tenant_owner: RLS keeps the current tenant's row, so it says whether they own it.
-            .select(`*, role(*), tenant_owner(tenant_id), ${USER_ACCESS}`)
+            // Roles through the link table: across the `api` views the many-to-many embed is
+            // ambiguous. tenant_owner: RLS keeps the current tenant's row, so it says whether
+            // they own it.
+            .select(`*, user_role(role(*)), tenant_owner(tenant_id), ${USER_ACCESS}`)
             .eq('id', id)
             .abortSignal(signal),
          tenantId
       )
          .maybeSingle()
          .throwOnError();
-      return data as UserWithRoles | null;
+      if (!data) return null;
+      const { user_role, ...user } = data as unknown as Omit<UserWithRoles, 'role'> & {
+         user_role: { role: Role | null }[];
+      };
+      return {
+         ...user,
+         role: (user_role ?? []).flatMap(({ role }) => (role ? [role] : []))
+      } as UserWithRoles;
    },
 
    /** Updates a member, or invites a new one to the current tenant. */
