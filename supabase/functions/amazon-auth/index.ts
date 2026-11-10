@@ -147,7 +147,7 @@ const connect = async (
 const disconnect = async (req: Request, d: HandlerDeps, tenantId: string, id: string) => {
    const db = d.db(req);
    await findAccount(db, id, tenantId);
-   const { error } = await db.rpc('amazon_account_disconnect', {
+   const { error } = await db.schema('public').rpc('amazon_account_disconnect', {
       p_account_id: id,
       p_state: 'none'
    });

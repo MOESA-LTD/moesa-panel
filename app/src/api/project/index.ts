@@ -4,7 +4,7 @@ import { defineResource, type ResourceInput } from '@/api/defineResource';
 import { invalidateTables } from '@/api/queryKeys';
 import { useLookup } from '@/api/useLookup';
 import { dateOnly, optional, parseDateOnly, required, requiredText } from '@/lib/form/fields';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import i18n from '@plugins/i18n';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
@@ -303,7 +303,7 @@ export function usePassGate() {
 
    return useMutation({
       mutationFn: async (input: PassGateInput) => {
-         const { data } = await supabase
+         const { data } = await publicSchema
             .rpc('pass_gate', {
                gate_id: input.gateId,
                note: input.note,
@@ -329,7 +329,7 @@ export function useRollbackGate() {
 
    return useMutation({
       mutationFn: async ({ gateId, reason, incidentId }: RollbackGateInput) => {
-         const { data } = await supabase
+         const { data } = await publicSchema
             .rpc('rollback_gate', { gate_id: gateId, reason, incident_id: incidentId })
             .throwOnError();
          return data;

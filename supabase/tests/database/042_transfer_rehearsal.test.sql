@@ -177,7 +177,7 @@ INSERT INTO public.supplier_contact (id, tenant_id, supplier_id, name)
 VALUES ('00000000-0000-4000-8000-000000042016', current_setting('test.moesa')::UUID, current_setting('test.tr1')::UUID, 'Kutlu satış');
 
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.media_link (id, tenant_id, media_id, entity_type, entity_id, role)
+INSERT INTO api.media_link (id, tenant_id, media_id, entity_type, entity_id, role)
 VALUES ('00000000-0000-4000-8000-000000042017', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042011', 'product',
         current_setting('test.mop')::UUID, 'gallery'),
        ('00000000-0000-4000-8000-000000042018', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042012', 'product',
@@ -320,6 +320,8 @@ SELECT ok(
 
 -- 31b. Without a display name the report names the user by a short id, never by e-mail (K8).
 RESET ROLE;
+-- As postgres without a request (S2): akif's claims, left by RESET ROLE, would apply the field write guard.
+SELECT private.unimpersonate();
 UPDATE public.user SET user_metadata = user_metadata - 'display_name' WHERE id = current_setting('test.koordinator')::UUID;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 SELECT set_config('test.r_nameless', pg_temp.rehearse('copy')::TEXT, TRUE);
@@ -331,6 +333,7 @@ SELECT ok(
     'a user without a display name is named by a short id, not by e-mail'
 );
 RESET ROLE;
+SELECT private.unimpersonate();
 UPDATE public.user SET user_metadata = user_metadata || '{"display_name": "Koordinatör"}' WHERE id = current_setting('test.koordinator')::UUID;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
@@ -420,7 +423,7 @@ INSERT INTO public.supplier (id, tenant_id, code, display_name, country)
 VALUES ('00000000-0000-4000-8000-000000042025', current_setting('test.europe')::UUID, 'CN1', 'CN1 Europa', 'CN');
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.europe')::UUID);
-INSERT INTO public.project (tenant_id, customer_id, display_name, type, path)
+INSERT INTO api.project (tenant_id, customer_id, display_name, type, path)
 VALUES (current_setting('test.europe')::UUID, '00000000-0000-4000-8000-000000042021', 'Europa projesi', 'npi', 'a_sourcing');
 RESET ROLE;
 
@@ -438,7 +441,7 @@ SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('
 SELECT ok(
     pg_temp.rehearse('copy') -> 'conflicts' @> jsonb_build_array(jsonb_build_object(
         'key', 'project:' || current_setting('test.pilot'), 'kind', 'code',
-        'label', (SELECT code FROM public.project WHERE id = current_setting('test.pilot')::UUID),
+        'label', (SELECT code FROM api.project WHERE id = current_setting('test.pilot')::UUID),
         'actions', '["new_code", "skip"]'::JSONB
     )),
     'the pilot''s code is taken in Europe: new code or skip'
@@ -527,15 +530,15 @@ RESET ROLE;
 -- carrying the order (the link row has no id) and a shipment line (…006): a move to Trading leaves
 -- nothing behind.
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
 SELECT '00000000-0000-4000-8000-000000042003', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042001', s.id, 'USD'
-FROM public.supplier s WHERE s.tenant_id = current_setting('test.moesa')::UUID AND s.code = 'TR1';
-INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+FROM api.supplier s WHERE s.tenant_id = current_setting('test.moesa')::UUID AND s.code = 'TR1';
+INSERT INTO api.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
 VALUES ('00000000-0000-4000-8000-000000042004', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042003',
         '00000000-0000-4000-8000-000000042002', 5, 1);
-INSERT INTO public.customer_warehouse (id, tenant_id, customer_id, display_name)
+INSERT INTO api.customer_warehouse (id, tenant_id, customer_id, display_name)
 VALUES ('00000000-0000-4000-8000-000000042007', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042001', 'ZZZ Lager');
-INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+INSERT INTO api.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 VALUES ('00000000-0000-4000-8000-000000042005', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000042001', 'road',
         '00000000-0000-4000-8000-000000042007');
 RESET ROLE;

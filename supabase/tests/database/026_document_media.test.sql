@@ -48,7 +48,7 @@ SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_se
 
 SELECT lives_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, version, url, media_id)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, version, url, media_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'product',
                 current_setting('test.mop40')::UUID, 'spec_sheet', 9, NULL, current_setting('test.m_spec')::UUID)
     $$,
@@ -57,7 +57,7 @@ SELECT lives_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, version, url, media_id)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, version, url, media_id)
         VALUES (current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'product',
                 current_setting('test.mop40')::UUID, 'spec_sheet', 10, NULL, NULL)
     $$,
@@ -68,7 +68,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, version, media_id)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, version, media_id)
         VALUES (current_setting('test.moesa')::UUID, NULL, 'supplier', current_setting('test.tr1')::UUID,
                 'certificate', 9, current_setting('test.m_spec')::UUID)
     $$,
@@ -79,7 +79,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, customer_id, entity_type, entity_id, type, version, media_id)
+        INSERT INTO api.document (tenant_id, customer_id, entity_type, entity_id, type, version, media_id)
         VALUES (current_setting('test.moesa')::UUID, NULL, 'supplier', current_setting('test.tr1')::UUID,
                 'certificate', 9, current_setting('test.m_atlas')::UUID)
     $$,
@@ -89,7 +89,7 @@ SELECT throws_ok(
 );
 
 SELECT is(
-    (SELECT document_count || ':' || link_count FROM public.media_library WHERE id = current_setting('test.m_spec')::UUID),
+    (SELECT document_count || ':' || link_count FROM api.media_library WHERE id = current_setting('test.m_spec')::UUID),
     '1:0',
     'the library counts the documents citing a file'
 );
@@ -99,14 +99,14 @@ RESET ROLE;
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
 SELECT throws_ok(
-    $$ UPDATE public.media SET customer_id = NULL WHERE id = current_setting('test.m_spec')::UUID $$,
+    $$ UPDATE api.media SET customer_id = NULL WHERE id = current_setting('test.m_spec')::UUID $$,
     '23514',
     'media_customer_locked',
     'a document''s file keeps its customer'
 );
 
 SELECT throws_ok(
-    $$ DELETE FROM public.media WHERE id = current_setting('test.m_spec')::UUID $$,
+    $$ DELETE FROM api.media WHERE id = current_setting('test.m_spec')::UUID $$,
     '23503',
     'media_in_use',
     'a document''s file is not deleted'

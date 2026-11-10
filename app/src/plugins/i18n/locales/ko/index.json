@@ -98,6 +98,17 @@
       }
    },
    "fields": {
+      "field_group": {
+         "cost": "Cost",
+         "sell_price": "Sell price",
+         "supplier_identity": "Supplier identity",
+         "supplier_contact": "Supplier contact",
+         "supplier_terms": "Supplier terms",
+         "contract": "Contract",
+         "finance": "Finance",
+         "internal_note": "Internal note",
+         "personal_data": "Personal data"
+      },
       "": " ",
       "password": "비밀번호",
       "password_confirmation": "비밀번호 확인",
@@ -190,6 +201,14 @@
          "label": "지점",
          "active": "활성 지점: 새 레코드가 여기에 추가됩니다",
          "make_active": "활성화"
+      },
+      "select_field_permission": {
+         "label": "Field permissions",
+         "read": "Read",
+         "write": "Write",
+         "all": "All",
+         "not_grantable": "You cannot grant a right you do not hold yourself.",
+         "other_tenant": "This role belongs to another tenant; its field rights cannot be changed from here."
       },
       "select_permission": {
          "table": {
@@ -428,6 +447,12 @@
       "media_file_missing": "The file was not uploaded. Try again.",
       "media_type_not_allowed": "Only PNG, JPEG, WebP, PDF and MP4 files can be uploaded.",
       "media_too_large": "The file is larger than the upload limit in the settings.",
+      "field_not_sensitive": "Only sensitive fields can carry field permissions.",
+      "field_grant_exceeds_own": "You cannot give a role a field permission you do not hold yourself.",
+      "role_field_permission_save_role_only": "Field permissions change only by saving the role.",
+      "field_write_forbidden": "You do not have permission to change this field.",
+      "field_security_unsupported": "This table is not supported by field security.",
+      "tenant_move_forbidden": "A record cannot be moved to another company.",
       "media_file_immutable": "A media file cannot be replaced; upload a new one.",
       "media_in_use": "The file is linked to a record or a document; unlink it first.",
       "media_link_entity_missing": "The record to link to does not exist.",
@@ -525,6 +550,7 @@
       "change_request_kinds_required": "Choose at least one change kind.",
       "gate_rollback_immutable": "A rollback's reason and incident stay until the gate is passed again.",
       "audit_transfer_not_revertable": "A transfer cannot be undone from the log. Transfer the records back instead.",
+      "audit_revert_field_forbidden": "This change cannot be reverted: it touches a field you are not allowed to change.",
       "transfer_invalid_mode": "Choose Copy or Move.",
       "transfer_same_tenant": "The target must differ from the source.",
       "transfer_owner_required": "Between two separate companies only an owner of both can transfer.",
@@ -543,6 +569,7 @@
       "transfer_product_in_use": "Records that stay behind use these products (a project, order, market cell or change request). Copy them, or transfer the whole customer.",
       "transfer_not_found": "Transfer not found.",
       "transfer_files_pending": "The files of an earlier transfer into this customer are not all copied yet. Finish that transfer first: \"Retry file copy\" on the customer's page.",
+      "transfer_field_rights_required": "This transfer copies every field of the copied records, including internal notes. You need the right to read and change all of them in both the source and the target branch.",
       "request_failed": "Request failed",
       "amazon_not_connected": "The customer has not connected an Amazon account.",
       "amazon_connection_revoked": "The Amazon connection was withdrawn. Connect the account again.",
@@ -865,6 +892,7 @@
    },
    "audit_log": {
       "no_changes_detected": "변경 사항이 감지되지 않았습니다.",
+      "masked": "변경됨",
       "add": "추가",
       "update": "수정",
       "delete": "삭제",
@@ -886,7 +914,8 @@
       "updated": "수정됨",
       "deleted": "삭제됨",
       "readed": "읽힘",
-      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead."
+      "revert_transfer_locked": "Transfer entries cannot be reverted. Transfer the records back instead.",
+      "masked": "changed"
    },
    "user": {
       "table": {
@@ -1368,7 +1397,8 @@
                "parent_unknown": "no parent product with this SKU for the customer",
                "gtin_in_use": "GTIN already used by active product {sku}",
                "gtin_duplicate": "GTIN appears more than once in the file",
-               "sku_duplicate": "SKU appears more than once in the file for this customer"
+               "sku_duplicate": "SKU appears more than once in the file for this customer",
+               "csv_column_not_writable": "이 열에 쓸 권한이 없습니다. 비워 두세요"
             },
             "warnings": {
                "unknown_column": "unknown column, ignored",

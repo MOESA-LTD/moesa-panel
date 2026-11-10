@@ -53,7 +53,8 @@ const customFetch = async (
    return fetch(url, options);
 };
 
-const supabaseOptions: SupabaseClientOptions<'public'> = {
+const supabaseOptions: SupabaseClientOptions<'api'> = {
+   db: { schema: 'api' },
    auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -66,8 +67,15 @@ const supabaseOptions: SupabaseClientOptions<'public'> = {
 
 const env = import.meta.env;
 
-export const supabase = createClient<Db>(
+/**
+ * Tables are read and written through the `api` schema: one view per table, which masks the fields
+ * the user may not read (they come back null) and refuses writes to those they may not write.
+ */
+export const supabase = createClient<Db, 'api'>(
    env.VITE_SUPABASE_PROJECT_URL,
    env.VITE_SUPABASE_PROJECT_ANON_KEY,
    supabaseOptions
 );
+
+/** The functions (RPCs) stay in `public`. */
+export const publicSchema = supabase.schema('public');

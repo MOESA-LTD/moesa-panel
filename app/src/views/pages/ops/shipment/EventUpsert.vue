@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    S15_STEPS,
    shipmentEventResource,
@@ -7,6 +8,9 @@ import {
    toShipmentEventPayload
 } from '@/api/shipment';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('shipment_event');
 
 // Opened as a dialog from a shipment's events: a new entry belongs to the route's shipment and
 // starts now. The step is one of S15 §B's rows; none makes it another event.
@@ -91,6 +95,7 @@ const TEXT_FIELDS = ['from_party', 'to_party', 'channel'] as const;
          </FormField>
          <FormField
             v-for="field in TEXT_FIELDS"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.shipment.fields.${field}`)"
@@ -101,6 +106,7 @@ const TEXT_FIELDS = ['from_party', 'to_party', 'channel'] as const;
             <InputText v-bind="slotProps" v-model="values[field]" />
          </FormField>
          <FormField
+            field="note"
             class="!flex-auto !max-w-none w-full"
             fluid
             :label="$t('ops.shipment.fields.note')"

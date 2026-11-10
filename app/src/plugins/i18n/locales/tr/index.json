@@ -57,6 +57,14 @@
          "active": "Aktif şube: yeni kayıtlar buraya eklenir",
          "make_active": "Aktif yap"
       },
+      "select_field_permission": {
+         "label": "Alan yetkileri",
+         "read": "Okuma",
+         "write": "Yazma",
+         "all": "Tümü",
+         "not_grantable": "Bu yetkiye siz sahip olmadığınız için bir role veremezsiniz.",
+         "other_tenant": "Bu rol başka bir kuruma ait; alan yetkileri buradan değiştirilemez."
+      },
       "select_permission": {
          "table": {
             "headers": {
@@ -138,6 +146,7 @@
       "audit_already_reverted": "Bu değişiklik zaten geri alınmış.",
       "audit_conflict": "Bu değişiklik geri alınamıyor: kayıt sonradan değiştirildi. Önce sonraki değişiklikleri geri alın.",
       "audit_transfer_not_revertable": "Aktarım kayıttan geri alınamaz. Kayıtları geri aktarın.",
+      "audit_revert_field_forbidden": "Bu değişiklik geri alınamaz: değiştirme yetkiniz olmayan bir alanı içeriyor.",
       "transfer_invalid_mode": "Kopyala ya da Taşı'yı seçin.",
       "transfer_same_tenant": "Hedef, kaynaktan farklı olmalı.",
       "transfer_owner_required": "İki ayrı şirket arasında yalnız ikisinin de sahibi aktarabilir.",
@@ -156,6 +165,7 @@
       "transfer_product_in_use": "Geride kalan kayıtlar bu ürünleri kullanıyor (proje, sipariş, pazar hücresi ya da değişiklik talebi). Kopyalayın ya da müşterinin tamamını aktarın.",
       "transfer_not_found": "Aktarım bulunamadı.",
       "transfer_files_pending": "Bu müşteriye yapılan önceki bir aktarımın dosyaları henüz tamamen kopyalanmadı. Önce o aktarımı tamamlayın: müşteri sayfasında \"Dosyaları yeniden kopyala\".",
+      "transfer_field_rights_required": "Bu aktarım, kopyalanan kayıtların iç notlar dahil tüm alanlarını taşır. Kaynak ve hedef şubede bu alanların hepsini görme ve değiştirme yetkiniz olmalı.",
       "avatar_type": "Fotoğraf PNG, JPEG ya da WebP olmalı.",
       "avatar_size": "Fotoğraf en fazla 1 MB olmalı.",
       "access_denied": "Erişim reddedildi",
@@ -318,6 +328,12 @@
       "media_file_missing": "Dosya yüklenmedi. Tekrar deneyin.",
       "media_type_not_allowed": "Yalnızca PNG, JPEG, WebP, PDF ve MP4 dosyaları yüklenebilir.",
       "media_too_large": "Dosya, ayarlardaki yükleme sınırından büyük.",
+      "field_not_sensitive": "Bu alan hassas olarak sınıflandırılmadığı için alan yetkisi verilemez.",
+      "field_grant_exceeds_own": "Sahip olmadığınız bir alan yetkisini bir role veremezsiniz.",
+      "role_field_permission_save_role_only": "Alan yetkileri yalnızca rol kaydedilerek değiştirilebilir.",
+      "field_write_forbidden": "Bu alanı değiştirme yetkiniz yok.",
+      "field_security_unsupported": "Bu tablo alan güvenliğiyle desteklenmiyor.",
+      "tenant_move_forbidden": "Bir kayıt başka bir şirkete taşınamaz.",
       "MediaFileError": "Dosya yüklenmedi",
       "media_file_immutable": "Ortam dosyası değiştirilemez; yenisini yükleyin.",
       "media_in_use": "Dosya bir kayda ya da belgeye bağlı; önce bağlantıyı kaldırın.",
@@ -658,6 +674,17 @@
       }
    },
    "fields": {
+      "field_group": {
+         "cost": "Maliyet",
+         "sell_price": "Satış fiyatı",
+         "supplier_identity": "Tedarikçi kimliği",
+         "supplier_contact": "Tedarikçi iletişimi",
+         "supplier_terms": "Tedarikçi şartları",
+         "contract": "Sözleşme",
+         "finance": "Finans",
+         "internal_note": "İç not",
+         "personal_data": "Kişisel veri"
+      },
       "": "Boş",
       "password": "Şifre",
       "password_confirmation": "Şifre Onayı",
@@ -811,6 +838,7 @@
    },
    "audit_log": {
       "no_changes_detected": "Değişiklik tespit edilmedi",
+      "masked": "değişti",
       "add": "Ekle",
       "update": "Güncelle",
       "delete": "Sil",
@@ -829,6 +857,7 @@
       "already_reverted": "Zaten iptal edildi",
       "attempt_to_revert": "İptal işlemi denendi",
       "revert_transfer_locked": "Aktarım kayıtları geri alınamaz. Bunun yerine kayıtları geri aktarın.",
+      "masked": "değişti",
       "added": "Eklendi",
       "updated": "Güncellendi",
       "deleted": "Silindi",
@@ -1368,7 +1397,8 @@
                "parent_unknown": "müşterinin bu SKU ile ana ürünü yok",
                "gtin_in_use": "GTIN, aktif {sku} ürününde kullanılıyor",
                "gtin_duplicate": "GTIN dosyada birden fazla kez geçiyor",
-               "sku_duplicate": "SKU bu müşteri için dosyada birden fazla kez geçiyor"
+               "sku_duplicate": "SKU bu müşteri için dosyada birden fazla kez geçiyor",
+               "csv_column_not_writable": "bu sütundaki alanı yazma yetkiniz yok, sütunu boş bırakın"
             },
             "warnings": {
                "unknown_column": "bilinmeyen sütun, yok sayıldı",

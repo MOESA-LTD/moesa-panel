@@ -25,6 +25,30 @@ const createUserSchema = z.object({
 });
 const updateUserSchema = z.object({ user_metadata: userMetadata });
 
+/** The columns a member is read with; personal data come masked from api.user (053). */
+export const USER_COLUMNS = 'id, email, phone, user_metadata, created_at';
+
+/** The user fields the admin API writes (the field catalog's personal_data of public.user). */
+type UserField = 'email' | 'user_metadata';
+
+/**
+ * The admin API writes with the service role, which the database's field write guard (051) trusts
+ * on purpose. So the function checks the caller's right to write the field itself, in the database
+ * and as the caller (their token and tenant scope): a user always writes their own, another's only
+ * with the field's write right. A null target is an account not yet created (an invitation).
+ */
+const assertFieldWrite = async (req: Request, target: string | null, fields: UserField[]) => {
+   const client = supabaseClient(req).schema('public');
+   for (const field of fields) {
+      const { data, error } = await client.rpc('can_write_user_field', {
+         p_user: target as string,
+         p_field: field
+      });
+      if (error) throw error;
+      if (data !== true) throw new HttpError(403, 'field_write_forbidden', { field });
+   }
+};
+
 const assertTenantMember = async (tenantId: string, userId: string) => {
    const { count } = await supabaseAdmin()
       .from('tenant_user')
@@ -49,20 +73,28 @@ const assertManageable = async ({ tenantId, userId }: AuthContext, id: string) =
    if (!isManageable(reach, company)) throw new HttpError(403, 'user_not_allowed');
 };
 
-const getUser = (req: Request, id: string) =>
+export const getUser = (req: Request, id: string) =>
    withAuthorization(req, [['select', 'user']], async (context) => {
       await assertManageable(context, id);
 
-      const { data, error } = await supabaseAdmin().auth.admin.getUserById(id);
-      if (error) throw error;
+      // As the caller, through api: a personal field the caller may not read comes back NULL. The
+      // admin API would return every field of the account.
+      const { data } = await supabaseClient(req)
+         .from('user')
+         .select(USER_COLUMNS)
+         .eq('id', id)
+         .maybeSingle()
+         .throwOnError();
+      if (!data) throw new HttpError(404, 'user_not_found');
 
       return json(data);
    });
 
-const createUser = (req: Request) =>
+export const createUser = (req: Request) =>
    withAuthorization(req, [['insert', 'user']], async ({ tenantId }: AuthContext) => {
       const { email, user_metadata } = createUserSchema.parse(await req.json());
       const service = supabaseAdmin();
+      const written: UserField[] = user_metadata ? ['email', 'user_metadata'] : ['email'];
 
       const { data: existing } = await service
          .from('user')
@@ -83,6 +115,8 @@ const createUser = (req: Request) =>
          ]);
          if (!belongsToCompany(reach, company)) throw new HttpError(409, 'user_exists_elsewhere');
       } else {
+         // The invitation writes the new account's e-mail and metadata (admin API).
+         await assertFieldWrite(req, null, written);
          const { data, error } = await service.auth.admin.inviteUserByEmail(email, {
             data: user_metadata
          });
@@ -110,11 +144,12 @@ const createUser = (req: Request) =>
       return json({ user }, 201);
    });
 
-const updateUser = (req: Request, id: string) =>
+export const updateUser = (req: Request, id: string) =>
    withAuthorization(req, [['update', 'user']], async (context) => {
       await assertManageable(context, id);
 
       const { user_metadata } = updateUserSchema.parse(await req.json());
+      if (user_metadata) await assertFieldWrite(req, id, ['user_metadata']);
 
       const { data, error } = await supabaseAdmin().auth.admin.updateUserById(id, {
          ...(user_metadata ? { user_metadata } : {})
@@ -152,7 +187,7 @@ const deleteUser = (req: Request, id: string) =>
 
 const userPattern = new URLPattern({ pathname: '/user/:id' });
 
-serve(async (req) => {
+const handler = async (req: Request) => {
    const id = userPattern.exec(req.url)?.pathname.groups.id;
 
    switch (true) {
@@ -173,4 +208,6 @@ serve(async (req) => {
    }
 
    throw new HttpError(405, 'method_not_allowed');
-});
+};
+
+if (import.meta.main) serve(handler);

@@ -7,23 +7,4287 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
+  api: {
     Tables: {
       [_ in never]: never
     }
     Views: {
-      [_ in never]: never
+      amazon_product_type_definition: {
+        Row: {
+          display_name: string | null
+          fetched_at: string | null
+          locale: string | null
+          marketplace_id: string | null
+          product_type: string | null
+          property_groups: Json | null
+          schema: Json | null
+          version: string | null
+        }
+        Insert: {
+          display_name?: string | null
+          fetched_at?: string | null
+          locale?: string | null
+          marketplace_id?: string | null
+          product_type?: string | null
+          property_groups?: Json | null
+          schema?: Json | null
+          version?: string | null
+        }
+        Update: {
+          display_name?: string | null
+          fetched_at?: string | null
+          locale?: string | null
+          marketplace_id?: string | null
+          product_type?: string | null
+          property_groups?: Json | null
+          schema?: Json | null
+          version?: string | null
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          created_at: string | null
+          id: number | null
+          new_data: Json | null
+          old_data: Json | null
+          operation: string | null
+          record_id: string | null
+          table_name: string | null
+          table_schema: string | null
+          tenant_id: string | null
+          transaction_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "audit_transaction"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_notification_feed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_transaction: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string | null
+          id: string | null
+          operation: string | null
+          record_id: string | null
+          reverted_at: string | null
+          reverted_by: string | null
+          reverts_id: string | null
+          table_name: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string | null
+          id?: string | null
+          operation?: string | null
+          record_id?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          reverts_id?: string | null
+          table_name?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string | null
+          id?: string | null
+          operation?: string | null
+          record_id?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          reverts_id?: string | null
+          table_name?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_transaction_reverts_id_fkey"
+            columns: ["reverts_id"]
+            isOneToOne: false
+            referencedRelation: "audit_transaction"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_transaction_reverts_id_fkey"
+            columns: ["reverts_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_notification_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_transaction_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_transaction_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_request: {
+        Row: {
+          affected_document_id: string | null
+          affected_gate_code: Database["public"]["Enums"]["gate_code"] | null
+          change_kinds: Database["public"]["Enums"]["change_kind"][] | null
+          closed_on: string | null
+          code: string | null
+          company_approved_by: string | null
+          company_approved_on: string | null
+          cost_impact: string | null
+          cost_payer: Database["public"]["Enums"]["cost_payer"] | null
+          created_at: string | null
+          current_value: string | null
+          customer_approval_document_id: string | null
+          customer_approved_on: string | null
+          customer_id: string | null
+          decision_due_on: string | null
+          decision_note: string | null
+          delay_days: number | null
+          id: string | null
+          listing_impact: string | null
+          other_documents: string | null
+          project_id: string | null
+          quality_impact: string | null
+          reason: string | null
+          requested_value: string | null
+          result_document_id: string | null
+          source: Database["public"]["Enums"]["change_request_source"] | null
+          status: Database["public"]["Enums"]["change_request_status"] | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          urgency: Database["public"]["Enums"]["change_request_urgency"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_affected_document_fkey"
+            columns: ["affected_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_approval_document_fkey"
+            columns: ["customer_approval_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_approver_fkey"
+            columns: ["company_approved_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_result_document_fkey"
+            columns: ["result_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_request_product: {
+        Row: {
+          change_request_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          product_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          change_request_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          product_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          change_request_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          product_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_product_cr_fkey"
+            columns: ["change_request_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "change_request"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_cr_fkey"
+            columns: ["change_request_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_change_request"
+            referencedColumns: ["change_request_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_sequence: {
+        Row: {
+          kind: string | null
+          last_no: number | null
+          scope: string | null
+          tenant_id: string | null
+          year: number | null
+        }
+        Insert: {
+          kind?: string | null
+          last_no?: number | null
+          scope?: string | null
+          tenant_id?: string | null
+          year?: number | null
+        }
+        Update: {
+          kind?: string | null
+          last_no?: number | null
+          scope?: string | null
+          tenant_id?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_sequence_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "code_sequence_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_subscription: {
+        Row: {
+          branches: number | null
+          canceled_at: string | null
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          ends_at: string | null
+          id: string | null
+          is_trial: boolean | null
+          plan_id: string | null
+          plan_name: string | null
+          starts_at: string | null
+          status: string | null
+          subscription_id: string | null
+          users: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer: {
+        Row: {
+          code: string | null
+          commercial_model:
+            | Database["public"]["Enums"]["commercial_model"]
+            | null
+          contract_accepted_on: string | null
+          contract_document_id: string | null
+          country: string | null
+          created_at: string | null
+          deposit_rate: number | null
+          display_name: string | null
+          eu_responsible_person: string | null
+          extra_cost_rule: string | null
+          id: string | null
+          notes: string | null
+          packages: string[] | null
+          restricted_drive_url: string | null
+          start_on: string | null
+          status: Database["public"]["Enums"]["customer_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_brand: {
+        Row: {
+          brand_program_status: string | null
+          customer_id: string | null
+          gs1_prefix_owner: string | null
+          id: string | null
+          name: string | null
+          registration_status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          brand_program_status?: string | null
+          customer_id?: string | null
+          gs1_prefix_owner?: string | null
+          id?: string | null
+          name?: string | null
+          registration_status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          brand_program_status?: string | null
+          customer_id?: string | null
+          gs1_prefix_owner?: string | null
+          id?: string | null
+          name?: string | null
+          registration_status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_brand_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_brand_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_brand_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_contact: {
+        Row: {
+          can_approve: boolean | null
+          customer_id: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          role: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contact_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_platform_account: {
+        Row: {
+          access: Database["public"]["Enums"]["platform_access"] | null
+          account_holder: string | null
+          api_connection: Database["public"]["Enums"]["api_connection"] | null
+          authorized_at: string | null
+          countries: string[] | null
+          customer_id: string | null
+          id: string | null
+          notes: string | null
+          platform_id: string | null
+          seller_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_platform_account_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_platform_account_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_platform_account_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_platform_account_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_warehouse: {
+        Row: {
+          address: string | null
+          appointment_rule: string | null
+          city: string | null
+          country: string | null
+          customer_id: string | null
+          display_name: string | null
+          dock_hours: string | null
+          id: string | null
+          is_default: boolean | null
+          pallet_standard: string | null
+          postal_code: string | null
+          receiving_person: string | null
+          tenant_id: string | null
+          type: Database["public"]["Enums"]["warehouse_type"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_warehouse_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_warehouse_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_warehouse_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_change_request: {
+        Row: {
+          change_request_id: string | null
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          decision_due_on: string | null
+          overdue: boolean | null
+          status: Database["public"]["Enums"]["change_request_status"] | null
+          tenant_id: string | null
+          title: string | null
+          urgency: Database["public"]["Enums"]["change_request_urgency"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_request_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_request_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_gate_pending: {
+        Row: {
+          customer_code: string | null
+          customer_id: string | null
+          gate_code: Database["public"]["Enums"]["gate_code"] | null
+          gate_id: string | null
+          needs_customer_approval: boolean | null
+          needs_management: boolean | null
+          owner_role: string | null
+          position: number | null
+          project_code: string | null
+          project_display_name: string | null
+          project_id: string | null
+          tenant_id: string | null
+          waiting_days: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_incident: {
+        Row: {
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notice_late: boolean | null
+          incident_id: string | null
+          management_notice_missing: boolean | null
+          next_deadline_at: string | null
+          opened_at: string | null
+          overdue_deadline_count: number | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_market: {
+        Row: {
+          customer_code: string | null
+          customer_id: string | null
+          live_count: number | null
+          preparing_count: number | null
+          suppressed_count: number | null
+          target_count: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_notification_feed: {
+        Row: {
+          activity: string | null
+          created_at: string | null
+          id: string | null
+          new_data: Json | null
+          old_data: Json | null
+          operation: string | null
+          resource_id: string | null
+          since: string | null
+          table_name: string | null
+          tenant_id: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_transaction_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_transaction_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_product_evidence: {
+        Row: {
+          active_sku_count: number | null
+          compliance_complete_count: number | null
+          customer_code: string | null
+          customer_id: string | null
+          signed_spec_count: number | null
+          tenant_id: string | null
+          unsigned_sku_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_purchase_order: {
+        Row: {
+          balance_planned_on: string | null
+          code: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          days_to_ready: number | null
+          deposit_planned_on: string | null
+          purchase_order_id: string | null
+          ready_on: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_code: string | null
+          system_total: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_shipment: {
+        Row: {
+          code: string | null
+          customer_code: string | null
+          customer_id: string | null
+          days_to_eta: number | null
+          dispute_deadline_at: string | null
+          eta: string | null
+          etd: string | null
+          mode: Database["public"]["Enums"]["shipment_mode"] | null
+          overdue: boolean | null
+          shipment_id: string | null
+          status: Database["public"]["Enums"]["shipment_status"] | null
+          tenant_id: string | null
+          warehouse_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_task_due: {
+        Row: {
+          blocks_gate: boolean | null
+          customer_code: string | null
+          customer_id: string | null
+          days_left: number | null
+          display_name: string | null
+          due_on: string | null
+          overdue: boolean | null
+          phase: Database["public"]["Enums"]["project_phase"] | null
+          project_code: string | null
+          project_id: string | null
+          role: string | null
+          task_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          file_name: string | null
+          id: string | null
+          is_signed: boolean | null
+          is_stamped: boolean | null
+          issued_on: string | null
+          media_id: string | null
+          notes: string | null
+          sent_from_official_email: boolean | null
+          status: Database["public"]["Enums"]["document_status"] | null
+          tenant_id: string | null
+          type: Database["public"]["Enums"]["document_type"] | null
+          updated_at: string | null
+          url: string | null
+          version: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "document_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "document_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media_library"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "document_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_class: {
+        Row: {
+          class: Database["public"]["Enums"]["field_class_kind"] | null
+          field: string | null
+          group_name: string | null
+          resource_name: string | null
+          self_readable: boolean | null
+        }
+        Insert: {
+          class?: Database["public"]["Enums"]["field_class_kind"] | null
+          field?: string | null
+          group_name?: string | null
+          resource_name?: string | null
+          self_readable?: boolean | null
+        }
+        Update: {
+          class?: Database["public"]["Enums"]["field_class_kind"] | null
+          field?: string | null
+          group_name?: string | null
+          resource_name?: string | null
+          self_readable?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_class_group_name_fkey"
+            columns: ["group_name"]
+            isOneToOne: false
+            referencedRelation: "field_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_group: {
+        Row: {
+          id: string | null
+          position: number | null
+        }
+        Insert: {
+          id?: string | null
+          position?: number | null
+        }
+        Update: {
+          id?: string | null
+          position?: number | null
+        }
+        Relationships: []
+      }
+      incident: {
+        Row: {
+          affected_parties:
+            | Database["public"]["Enums"]["incident_party"][]
+            | null
+          closed_by: string | null
+          closed_on: string | null
+          code: string | null
+          created_at: string | null
+          current_state: string | null
+          customer_closure_notified_on: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notified_at: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"] | null
+          id: string | null
+          immediate_action: string | null
+          impact_note: string | null
+          incident_type: string | null
+          lessons: string | null
+          management_notified_at: string | null
+          opened_at: string | null
+          outcome: Database["public"]["Enums"]["incident_outcome"] | null
+          owner_id: string | null
+          preventive_action: string | null
+          reported_by: string | null
+          root_cause: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          what_happened: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_owner_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_deadline: {
+        Row: {
+          created_at: string | null
+          due_at: string | null
+          id: string | null
+          incident_id: string | null
+          kind: Database["public"]["Enums"]["incident_deadline_kind"] | null
+          label: string | null
+          met_at: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          due_at?: string | null
+          id?: string | null
+          incident_id?: string | null
+          kind?: Database["public"]["Enums"]["incident_deadline_kind"] | null
+          label?: string | null
+          met_at?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          due_at?: string | null
+          id?: string | null
+          incident_id?: string | null
+          kind?: Database["public"]["Enums"]["incident_deadline_kind"] | null
+          label?: string | null
+          met_at?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_deadline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_log: {
+        Row: {
+          author_id: string | null
+          cost_amount: number | null
+          cost_currency: string | null
+          cost_payer: Database["public"]["Enums"]["cost_payer"] | null
+          counterparty: string | null
+          created_at: string | null
+          customer_approved: boolean | null
+          decision: string | null
+          id: string | null
+          incident_id: string | null
+          logged_at: string | null
+          note: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_log_author_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_incident_fkey"
+            columns: ["incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_overview: {
+        Row: {
+          affected_parties:
+            | Database["public"]["Enums"]["incident_party"][]
+            | null
+          closed_by: string | null
+          closed_on: string | null
+          code: string | null
+          created_at: string | null
+          current_state: string | null
+          customer_closure_notified_on: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_notice_due_at: string | null
+          customer_notified_at: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          family: Database["public"]["Enums"]["incident_family"] | null
+          id: string | null
+          immediate_action: string | null
+          impact_note: string | null
+          incident_type: string | null
+          is_repeat: boolean | null
+          lessons: string | null
+          management_notified_at: string | null
+          next_deadline_at: string | null
+          opened_at: string | null
+          outcome: Database["public"]["Enums"]["incident_outcome"] | null
+          overdue_deadline_count: number | null
+          owner_id: string | null
+          preventive_action: string | null
+          reported_by: string | null
+          root_cause: Database["public"]["Enums"]["incident_root_cause"] | null
+          root_cause_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"] | null
+          status: Database["public"]["Enums"]["incident_status"] | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          what_happened: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "incident_owner_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_submission: {
+        Row: {
+          amazon_submission_id: string | null
+          cell_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          issues: Json | null
+          kind: Database["public"]["Enums"]["listing_submission_kind"] | null
+          marketplace_id: string | null
+          payload: Json | null
+          sku: string | null
+          status:
+            | Database["public"]["Enums"]["listing_submission_status"]
+            | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amazon_submission_id?: string | null
+          cell_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          issues?: Json | null
+          kind?: Database["public"]["Enums"]["listing_submission_kind"] | null
+          marketplace_id?: string | null
+          payload?: Json | null
+          sku?: string | null
+          status?:
+            | Database["public"]["Enums"]["listing_submission_status"]
+            | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amazon_submission_id?: string | null
+          cell_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          issues?: Json | null
+          kind?: Database["public"]["Enums"]["listing_submission_kind"] | null
+          marketplace_id?: string | null
+          payload?: Json | null
+          sku?: string | null
+          status?:
+            | Database["public"]["Enums"]["listing_submission_status"]
+            | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_submission_cell_fkey"
+            columns: ["cell_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "market_cell"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "listing_submission_cell_fkey"
+            columns: ["cell_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "market_cell_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "listing_submission_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_submission_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_cell: {
+        Row: {
+          compliance: Database["public"]["Enums"]["market_compliance"] | null
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"] | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          fulfillment_channel: string | null
+          id: string | null
+          last_checked_on: string | null
+          launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string | null
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number | null
+          product_id: string | null
+          project_id: string | null
+          status: Database["public"]["Enums"]["market_cell_status"] | null
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_platform_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_cell_overview: {
+        Row: {
+          cell_key: string | null
+          compliance: Database["public"]["Enums"]["market_compliance"] | null
+          compliance_note: string | null
+          content_status: Database["public"]["Enums"]["content_status"] | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          fulfillment_channel: string | null
+          gtin: string | null
+          id: string | null
+          last_checked_on: string | null
+          launched_on: string | null
+          listing_checked_at: string | null
+          listing_language: string | null
+          listing_match: Json | null
+          listing_state: Database["public"]["Enums"]["listing_state"] | null
+          notes: string | null
+          open_issue: string | null
+          platform_id: string | null
+          platform_name: string | null
+          platform_product_id: string | null
+          platform_sku: string | null
+          price: number | null
+          priority: number | null
+          product_id: string | null
+          product_name: string | null
+          project_code: string | null
+          project_id: string | null
+          sku: string | null
+          status: Database["public"]["Enums"]["market_cell_status"] | null
+          stock_source: Database["public"]["Enums"]["stock_source"] | null
+          target_launch_on: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_cell_platform_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platform"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_cell_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media: {
+        Row: {
+          alt_text: string | null
+          created_at: string | null
+          customer_id: string | null
+          file_name: string | null
+          height: number | null
+          id: string | null
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          tags: string[] | null
+          tenant_id: string | null
+          thumbnail_path: string | null
+          title: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          file_name?: string | null
+          height?: number | null
+          id?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          tags?: string[] | null
+          tenant_id?: string | null
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          file_name?: string | null
+          height?: number | null
+          id?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          tags?: string[] | null
+          tenant_id?: string | null
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_library: {
+        Row: {
+          alt_text: string | null
+          created_at: string | null
+          customer_id: string | null
+          document_count: number | null
+          file_name: string | null
+          height: number | null
+          id: string | null
+          kind: string | null
+          link_count: number | null
+          linked_entities: string[] | null
+          linked_types: Database["public"]["Enums"]["document_entity"][] | null
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          tags: string[] | null
+          tenant_id: string | null
+          thumbnail_path: string | null
+          title: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+          width: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_link: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          id: string | null
+          media_id: string | null
+          position: number | null
+          role: Database["public"]["Enums"]["media_role"] | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["document_entity"] | null
+          id?: string | null
+          media_id?: string | null
+          position?: number | null
+          role?: Database["public"]["Enums"]["media_role"] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["document_entity"] | null
+          id?: string | null
+          media_id?: string | null
+          position?: number | null
+          role?: Database["public"]["Enums"]["media_role"] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_link_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_link_media_fkey"
+            columns: ["media_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "media_library"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "media_link_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_link_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_core: boolean | null
+          position: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_core?: boolean | null
+          position?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_core?: boolean | null
+          position?: number | null
+        }
+        Relationships: []
+      }
+      permission: {
+        Row: {
+          bypass: boolean | null
+          command: Database["public"]["Enums"]["type_permission_command"] | null
+          condition: string | null
+          created_at: string | null
+          details: string | null
+          error_message: string | null
+          group_name: string | null
+          id: string | null
+          kind: Database["public"]["Enums"]["type_permission_kind"] | null
+          resource_condition: string | null
+          resource_name: string | null
+          throws_error: boolean | null
+        }
+        Insert: {
+          bypass?: boolean | null
+          command?:
+            | Database["public"]["Enums"]["type_permission_command"]
+            | null
+          condition?: string | null
+          created_at?: string | null
+          details?: string | null
+          error_message?: string | null
+          group_name?: string | null
+          id?: string | null
+          kind?: Database["public"]["Enums"]["type_permission_kind"] | null
+          resource_condition?: string | null
+          resource_name?: string | null
+          throws_error?: boolean | null
+        }
+        Update: {
+          bypass?: boolean | null
+          command?:
+            | Database["public"]["Enums"]["type_permission_command"]
+            | null
+          condition?: string | null
+          created_at?: string | null
+          details?: string | null
+          error_message?: string | null
+          group_name?: string | null
+          id?: string | null
+          kind?: Database["public"]["Enums"]["type_permission_kind"] | null
+          resource_condition?: string | null
+          resource_name?: string | null
+          throws_error?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_group_name_fkey"
+            columns: ["group_name"]
+            isOneToOne: false
+            referencedRelation: "module"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan: {
+        Row: {
+          billing_period: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          display_name: string | null
+          id: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          position: number | null
+          price: number | null
+          trial_days: number | null
+        }
+        Insert: {
+          billing_period?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          position?: number | null
+          price?: number | null
+          trial_days?: number | null
+        }
+        Update: {
+          billing_period?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          position?: number | null
+          price?: number | null
+          trial_days?: number | null
+        }
+        Relationships: []
+      }
+      plan_limit: {
+        Row: {
+          created_at: string | null
+          limit_key: string | null
+          plan_id: string | null
+          value: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          limit_key?: string | null
+          plan_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          limit_key?: string | null
+          plan_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_limit_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_module: {
+        Row: {
+          created_at: string | null
+          module_id: string | null
+          plan_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          module_id?: string | null
+          plan_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          module_id?: string | null
+          plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_module_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "module"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_module_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform: {
+        Row: {
+          countries: string[] | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          position: number | null
+          product_id_label: string | null
+        }
+        Insert: {
+          countries?: string[] | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          position?: number | null
+          product_id_label?: string | null
+        }
+        Update: {
+          countries?: string[] | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          position?: number | null
+          product_id_label?: string | null
+        }
+        Relationships: []
+      }
+      product: {
+        Row: {
+          amazon_product_type: string | null
+          amazon_schema_version: string | null
+          brand: string | null
+          carton_dims_mm: string | null
+          carton_gross_kg: number | null
+          carton_net_kg: number | null
+          carton_pack_qty: number | null
+          category: string | null
+          company_price_eur: number | null
+          compliance_status:
+            | Database["public"]["Enums"]["compliance_status"]
+            | null
+          created_at: string | null
+          customer_id: string | null
+          display_name: string | null
+          eu_responsible_person: string | null
+          golden_sample_locations: string | null
+          golden_sample_on: string | null
+          gs1_prefix_owner: string | null
+          gtin: string | null
+          hs_code: string | null
+          id: string | null
+          is_hazmat: boolean | null
+          landed_cost_eur: number | null
+          landed_cost_on: string | null
+          listing_attributes: Json | null
+          lot_rule: string | null
+          manufacturer_art_no: string | null
+          notes: string | null
+          origin_country: string | null
+          pack_dims_mm: string | null
+          pack_gross_g: number | null
+          pack_qty: number | null
+          pallet_carton_qty: number | null
+          pallet_type: string | null
+          parent_id: string | null
+          price_list_version: string | null
+          purchase_currency: string | null
+          purchase_incoterm: string | null
+          purchase_price: number | null
+          sku: string | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          supplier_id: string | null
+          supplier_product_code: string | null
+          target_price_eur: number | null
+          tenant_id: string | null
+          unit_dims_mm: string | null
+          unit_net_g: number | null
+          updated_at: string | null
+          variant_label: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_evidence: {
+        Row: {
+          compliance_complete: boolean | null
+          compliance_status:
+            | Database["public"]["Enums"]["compliance_status"]
+            | null
+          customer_id: string | null
+          has_signed_spec: boolean | null
+          last_po_code: string | null
+          live_cell_count: number | null
+          product_id: string | null
+          sku: string | null
+          spec_document_id: string | null
+          spec_version: number | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_with_evidence: {
+        Row: {
+          brand: string | null
+          carton_dims_mm: string | null
+          carton_gross_kg: number | null
+          carton_net_kg: number | null
+          carton_pack_qty: number | null
+          category: string | null
+          company_price_eur: number | null
+          compliance_complete: boolean | null
+          compliance_status:
+            | Database["public"]["Enums"]["compliance_status"]
+            | null
+          created_at: string | null
+          customer_id: string | null
+          display_name: string | null
+          eu_responsible_person: string | null
+          golden_sample_locations: string | null
+          golden_sample_on: string | null
+          gs1_prefix_owner: string | null
+          gtin: string | null
+          has_signed_spec: boolean | null
+          hs_code: string | null
+          id: string | null
+          is_hazmat: boolean | null
+          landed_cost_eur: number | null
+          landed_cost_on: string | null
+          lot_rule: string | null
+          manufacturer_art_no: string | null
+          notes: string | null
+          origin_country: string | null
+          pack_dims_mm: string | null
+          pack_gross_g: number | null
+          pack_qty: number | null
+          pallet_carton_qty: number | null
+          pallet_type: string | null
+          parent_id: string | null
+          price_list_version: string | null
+          primary_image_path: string | null
+          purchase_currency: string | null
+          purchase_incoterm: string | null
+          purchase_price: number | null
+          sku: string | null
+          spec_version: number | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          supplier_id: string | null
+          supplier_product_code: string | null
+          target_price_eur: number | null
+          tenant_id: string | null
+          unit_dims_mm: string | null
+          unit_net_g: number | null
+          updated_at: string | null
+          variant_label: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_parent_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project: {
+        Row: {
+          code: string | null
+          coordinator_id: string | null
+          created_at: string | null
+          current_phase: Database["public"]["Enums"]["project_phase"] | null
+          customer_id: string | null
+          display_name: string | null
+          id: string | null
+          notes: string | null
+          packages: string[] | null
+          path: Database["public"]["Enums"]["project_path"] | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          target_delivery_on: string | null
+          target_live_on: string | null
+          tenant_id: string | null
+          type: Database["public"]["Enums"]["project_type"] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_gate: {
+        Row: {
+          approval_document_id: string | null
+          code: Database["public"]["Enums"]["gate_code"] | null
+          created_at: string | null
+          customer_approved_on: string | null
+          decided_by_role: string | null
+          evidence_document_ids: string[] | null
+          id: string | null
+          needs_customer_approval: boolean | null
+          note: string | null
+          passed_at: string | null
+          position: number | null
+          project_id: string | null
+          rolled_back_incident_id: string | null
+          rolled_back_reason: string | null
+          status: Database["public"]["Enums"]["gate_status"] | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_gate_approval_document_fkey"
+            columns: ["approval_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_incident"
+            referencedColumns: ["incident_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_rollback_incident_fkey"
+            columns: ["rolled_back_incident_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "incident_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_gate_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_gate_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_product: {
+        Row: {
+          created_at: string | null
+          product_id: string | null
+          project_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          product_id?: string | null
+          project_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          product_id?: string | null
+          project_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_product_product_fkey"
+            columns: ["product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_product_fkey"
+            columns: ["product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_product_fkey"
+            columns: ["product_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_product_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_task: {
+        Row: {
+          assignee_id: string | null
+          blocks_gate: boolean | null
+          created_at: string | null
+          display_name: string | null
+          due_on: string | null
+          id: string | null
+          phase: Database["public"]["Enums"]["project_phase"] | null
+          position: number | null
+          project_id: string | null
+          role: string | null
+          status: Database["public"]["Enums"]["task_status"] | null
+          tenant_id: string | null
+        }
+        Insert: {
+          assignee_id?: string | null
+          blocks_gate?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          due_on?: string | null
+          id?: string | null
+          phase?: Database["public"]["Enums"]["project_phase"] | null
+          position?: number | null
+          project_id?: string | null
+          role?: string | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          tenant_id?: string | null
+        }
+        Update: {
+          assignee_id?: string | null
+          blocks_gate?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          due_on?: string | null
+          id?: string | null
+          phase?: Database["public"]["Enums"]["project_phase"] | null
+          position?: number | null
+          project_id?: string | null
+          role?: string | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_task_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_task_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_task_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_task_project_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_task_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_task_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          deposit_rate: number | null
+          id: string | null
+          incoterm: string | null
+          incoterm_place: string | null
+          notes: string | null
+          packing_instruction_document_id: string | null
+          penalty_rule: string | null
+          pi_balance_amount: number | null
+          pi_check: Json | null
+          pi_checked_at: string | null
+          pi_checked_by: string | null
+          pi_deposit_amount: number | null
+          pi_discount_amount: number | null
+          pi_document_id: string | null
+          pi_extra_amount: number | null
+          pi_number: string | null
+          pi_subtotal: number | null
+          pi_total: number | null
+          project_id: string | null
+          ready_on: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_id: string | null
+          tenant_id: string | null
+          tolerance_pct: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_packing_document_fkey"
+            columns: ["packing_instruction_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_pi_checked_by_fkey"
+            columns: ["pi_checked_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_line: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          id: string | null
+          line_total: number | null
+          notes: string | null
+          pi_line_total: number | null
+          position: number | null
+          product_id: string | null
+          purchase_order_id: string | null
+          quantity: number | null
+          spec_document_id: string | null
+          tenant_id: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_line_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_evidence"
+            referencedColumns: ["product_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_product_fkey"
+            columns: ["product_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "product_with_evidence"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_spec_fkey"
+            columns: ["spec_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_overview: {
+        Row: {
+          balance_paid_on: string | null
+          balance_planned_on: string | null
+          code: string | null
+          created_at: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          deposit_paid_on: string | null
+          deposit_planned_on: string | null
+          deposit_rate: number | null
+          has_approved_psi: boolean | null
+          id: string | null
+          incoterm: string | null
+          incoterm_place: string | null
+          line_count: number | null
+          notes: string | null
+          packing_instruction_document_id: string | null
+          penalty_rule: string | null
+          pi_balance_amount: number | null
+          pi_check: Json | null
+          pi_checked_at: string | null
+          pi_checked_by: string | null
+          pi_deposit_amount: number | null
+          pi_discount_amount: number | null
+          pi_document_id: string | null
+          pi_extra_amount: number | null
+          pi_number: string | null
+          pi_subtotal: number | null
+          pi_total: number | null
+          product_ids: string[] | null
+          project_code: string | null
+          project_id: string | null
+          ready_on: string | null
+          spec_missing_line_ids: string[] | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_code: string | null
+          supplier_id: string | null
+          system_balance: number | null
+          system_deposit: number | null
+          system_subtotal: number | null
+          system_total: number | null
+          tenant_id: string | null
+          tolerance_pct: number | null
+          total_quantity: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_packing_document_fkey"
+            columns: ["packing_instruction_document_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "document"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_pi_checked_by_fkey"
+            columns: ["pi_checked_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_gate_pending"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_task_due"
+            referencedColumns: ["project_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_project_fkey"
+            columns: ["project_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_payment: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          currency: string | null
+          id: string | null
+          kind: Database["public"]["Enums"]["payment_kind"] | null
+          notes: string | null
+          paid_by: Database["public"]["Enums"]["payment_payer"] | null
+          paid_on: string | null
+          planned_on: string | null
+          purchase_order_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_payment_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_update: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          happened_on: string | null
+          id: string | null
+          note: string | null
+          purchase_order_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          happened_on?: string | null
+          id?: string | null
+          note?: string | null
+          purchase_order_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          happened_on?: string | null
+          id?: string | null
+          note?: string | null
+          purchase_order_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_update_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_po_fkey"
+            columns: ["purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_update_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_field_permission: {
+        Row: {
+          can_read: boolean | null
+          can_write: boolean | null
+          created_at: string | null
+          field: string | null
+          id: string | null
+          resource_name: string | null
+          role_id: string | null
+        }
+        Insert: {
+          can_read?: boolean | null
+          can_write?: boolean | null
+          created_at?: string | null
+          field?: string | null
+          id?: string | null
+          resource_name?: string | null
+          role_id?: string | null
+        }
+        Update: {
+          can_read?: boolean | null
+          can_write?: boolean | null
+          created_at?: string | null
+          field?: string | null
+          id?: string | null
+          resource_name?: string | null
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_field_permission_resource_name_field_fkey"
+            columns: ["resource_name", "field"]
+            isOneToOne: false
+            referencedRelation: "field_class"
+            referencedColumns: ["resource_name", "field"]
+          },
+          {
+            foreignKeyName: "role_field_permission_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permission: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          permission_id: string | null
+          role_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          permission_id?: string | null
+          role_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          permission_id?: string | null
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permission_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permission"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permission_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      setting: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          key: string | null
+          source_question: string | null
+          tenant_id: string | null
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          key?: string | null
+          source_question?: string | null
+          tenant_id?: string | null
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          key?: string | null
+          source_question?: string | null
+          tenant_id?: string | null
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setting_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "setting_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment: {
+        Row: {
+          accepted_by: string | null
+          accepted_on: string | null
+          booking_confirmed_on: string | null
+          carrier: string | null
+          carton_count: number | null
+          code: string | null
+          container_no: string | null
+          created_at: string | null
+          customer_id: string | null
+          customs_broker: string | null
+          customs_cleared_on: string | null
+          delivered_at: string | null
+          delivery_warehouse_id: string | null
+          demurrage_note: string | null
+          dispute_deadline_at: string | null
+          eta: string | null
+          etd: string | null
+          forwarder: string | null
+          free_days_detention: number | null
+          free_days_port: number | null
+          gross_kg: number | null
+          has_damage: boolean | null
+          id: string | null
+          incoterm_buy: string | null
+          incoterm_sell: string | null
+          is_insured: boolean | null
+          mode: Database["public"]["Enums"]["shipment_mode"] | null
+          notes: string | null
+          pallet_count: number | null
+          planned_delivery_on: string | null
+          quantity_matches: boolean | null
+          ready_on: string | null
+          seal_no: string | null
+          status: Database["public"]["Enums"]["shipment_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          volume_m3: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_warehouse_fkey"
+            columns: ["delivery_warehouse_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer_warehouse"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+        ]
+      }
+      shipment_event: {
+        Row: {
+          channel: string | null
+          created_at: string | null
+          created_by: string | null
+          from_party: string | null
+          happened_at: string | null
+          id: string | null
+          note: string | null
+          shipment_id: string | null
+          step: number | null
+          tenant_id: string | null
+          to_party: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_event_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_shipment"
+            referencedColumns: ["shipment_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_event_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_event_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_event_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_event_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_line: {
+        Row: {
+          carton_count: number | null
+          created_at: string | null
+          id: string | null
+          purchase_order_id: string | null
+          purchase_order_line_id: string | null
+          quantity: number | null
+          shipment_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          carton_count?: number | null
+          created_at?: string | null
+          id?: string | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
+          quantity?: number | null
+          shipment_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          carton_count?: number | null
+          created_at?: string | null
+          id?: string | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
+          quantity?: number | null
+          shipment_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_line_link_fkey"
+            columns: ["shipment_id", "purchase_order_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_purchase_order"
+            referencedColumns: ["shipment_id", "purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_po_line_fkey"
+            columns: [
+              "purchase_order_line_id",
+              "purchase_order_id",
+              "tenant_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "purchase_order_line"
+            referencedColumns: ["id", "purchase_order_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_shipment"
+            referencedColumns: ["shipment_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_shipment_fkey"
+            columns: ["shipment_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_overview"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_line_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_overview: {
+        Row: {
+          accepted_by: string | null
+          accepted_on: string | null
+          booking_confirmed_on: string | null
+          carrier: string | null
+          carton_count: number | null
+          code: string | null
+          container_no: string | null
+          created_at: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customs_broker: string | null
+          customs_cleared_on: string | null
+          delivered_at: string | null
+          delivery_warehouse_id: string | null
+          demurrage_note: string | null
+          dispute_deadline_at: string | null
+          eta: string | null
+          etd: string | null
+          forwarder: string | null
+          free_days_detention: number | null
+          free_days_port: number | null
+          gross_kg: number | null
+          has_damage: boolean | null
+          id: string | null
+          incoterm_buy: string | null
+          incoterm_sell: string | null
+          is_insured: boolean | null
+          mode: Database["public"]["Enums"]["shipment_mode"] | null
+          notes: string | null
+          pallet_count: number | null
+          planned_delivery_on: string | null
+          product_ids: string[] | null
+          psi_missing_po_codes: string[] | null
+          purchase_order_codes: string[] | null
+          purchase_order_ids: string[] | null
+          quantity_matches: boolean | null
+          ready_on: string | null
+          seal_no: string | null
+          status: Database["public"]["Enums"]["shipment_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          volume_m3: number | null
+          warehouse_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_customer_fkey"
+            columns: ["customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_warehouse_fkey"
+            columns: ["delivery_warehouse_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "customer_warehouse"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+        ]
+      }
+      shipment_purchase_order: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          purchase_order_id: string | null
+          shipment_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          purchase_order_id?: string | null
+          shipment_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          purchase_order_id?: string | null
+          shipment_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_purchase_order_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_purchase_order"
+            referencedColumns: ["purchase_order_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_po_fkey"
+            columns: ["purchase_order_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_overview"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_shipment_fkey"
+            columns: ["shipment_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_shipment"
+            referencedColumns: ["shipment_id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_shipment_fkey"
+            columns: ["shipment_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_shipment_fkey"
+            columns: ["shipment_id", "customer_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_overview"
+            referencedColumns: ["id", "customer_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_purchase_order_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription: {
+        Row: {
+          canceled_at: string | null
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          id: string | null
+          is_trial: boolean | null
+          note: string | null
+          plan_id: string | null
+          starts_at: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string | null
+          is_trial?: boolean | null
+          note?: string | null
+          plan_id?: string | null
+          starts_at?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string | null
+          is_trial?: boolean | null
+          note?: string | null
+          plan_id?: string | null
+          starts_at?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier: {
+        Row: {
+          cancellation_rule: string | null
+          capacity_note: string | null
+          city: string | null
+          code: string | null
+          country: string | null
+          created_at: string | null
+          damage_notice_hours: number | null
+          default_incoterm: string | null
+          deposit_rate: number | null
+          display_name: string | null
+          id: string | null
+          last_audit_on: string | null
+          late_payment_penalty: string | null
+          notes: string | null
+          payment_terms: string | null
+          product_groups: string[] | null
+          rating: number | null
+          status: Database["public"]["Enums"]["supplier_status"] | null
+          storage_fee_rule: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_contact: {
+        Row: {
+          email: string | null
+          id: string | null
+          is_primary: boolean | null
+          name: string | null
+          phone: string | null
+          role: string | null
+          supplier_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_contact_supplier_fkey"
+            columns: ["supplier_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "supplier_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_contact_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_template: {
+        Row: {
+          blocks_gate: boolean | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          phase: Database["public"]["Enums"]["project_phase"] | null
+          position: number | null
+          role: string | null
+        }
+        Insert: {
+          blocks_gate?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          phase?: Database["public"]["Enums"]["project_phase"] | null
+          position?: number | null
+          role?: string | null
+        }
+        Update: {
+          blocks_gate?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          phase?: Database["public"]["Enums"]["project_phase"] | null
+          position?: number | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      tenant: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          display_name: string | null
+          district: string | null
+          email: string | null
+          id: string | null
+          legal_name: string | null
+          logo_path: string | null
+          parent_id: string | null
+          phone: string | null
+          tax_number: string | null
+          tax_office: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          district?: string | null
+          email?: string | null
+          id?: string | null
+          legal_name?: string | null
+          logo_path?: string | null
+          parent_id?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          tax_office?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          district?: string | null
+          email?: string | null
+          id?: string | null
+          legal_name?: string | null
+          logo_path?: string | null
+          parent_id?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          tax_office?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_member: {
+        Row: {
+          branch_name: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          key: string | null
+          owned_via: string[] | null
+          phone: string | null
+          tenant_id: string | null
+          user_metadata: Json | null
+        }
+        Relationships: []
+      }
+      tenant_owner: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_owner_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_owner_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_owner_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_user: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_user_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_user_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_user_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfer: {
+        Row: {
+          audit_transaction_ids: string[] | null
+          created_at: string | null
+          customer_id: string | null
+          decisions: Json | null
+          files: Json | null
+          files_status: string | null
+          id: string | null
+          id_map: Json | null
+          missing_files: string[] | null
+          mode: string | null
+          path: string | null
+          product_ids: string[] | null
+          report: Json | null
+          source_tenant_id: string | null
+          started_by: string | null
+          target_customer_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          xact_id: unknown | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_source_tenant_id_fkey"
+            columns: ["source_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_source_tenant_id_fkey"
+            columns: ["source_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "company_subscription"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          phone: string | null
+          user_metadata: Json | null
+        }
+        Relationships: []
+      }
+      user_role: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          role_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      graphql: {
+      actor: {
         Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
+          "": unknown
         }
-        Returns: Json
+        Returns: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          phone: string | null
+          user_metadata: Json | null
+        }[]
       }
+      contract_document: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          file_name: string | null
+          id: string | null
+          is_signed: boolean | null
+          is_stamped: boolean | null
+          issued_on: string | null
+          media_id: string | null
+          notes: string | null
+          sent_from_official_email: boolean | null
+          status: Database["public"]["Enums"]["document_status"] | null
+          tenant_id: string | null
+          type: Database["public"]["Enums"]["document_type"] | null
+          updated_at: string | null
+          url: string | null
+          version: number | null
+        }[]
+      }
+      customer_by_contract_document: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          code: string | null
+          commercial_model:
+            | Database["public"]["Enums"]["commercial_model"]
+            | null
+          contract_accepted_on: string | null
+          contract_document_id: string | null
+          country: string | null
+          created_at: string | null
+          deposit_rate: number | null
+          display_name: string | null
+          eu_responsible_person: string | null
+          extra_cost_rule: string | null
+          id: string | null
+          notes: string | null
+          packages: string[] | null
+          restricted_drive_url: string | null
+          start_on: string | null
+          status: Database["public"]["Enums"]["customer_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          website: string | null
+        }[]
+      }
+      display_name: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      managed_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      owned_via: {
+        Args: {
+          "": unknown
+        }
+        Returns: string[]
+      }
+      pi_document: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          file_name: string | null
+          id: string | null
+          is_signed: boolean | null
+          is_stamped: boolean | null
+          issued_on: string | null
+          media_id: string | null
+          notes: string | null
+          sent_from_official_email: boolean | null
+          status: Database["public"]["Enums"]["document_status"] | null
+          tenant_id: string | null
+          type: Database["public"]["Enums"]["document_type"] | null
+          updated_at: string | null
+          url: string | null
+          version: number | null
+        }[]
+      }
+      product_by_supplier: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          amazon_product_type: string | null
+          amazon_schema_version: string | null
+          brand: string | null
+          carton_dims_mm: string | null
+          carton_gross_kg: number | null
+          carton_net_kg: number | null
+          carton_pack_qty: number | null
+          category: string | null
+          company_price_eur: number | null
+          compliance_status:
+            | Database["public"]["Enums"]["compliance_status"]
+            | null
+          created_at: string | null
+          customer_id: string | null
+          display_name: string | null
+          eu_responsible_person: string | null
+          golden_sample_locations: string | null
+          golden_sample_on: string | null
+          gs1_prefix_owner: string | null
+          gtin: string | null
+          hs_code: string | null
+          id: string | null
+          is_hazmat: boolean | null
+          landed_cost_eur: number | null
+          landed_cost_on: string | null
+          listing_attributes: Json | null
+          lot_rule: string | null
+          manufacturer_art_no: string | null
+          notes: string | null
+          origin_country: string | null
+          pack_dims_mm: string | null
+          pack_gross_g: number | null
+          pack_qty: number | null
+          pallet_carton_qty: number | null
+          pallet_type: string | null
+          parent_id: string | null
+          price_list_version: string | null
+          purchase_currency: string | null
+          purchase_incoterm: string | null
+          purchase_price: number | null
+          sku: string | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          supplier_id: string | null
+          supplier_product_code: string | null
+          target_price_eur: number | null
+          tenant_id: string | null
+          unit_dims_mm: string | null
+          unit_net_g: number | null
+          updated_at: string | null
+          variant_label: string | null
+        }[]
+      }
+      purchase_order_by_pi_document: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          code: string | null
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          deposit_rate: number | null
+          id: string | null
+          incoterm: string | null
+          incoterm_place: string | null
+          notes: string | null
+          packing_instruction_document_id: string | null
+          penalty_rule: string | null
+          pi_balance_amount: number | null
+          pi_check: Json | null
+          pi_checked_at: string | null
+          pi_checked_by: string | null
+          pi_deposit_amount: number | null
+          pi_discount_amount: number | null
+          pi_document_id: string | null
+          pi_extra_amount: number | null
+          pi_number: string | null
+          pi_subtotal: number | null
+          pi_total: number | null
+          project_id: string | null
+          ready_on: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_id: string | null
+          tenant_id: string | null
+          tolerance_pct: number | null
+          updated_at: string | null
+        }[]
+      }
+      purchase_order_by_supplier: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          code: string | null
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          deposit_rate: number | null
+          id: string | null
+          incoterm: string | null
+          incoterm_place: string | null
+          notes: string | null
+          packing_instruction_document_id: string | null
+          penalty_rule: string | null
+          pi_balance_amount: number | null
+          pi_check: Json | null
+          pi_checked_at: string | null
+          pi_checked_by: string | null
+          pi_deposit_amount: number | null
+          pi_discount_amount: number | null
+          pi_document_id: string | null
+          pi_extra_amount: number | null
+          pi_number: string | null
+          pi_subtotal: number | null
+          pi_total: number | null
+          project_id: string | null
+          ready_on: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          supplier_id: string | null
+          tenant_id: string | null
+          tolerance_pct: number | null
+          updated_at: string | null
+        }[]
+      }
+      reverter: {
+        Args: {
+          "": unknown
+        }
+        Returns: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          phone: string | null
+          user_metadata: Json | null
+        }[]
+      }
+      status: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      supplier:
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: {
+              cancellation_rule: string | null
+              capacity_note: string | null
+              city: string | null
+              code: string | null
+              country: string | null
+              created_at: string | null
+              damage_notice_hours: number | null
+              default_incoterm: string | null
+              deposit_rate: number | null
+              display_name: string | null
+              id: string | null
+              last_audit_on: string | null
+              late_payment_penalty: string | null
+              notes: string | null
+              payment_terms: string | null
+              product_groups: string[] | null
+              rating: number | null
+              status: Database["public"]["Enums"]["supplier_status"] | null
+              storage_fee_rule: string | null
+              tenant_id: string | null
+              updated_at: string | null
+              website: string | null
+            }[]
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: {
+              cancellation_rule: string | null
+              capacity_note: string | null
+              city: string | null
+              code: string | null
+              country: string | null
+              created_at: string | null
+              damage_notice_hours: number | null
+              default_incoterm: string | null
+              deposit_rate: number | null
+              display_name: string | null
+              id: string | null
+              last_audit_on: string | null
+              late_payment_penalty: string | null
+              notes: string | null
+              payment_terms: string | null
+              product_groups: string[] | null
+              rating: number | null
+              status: Database["public"]["Enums"]["supplier_status"] | null
+              storage_fee_rule: string | null
+              tenant_id: string | null
+              updated_at: string | null
+              website: string | null
+            }[]
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: {
+              cancellation_rule: string | null
+              capacity_note: string | null
+              city: string | null
+              code: string | null
+              country: string | null
+              created_at: string | null
+              damage_notice_hours: number | null
+              default_incoterm: string | null
+              deposit_rate: number | null
+              display_name: string | null
+              id: string | null
+              last_audit_on: string | null
+              late_payment_penalty: string | null
+              notes: string | null
+              payment_terms: string | null
+              product_groups: string[] | null
+              rating: number | null
+              status: Database["public"]["Enums"]["supplier_status"] | null
+              storage_fee_rule: string | null
+              tenant_id: string | null
+              updated_at: string | null
+              website: string | null
+            }[]
+          }
     }
     Enums: {
       [_ in never]: never
@@ -920,6 +5184,53 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      field_class: {
+        Row: {
+          class: Database["public"]["Enums"]["field_class_kind"]
+          field: string
+          group_name: string | null
+          resource_name: string
+          self_readable: boolean
+        }
+        Insert: {
+          class: Database["public"]["Enums"]["field_class_kind"]
+          field: string
+          group_name?: string | null
+          resource_name: string
+          self_readable?: boolean
+        }
+        Update: {
+          class?: Database["public"]["Enums"]["field_class_kind"]
+          field?: string
+          group_name?: string | null
+          resource_name?: string
+          self_readable?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_class_group_name_fkey"
+            columns: ["group_name"]
+            isOneToOne: false
+            referencedRelation: "field_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_group: {
+        Row: {
+          id: string
+          position: number
+        }
+        Insert: {
+          id: string
+          position: number
+        }
+        Update: {
+          id?: string
+          position?: number
+        }
+        Relationships: []
       }
       incident: {
         Row: {
@@ -2854,6 +7165,51 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_field_permission: {
+        Row: {
+          can_read: boolean
+          can_write: boolean
+          created_at: string | null
+          field: string
+          id: string
+          resource_name: string
+          role_id: string
+        }
+        Insert: {
+          can_read: boolean
+          can_write: boolean
+          created_at?: string | null
+          field: string
+          id?: string
+          resource_name: string
+          role_id: string
+        }
+        Update: {
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string | null
+          field?: string
+          id?: string
+          resource_name?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_field_permission_resource_name_field_fkey"
+            columns: ["resource_name", "field"]
+            isOneToOne: false
+            referencedRelation: "field_class"
+            referencedColumns: ["resource_name", "field"]
+          },
+          {
+            foreignKeyName: "role_field_permission_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role"
             referencedColumns: ["id"]
           },
         ]
@@ -4855,8 +9211,8 @@ export type Database = {
         }
         Returns: {
           created_at: string | null
-          email: string
-          id: string
+          email: string | null
+          id: string | null
           phone: string | null
           user_metadata: Json | null
         }[]
@@ -4904,6 +9260,13 @@ export type Database = {
       audit_transfer_locked: {
         Args: {
           transaction_id: string
+        }
+        Returns: boolean
+      }
+      can_write_user_field: {
+        Args: {
+          p_user: string
+          p_field: string
         }
         Returns: boolean
       }
@@ -5144,21 +9507,21 @@ export type Database = {
         }
         Returns: {
           approval_document_id: string | null
-          code: Database["public"]["Enums"]["gate_code"]
-          created_at: string
+          code: Database["public"]["Enums"]["gate_code"] | null
+          created_at: string | null
           customer_approved_on: string | null
           decided_by_role: string | null
-          evidence_document_ids: string[]
-          id: string
-          needs_customer_approval: boolean
+          evidence_document_ids: string[] | null
+          id: string | null
+          needs_customer_approval: boolean | null
           note: string | null
           passed_at: string | null
-          position: number
-          project_id: string
+          position: number | null
+          project_id: string | null
           rolled_back_incident_id: string | null
           rolled_back_reason: string | null
-          status: Database["public"]["Enums"]["gate_status"]
-          tenant_id: string
+          status: Database["public"]["Enums"]["gate_status"] | null
+          tenant_id: string | null
         }
       }
       phase_after: {
@@ -5210,8 +9573,8 @@ export type Database = {
         }
         Returns: {
           created_at: string | null
-          email: string
-          id: string
+          email: string | null
+          id: string | null
           phone: string | null
           user_metadata: Json | null
         }[]
@@ -5224,21 +9587,21 @@ export type Database = {
         }
         Returns: {
           approval_document_id: string | null
-          code: Database["public"]["Enums"]["gate_code"]
-          created_at: string
+          code: Database["public"]["Enums"]["gate_code"] | null
+          created_at: string | null
           customer_approved_on: string | null
           decided_by_role: string | null
-          evidence_document_ids: string[]
-          id: string
-          needs_customer_approval: boolean
+          evidence_document_ids: string[] | null
+          id: string | null
+          needs_customer_approval: boolean | null
           note: string | null
           passed_at: string | null
-          position: number
-          project_id: string
+          position: number | null
+          project_id: string | null
           rolled_back_incident_id: string | null
           rolled_back_reason: string | null
-          status: Database["public"]["Enums"]["gate_status"]
-          tenant_id: string
+          status: Database["public"]["Enums"]["gate_status"] | null
+          tenant_id: string | null
         }
       }
       save_plan: {
@@ -5253,6 +9616,7 @@ export type Database = {
         Args: {
           role_data: Json
           permission_ids?: string[]
+          field_rights?: Json
         }
         Returns: string
       }
@@ -5261,15 +9625,15 @@ export type Database = {
           link_id: string
         }
         Returns: {
-          created_at: string
-          entity_id: string
-          entity_type: Database["public"]["Enums"]["document_entity"]
-          id: string
-          media_id: string
-          position: number
-          role: Database["public"]["Enums"]["media_role"]
-          tenant_id: string
-          updated_at: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["document_entity"] | null
+          id: string | null
+          media_id: string | null
+          position: number | null
+          role: Database["public"]["Enums"]["media_role"] | null
+          tenant_id: string | null
+          updated_at: string | null
         }
       }
       set_user_roles: {
@@ -5296,25 +9660,25 @@ export type Database = {
           transfer_id: string
         }
         Returns: {
-          audit_transaction_ids: string[]
-          created_at: string
-          customer_id: string
-          decisions: Json
-          files: Json
-          files_status: string
-          id: string
-          id_map: Json
-          missing_files: string[]
-          mode: string
-          path: string
+          audit_transaction_ids: string[] | null
+          created_at: string | null
+          customer_id: string | null
+          decisions: Json | null
+          files: Json | null
+          files_status: string | null
+          id: string | null
+          id_map: Json | null
+          missing_files: string[] | null
+          mode: string | null
+          path: string | null
           product_ids: string[] | null
-          report: Json
-          source_tenant_id: string
-          started_by: string
+          report: Json | null
+          source_tenant_id: string | null
+          started_by: string | null
           target_customer_id: string | null
-          tenant_id: string
-          updated_at: string
-          xact_id: unknown
+          tenant_id: string | null
+          updated_at: string | null
+          xact_id: unknown | null
         }
       }
       transfer_customer: {
@@ -5393,6 +9757,7 @@ export type Database = {
         | "contract"
         | "certificate"
         | "other"
+      field_class_kind: "system" | "open" | "sensitive"
       gate_code:
         | "G1"
         | "G2"

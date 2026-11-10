@@ -386,6 +386,12 @@ export const NAMED_ERRORS: { code: string; name: string; field?: string; message
       name: 'incident_close_management',
       message: 'errors.incident_close_management'
    },
+   // save_role: a field right the editor does not hold themselves (the role already carries one).
+   {
+      code: '42501',
+      name: 'field_grant_exceeds_own',
+      message: 'errors.field_grant_exceeds_own'
+   },
    // Change requests (037_change_requests.sql).
    {
       code: '23503',

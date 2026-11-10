@@ -13,6 +13,15 @@
 -- Rows are found by fixed UUID 5eed00SS-0000-4000-8000-0000000000NN (SS = step, NN = row);
 -- seed.sql rows by code, sku or name. Codes and dates are never hard-coded (they depend on the
 -- year and on today).
+--
+-- Field permissions: THO's portal user, portal@moesa-panel.test (customer_viewer in MOESA LTD,
+-- seed.sql), reads the story through the masked api views. It must see THO's products with their
+-- sell price (company_price_eur) and THO's contract terms (deposit_rate, contract dates). It must
+-- not see the purchase price (cost), the restricted drive URL, any supplier, or PO-011's PI (a
+-- document of type 'pi'). THO's mop and 6 mm filter carry cost and sell prices (seed.sql and
+-- step 03), TR1 its payment terms (step 02), and THO's contract (step 02) and PO-011's PI (step 05)
+-- exist; seed_story.check.sql checks it (fp.portal_*), and koordinator's read-only payment terms
+-- (fp.coordinator_*).
 
 -- Refuses a second run: the story is loaded on top of a fresh `supabase db reset` only.
 DO $$
@@ -198,7 +207,8 @@ BEGIN
     SET rating = 4,
         last_audit_on = current_date - 90,
         storage_fee_rule = 'Free for 30 days, then 0.50 EUR per pallet and day',
-        late_payment_penalty = '1 percent of the open amount per week of delay'
+        late_payment_penalty = '1 percent of the open amount per week of delay',
+        payment_terms = '30 percent deposit, balance 30 days after the bill of lading'
     WHERE id = v_tr1;
 
     UPDATE public.supplier SET rating = 2, last_audit_on = current_date - 200 WHERE id = v_cn1;
@@ -292,8 +302,13 @@ BEGIN
     UPDATE public.product
     SET unit_dims_mm = '400x300x15', unit_net_g = 180, pack_dims_mm = '410x310x30', pack_gross_g = 400,
         carton_pack_qty = 20, carton_dims_mm = '620x420x330', carton_net_kg = 7.2, carton_gross_kg = 8.4,
-        pallet_carton_qty = 48, pallet_type = 'EUR'
+        pallet_carton_qty = 48, pallet_type = 'EUR', company_price_eur = 9.40
     WHERE id = v_mop;
+
+    -- Sell prices next to the cost the mop carries since seed.sql (field permissions: the portal
+    -- reads these, never the cost).
+    UPDATE public.product SET purchase_price = 0.85, purchase_currency = 'USD', company_price_eur = 6.20
+    WHERE id = v_tips50;
 
     UPDATE public.product SET is_hazmat = TRUE, hs_code = '8421.39', origin_country = 'China' WHERE id = v_tips50;
 
@@ -1542,6 +1557,9 @@ DECLARE
     v_attributes_all JSONB;
     v_sent JSONB;
 BEGIN
+    -- The connection and listing columns are server-only (052): the story writes them as the server.
+    PERFORM private.begin_server_write();
+
     INSERT INTO public.amazon_product_type_definition (marketplace_id, product_type, locale, version, display_name, schema, property_groups)
     SELECT m, v_definition ->> 'productType', v_definition ->> 'locale', v_definition -> 'productTypeVersion' ->> 'version',
            v_definition ->> 'displayName', v_definition -> 'schema', v_groups
@@ -1608,6 +1626,7 @@ BEGIN
     PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000004', 'ready', NULL);
     PERFORM public.listing_set_state('5eed0007-0000-4000-8000-000000000005', 'draft', NULL);
 
+    PERFORM private.end_server_write();
     PERFORM private.story_end('2 days');
 END;
 $$;

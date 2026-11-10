@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouteLoading } from '@/composables/useRouteStatus';
+import { injectFieldAccess } from '@/composables/useFieldAccess';
 import { markLabel } from '@/constants/terms';
 defineOptions({
    inheritAttrs: false
@@ -14,12 +15,25 @@ export type FormFieldProps = {
    label?: string;
    term?: string;
    readonly?: boolean;
+   /**
+    * The column the field edits, in the table its form provided (provideFieldAccess): hidden when
+    * the user may not read it, read-only when they may not write it.
+    */
+   field?: string;
 };
 
 const props = withDefaults(defineProps<FormFieldProps>(), {
    // default props
 });
 const routeLoading = useRouteLoading();
+
+const fieldAccess = injectFieldAccess();
+const hidden = computed(() => !!props.field && !!fieldAccess && !fieldAccess.canRead(props.field));
+const blocked = computed(
+   () =>
+      props.readonly === true ||
+      (!!props.field && !!fieldAccess && !fieldAccess.canWrite(props.field))
+);
 const isLoading = computed(() => {
    if (!_isNil(props.loading)) {
       return props.loading;
@@ -75,7 +89,7 @@ onMounted(() => {
 </script>
 
 <template>
-   <div :class="containerClass" :style="containerStyle">
+   <div v-if="!hidden" :class="containerClass" :style="containerStyle">
       <slot name="header" v-bind="{ isLoading, reverse, error, id, errorClass, headerClass }">
          <div
             v-if="!!props.label || $slots.label || $slots.actions || _size(error as string) >= 60"
@@ -113,7 +127,7 @@ onMounted(() => {
       </slot>
 
       <BlockUI
-         :blocked="readonly === true"
+         :blocked="blocked"
          :pt="{
             root: { class: 'contents' },
             mask: {
@@ -128,7 +142,7 @@ onMounted(() => {
                :id="id"
                :inputId="id"
                :invalid="!!error"
-               :tabIndex="readonly ? -1 : tabIndex"
+               :tabIndex="blocked ? -1 : tabIndex"
                :aria-labelledby="(!!props.label && `label-${id}`) || undefined"
                :aria-errormessage="`${id}-errormessage`"
                v-bind="_omit(attrs, ['class'])"

@@ -14,6 +14,9 @@ const options = {
    }
 };
 
+// Service reads never depend on the order of the exposed schemas: pin the profile to public.
+const serviceOptions = { ...options, db: { schema: 'public' as const } };
+
 const FORWARDED_HEADERS = ['Authorization', 'x-tenant-id', 'x-tenant-ids'];
 
 let admin: SupabaseClient<Database> | undefined;
@@ -23,7 +26,7 @@ export const supabaseAdmin = () =>
    (admin ??= createClient<Database>(
       requireEnv('SUPABASE_URL'),
       requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
-      options
+      serviceOptions
    ));
 
 /** The functions that may label their service-role writes in the audit (046 audit_service_actor). */
@@ -41,7 +44,7 @@ export type AuditRole =
  */
 export const supabaseService = (audit: { role: AuditRole; actorId?: string }) =>
    createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
-      ...options,
+      ...serviceOptions,
       global: {
          headers: {
             'x-audit-role': audit.role,
@@ -50,10 +53,16 @@ export const supabaseService = (audit: { role: AuditRole; actorId?: string }) =>
       }
    });
 
-/** Client acting as the requesting user, so RLS applies. */
+/**
+ * Client acting as the requesting user, so RLS applies. Tables are read through the `api` schema,
+ * where a sensitive field the user may not read comes back NULL (supabase/migrations/053+); RPCs
+ * are in `public`: call them as `.schema('public').rpc(...)`. Typed as `public` (the same columns,
+ * not nullable) because the app's own types for api views are all nullable.
+ */
 export const supabaseClient = (req: Request) =>
    createClient<Database>(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
       ...options,
+      db: { schema: 'api' as 'public' },
       global: {
          headers: Object.fromEntries(
             FORWARDED_HEADERS.flatMap((name) => {

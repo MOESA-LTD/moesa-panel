@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    defaultUnitPrice,
    purchaseOrderLineResource,
@@ -10,6 +11,9 @@ import {
 } from '@/api/purchaseOrder';
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import ProductSelect from './ProductSelect.vue';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('purchase_order_line');
 
 // Opened as a dialog from an order's lines: a new line belongs to the route's order and goes last.
 // The product is one of the order's customer's, and its spec sheet one of its signed or approved
@@ -140,6 +144,7 @@ watch(
             <InputNumber v-bind="slotProps" v-model="values.quantity" :min="1" />
          </FormField>
          <FormField
+            field="unit_price"
             fluid
             :label="$t('ops.purchase_order.fields.unit_price')"
             :error="errors.unit_price"
@@ -156,6 +161,7 @@ watch(
             />
          </FormField>
          <FormField
+            field="notes"
             class="!flex-auto !max-w-none w-full"
             fluid
             :label="$t('ops.purchase_order.fields.notes')"

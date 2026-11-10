@@ -7,6 +7,7 @@ import {
    type PurchaseOrderStatus
 } from '@/api/purchaseOrder';
 import { ability } from '@/plugins/casl';
+import FormField from '@/components/ui/form/form-field/FormField.vue';
 import en from '@/plugins/i18n/locales/en/index.json';
 import General from '@/views/pages/ops/purchase-order/tabs/General.vue';
 import Lines from '@/views/pages/ops/purchase-order/tabs/Lines.vue';
@@ -244,6 +245,71 @@ describe('general tab', () => {
    });
 });
 
+describe('general tab for a coordinator', () => {
+   // Reads the supplier terms but may not write them (supplier_terms read-only).
+   beforeEach(() =>
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         ...['incoterm', 'deposit_rate'].flatMap((field) =>
+            ['insert', 'update'].map((action) => ({
+               action,
+               subject: 'purchase_order',
+               fields: [field],
+               inverted: true
+            }))
+         )
+      ])
+   );
+
+   it('shows the incoterm and the deposit read-only', () => {
+      const wrapper = mount(General, {
+         global: {
+            plugins: [
+               createPinia(),
+               i18NPlugin,
+               PrimeVue,
+               [abilitiesPlugin, ability, { useGlobalProperties: true }]
+            ],
+            provide: {
+               [PURCHASE_ORDER_FORM as symbol]: standInForm(order('sent')),
+               [PURCHASE_ORDER_OVERVIEW as symbol]: ref(null)
+            },
+            directives: { focustrap: {}, tooltip: {} },
+            stubs: {
+               FormBox: Slot,
+               BlockUI: Slot,
+               SelectCustomer: Stub('SelectCustomer'),
+               SelectSupplier,
+               ProjectSelect: Stub('ProjectSelect'),
+               CustomLink
+            }
+         }
+      });
+      const blocked = (field: string) =>
+         (
+            wrapper.findAllComponents(FormField).find((f) => f.props('field') === field)?.vm as
+               | { blocked?: boolean }
+               | undefined
+         )?.blocked;
+      expect(blocked('deposit_rate')).toBe(true);
+      expect(blocked('incoterm')).toBe(true);
+      expect(blocked('incoterm_place')).toBe(false);
+   });
+
+   it("does not fill the terms from the picked supplier's defaults", () => {
+      const form = standInForm(null);
+      const wrapper = mountTab(General, form);
+
+      wrapper.getComponent(SelectSupplier).vm.$emit('pick', {
+         default_incoterm: 'FOB',
+         deposit_rate: 30
+      });
+
+      expect(form.values.value.incoterm).toBeFalsy();
+      expect(form.values.value.deposit_rate ?? null).toBeNull();
+   });
+});
+
 describe('lines tab', () => {
    const lines = [line('l1', 1), line('l2', 2)];
 
@@ -276,6 +342,21 @@ describe('lines tab', () => {
    it('offers adding and editing lines while the order is open', () => {
       const wrapper = mountTab(Lines, standInForm(order('sent', lines)));
       expect(wrapper.find('[data-link="ops-purchase-order-line-add"]').exists()).toBe(true);
+      expect(wrapper.findAll('[data-link="ops-purchase-order-line-edit"]')).toHaveLength(2);
+   });
+
+   it('offers no new line to a user who may not write the unit price (NOT NULL)', () => {
+      ability.update([
+         { action: 'manage', subject: 'all' },
+         ...['insert', 'update'].map((action) => ({
+            action,
+            subject: 'purchase_order_line',
+            fields: ['unit_price'],
+            inverted: true
+         }))
+      ]);
+      const wrapper = mountTab(Lines, standInForm(order('sent', lines)));
+      expect(wrapper.find('[data-link="ops-purchase-order-line-add"]').exists()).toBe(false);
       expect(wrapper.findAll('[data-link="ops-purchase-order-line-edit"]')).toHaveLength(2);
    });
 

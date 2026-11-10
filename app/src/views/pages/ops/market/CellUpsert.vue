@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { usePlatformOptions } from '@/api/customer';
 import type { ProductRow } from '@/api/product';
 import {
@@ -28,6 +29,9 @@ import { useCustomerFilter } from '@/store/customerFilter';
 import ProductSelect from '../purchase-order/ProductSelect.vue';
 import CellAmazonDrawer from './CellAmazonDrawer.vue';
 import ProjectSelect from '../purchase-order/ProjectSelect.vue';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('market_cell');
 
 // A market cell (S05), opened as a dialog. A new one names its product, platform and country (an
 // empty matrix cell passes them) and starts as a candidate; once saved they are fixed, and the
@@ -461,6 +465,7 @@ const DATES = ['target_launch_on', 'launched_on', 'last_checked_on'] as const;
       </template>
 
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.market.fields.notes')"

@@ -8,7 +8,7 @@ import { defineComponent, reactive } from 'vue';
 const mock = vi.hoisted(() => ({ rpc: vi.fn() }));
 const auth = reactive({ user: null as { id: string } | null, branches: [] as Tenant[] });
 
-vi.mock('@/lib/supabase', () => ({ supabase: { rpc: mock.rpc } }));
+vi.mock('@/lib/supabase', () => ({ publicSchema: { rpc: mock.rpc } }));
 vi.mock('@/store/auth', () => ({ useAuthStore: () => auth }));
 
 const tenant = (

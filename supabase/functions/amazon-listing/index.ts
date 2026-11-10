@@ -53,6 +53,7 @@ import {
    type ListingState,
    loadListingCell,
    loadSubmission,
+   MARKET_CELL_LISTING_COLUMNS,
    refreshListingStatus,
    setListingState,
    type SubmissionHead,
@@ -80,6 +81,7 @@ import {
    mediaRefs,
    parseSubmission,
    patchListingsItem,
+   PRODUCT_LISTING_COLUMNS,
    type ProductRow,
    providedFor,
    putListingsItem,
@@ -148,7 +150,7 @@ type Run = {
 const loadProduct = async (db: Db, tenantId: string, id: string): Promise<ProductRow> => {
    const { data, error } = await db
       .from('product')
-      .select('*')
+      .select(PRODUCT_LISTING_COLUMNS)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .maybeSingle();
@@ -170,7 +172,7 @@ const loadContext = async (db: Db, tenantId: string, id: string): Promise<CellCo
    if (parent) {
       const { data, error } = await db
          .from('market_cell')
-         .select('*')
+         .select(MARKET_CELL_LISTING_COLUMNS)
          .eq('tenant_id', tenantId)
          .eq('product_id', parent.id)
          .eq('platform_id', 'amazon')
@@ -181,7 +183,7 @@ const loadContext = async (db: Db, tenantId: string, id: string): Promise<CellCo
    }
    const { data: children, error } = await db
       .from('product')
-      .select('*')
+      .select(PRODUCT_LISTING_COLUMNS)
       .eq('tenant_id', tenantId)
       .eq('parent_id', product.id);
    if (error) throw error;
@@ -300,7 +302,7 @@ const beginSubmission = async (
    kind: Database['public']['Enums']['listing_submission_kind'],
    payload: ListingBody | ListingPatch | Record<string, never>
 ) => {
-   const { data, error } = await run.db.rpc('listing_begin_submission', {
+   const { data, error } = await run.db.schema('public').rpc('listing_begin_submission', {
       p_cell_id: ctx.cell.id,
       p_kind: kind,
       p_payload: payload as unknown as Json
@@ -447,7 +449,7 @@ const publishCell = async (run: Run, id: string, asParent = false): Promise<Publ
 
    // 3. A child needs its parent's cell (created when missing) and the parent listed first (R7).
    if (ctx.parent && !asParent) {
-      const { data: parentCellId, error } = await run.db.rpc('listing_parent_cell', {
+      const { data: parentCellId, error } = await run.db.schema('public').rpc('listing_parent_cell', {
          p_cell_id: ctx.cell.id
       });
       if (error) throw error;

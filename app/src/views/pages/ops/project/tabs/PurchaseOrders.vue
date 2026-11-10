@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canInsertFields } from '@/composables/useFieldAccess';
 import { projectResource } from '@/api/project';
 import { DIALOG_POSITIONS } from '@/constants/router';
 
@@ -11,7 +12,10 @@ const { data: project } = projectResource.useOne(() => props.id);
 
 <template>
    <div class="flex flex-col gap-4">
-      <span v-if="project && $can('create', 'purchase_order')" class="flex justify-end">
+      <span
+         v-if="project && $can('create', 'purchase_order') && canInsertFields('purchase_order')"
+         class="flex justify-end"
+      >
          <CustomLink
             :to="{
                name: 'ops-purchase-order-manage',

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDialogRef } from '@/composables/useDialogRef';
+import { useFieldAccess } from '@/composables/useFieldAccess';
 import {
    PRODUCT_TO_S10,
    mapS10Rows,
@@ -18,6 +19,7 @@ const PREVIEW_ROWS = 20;
 const { t } = useI18n();
 const toast = useToast();
 const dialogRef = useDialogRef();
+const fieldAccess = useFieldAccess('product');
 const { mutateAsync: importProducts, isPending } = useImportProducts();
 
 const fileName = ref<string | null>(null);
@@ -40,7 +42,7 @@ const onSelect = async ({ files }: FileUploadSelectEvent) => {
    const file = ([] as File[]).concat(files)[0];
    if (!file) return;
    const { header, rows: cells } = parseCsv(await readText(file));
-   const mapped = mapS10Rows(header, cells);
+   const mapped = mapS10Rows(header, cells, fieldAccess);
    fileName.value = file.name;
    rows.value = mapped.rows;
    warnings.value = mapped.warnings;

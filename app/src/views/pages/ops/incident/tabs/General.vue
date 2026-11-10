@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    INCIDENT_ENTITY_TYPES,
    INCIDENT_FAMILIES,
@@ -16,6 +17,9 @@ import { DIALOG_POSITIONS } from '@/constants/router';
 import { useAbility } from '@casl/vue';
 import dayjs from 'dayjs';
 import { injectIncidentForm } from '../useIncidentForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('incident');
 
 // S17 A and B in the card's shared form. Opening (the first 15 minutes): the customer and the
 // family (on a new incident only), the Y10 card, severity, what happened and what was done at
@@ -211,6 +215,7 @@ const rolledBackGates = computed(() => row.value?.project_gate ?? []);
       </FormField>
       <FormField
          v-for="field in TEXT_FIELDS"
+         :field="field"
          :key="field"
          class="!flex-auto !max-w-none w-full"
          fluid
@@ -280,6 +285,7 @@ const rolledBackGates = computed(() => row.value?.project_gate ?? []);
          />
       </FormField>
       <FormField
+         field="affected_parties"
          fluid
          :label="$t('ops.incident.fields.affected_parties')"
          :error="errors.affected_parties"

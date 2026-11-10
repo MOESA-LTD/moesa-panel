@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatAmount, type PurchaseOrderCardLine } from '@/api/purchaseOrder';
+import { canInsertFields, useFieldAccess } from '@/composables/useFieldAccess';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import {
    injectPurchaseOrderForm,
@@ -24,6 +25,9 @@ const specMissing = computed(() => new Set(overview.value?.spec_missing_line_ids
 
 const specVersion = (line: PurchaseOrderCardLine) =>
    `v${String(line.spec_document?.version ?? 0).padStart(2, '0')}`;
+
+// A user without the cost fields sees the lines without their prices.
+const lineAccess = useFieldAccess('purchase_order_line');
 </script>
 
 <template>
@@ -32,7 +36,12 @@ const specVersion = (line: PurchaseOrderCardLine) =>
          <span class="flex items-center justify-between gap-4">
             <span class="font-semibold">{{ $t('ops.purchase_order.tabs.lines') }}</span>
             <CustomLink
-               v-if="orderId && !locked && $can('create', 'purchase_order_line')"
+               v-if="
+                  orderId &&
+                  !locked &&
+                  $can('create', 'purchase_order_line') &&
+                  canInsertFields('purchase_order_line')
+               "
                :to="{
                   name: 'ops-purchase-order-line-add',
                   params: { purchaseOrderId: orderId },
@@ -54,10 +63,16 @@ const specVersion = (line: PurchaseOrderCardLine) =>
          <template #body="{ data }">{{ data.product?.display_name }}</template>
       </Column>
       <Column field="quantity" :header="$t('ops.purchase_order.fields.quantity')" />
-      <Column :header="$t('ops.purchase_order.fields.unit_price')">
+      <Column
+         v-if="lineAccess.canRead('unit_price')"
+         :header="$t('ops.purchase_order.fields.unit_price')"
+      >
          <template #body="{ data }">{{ data.unit_price }} {{ currency }}</template>
       </Column>
-      <Column :header="$t('ops.purchase_order.fields.line_total')">
+      <Column
+         v-if="lineAccess.canRead('line_total')"
+         :header="$t('ops.purchase_order.fields.line_total')"
+      >
          <template #body="{ data }">{{ formatAmount(data.line_total, currency) }}</template>
       </Column>
       <Column :header="$t('ops.purchase_order.fields.spec_document')">

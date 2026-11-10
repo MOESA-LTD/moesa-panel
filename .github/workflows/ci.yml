@@ -75,6 +75,25 @@ jobs:
             - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
             - run: supabase test db
 
+            # The field-security attack suite over real HTTP (local PostgREST, GoTrue, Storage); the
+            # Edge Function case skips itself here (edge-runtime is not started). Keys stay in env.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.x
+            - name: HTTP attack suite
+              run: |
+                  eval "$(supabase status -o env | sed 's/^/export /')"
+                  cd supabase/functions && deno task test:http
+
+            # The generated masked-field list (app/src/@types/maskedFields.generated.ts) against
+            # public.field_class, in the database container (docker exec, as locally).
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - run: node --test scripts/masked-fields.test.mjs
+              env:
+                  MASKED_FIELDS_REQUIRE_DB: '1'
+
     # Cloudflare Pages previews read the staging project (moesa-panel-staging). After a pull
     # request's database tests pass, staging is rebuilt from that branch's migrations and seed,
     # so the newest preview and its database match. Older previews are not kept working.
@@ -100,6 +119,14 @@ jobs:
 
             - run: sed -i 's/^\[inbucket\]/[local_smtp]/' supabase/config.toml
             - run: supabase link --project-ref "$STAGING_PROJECT_REF"
+            # The app reads and writes through the `api` schema (064 closes `public` to users), so
+            # PostgREST on staging must expose it before the reset applies the cutover.
+            - name: Expose the api schema on staging
+              run: >-
+                  curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+                  -H 'Content-Type: application/json'
+                  "https://api.supabase.com/v1/projects/$STAGING_PROJECT_REF/postgrest"
+                  --data '{"db_schema":"public,api"}'
             - run: supabase db reset --linked --yes
 
             # The Edge Functions of this branch, so the preview calls the same code it was built with.

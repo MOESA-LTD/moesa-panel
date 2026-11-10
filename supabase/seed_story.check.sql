@@ -171,6 +171,7 @@ VALUES
     ('media_link', 'entity_type', 'exempt', 'media links go to products, orders, shipments and change requests'),
     ('permission', 'command', 'exempt', 'reference data, not tenant rows'),
     ('permission', 'kind', 'exempt', 'reference data, not tenant rows'),
+    ('field_class', 'class', 'exempt', 'reference data, not tenant rows'),
     ('customer_platform_account', 'api_connection', 'exempt', 'revoked comes only from Amazon (invalid_grant)'),
     ('listing_submission', 'kind', 'exempt', 'API-driven; the story holds create'),
     ('listing_submission', 'status', 'exempt', 'API-driven; the story holds done, invalid and processing');
@@ -294,12 +295,15 @@ WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o WHERE o.id = ('5eed0005-
 -- m7.spec_cited: every story line whose product has a signed or approved spec sheet cites one (the draft's MOP40-4P line has none to cite)
 SELECT 'm7.spec_cited', o.id FROM public.purchase_order_line l JOIN public.purchase_order o ON o.id = l.purchase_order_id
 WHERE o.id::TEXT LIKE '5eed0005-%' AND l.spec_document_id IS NULL AND EXISTS (SELECT 1 FROM public.product_evidence e WHERE e.product_id = l.product_id AND e.has_signed_spec);
--- m7.pi_approved: every story order from pi_approved on has an approved PI document of its own, 30 "ok" items, a checker in the past and PI figures equal to the recalculated ones
+-- m7.pi_approved: every story order from pi_approved on has an approved PI document of its own, 30 "ok" items, a checker in the past and PI figures equal to the recalculated ones.
+-- The recalculated figures read through the api views (058), which mask cost for a session without a user: the check runs as baris (owner of MOESA LTD), then the claims are cleared.
+DO $$ BEGIN PERFORM pg_temp.act_as('baris@moesa-panel.test', 'MOESA LTD'); END $$;
 SELECT 'm7.pi_approved', o.id FROM public.purchase_order_overview o
 LEFT JOIN public.document d ON d.id = o.pi_document_id AND d.type = 'pi' AND d.status = 'approved' AND d.entity_type = 'purchase_order' AND d.entity_id = o.id
 WHERE o.id::TEXT LIKE '5eed0005-%' AND o.status >= 'pi_approved' AND o.status <> 'cancelled'
   AND (d.id IS NULL OR (SELECT count(*) FROM jsonb_each(o.pi_check) e WHERE e.value = '"ok"'::JSONB) <> 30 OR o.pi_checked_by IS NULL OR o.pi_checked_at > now() - interval '2 days'
        OR ROW(o.pi_subtotal, o.pi_total, o.pi_deposit_amount, o.pi_balance_amount) IS DISTINCT FROM ROW(o.system_subtotal, o.system_total, o.system_deposit, o.system_balance));
+DO $$ BEGIN PERFORM set_config('request.jwt.claims', '', TRUE); PERFORM set_config('request.headers', '', TRUE); END $$;
 -- m7.pi_checker: baris checked the reorder's PI thirteen days ago (two days' margin); the differing PI is still a draft, unchecked
 SELECT 'm7.pi_checker' WHERE NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.user u ON u.id = o.pi_checked_by WHERE o.id = '5eed0005-0000-4000-8000-000000000004' AND u.email = 'baris@moesa-panel.test' AND o.pi_checked_at BETWEEN now() - interval '15 days' AND now() - interval '11 days')
    OR NOT EXISTS (SELECT 1 FROM public.purchase_order o JOIN public.document d ON d.id = o.pi_document_id WHERE o.id = '5eed0005-0000-4000-8000-000000000003' AND d.status = 'draft' AND o.pi_checked_at IS NULL);
@@ -706,4 +710,28 @@ SELECT 'm22.fr_issue' WHERE NOT EXISTS (SELECT 1 FROM public.market_cell c JOIN 
    WHERE c.id = '5eed0007-0000-4000-8000-000000000002' AND c.open_issue LIKE 'Amazon: %' AND s.issues @> '[{"code": "90220"}]' AND s.issues @> '[{"code": "90000900"}]');
 -- m22.status_untouched: R2, the business status of the step 07 DE and NL cells did not move
 SELECT 'm22.status_untouched', id FROM public.market_cell WHERE id IN ('5eed0007-0000-4000-8000-000000000001','5eed0007-0000-4000-8000-000000000005') AND status NOT IN ('live','suppressed');
+-- Field permissions (Task 21): what THO's portal user and koordinator read through the api views.
+-- Each block runs as that user in MOESA LTD (role authenticated, RLS and masking on), then RESET ROLE
+-- and private.unimpersonate() go back to postgres without a request.
+DO $$ BEGIN PERFORM private.impersonate((SELECT id FROM public.user WHERE email = 'portal@moesa-panel.test'), pg_temp.moesa()); END $$;
+-- fp.portal_no_cost: the portal reads THO's products without the purchase price
+SELECT 'fp.portal_no_cost' WHERE EXISTS (SELECT 1 FROM api.product p JOIN api.customer c ON c.id = p.customer_id WHERE c.code = 'THO' AND p.purchase_price IS NOT NULL);
+-- fp.portal_sell_price: but with the sell price
+SELECT 'fp.portal_sell_price' WHERE NOT EXISTS (SELECT 1 FROM api.product p JOIN api.customer c ON c.id = p.customer_id WHERE c.code = 'THO' AND p.company_price_eur IS NOT NULL);
+-- fp.portal_contract: THO's contract terms without the restricted drive URL
+SELECT 'fp.portal_contract' WHERE NOT EXISTS (SELECT 1 FROM api.customer WHERE code = 'THO' AND deposit_rate IS NOT NULL AND restricted_drive_url IS NULL);
+-- fp.portal_no_pi: no proforma invoice reaches the portal
+SELECT 'fp.portal_no_pi' WHERE EXISTS (SELECT 1 FROM api.document WHERE type = 'pi');
+-- fp.portal_no_supplier: nor any supplier
+SELECT 'fp.portal_no_supplier' WHERE EXISTS (SELECT 1 FROM api.supplier);
+RESET ROLE;
+DO $$ BEGIN PERFORM private.unimpersonate(); END $$;
+DO $$ BEGIN PERFORM private.impersonate((SELECT id FROM public.user WHERE email = 'koordinator@moesa-panel.test'), pg_temp.moesa()); END $$;
+-- fp.coordinator_reads_terms: koordinator reads supplier payment terms
+SELECT 'fp.coordinator_reads_terms' WHERE NOT EXISTS (SELECT 1 FROM api.supplier WHERE payment_terms IS NOT NULL);
+-- fp.coordinator_terms_readonly: and its role reads them without writing them
+SELECT 'fp.coordinator_terms_readonly' WHERE NOT EXISTS (SELECT 1 FROM api.role_field_permission rfp JOIN api.role r ON r.id = rfp.role_id
+   WHERE r.display_name = 'coordinator' AND rfp.resource_name = 'public.supplier' AND rfp.field = 'payment_terms' AND rfp.can_read AND NOT rfp.can_write);
+RESET ROLE;
+DO $$ BEGIN PERFORM private.unimpersonate(); END $$;
 ROLLBACK;

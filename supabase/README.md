@@ -253,6 +253,23 @@ in the SQL editor: a working poll answers 200 with `{"polled":…}`.
 Deploy the four functions with
 `supabase functions deploy amazon-schema amazon-auth amazon-listing amazon-poll`.
 
+### Field-level permissions (064)
+
+Migrations 048–065 move every user-side read and write to the masked views in the `api` schema,
+and 064 revokes anon's and authenticated's grants on every `public` table and view. From then on
+a signed-in request that names `public` gets 42501. The service role keeps its grants. To ship it:
+
+1. Set Dashboard → Settings → API → Exposed schemas to `public, api`, in that order, or send the
+   same PATCH that CI sends to staging:
+   `curl -fsS -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' "https://api.supabase.com/v1/projects/<ref>/postgrest" --data '{"db_schema":"public,api"}'`.
+   The order matters: the first schema is the default profile, the one a request without
+   `Accept-Profile` reads, so `public` must stay first.
+2. `supabase db push` for 048–065, in one go.
+3. `supabase functions deploy` immediately after the push, never before: the new functions read
+   through `api`, which does not exist until the push.
+4. Deploy the app in the same window and reload open tabs: a stale bundle still asks for `public`
+   and gets 42501 (the app reloads itself once on that error).
+
 ### Schedules (pg_cron + pg_net)
 
 Migration 047 schedules `amazon-poll` (every 10 minutes) and `amazon-schema-refresh` (daily at

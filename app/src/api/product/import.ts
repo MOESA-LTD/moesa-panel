@@ -1,7 +1,7 @@
 import { forTenant } from '@/api/formTenant';
 import type { ImportError, ProductImportRow } from '@/api/product/csv';
 import { invalidateTables } from '@/api/queryKeys';
-import { supabase } from '@/lib/supabase';
+import { publicSchema } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
@@ -21,7 +21,7 @@ export function useImportProducts() {
    return useMutation({
       mutationFn: async (rows: ProductImportRow[]) => {
          const { data } = await forTenant(
-            supabase.rpc('import_products', { rows: rows as Json }),
+            publicSchema.rpc('import_products', { rows: rows as Json }),
             authStore.currentTenant?.id
          ).throwOnError();
          return data as ImportResult;

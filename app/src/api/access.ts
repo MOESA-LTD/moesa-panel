@@ -1,5 +1,7 @@
-import type { PermissionClaim } from '@plugins/casl';
-import { supabase } from '@/lib/supabase';
+import type { FieldRight, PermissionClaim } from '@plugins/casl';
+
+export type { FieldRight };
+import { publicSchema } from '@/lib/supabase';
 
 export type Tenant = {
    id: string;
@@ -12,6 +14,8 @@ export type Tenant = {
    owned?: boolean;
    /** The user's permissions in it. */
    permissions?: PermissionClaim[];
+   /** The user's field rights in it, when given (else those of `Access.fields` for the active one). */
+   fields?: FieldRight[];
 };
 
 /** The limits of a plan (a missing one is unlimited), see public.plan_limit. */
@@ -49,6 +53,8 @@ export type Access = {
    tenant_id: string | null;
    tenants: Tenant[];
    permissions: PermissionClaim[];
+   /** The user's right on each sensitive field in the active tenant (public.field_class). */
+   fields: FieldRight[];
    subscription: SubscriptionSummary | null;
    is_super_admin: boolean;
 };
@@ -59,6 +65,8 @@ export type Access = {
  * user does not belong to it (any more).
  */
 export async function fetchAccess(requested: string | null): Promise<Access | null> {
-   const { data } = await supabase.rpc('my_access', requested ? { requested } : {}).throwOnError();
+   const { data } = await publicSchema
+      .rpc('my_access', requested ? { requested } : {})
+      .throwOnError();
    return data as Access | null;
 }

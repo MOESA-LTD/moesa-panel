@@ -66,10 +66,12 @@ SELECT is(
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
 
 SELECT throws_ok(
-    $$ INSERT INTO public.transfer (tenant_id, source_tenant_id, customer_id, mode, path, started_by, report)
+    $$ INSERT INTO api.transfer (tenant_id, source_tenant_id, customer_id, mode, path, started_by, report)
        VALUES (current_setting('test.moesa')::UUID, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
                'copy', 'copy', current_setting('test.akif')::UUID, '{}') $$,
-    '42501',
+    -- Through api the read-only view refuses the insert before any privilege check: it joins the rights
+    -- subquery (053), so it is not auto-updatable, and it has no INSTEAD OF trigger.
+    '55000',
     NULL,
     'a user cannot insert a transfer row'
 );
@@ -118,7 +120,7 @@ SELECT set_config('audit.transaction_id', '', TRUE);
 
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
 
-INSERT INTO public.customer (tenant_id, code, display_name, commercial_model)
+INSERT INTO api.customer (tenant_id, code, display_name, commercial_model)
 VALUES (current_setting('test.moesa')::UUID, 'ZZT', 'Zed Transfer', 'trading_partner');
 
 SELECT set_config('test.tx1', current_setting('audit.transaction_id'), TRUE);
@@ -163,7 +165,7 @@ RESET ROLE;
 -- Another company sees none of them.
 SELECT private.impersonate(current_setting('test.ali')::UUID, current_setting('test.nova')::UUID);
 
-SELECT is((SELECT count(*) FROM public.transfer), 0::BIGINT, 'another company sees no transfer');
+SELECT is((SELECT count(*) FROM api.transfer), 0::BIGINT, 'another company sees no transfer');
 
 RESET ROLE;
 

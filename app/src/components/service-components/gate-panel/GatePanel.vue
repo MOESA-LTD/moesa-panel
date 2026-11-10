@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import type { DocumentRow } from '@/api/document';
 import { glossaryKey } from '@/api/glossary';
 import { stripTerms } from '@/constants/terms';
@@ -18,6 +19,9 @@ import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import dayjs from 'dayjs';
 import { useToast } from 'primevue/usetoast';
+
+// A gate's note is internal (internal_note): hidden or read-only without its field right.
+provideFieldAccess('project_gate');
 
 // One gate of a project: its decision, its evidence documents, and passing or rolling it back
 // (through an incident).
@@ -291,7 +295,12 @@ const formatDate = (value: string | null, format = 'YYYY-MM-DD') =>
                   display="chip"
                />
             </FormField>
-            <FormField fluid :label="$t('ops.project.gate_panel.note')" v-slot="slotProps">
+            <FormField
+               field="note"
+               fluid
+               :label="$t('ops.project.gate_panel.note')"
+               v-slot="slotProps"
+            >
                <Textarea v-bind="slotProps" v-model="pass.note" auto-resize rows="3" />
             </FormField>
             <span class="flex justify-end gap-2">

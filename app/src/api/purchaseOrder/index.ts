@@ -6,7 +6,14 @@ import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { updateRow } from '@/api/saveRow';
 import { useTenantKey } from '@/api/useTenantKey';
 import { allValues } from '@/lib/enumValues';
-import { dateOnly, optional, parseDateOnly, required, requiredText } from '@/lib/form/fields';
+import {
+   dateOnly,
+   optional,
+   parseDateOnly,
+   required,
+   requiredText,
+   sensitive
+} from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import i18n from '@plugins/i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -161,20 +168,19 @@ export const isPurchaseOrderLocked = (status: PurchaseOrderStatus) =>
 
 /**
  * Where the order may go (rule 1 of purchase_order_guard): the next step, then cancelled. Without a
- * deposit (rate 0) pi_approved goes straight to in_production. Closed and cancelled are final.
+ * deposit (rate 0) pi_approved goes straight to in_production; when the rate is masked (null) both
+ * are offered and the database refuses the wrong one. Closed and cancelled are final.
  */
 export function nextPurchaseOrderStatuses({
    status,
    deposit_rate
 }: Pick<PurchaseOrderRow, 'status' | 'deposit_rate'>): PurchaseOrderStatus[] {
    if (status === 'closed' || status === 'cancelled') return [];
-   const next: PurchaseOrderStatus =
-      status === 'pi_approved'
-         ? deposit_rate > 0
-            ? 'deposit_paid'
-            : 'in_production'
-         : PURCHASE_ORDER_STATUSES[statusIndex(status) + 1]!;
-   return [next, 'cancelled'];
+   if (status !== 'pi_approved') {
+      return [PURCHASE_ORDER_STATUSES[statusIndex(status) + 1]!, 'cancelled'];
+   }
+   if (deposit_rate === null) return ['deposit_paid', 'in_production', 'cancelled'];
+   return [deposit_rate > 0 ? 'deposit_paid' : 'in_production', 'cancelled'];
 }
 
 /** All 30 PI check items are "ok", as approving the PI requires (po_pi_checklist_incomplete). */
@@ -210,7 +216,7 @@ export const supplierDefaults = ({
 export const PURCHASE_ORDER_SELECT = [
    '*',
    'customer!purchase_order_customer_fkey(code, display_name)',
-   'supplier!purchase_order_supplier_fkey(code, display_name, default_incoterm, deposit_rate)',
+   'supplier(code, display_name, default_incoterm, deposit_rate)',
    'project!purchase_order_project_fkey(code, display_name)',
    'purchase_order_line!purchase_order_line_po_fkey(*, product!purchase_order_line_product_fkey(id, sku, display_name, status, purchase_price, purchase_currency), spec_document:document!purchase_order_line_spec_fkey(id, version, status))',
    'purchase_order_payment!purchase_order_payment_po_fkey(*)'
@@ -276,30 +282,36 @@ const currency = () =>
    z.string().regex(/^[A-Z]{3}$/, { error: () => i18n.t('form.invalid_value') });
 const percent = () => z.number().min(0).max(100);
 
+const T_PO = 'purchase_order';
+
 export const purchaseOrderSchema = z.object({
    id: z.string().optional(),
    customer_id: required(z.uuid()),
-   supplier_id: required(z.uuid()),
+   supplier_id: sensitive(T_PO, 'supplier_id', required(z.uuid())),
    project_id: optional(z.uuid()),
    packing_instruction_document_id: optional(z.uuid()),
-   pi_document_id: optional(z.uuid()),
+   pi_document_id: sensitive(T_PO, 'pi_document_id', optional(z.uuid())),
    currency: currency(),
    // required(): a new order's form starts without one.
-   incoterm: required(z.enum(INCOTERMS)),
+   incoterm: sensitive(T_PO, 'incoterm', required(z.enum(INCOTERMS))),
    incoterm_place: text(),
    penalty_rule: text(),
    pi_number: text(),
    notes: text(),
-   deposit_rate: required(percent()),
+   deposit_rate: sensitive(T_PO, 'deposit_rate', required(percent())),
    ready_on: optional(dateOnly()),
-   tolerance_pct: optional(percent()),
+   tolerance_pct: sensitive(T_PO, 'tolerance_pct', optional(percent())),
    pi_subtotal: optional(z.number()),
    pi_total: optional(z.number()),
    pi_deposit_amount: optional(z.number()),
    pi_balance_amount: optional(z.number()),
-   pi_extra_amount: z.number().default(0),
-   pi_discount_amount: z.number().min(0).default(0),
-   pi_check: z.partialRecord(z.enum(PI_CHECK_KEYS), z.enum(PI_CHECK_STATUSES)).default({})
+   pi_extra_amount: sensitive(T_PO, 'pi_extra_amount', z.number().default(0)),
+   pi_discount_amount: sensitive(T_PO, 'pi_discount_amount', z.number().min(0).default(0)),
+   pi_check: sensitive(
+      T_PO,
+      'pi_check',
+      z.partialRecord(z.enum(PI_CHECK_KEYS), z.enum(PI_CHECK_STATUSES)).default({})
+   )
 });
 
 export type PurchaseOrderFormValues = z.input<typeof purchaseOrderSchema>;
@@ -450,7 +462,7 @@ export const purchaseOrderLineSchema = z.object({
    purchase_order_id: required(z.uuid()),
    product_id: required(z.uuid()),
    quantity: required(z.number().int().min(1)),
-   unit_price: required(z.number().min(0)),
+   unit_price: sensitive('purchase_order_line', 'unit_price', required(z.number().min(0))),
    pi_line_total: optional(z.number()),
    spec_document_id: optional(z.uuid()),
    position: z.number().int().min(0),
@@ -510,8 +522,8 @@ export const purchaseOrderPaymentSchema = z.object({
    id: z.string().optional(),
    purchase_order_id: required(z.uuid()),
    kind: z.enum(PAYMENT_KINDS),
-   amount: required(z.number().positive()),
-   currency: currency(),
+   amount: sensitive('purchase_order_payment', 'amount', required(z.number().positive())),
+   currency: sensitive('purchase_order_payment', 'currency', currency()),
    planned_on: optional(dateOnly()),
    paid_on: optional(dateOnly()),
    paid_by: z.enum(PAYMENT_PAYERS),

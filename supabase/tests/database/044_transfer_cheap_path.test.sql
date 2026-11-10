@@ -34,10 +34,10 @@ SELECT set_config('test.g1', (
 -- an order of THO from TR1 (…021) with a line of 10 mops (…022), on a shipment (…023) through the
 -- link row (no id) with a shipment line (…024).
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000044001', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate',
         current_setting('test.g1')::UUID, 'gate_approval', 'approved', 'https://example.test/G1.pdf');
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
 SELECT public.pass_gate(current_setting('test.g1')::UUID, 'brief ok', current_date, '00000000-0000-4000-8000-000000044001');
 RESET ROLE;
 
@@ -55,20 +55,20 @@ VALUES ('00000000-0000-4000-8000-000000044011', current_setting('test.moesa')::U
         current_setting('test.moesa') || '/00000000-0000-4000-8000-000000044012/shared.pdf', NULL, 'shared.pdf', 'application/pdf', 1000);
 
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id, role)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000044011', 'product', current_setting('test.mop')::UUID, 'primary_image');
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, media_id)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, media_id)
 VALUES ('00000000-0000-4000-8000-000000044013', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'customer',
         current_setting('test.tho')::UUID, 'other', 'draft', '00000000-0000-4000-8000-000000044012');
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
 VALUES ('00000000-0000-4000-8000-000000044021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
         current_setting('test.tr1')::UUID, 'USD');
-INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+INSERT INTO api.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
 VALUES ('00000000-0000-4000-8000-000000044022', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000044021',
         current_setting('test.mop')::UUID, 10, 2);
-INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+INSERT INTO api.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 SELECT '00000000-0000-4000-8000-000000044023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road', w.id
-FROM public.customer_warehouse w WHERE w.customer_id = current_setting('test.tho')::UUID AND w.display_name = 'Rosbach';
+FROM api.customer_warehouse w WHERE w.customer_id = current_setting('test.tho')::UUID AND w.display_name = 'Rosbach';
 
 RESET ROLE;
 SELECT set_config('moesa.rules_bypass', '1', TRUE);
@@ -153,6 +153,9 @@ BEGIN
     RETURN seen;
 END;
 $$;
+-- Europe's TR1 is set up as postgres without a request (S2): akif's claims, left by RESET ROLE,
+-- would apply the field write guard to it.
+SELECT private.unimpersonate();
 SELECT set_config('test.mapped_tr1', pg_temp.move_with_mapped_tr1()::TEXT, TRUE);
 
 -- 18 (run before the move, checked last). In an exception block, the company's size cap lowered to

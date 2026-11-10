@@ -2,7 +2,7 @@ import { forTenant } from '@/api/formTenant';
 import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { useTenantKey } from '@/api/useTenantKey';
 import { email, requiredText } from '@/lib/form/fields';
-import { supabase } from '@/lib/supabase';
+import { publicSchema, supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import * as z from 'zod';
@@ -56,15 +56,24 @@ export const userRepository = {
       const { data } = await forTenant(
          supabase
             .from('user')
-            // tenant_owner: RLS keeps the current tenant's row, so it says whether they own it.
-            .select(`*, role(*), tenant_owner(tenant_id), ${USER_ACCESS}`)
+            // Roles through the link table: across the `api` views the many-to-many embed is
+            // ambiguous. tenant_owner: RLS keeps the current tenant's row, so it says whether
+            // they own it.
+            .select(`*, user_role(role(*)), tenant_owner(tenant_id), ${USER_ACCESS}`)
             .eq('id', id)
             .abortSignal(signal),
          tenantId
       )
          .maybeSingle()
          .throwOnError();
-      return data as UserWithRoles | null;
+      if (!data) return null;
+      const { user_role, ...user } = data as unknown as Omit<UserWithRoles, 'role'> & {
+         user_role: { role: Role | null }[];
+      };
+      return {
+         ...user,
+         role: (user_role ?? []).flatMap(({ role }) => (role ? [role] : []))
+      } as UserWithRoles;
    },
 
    /** Updates a member, or invites a new one to the current tenant. */
@@ -81,7 +90,7 @@ export const userRepository = {
       // read, the others' roles would be visible to it, and removed.
       if (roleIds) {
          await forTenant(
-            supabase.rpc('set_user_roles', { user_id: userId, role_ids: roleIds }),
+            publicSchema.rpc('set_user_roles', { user_id: userId, role_ids: roleIds }),
             tenantId
          ).throwOnError();
       }

@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { needsCustomerApproval, useNewerDocumentOptions } from '@/api/changeRequest';
 import { useMemberOptions } from '@/api/project';
 import { useEntityDocumentOptions } from '@/api/purchaseOrder';
 import { injectChangeRequestForm, useChangeRequestGates } from '../useChangeRequestForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('change_request');
 
 // S08 E in the card's shared form. the company's approval is the database's (who moved the request to
 // approved, and when). A request that touches a passed (M) gate also needs the customer's written
@@ -134,6 +138,7 @@ const resultOptions = useNewerDocumentOptions(affectedDocument);
       </template>
 
       <FormField
+         field="decision_note"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.change_request.fields.decision_note')"

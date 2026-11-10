@@ -24,8 +24,8 @@ SELECT is(
      LEFT JOIN (public.user_role ur JOIN public.role r ON r.id = ur.role_id)
          ON ur.user_id = tu.user_id AND r.tenant_id = tu.tenant_id
      WHERE tu.tenant_id = current_setting('test.tenant_id')::UUID),
-    'akif@moesa-panel.test:management,baris@moesa-panel.test:owner,koordinator@moesa-panel.test:coordinator',
-    'MOESA LTD has its owner, a management member and a coordinator'
+    'akif@moesa-panel.test:management,baris@moesa-panel.test:owner,koordinator@moesa-panel.test:coordinator,portal@moesa-panel.test:customer_viewer',
+    'MOESA LTD has its owner, a management member, a coordinator and a portal user'
 );
 
 -- Management: everything of the business modules.
@@ -35,22 +35,22 @@ SELECT private.impersonate(
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.product p
-     JOIN public.customer c ON c.id = p.customer_id
+    (SELECT count(*)::INT FROM api.product p
+     JOIN api.customer c ON c.id = p.customer_id
      WHERE c.code = 'THO' AND p.status = 'on_sale'),
     3,
     'management sees the three THOMETZKI products'
 );
 
 SELECT is(
-    (SELECT string_agg(e.sku || ':' || e.has_signed_spec, ',' ORDER BY e.sku) FROM public.product_evidence e),
+    (SELECT string_agg(e.sku || ':' || e.has_signed_spec, ',' ORDER BY e.sku) FROM api.product_evidence e),
     'THO-CONES-100:false,THO-MOP40-2P:true,THO-TIPS-6-50:false',
     'only THO-MOP40-2P has a signed spec sheet'
 );
 
 SELECT is(
-    (SELECT string_agg(d.gate_code::TEXT, ',') FROM public.dashboard_gate_pending d
-     JOIN public.project p ON p.id = d.project_id
+    (SELECT string_agg(d.gate_code::TEXT, ',') FROM api.dashboard_gate_pending d
+     JOIN api.project p ON p.id = d.project_id
      WHERE p.display_name = 'Mop ailesi çok ülke pilotu'),
     'G1',
     'the pilot project waits on G1 on the dashboard'
@@ -58,19 +58,19 @@ SELECT is(
 
 SELECT is(
     (SELECT d.customer_code || ':' || d.active_sku_count || ':' || d.signed_spec_count
-     FROM public.dashboard_product_evidence d),
+     FROM api.dashboard_product_evidence d),
     'THO:3:1',
     'the dashboard shows THOMETZKI with 3 active SKUs, 1 with a signed spec sheet'
 );
 
 SELECT is(
-    (SELECT string_agg(s.code, ',' ORDER BY s.code) FROM public.supplier s WHERE s.status = 'approved'),
+    (SELECT string_agg(s.code, ',' ORDER BY s.code) FROM api.supplier s WHERE s.status = 'approved'),
     'CN1,CN2,ID1,TR1,TR2',
     'the five approved suppliers'
 );
 
 SELECT lives_ok(
-    $$ UPDATE public.setting SET value = value WHERE key = 'management_gates' $$,
+    $$ UPDATE api.setting SET value = value WHERE key = 'management_gates' $$,
     'management may change the settings'
 );
 
@@ -118,13 +118,13 @@ SELECT private.impersonate(
 );
 
 SELECT cmp_ok(
-    (SELECT count(*)::INT FROM public.setting s WHERE s.tenant_id = current_setting('test.tenant_id')::UUID),
+    (SELECT count(*)::INT FROM api.setting s WHERE s.tenant_id = current_setting('test.tenant_id')::UUID),
     '>', 0,
     'the coordinator reads the settings'
 );
 
 SELECT throws_ok(
-    $$ UPDATE public.setting SET value = value WHERE key = 'management_gates' $$,
+    $$ UPDATE api.setting SET value = value WHERE key = 'management_gates' $$,
     '42501',
     NULL,
     'the coordinator cannot change the settings'
@@ -133,7 +133,7 @@ SELECT throws_ok(
 -- Branch management is not the coordinator's: the company's details stay read-only, and a branch
 -- cannot be opened by a direct insert either (branches are opened by public.create_branch, owners only).
 SELECT throws_ok(
-    $$ UPDATE public.tenant SET display_name = display_name WHERE id = current_setting('test.tenant_id')::UUID $$,
+    $$ UPDATE api.tenant SET display_name = display_name WHERE id = current_setting('test.tenant_id')::UUID $$,
     '42501',
     NULL,
     'the coordinator cannot change the company or its branches'
@@ -147,12 +147,12 @@ SELECT throws_ok(
 );
 
 SELECT lives_ok(
-    $$ UPDATE public.project SET notes = 'Koordinatör notu' WHERE display_name = 'Mop ailesi çok ülke pilotu' $$,
+    $$ UPDATE api.project SET notes = 'Koordinatör notu' WHERE display_name = 'Mop ailesi çok ülke pilotu' $$,
     'the coordinator writes the projects'
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.project p WHERE p.notes = 'Koordinatör notu'),
+    (SELECT count(*)::INT FROM api.project p WHERE p.notes = 'Koordinatör notu'),
     1,
     'the coordinator''s change is there'
 );

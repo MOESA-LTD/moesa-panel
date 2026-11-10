@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    COMMERCIAL_MODELS,
    CUSTOMER_STATUSES,
@@ -12,6 +13,9 @@ import {
 import { useUpsertForm } from '@/composables/useUpsertForm';
 import { useAbility } from '@casl/vue';
 import ContractDocumentSelect from '../ContractDocumentSelect.vue';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('customer');
 
 const props = defineProps<{ id?: string | null }>();
 const emit = defineEmits<{ saved: [customer: CustomerRow] }>();
@@ -155,6 +159,7 @@ const contractLocked = (field: string) =>
             />
          </FormField>
          <FormField
+            field="deposit_rate"
             fluid
             :label="$t('ops.customer.fields.deposit_rate')"
             :error="errors.deposit_rate"
@@ -176,6 +181,7 @@ const contractLocked = (field: string) =>
       <FormBox :legend="$t('ops.customer.sections.contract')" class="!flex-auto">
          <FormField
             v-for="date in DATES"
+            :field="date"
             :key="date"
             fluid
             :label="$t(`ops.customer.fields.${date}`)"
@@ -194,6 +200,7 @@ const contractLocked = (field: string) =>
          </FormField>
          <!-- A new customer has no documents yet. -->
          <FormField
+            field="contract_document_id"
             v-if="id"
             fluid
             :label="$t('ops.customer.fields.contract_document_id')"
@@ -209,6 +216,7 @@ const contractLocked = (field: string) =>
             />
          </FormField>
          <FormField
+            field="restricted_drive_url"
             fluid
             :label="$t('ops.customer.fields.restricted_drive_url')"
             :error="errors.restricted_drive_url"
@@ -223,6 +231,7 @@ const contractLocked = (field: string) =>
          </FormField>
          <FormField
             v-for="term in TERMS"
+            :field="term"
             :key="term"
             class="!flex-auto !max-w-none w-full"
             fluid
@@ -242,6 +251,7 @@ const contractLocked = (field: string) =>
       </FormBox>
 
       <FormField
+         field="notes"
          class="!flex-auto !max-w-none w-full"
          fluid
          :label="$t('ops.customer.fields.notes')"

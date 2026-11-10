@@ -64,7 +64,7 @@ const dialogRef = useDialogRef();
       v-bind="attrs"
       :stateKey
       from="role"
-      select="*, permission(id, kind, group_name, resource_name)"
+      select="*"
       :columns
       :rowActions
       v-model:filters="filters"

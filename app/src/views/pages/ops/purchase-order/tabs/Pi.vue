@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess, useFieldAccess } from '@/composables/useFieldAccess';
 import { useMemberOptions } from '@/api/project';
 import {
    PI_CHECK_KEYS,
@@ -21,6 +22,10 @@ import {
    purchaseOrderPiCheck,
    useOrderLocked
 } from '../usePurchaseOrderForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+const fieldAccess = provideFieldAccess('purchase_order');
+const lineAccess = useFieldAccess('purchase_order_line');
 
 // The S09 PI check, in the card's shared form: the PI document and its figures, the 30-item
 // checklist, and the recalculation against them, live as they are typed. Each line's PI total is
@@ -155,6 +160,7 @@ const checkedAt = computed(() => {
          :draft
       >
          <FormField
+            field="pi_document_id"
             fluid
             :label="$t('ops.purchase_order.fields.pi_document')"
             term="PI"
@@ -174,6 +180,7 @@ const checkedAt = computed(() => {
             />
          </FormField>
          <FormField
+            field="pi_number"
             fluid
             :label="$t('ops.purchase_order.fields.pi_number')"
             term="PI"
@@ -190,6 +197,7 @@ const checkedAt = computed(() => {
          </FormField>
          <FormField
             v-for="[field, key] in FIGURES"
+            :field="field"
             :key="field"
             fluid
             :label="$t(`ops.purchase_order.pi.${key}`)"
@@ -209,7 +217,7 @@ const checkedAt = computed(() => {
             />
          </FormField>
 
-         <div class="w-full" data-test="pi-checklist">
+         <div v-if="fieldAccess.canRead('pi_check')" class="w-full" data-test="pi-checklist">
             <div class="mb-2 flex items-center gap-2">
                <span class="font-semibold">
                   <TermText :text="markLabel($t('ops.purchase_order.pi.checklist'), 'S09')" />
@@ -234,7 +242,7 @@ const checkedAt = computed(() => {
                   option-value="value"
                   option-label="label"
                   size="small"
-                  :disabled="fixed"
+                  :disabled="fixed || !fieldAccess.canWrite('pi_check')"
                />
             </div>
          </div>
@@ -249,13 +257,23 @@ const checkedAt = computed(() => {
          <Column :header="$t('ops.purchase_order.fields.sku')">
             <template #body="{ data }">{{ data.product?.sku }}</template>
          </Column>
-         <Column :header="$t('ops.purchase_order.fields.line_total')">
+         <Column
+            v-if="lineAccess.canRead('line_total')"
+            :header="$t('ops.purchase_order.fields.line_total')"
+         >
             <template #body="{ data }">{{ formatAmount(data.line_total, currency) }}</template>
          </Column>
-         <Column :header="$t('ops.purchase_order.fields.pi_line_total')">
+         <Column
+            v-if="lineAccess.canRead('pi_line_total')"
+            :header="$t('ops.purchase_order.fields.pi_line_total')"
+         >
             <template #body="{ data }">
                <InputNumber
-                  v-if="canEditLines && $can('modify', 'purchase_order_line')"
+                  v-if="
+                     canEditLines &&
+                     $can('modify', 'purchase_order_line') &&
+                     lineAccess.canWrite('pi_line_total')
+                  "
                   v-model="lineTotals[data.id]"
                   :data-line-total="data.id"
                   :minFractionDigits="2"

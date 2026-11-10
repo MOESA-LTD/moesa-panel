@@ -7,6 +7,7 @@ import {
 } from '@/api/purchaseOrder';
 import { toUnits } from '@/api/purchaseOrder/figures';
 import { invalidateTables } from '@/api/queryKeys';
+import { canInsertFields, useFieldAccess } from '@/composables/useFieldAccess';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import { appErrorHandler } from '@/lib/appErrorHandler';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -63,6 +64,7 @@ const depositDiffers = (payment: PurchaseOrderPaymentRow) => {
       payment.kind === 'deposit' &&
       deposit !== null &&
       deposit !== undefined &&
+      payment.amount !== null &&
       toUnits(payment.amount, 2) !== toUnits(deposit, 2)
    );
 };
@@ -89,6 +91,10 @@ const plan = async () => {
       await invalidateTables(queryClient, ['purchase_order_payment']);
    }
 };
+
+// The amounts a user may not read stay out; recording a payment needs them writable (a
+// coordinator may only read them, see canInsertFields).
+const paymentAccess = useFieldAccess('purchase_order_payment');
 </script>
 
 <template>
@@ -98,7 +104,11 @@ const plan = async () => {
             <span class="font-semibold">{{ $t('ops.purchase_order.tabs.payments') }}</span>
             <span v-if="orderId && open" class="flex gap-2">
                <Button
-                  v-if="suggestions.length && $can('create', 'purchase_order_payment')"
+                  v-if="
+                     suggestions.length &&
+                     $can('create', 'purchase_order_payment') &&
+                     canInsertFields('purchase_order_payment')
+                  "
                   data-test="plan-payments"
                   variant="outlined"
                   :label="$t('ops.purchase_order.plan_payments')"
@@ -106,7 +116,10 @@ const plan = async () => {
                   @click="plan"
                />
                <CustomLink
-                  v-if="$can('create', 'purchase_order_payment')"
+                  v-if="
+                     $can('create', 'purchase_order_payment') &&
+                     canInsertFields('purchase_order_payment')
+                  "
                   :to="{
                      name: 'ops-purchase-order-payment-add',
                      params: { purchaseOrderId: orderId },
@@ -134,7 +147,10 @@ const plan = async () => {
             </span>
          </template>
       </Column>
-      <Column :header="$t('ops.purchase_order.payment.fields.amount')">
+      <Column
+         v-if="paymentAccess.canRead('amount')"
+         :header="$t('ops.purchase_order.payment.fields.amount')"
+      >
          <template #body="{ data }">{{ formatAmount(data.amount, data.currency) }}</template>
       </Column>
       <Column field="planned_on" :header="$t('ops.purchase_order.payment.fields.planned_on')" />
@@ -144,7 +160,11 @@ const plan = async () => {
             {{ $t(`ops.purchase_order.payment.payer.${data.paid_by}`) }}
          </template>
       </Column>
-      <Column field="notes" :header="$t('ops.purchase_order.fields.notes')" />
+      <Column
+         v-if="paymentAccess.canRead('notes')"
+         field="notes"
+         :header="$t('ops.purchase_order.fields.notes')"
+      />
       <Column v-if="open && $can('modify', 'purchase_order_payment')">
          <template #body="{ data }">
             <CustomLink

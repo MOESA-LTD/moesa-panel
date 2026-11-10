@@ -29,6 +29,14 @@ const { values, errors, isDirty, isSubmitting, readonly, reset, save, ready, dra
       lockRow: (role) => !role.tenant_id
    });
 await ready;
+
+// save_role checks the rights it adds in the role's own tenant, while the ability is the active
+// tenant's: a role of another tenant cannot have its field rights changed from here.
+const { data: roleRow } = useRole(() => props.id);
+const foreignTenant = computed(() => {
+   const tenant = roleRow.value?.tenant_id;
+   return !!tenant && tenant !== useAuthStore().currentTenant?.id;
+});
 </script>
 
 <template>
@@ -56,6 +64,20 @@ await ready;
             v-slot="slotProps"
          >
             <SelectPermissions v-bind="slotProps" v-model="values.permission" />
+         </FormField>
+         <FormField
+            class="!flex-auto !max-w-none w-full"
+            fluid
+            :label="$t('component.select_field_permission.label')"
+            :readonly
+            :error="errors.field_rights"
+            v-slot="slotProps"
+         >
+            <SelectFieldPermissions
+               v-bind="slotProps"
+               v-model="values.field_rights"
+               :foreign-tenant
+            />
          </FormField>
       </FormBox>
    </div>

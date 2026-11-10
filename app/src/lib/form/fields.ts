@@ -1,3 +1,4 @@
+import { isFieldWriteForbidden } from '@plugins/casl';
 import i18n from '@plugins/i18n';
 import dayjs from 'dayjs';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -66,3 +67,18 @@ export const dateOnly = () =>
 
 /** Parses a stored YYYY-MM-DD as a local date for DatePicker. */
 export const parseDateOnly = (value?: string | null) => (value ? dayjs(value).toDate() : null);
+
+/**
+ * A sensitive field (public.field_class): validated by `schema` while the user may write it; else
+ * it is masked (null) or read-only, taken as it comes and left out by saveRow.
+ */
+export const sensitive = <S extends z.ZodType>(table: string, field: string, schema: S) =>
+   z.custom<z.input<S> | null | undefined>().transform((value, ctx) => {
+      if (isFieldWriteForbidden(table, field)) return value as z.output<S> | null;
+      const result = schema.safeParse(value);
+      if (result.success) return result.data as z.output<S> | null;
+      for (const { message, path } of result.error.issues) {
+         ctx.addIssue({ code: 'custom', message, path });
+      }
+      return z.NEVER;
+   });

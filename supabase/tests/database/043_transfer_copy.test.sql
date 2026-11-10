@@ -52,10 +52,10 @@ INSERT INTO public.supplier_contact (id, tenant_id, supplier_id, name)
 VALUES ('00000000-0000-4000-8000-000000043001', current_setting('test.moesa')::UUID, current_setting('test.tr1')::UUID, 'Kutlu satış');
 
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
 VALUES ('00000000-0000-4000-8000-000000043002', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
         current_setting('test.tr1')::UUID, 'USD');
-INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+INSERT INTO api.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
 VALUES ('00000000-0000-4000-8000-000000043003', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043002',
         current_setting('test.mop')::UUID, 10, 2);
 RESET ROLE;
@@ -93,12 +93,12 @@ VALUES ('00000000-0000-4000-8000-000000043011', current_setting('test.moesa')::U
         current_setting('test.moesa') || '/00000000-0000-4000-8000-000000043012/shared.png', NULL, 'shared.png', 'image/png', 1000);
 
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id, role)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043011', 'product', current_setting('test.mop')::UUID, 'primary_image'),
        (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'product', current_setting('test.cones')::UUID, 'primary_image'),
        (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043012', 'market_cell', '00000000-0000-4000-8000-000000043006', 'primary_image');
 -- A shipment of THO to Rosbach (…005).
-INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+INSERT INTO api.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 VALUES ('00000000-0000-4000-8000-000000043005', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road',
         current_setting('test.rosbach')::UUID);
 
@@ -236,7 +236,7 @@ RESET ROLE;
 
 -- 21. The next THO project made in Europe takes the next number.
 SELECT private.impersonate(current_setting('test.akif')::UUID, current_setting('test.europe')::UUID);
-INSERT INTO public.project (tenant_id, customer_id, display_name, type, path)
+INSERT INTO api.project (tenant_id, customer_id, display_name, type, path)
 VALUES (current_setting('test.europe')::UUID, (current_setting('test.r')::JSONB ->> 'target_customer_id')::UUID,
         'Europa projesi', 'npi', 'a_sourcing');
 RESET ROLE;
@@ -483,17 +483,17 @@ RESET ROLE;
 -- affected document is the mop's spec sheet and whose result is a THO change request document (…025).
 -- Also the order on THO's shipment with a shipment line (…026), checked in case 70.
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000043021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate',
-        (SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'gate_approval',
+        (SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'gate_approval',
         'approved', 'https://example.test/G1.pdf');
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
-SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'),
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'),
                         'brief ok', current_date, '00000000-0000-4000-8000-000000043021');
-INSERT INTO public.incident (id, tenant_id, customer_id, family, severity, title, what_happened)
+INSERT INTO api.incident (id, tenant_id, customer_id, family, severity, title, what_happened)
 VALUES ('00000000-0000-4000-8000-000000043023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'om', 's3',
         'Old issue', 'Closed long ago.');
-INSERT INTO public.change_request (id, tenant_id, customer_id, project_id, title, source, change_kinds, current_value, requested_value,
+INSERT INTO api.change_request (id, tenant_id, customer_id, project_id, title, source, change_kinds, current_value, requested_value,
                                    reason, affected_gate_code, affected_document_id)
 VALUES ('00000000-0000-4000-8000-000000043024', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID,
         current_setting('test.pilot')::UUID, 'Tolerance 3 mm', 'supplier', ARRAY['spec']::public.change_kind[], 'Tolerance ± 5 mm',
@@ -656,13 +656,13 @@ SELECT is(
 -- Trading: the variant goes with P1; the customer, its contract and its file are copied and stay.
 -- Then P3, on an order line of ZPM, is refused.
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model)
 VALUES ('00000000-0000-4000-8000-000000043040', current_setting('test.moesa')::UUID, 'ZPM', 'Zed Products', 'trading_partner');
-INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name, parent_id)
+INSERT INTO api.product (id, tenant_id, customer_id, sku, display_name, parent_id)
 VALUES ('00000000-0000-4000-8000-000000043041', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-1', 'Zed lamp', NULL),
        ('00000000-0000-4000-8000-000000043043', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-2', 'Zed shade', NULL),
        ('00000000-0000-4000-8000-000000043044', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-3', 'Zed bulb', NULL);
-INSERT INTO public.product (id, tenant_id, customer_id, sku, display_name, parent_id)
+INSERT INTO api.product (id, tenant_id, customer_id, sku, display_name, parent_id)
 VALUES ('00000000-0000-4000-8000-000000043042', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040', 'ZPM-1-RED',
         'Zed lamp red', '00000000-0000-4000-8000-000000043041');
 RESET ROLE;
@@ -682,7 +682,7 @@ VALUES ('00000000-0000-4000-8000-000000043045', current_setting('test.moesa')::U
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.media_link (tenant_id, media_id, entity_type, entity_id, role)
+INSERT INTO api.media_link (tenant_id, media_id, entity_type, entity_id, role)
 VALUES (current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043045', 'product', '00000000-0000-4000-8000-000000043041',
         'primary_image');
 
@@ -750,10 +750,10 @@ SELECT is(
 
 -- 68–69. A product on an order line of the customer is not moved, and nothing is deleted.
 SELECT private.impersonate(current_setting('test.baris')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, currency)
 VALUES ('00000000-0000-4000-8000-000000043048', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043040',
         current_setting('test.tr1')::UUID, 'USD');
-INSERT INTO public.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
+INSERT INTO api.purchase_order_line (id, tenant_id, purchase_order_id, product_id, quantity, unit_price)
 VALUES ('00000000-0000-4000-8000-000000043049', current_setting('test.moesa')::UUID, '00000000-0000-4000-8000-000000043048',
         '00000000-0000-4000-8000-000000043044', 1, 1);
 SELECT set_config('test.h6', pg_temp.move_products(ARRAY['00000000-0000-4000-8000-000000043044'::UUID]) ->> 'report_hash', TRUE);

@@ -176,6 +176,14 @@ Deno.test('the manufacturer article number is the model and the part number', ()
    assertEquals(sources.part_number, 'product.manufacturer_art_no');
 });
 
+Deno.test('a masked (NULL) manufacturer article number derives no model or part number', () => {
+   // Through api.product the number is NULL for a caller without supplier_identity.
+   const { attributes, sources } = derive({ manufacturer_art_no: null });
+   assertEquals(attributes.model_number, undefined);
+   assertEquals(attributes.part_number, undefined);
+   assertEquals(sources.model_number, undefined);
+});
+
 Deno.test('a product that is not hazmat declares no dangerous goods regulation', () => {
    assertEquals(derive({ is_hazmat: false }).attributes.supplier_declared_dg_hz_regulation, [
       { value: 'not_applicable', ...at }

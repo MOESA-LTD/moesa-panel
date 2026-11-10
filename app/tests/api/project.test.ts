@@ -17,7 +17,7 @@ import { defineComponent, h } from 'vue';
 const rpc = vi.hoisted(() =>
    vi.fn(() => ({ throwOnError: () => Promise.resolve({ data: null, error: null }) }))
 );
-vi.mock('@/lib/supabase', () => ({ supabase: { rpc } }));
+vi.mock('@/lib/supabase', () => ({ supabase: { rpc }, publicSchema: { rpc } }));
 
 const CUSTOMER = '6f1c2b0e-8f4a-4d6e-9a51-2b7c3d4e5f60';
 

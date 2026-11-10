@@ -60,4 +60,25 @@ describe('LogChangesCard', () => {
 
       expect(wrapper.text()).toContain('B');
    });
+
+   it('shows a masked value as "changed", never as its JSON marker', () => {
+      const wrapper = mountCard(
+         row({
+            operation: 'UPDATE',
+            old_data: { notes: { masked: true }, supplier_id: { masked: true }, title: 'A' },
+            new_data: { notes: { masked: true }, supplier_id: { masked: true }, title: 'B' }
+         })
+      );
+
+      expect(wrapper.text()).toContain(en.audit_log.masked);
+      expect(wrapper.text()).not.toMatch(/masked/);
+      // A masked link has no id to open.
+      expect(wrapper.findAll('.audit_card__change-item a')).toHaveLength(0);
+   });
+
+   it('shows a masked value of an inserted row as "changed"', () => {
+      const wrapper = mountCard(row({ new_data: { cost_amount: { masked: true } } }));
+      expect(wrapper.text()).toContain(en.audit_log.masked);
+      expect(wrapper.text()).not.toMatch(/masked/);
+   });
 });

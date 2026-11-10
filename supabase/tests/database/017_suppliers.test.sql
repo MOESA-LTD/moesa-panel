@@ -24,7 +24,7 @@ SELECT private.impersonate(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.supplier (tenant_id, code, display_name, country)
+        INSERT INTO api.supplier (tenant_id, code, display_name, country)
         VALUES (current_setting('test.tenant_id')::UUID, 'cn1', 'Lowercase', 'China')
     $$,
     '23514',
@@ -32,15 +32,15 @@ SELECT throws_ok(
     'a code is two capital letters and one to three digits'
 );
 
-INSERT INTO public.supplier (id, tenant_id, code, display_name, country)
+INSERT INTO api.supplier (id, tenant_id, code, display_name, country)
 VALUES ('00000000-0000-4000-8000-000000000172', current_setting('test.tenant_id')::UUID, 'CN1', 'Atlas Supplier', 'China');
 
-INSERT INTO public.supplier_contact (tenant_id, supplier_id, name, email, is_primary)
+INSERT INTO api.supplier_contact (tenant_id, supplier_id, name, email, is_primary)
 VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000172', 'Li Wei', 'li@example.test', TRUE);
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.supplier (tenant_id, code, display_name, country)
+        INSERT INTO api.supplier (tenant_id, code, display_name, country)
         VALUES (current_setting('test.tenant_id')::UUID, 'CN1', 'Duplicate', 'China')
     $$,
     '23505',
@@ -51,7 +51,7 @@ SELECT throws_ok(
 -- Now that suppliers exist, a document's supplier must exist in the document's tenant.
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, entity_type, entity_id, type, url)
+        INSERT INTO api.document (tenant_id, entity_type, entity_id, type, url)
         VALUES (current_setting('test.tenant_id')::UUID, 'supplier', gen_random_uuid(), 'contract',
                 'https://example.test/contract.pdf')
     $$,
@@ -62,7 +62,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.document (tenant_id, entity_type, entity_id, type, url)
+        INSERT INTO api.document (tenant_id, entity_type, entity_id, type, url)
         VALUES (current_setting('test.tenant_id')::UUID, 'supplier', '00000000-0000-4000-8000-000000000171', 'contract',
                 'https://example.test/contract.pdf')
     $$,
@@ -73,7 +73,7 @@ SELECT throws_ok(
 
 SELECT lives_ok(
     $$
-        INSERT INTO public.document (tenant_id, entity_type, entity_id, type, url)
+        INSERT INTO api.document (tenant_id, entity_type, entity_id, type, url)
         VALUES (current_setting('test.tenant_id')::UUID, 'supplier', '00000000-0000-4000-8000-000000000172', 'contract',
                 'https://example.test/contract.pdf')
     $$,
@@ -82,7 +82,7 @@ SELECT lives_ok(
 
 SELECT throws_ok(
     $$
-        INSERT INTO public.supplier_contact (tenant_id, supplier_id, name)
+        INSERT INTO api.supplier_contact (tenant_id, supplier_id, name)
         VALUES (current_setting('test.tenant_id')::UUID, '00000000-0000-4000-8000-000000000171', 'Intruder')
     $$,
     '23503',
@@ -91,15 +91,15 @@ SELECT throws_ok(
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.supplier s
-     JOIN public.supplier_contact c ON c.supplier_id = s.id
+    (SELECT count(*)::INT FROM api.supplier s
+     JOIN api.supplier_contact c ON c.supplier_id = s.id
      WHERE s.code = 'CN1' AND s.tenant_id = current_setting('test.tenant_id')::UUID),
     1,
     'Atlas sees its own CN1 and its contact'
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.supplier WHERE id = '00000000-0000-4000-8000-000000000171'),
+    (SELECT count(*)::INT FROM api.supplier WHERE id = '00000000-0000-4000-8000-000000000171'),
     0,
     'another tenant''s supplier is not visible'
 );
@@ -113,7 +113,7 @@ SELECT private.impersonate(
 );
 
 SELECT is(
-    (SELECT count(*)::INT FROM public.supplier_contact WHERE supplier_id = '00000000-0000-4000-8000-000000000172'),
+    (SELECT count(*)::INT FROM api.supplier_contact WHERE supplier_id = '00000000-0000-4000-8000-000000000172'),
     0,
     'another tenant does not see the contacts'
 );

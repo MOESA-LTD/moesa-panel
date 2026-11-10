@@ -26,22 +26,22 @@ FROM (VALUES
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
 -- Gate approvals (G1, G2, G3, G5), and G1 and G2 passed the real way.
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
-SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate', (SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = x.code::public.gate_code),
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+SELECT x.id, current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate', (SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = x.code::public.gate_code),
        'gate_approval', 'approved', 'https://example.test/' || x.code || '.pdf'
 FROM (VALUES ('00000000-0000-4000-8000-000000032011'::UUID, 'G1'), ('00000000-0000-4000-8000-000000032012', 'G2'), ('00000000-0000-4000-8000-000000032013', 'G3'), ('00000000-0000-4000-8000-000000032015', 'G5')) AS x (id, code);
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
-SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief ok', current_date, '00000000-0000-4000-8000-000000032011');
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
-SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G2'), 'spec ok', current_date, '00000000-0000-4000-8000-000000032012');
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief ok', current_date, '00000000-0000-4000-8000-000000032011');
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G2'), 'spec ok', current_date, '00000000-0000-4000-8000-000000032012');
 
 -- Orders: P (the pilot's, PI approved), P2 (the pilot's, only sent), Q (no project); a shipment of P.
-INSERT INTO public.purchase_order (id, tenant_id, customer_id, supplier_id, project_id, currency)
+INSERT INTO api.purchase_order (id, tenant_id, customer_id, supplier_id, project_id, currency)
 VALUES ('00000000-0000-4000-8000-000000032021', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, current_setting('test.pilot')::UUID, 'USD'), ('00000000-0000-4000-8000-000000032022', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, current_setting('test.pilot')::UUID, 'USD'),
        ('00000000-0000-4000-8000-000000032023', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, current_setting('test.tr1')::UUID, NULL, 'USD');
-INSERT INTO public.purchase_order_line (tenant_id, purchase_order_id, product_id, quantity, unit_price)
+INSERT INTO api.purchase_order_line (tenant_id, purchase_order_id, product_id, quantity, unit_price)
 SELECT current_setting('test.moesa')::UUID, x.id, current_setting('test.mop')::UUID, 10, 1 FROM (VALUES ('00000000-0000-4000-8000-000000032021'::UUID), ('00000000-0000-4000-8000-000000032022'), ('00000000-0000-4000-8000-000000032023')) AS x (id);
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, url)
 VALUES ('00000000-0000-4000-8000-000000032031', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'purchase_order', '00000000-0000-4000-8000-000000032021', 'pi', 'https://example.test/pi-p.pdf'),
        ('00000000-0000-4000-8000-000000032032', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'purchase_order', '00000000-0000-4000-8000-000000032022', 'pi', 'https://example.test/pi-p2.pdf'),
        ('00000000-0000-4000-8000-000000032033', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'purchase_order', '00000000-0000-4000-8000-000000032023', 'pi', 'https://example.test/pi-q.pdf');
@@ -51,27 +51,27 @@ UPDATE public.purchase_order SET pi_document_id = '00000000-0000-4000-8000-00000
 UPDATE public.purchase_order SET pi_document_id = '00000000-0000-4000-8000-000000032032', status = 'sent' WHERE id = '00000000-0000-4000-8000-000000032022';
 SELECT set_config('moesa.rules_bypass', '', TRUE);
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
-INSERT INTO public.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
+INSERT INTO api.shipment (id, tenant_id, customer_id, mode, delivery_warehouse_id)
 VALUES ('00000000-0000-4000-8000-000000032041', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'road', current_setting('test.rosbach')::UUID);
-INSERT INTO public.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id) VALUES ('00000000-0000-4000-8000-000000032041', '00000000-0000-4000-8000-000000032021', current_setting('test.moesa')::UUID);
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO api.shipment_purchase_order (shipment_id, purchase_order_id, tenant_id) VALUES ('00000000-0000-4000-8000-000000032041', '00000000-0000-4000-8000-000000032021', current_setting('test.moesa')::UUID);
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000032042', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'shipment', '00000000-0000-4000-8000-000000032041', 'delivery_receipt', 'approved', 'https://example.test/receipt.pdf');
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
 
-SELECT throws_ok($$ SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G3'), 'PI ok', current_date, '00000000-0000-4000-8000-000000032013', ARRAY['00000000-0000-4000-8000-000000032033']::UUID[]) $$,
+SELECT throws_ok($$ SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G3'), 'PI ok', current_date, '00000000-0000-4000-8000-000000032013', ARRAY['00000000-0000-4000-8000-000000032033']::UUID[]) $$,
                  '23514', 'gate_evidence_invalid', 'another project''s PI is not evidence');
-SELECT throws_ok($$ SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G3'), 'PI ok', current_date, '00000000-0000-4000-8000-000000032013', ARRAY['00000000-0000-4000-8000-000000032032']::UUID[]) $$,
+SELECT throws_ok($$ SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G3'), 'PI ok', current_date, '00000000-0000-4000-8000-000000032013', ARRAY['00000000-0000-4000-8000-000000032032']::UUID[]) $$,
                  '23514', 'gate_pi_required', 'G3 needs an approved PI');
-SELECT lives_ok($$ SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G3'), 'PI ok', current_date, '00000000-0000-4000-8000-000000032013', ARRAY['00000000-0000-4000-8000-000000032031']::UUID[]) $$,
+SELECT lives_ok($$ SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G3'), 'PI ok', current_date, '00000000-0000-4000-8000-000000032013', ARRAY['00000000-0000-4000-8000-000000032031']::UUID[]) $$,
                 'the project''s approved PO PI passes G3');
 
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
-SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G4'), 'PSI ok');
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G4'), 'PSI ok');
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
 
-SELECT lives_ok($$ SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G5'), 'delivered', current_date, '00000000-0000-4000-8000-000000032015', ARRAY['00000000-0000-4000-8000-000000032042']::UUID[]) $$,
+SELECT lives_ok($$ SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G5'), 'delivered', current_date, '00000000-0000-4000-8000-000000032015', ARRAY['00000000-0000-4000-8000-000000032042']::UUID[]) $$,
                 'the shipment''s delivery receipt is G5 evidence');
-SELECT is((SELECT current_phase FROM public.project WHERE id = current_setting('test.pilot')::UUID), 'L1'::public.project_phase,
+SELECT is((SELECT current_phase FROM api.project WHERE id = current_setting('test.pilot')::UUID), 'L1'::public.project_phase,
           'the project still advances as before');
 
 SELECT * FROM finish();

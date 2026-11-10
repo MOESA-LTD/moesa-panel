@@ -1,5 +1,5 @@
 import { invalidateTables, type TableName } from '@/api/queryKeys';
-import { supabase } from '@/lib/supabase';
+import { publicSchema } from '@/lib/supabase';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 /**
@@ -11,7 +11,7 @@ export function useRevertAuditTransaction() {
 
    return useMutation({
       mutationFn: async (transactionId: string) => {
-         const { data } = await supabase
+         const { data } = await publicSchema
             .rpc('revert_audit_transaction', { transaction_id: transactionId })
             .throwOnError();
          return data;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canInsertFields } from '@/composables/useFieldAccess';
 import type { IncidentLogRow } from '@/api/incident';
 import { DIALOG_POSITIONS } from '@/constants/router';
 import dayjs from 'dayjs';
@@ -25,7 +26,12 @@ const time = (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm');
       <span class="flex items-center justify-between gap-4">
          <span class="font-semibold">{{ $t('ops.incident.tabs.log') }}</span>
          <CustomLink
-            v-if="incidentId && !closed && $can('create', 'incident_log')"
+            v-if="
+               incidentId &&
+               !closed &&
+               $can('create', 'incident_log') &&
+               canInsertFields('incident_log')
+            "
             :to="{
                name: 'ops-incident-log-add',
                params: { incidentId },

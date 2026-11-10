@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const auth = { currentTenant: { id: 'tenant-a' }, scopeTenants: [{ id: 'tenant-a' }] };
 vi.mock('@/store/auth', () => ({ useAuthStore: () => auth }));
 
-const { supabase } = await import('@/lib/supabase');
+const { supabase, publicSchema } = await import('@/lib/supabase');
 
 describe('customFetch', () => {
    const fetchMock = vi.fn();
@@ -42,7 +42,23 @@ describe('customFetch', () => {
    });
 
    it('leaves an rpc body alone', async () => {
-      await supabase.rpc('rollback_gate' as never, { gate_id: 'g' } as never);
+      await publicSchema.rpc('rollback_gate' as never, { gate_id: 'g' } as never);
       expect(sentBody()).toEqual({ gate_id: 'g' });
+   });
+
+   const sentHeaders = () => new Headers(fetchMock.mock.calls[0][1].headers);
+
+   it('sends table requests with Accept-Profile api', async () => {
+      fetchMock.mockResolvedValue(new Response('[]', { status: 200 }));
+      await supabase.from('product').select('id');
+      expect(String(fetchMock.mock.calls[0][0])).toContain('/rest/v1/product');
+      expect(sentHeaders().get('Accept-Profile')).toBe('api');
+   });
+
+   it('sends RPCs to the public schema', async () => {
+      fetchMock.mockResolvedValue(new Response('null', { status: 200 }));
+      await publicSchema.rpc('my_access', {});
+      expect(String(fetchMock.mock.calls[0][0])).toContain('/rest/v1/rpc/my_access');
+      expect(sentHeaders().get('Content-Profile')).toBe('public');
    });
 });

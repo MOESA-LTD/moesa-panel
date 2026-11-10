@@ -4,7 +4,14 @@ import { invalidateTables, queryKeys } from '@/api/queryKeys';
 import { updateRow } from '@/api/saveRow';
 import { useTenantKey } from '@/api/useTenantKey';
 import { allValues } from '@/lib/enumValues';
-import { dateOnly, optional, parseDateOnly, required, requiredText } from '@/lib/form/fields';
+import {
+   dateOnly,
+   optional,
+   parseDateOnly,
+   required,
+   requiredText,
+   sensitive
+} from '@/lib/form/fields';
 import { supabase } from '@/lib/supabase';
 import i18n from '@plugins/i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -429,7 +436,11 @@ export const incidentSchema = z
       entity_type: optional(z.enum(INCIDENT_ENTITY_TYPES)),
       entity_id: optional(z.uuid()),
       owner_id: optional(z.uuid()),
-      affected_parties: z.array(z.enum(INCIDENT_PARTIES)).default([]),
+      affected_parties: sensitive(
+         'incident',
+         'affected_parties',
+         z.array(z.enum(INCIDENT_PARTIES)).default([])
+      ),
       opened_at: optional(z.date()),
       management_notified_at: optional(z.date()),
       customer_notified_at: optional(z.date()),
@@ -547,7 +558,7 @@ export const incidentLogSchema = z
       id: z.string().optional(),
       incident_id: z.uuid(),
       logged_at: z.date(),
-      note: requiredText(),
+      note: sensitive('incident_log', 'note', requiredText()),
       counterparty: text(),
       decision: text(),
       cost_amount: optional(z.number().min(0)),

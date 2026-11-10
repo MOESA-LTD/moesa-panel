@@ -27,11 +27,11 @@ SELECT set_config('test.phase', (SELECT p::TEXT FROM unnest(enum_range(NULL::pub
 -- G1 of the pilot passed, as in 037.
 SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_setting('test.moesa')::UUID);
 
-INSERT INTO public.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
+INSERT INTO api.document (id, tenant_id, customer_id, entity_type, entity_id, type, status, url)
 VALUES ('00000000-0000-4000-8000-000000041001', current_setting('test.moesa')::UUID, current_setting('test.tho')::UUID, 'project_gate',
-        (SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'gate_approval', 'approved', 'https://example.test/G1.pdf');
-UPDATE public.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
-SELECT public.pass_gate((SELECT id FROM public.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief ok', current_date, '00000000-0000-4000-8000-000000041001');
+        (SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'gate_approval', 'approved', 'https://example.test/G1.pdf');
+UPDATE api.project_task SET status = 'done' WHERE project_id = current_setting('test.pilot')::UUID;
+SELECT public.pass_gate((SELECT id FROM api.project_gate WHERE project_id = current_setting('test.pilot')::UUID AND code = 'G1'), 'brief ok', current_date, '00000000-0000-4000-8000-000000041001');
 
 RESET ROLE;
 
@@ -82,13 +82,14 @@ SELECT private.impersonate(current_setting('test.koordinator')::UUID, current_se
 SELECT set_config('moesa.transfer_id', gen_random_uuid()::TEXT, TRUE);
 
 SELECT throws_like(
-    $$ UPDATE public.project_gate SET passed_at = passed_at - INTERVAL '1 day' WHERE code = 'G1' AND project_id = current_setting('test.pilot')::UUID $$,
+    $$ UPDATE api.project_gate SET passed_at = passed_at - INTERVAL '1 day' WHERE code = 'G1' AND project_id = current_setting('test.pilot')::UUID $$,
     '%gate_not_pending%',
     'a spoofed flag does not unfreeze a passed gate'
 );
 SELECT throws_ok(
-    $$ UPDATE public.project SET code = 'THO-2020-998' WHERE id = current_setting('test.pilot')::UUID $$,
-    '42501', NULL,
+    $$ UPDATE api.project SET code = 'THO-2020-998' WHERE id = current_setting('test.pilot')::UUID $$,
+    -- Through api the forwarder writes as api_owner, so the guard rule itself (not a privilege check) refuses the change.
+    '23514', 'project_code_immutable',
     'a spoofed flag does not let a user change a project code'
 );
 

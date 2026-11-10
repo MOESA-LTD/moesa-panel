@@ -32,8 +32,8 @@ const mock = vi.hoisted(() => ({
    bucket: vi.fn()
 }));
 
-vi.mock('@/lib/supabase', () => ({
-   supabase: {
+vi.mock('@/lib/supabase', () => {
+   const supabase = {
       rpc: (name: string, args: unknown) => {
          mock.rpc(name, args);
          return {
@@ -70,8 +70,9 @@ vi.mock('@/lib/supabase', () => ({
             return { copy: mock.copy, remove: mock.remove };
          }
       }
-   }
-}));
+   };
+   return { supabase, publicSchema: supabase };
+});
 
 vi.mock('@/api/useTenantKey', () => ({ useTenantKey: () => computed(() => 's') }));
 

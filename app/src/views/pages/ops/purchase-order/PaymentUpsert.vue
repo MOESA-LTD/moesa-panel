@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import {
    PAYMENT_KINDS,
    PAYMENT_PAYERS,
@@ -9,6 +10,9 @@ import {
    toPurchaseOrderPaymentPayload
 } from '@/api/purchaseOrder';
 import { useUpsertForm } from '@/composables/useUpsertForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('purchase_order_payment');
 
 // Opened as a dialog from an order's payments: a new payment belongs to the route's order and
 // starts in its currency. Its paid date is what the deposit and balance gates look at.
@@ -76,6 +80,7 @@ const setDate = (field: 'planned_on' | 'paid_on', value: unknown) =>
             />
          </FormField>
          <FormField
+            field="amount"
             fluid
             :label="$t('ops.purchase_order.payment.fields.amount')"
             :error="errors.amount"
@@ -91,6 +96,7 @@ const setDate = (field: 'planned_on' | 'paid_on', value: unknown) =>
             />
          </FormField>
          <FormField
+            field="currency"
             fluid
             :label="$t('ops.purchase_order.fields.currency')"
             :error="errors.currency"
@@ -144,6 +150,7 @@ const setDate = (field: 'planned_on' | 'paid_on', value: unknown) =>
             />
          </FormField>
          <FormField
+            field="notes"
             class="!flex-auto !max-w-none w-full"
             fluid
             :label="$t('ops.purchase_order.fields.notes')"

@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { provideFieldAccess } from '@/composables/useFieldAccess';
 import { INCIDENT_OUTCOMES, INCIDENT_ROOT_CAUSES } from '@/api/incident';
 import { injectIncidentForm } from '../useIncidentForm';
+
+// Hides the fields the user may not read, makes read-only those they may not write.
+provideFieldAccess('incident');
 
 // S17 D in the card's shared form: the outcome, the root cause, the total impact, the lesson and
 // the measure added to the guideline, and when the customer was told of the closure. An incident
@@ -58,6 +62,7 @@ const NOTES = ['root_cause_note', 'impact_note', 'lessons'] as const;
       </FormField>
       <FormField
          v-for="field in NOTES"
+         :field="field"
          :key="field"
          class="!flex-auto !max-w-none w-full"
          fluid

@@ -105,7 +105,7 @@ const stateKey = 'audit_log';
       v-bind="attrs"
       :stateKey
       from="audit_transaction"
-      select="*, actor(*), reverter(*)"
+      select="*, actor(*, display_name), reverter(*, display_name)"
       :model="AuditTransactionModel"
       :columns
       :rowActions

@@ -19,7 +19,7 @@ SELECT private.impersonate(
     current_setting('test.tenant_id')::UUID
 );
 
-INSERT INTO public.customer (id, tenant_id, code, display_name, commercial_model)
+INSERT INTO api.customer (id, tenant_id, code, display_name, commercial_model)
 VALUES ('00000000-0000-4000-8000-000000000401', current_setting('test.tenant_id')::UUID, 'CPR', 'Company Price Trading',
         'trading_partner');
 
@@ -32,7 +32,7 @@ SELECT is(
 );
 
 SELECT is(
-    (SELECT p.company_price_eur FROM public.product_with_evidence p WHERE p.sku = 'CPR-001'),
+    (SELECT p.company_price_eur FROM api.product_with_evidence p WHERE p.sku = 'CPR-001'),
     4.25::NUMERIC,
     'the imported price is in company_price_eur'
 );
